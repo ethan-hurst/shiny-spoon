@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { warehouseSchema } from '@/lib/validations/warehouse'
-import { createWarehouse, updateWarehouse } from '@/app/actions/warehouses'
+import { createWarehouse, updateWarehouse, createWarehouseTyped, updateWarehouseTyped } from '@/app/actions/warehouses'
 import { AddressFields } from './address-fields'
 import { ContactList } from './contact-list'
 import { Button } from '@/components/ui/button'
@@ -60,17 +60,22 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
     setIsSubmitting(true)
     
     try {
-      const formData = new FormData()
-      formData.append('name', values.name)
-      formData.append('code', values.code)
-      formData.append('address', JSON.stringify(values.address))
-      formData.append('contacts', JSON.stringify(values.contacts))
-      formData.append('is_default', values.is_default.toString())
-      formData.append('active', values.active.toString())
-
       const result = warehouse 
-        ? await updateWarehouse(warehouse.id, formData)
-        : await createWarehouse(formData)
+        ? await updateWarehouseTyped(warehouse.id, {
+            name: values.name,
+            address: values.address,
+            contacts: values.contacts,
+            is_default: values.is_default,
+            active: values.active,
+          })
+        : await createWarehouseTyped({
+            name: values.name,
+            code: values.code,
+            address: values.address,
+            contacts: values.contacts,
+            is_default: values.is_default,
+            active: values.active,
+          })
 
       if (result?.error) {
         if (typeof result.error === 'string') {
@@ -80,7 +85,7 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
         }
       } else {
         toast.success(warehouse ? 'Warehouse updated' : 'Warehouse created')
-        router.push('/warehouses')
+        router.push('/dashboard/warehouses')
       }
     } catch (error) {
       toast.error('An unexpected error occurred')

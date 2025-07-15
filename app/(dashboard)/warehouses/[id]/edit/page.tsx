@@ -11,6 +11,12 @@ interface EditWarehousePageProps {
 export default async function EditWarehousePage({ params }: EditWarehousePageProps) {
   const supabase = createClient()
   
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  if (!uuidRegex.test(params.id)) {
+    notFound()
+  }
+  
   // Get current user and organization
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {

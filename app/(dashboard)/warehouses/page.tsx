@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
+import { Address } from '@/types/warehouse.types'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { WarehousesTable } from '@/components/features/warehouses/warehouses-table'
@@ -46,10 +47,10 @@ export default async function WarehousesPage() {
   })) || []
 
   // Get unique states for filter
-  const states = [...new Set(warehouses?.map(w => {
-    const address = w.address as any
+  const states = Array.from(new Set(warehouses?.map(w => {
+    const address = w.address as Address
     return address?.state
-  }).filter(Boolean))] as string[]
+  }).filter(Boolean))) as string[]
 
   return (
     <div className="flex flex-col gap-4">
