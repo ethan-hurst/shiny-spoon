@@ -1,0 +1,131 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Plus, X } from 'lucide-react'
+
+interface CategorySelectProps {
+  value?: string
+  onChange: (value: string) => void
+  disabled?: boolean
+}
+
+export function CategorySelect({ value, onChange, disabled }: CategorySelectProps) {
+  const [categories, setCategories] = useState<string[]>([])
+  const [isAddingNew, setIsAddingNew] = useState(false)
+  const [newCategory, setNewCategory] = useState('')
+  const supabase = createClient()
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .single()
+
+    if (!profile) return
+
+    const { data: products } = await supabase
+      .from('products')
+      .select('category')
+      .eq('organization_id', profile.organization_id)
+      .not('category', 'is', null)
+
+    if (products) {
+      const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
+      setCategories(uniqueCategories.sort())
+    }
+  }
+
+  const handleAddNew = () => {
+    if (newCategory.trim()) {
+      onChange(newCategory.trim())
+      setCategories([...categories, newCategory.trim()].sort())
+      setNewCategory('')
+      setIsAddingNew(false)
+    }
+  }
+
+  if (isAddingNew) {
+    return (
+      <div className="flex gap-2">
+        <Input
+          value={newCategory}
+          onChange={(e) => setNewCategory(e.target.value)}
+          placeholder="New category name"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              handleAddNew()
+            }
+          }}
+          disabled={disabled}
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={handleAddNew}
+          disabled={!newCategory.trim() || disabled}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => {
+            setIsAddingNew(false)
+            setNewCategory('')
+          }}
+          disabled={disabled}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-2">
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger className="flex-1">
+          <SelectValue placeholder="Select a category" />
+        </SelectTrigger>
+        <SelectContent>
+          {categories.map((category) => (
+            <SelectItem key={category} value={category}>
+              {category}
+            </SelectItem>
+          ))}
+          {categories.length === 0 && (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+              No categories yet
+            </div>
+          )}
+        </SelectContent>
+      </Select>
+      <Button
+        type="button"
+        size="icon"
+        variant="outline"
+        onClick={() => setIsAddingNew(true)}
+        disabled={disabled}
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </div>
+  )
+}
