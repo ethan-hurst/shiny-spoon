@@ -13,38 +13,34 @@ We're building a platform that helps B2B companies eliminate costly order errors
 - [Coding Standards](#coding-standards)
 - [Testing Requirements](#testing-requirements)
 - [Pull Request Process](#pull-request-process)
-- [Issue Guidelines](#issue-guidelines)
+- [Supabase Guidelines](#supabase-guidelines)
 - [Documentation](#documentation)
-- [Recognition](#recognition)
 
 ## 🤝 Code of Conduct
 
 We are committed to providing a welcoming and inspiring community for all. Please read and follow our Code of Conduct:
 
-- **Be Respectful**: Treat everyone with respect. No harassment, discrimination, or inappropriate behavior.
-- **Be Collaborative**: Work together to resolve conflicts, assume good intentions.
-- **Be Professional**: Keep discussions focused on the project and constructive.
+- **Be Respectful**: Treat everyone with respect. No harassment or discrimination.
+- **Be Collaborative**: Work together to resolve conflicts constructively.
+- **Be Professional**: Keep discussions focused and productive.
 - **Be Inclusive**: Welcome newcomers and help them get started.
-
-Violations should be reported to: conduct@truthsource.io
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
 Before you begin, ensure you have:
-- Node.js 18+ installed
-- PostgreSQL 14+ running locally
-- Redis 6+ for caching
+- Node.js 18+ and pnpm installed
+- A Supabase account (free tier is fine)
 - Git configured with your GitHub account
-- Your favorite code editor (we recommend VS Code)
+- VS Code with recommended extensions (see `.vscode/extensions.json`)
 
 ### Understanding TruthSource
 
 Before diving into code:
 1. Read the [README.md](README.md) for project overview
 2. Review [ARCHITECTURE.md](ARCHITECTURE.md) for system design
-3. Check [.ai/context.md](.ai/context.md) for coding patterns
+3. Check [CLAUDE.md](CLAUDE.md) for AI assistant context
 4. Browse [open issues](https://github.com/truthsource/truthsource/issues) for ideas
 
 ## 💻 Development Setup
@@ -61,11 +57,11 @@ git remote add upstream https://github.com/truthsource/truthsource.git
 ### 2. Install Dependencies
 
 ```bash
-# Install Node dependencies
-npm install
+# We use pnpm for faster installs
+pnpm install
 
-# Install pre-commit hooks
-npm run prepare
+# Install Supabase CLI globally
+npm install -g supabase
 ```
 
 ### 3. Environment Setup
@@ -74,167 +70,229 @@ npm run prepare
 # Copy environment template
 cp .env.example .env.local
 
-# Edit .env.local with your local settings:
-# DATABASE_URL=postgresql://user:pass@localhost:5432/truthsource_dev
-# REDIS_URL=redis://localhost:6379
-# JWT_SECRET=local-development-secret
+# Edit .env.local with your Supabase project details:
+# NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 ### 4. Database Setup
 
 ```bash
-# Run migrations
-npm run db:migrate
+# Start Supabase locally (optional but recommended)
+pnpm supabase start
+
+# This will output your local Supabase credentials
+# Update .env.local with these local credentials for development
+
+# Apply database migrations
+pnpm supabase db push
+
+# Generate TypeScript types from your schema
+pnpm db:generate-types
 
 # Seed development data
-npm run db:seed
+pnpm db:seed
 ```
 
 ### 5. Start Development Server
 
 ```bash
-# Start all services
-npm run dev
+# Start Next.js development server
+pnpm dev
 
-# Or start services individually:
-npm run dev:api    # API server only
-npm run dev:web    # Web dashboard only
-npm run dev:worker # Background workers only
+# In another terminal, start Supabase Edge Functions (if needed)
+pnpm supabase functions serve
 ```
 
 ### 6. Verify Setup
 
 ```bash
-# Run tests to ensure everything works
-npm test
+# Run type checking
+pnpm typecheck
 
-# Check the API
-curl http://localhost:3000/health
+# Run linting
+pnpm lint
 
-# Access the dashboard
-open http://localhost:3001
+# Run tests
+pnpm test
+
+# Access the app
+open http://localhost:3000
 ```
 
 ## 🤔 How to Contribute
 
 ### Finding Something to Work On
 
-1. **Good First Issues**: Look for issues labeled [`good first issue`](https://github.com/truthsource/truthsource/labels/good%20first%20issue)
-2. **Help Wanted**: Check [`help wanted`](https://github.com/truthsource/truthsource/labels/help%20wanted) labels
-3. **Documentation**: Always needed and appreciated
-4. **Tests**: Improve test coverage
-5. **Performance**: Profile and optimize slow code
+1. **Good First Issues**: Look for [`good first issue`](https://github.com/truthsource/truthsource/labels/good%20first%20issue) labels
+2. **Documentation**: Always needed and appreciated
+3. **Tests**: Improve test coverage (aim for 80%+)
+4. **Performance**: Profile and optimize slow queries or components
+5. **Accessibility**: Improve keyboard navigation and screen reader support
 
 ### Before Starting Work
 
 1. **Check Existing PRs**: Ensure nobody else is working on it
 2. **Comment on Issue**: Say "I'd like to work on this"
-3. **Ask Questions**: If unclear, ask in the issue or Discord
-4. **Propose Solution**: For complex issues, outline your approach first
+3. **Ask Questions**: If unclear, ask in the issue
+4. **Propose Solution**: For complex issues, outline your approach
 
 ## 📝 Coding Standards
 
-### TypeScript Style Guide
+### TypeScript & Next.js Guidelines
 
 ```typescript
-// ✅ DO: Use explicit types
-interface InventoryItem {
-  sku: string;
-  quantity: number;
-  lastUpdated: Date;
+// ✅ DO: Use Server Components by default
+// app/(dashboard)/products/page.tsx
+export default async function ProductsPage() {
+  const supabase = createServerClient()
+  const { data: products } = await supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false })
+    
+  return <ProductList products={products} />
 }
 
-// ❌ DON'T: Use 'any' type
-const processData = (data: any) => { }
+// ✅ DO: Use 'use client' only when needed
+'use client'
 
-// ✅ DO: Use async/await
-async function fetchInventory(sku: string): Promise<InventoryItem> {
-  const result = await db.query('SELECT * FROM inventory WHERE sku = $1', [sku]);
-  return result.rows[0];
+export function InteractiveComponent() {
+  const [state, setState] = useState()
+  // Interactive features here
 }
 
-// ❌ DON'T: Use callbacks
-function fetchInventory(sku: string, callback: Function) { }
+// ✅ DO: Use Server Actions for mutations
+// app/actions/products.ts
+'use server'
 
-// ✅ DO: Handle errors explicitly
-try {
-  const inventory = await fetchInventory(sku);
-} catch (error) {
-  if (error instanceof NotFoundError) {
-    // Handle specific error
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+
+const createProductSchema = z.object({
+  sku: z.string().min(1).max(50),
+  name: z.string().min(1).max(200),
+  price: z.number().positive()
+})
+
+export async function createProduct(formData: FormData) {
+  const supabase = createServerClient()
+  
+  // Validate input
+  const parsed = createProductSchema.parse({
+    sku: formData.get('sku'),
+    name: formData.get('name'),
+    price: Number(formData.get('price'))
+  })
+  
+  // Insert with RLS
+  const { error } = await supabase
+    .from('products')
+    .insert(parsed)
+    
+  if (error) throw error
+  
+  revalidatePath('/products')
+}
+
+// ❌ DON'T: Use any type
+const processData = (data: any) => {} // BAD!
+
+// ❌ DON'T: Forget organization context
+const products = await supabase
+  .from('products')
+  .select('*') // BAD - No org filter!
+```
+
+### Component Structure
+
+```typescript
+// components/features/inventory/inventory-table.tsx
+import { Table } from '@/components/ui/table'
+import { Card } from '@/components/ui/card'
+import type { Inventory } from '@/types/database'
+
+interface InventoryTableProps {
+  data: Inventory[]
+  warehouseId?: string
+}
+
+export function InventoryTable({ data, warehouseId }: InventoryTableProps) {
+  // Component implementation
+}
+```
+
+### Styling with Tailwind CSS
+
+```tsx
+// ✅ DO: Use Tailwind utilities
+<div className="flex items-center justify-between p-4 border rounded-lg">
+
+// ✅ DO: Use CSS variables for themes
+<div className="bg-background text-foreground">
+
+// ❌ DON'T: Use inline styles
+<div style={{ display: 'flex' }}> // BAD!
+
+// ❌ DON'T: Create unnecessary CSS files
+```
+
+### Form Handling
+
+```tsx
+// Always use React Hook Form + Zod
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+
+const formSchema = z.object({
+  email: z.string().email(),
+  quantity: z.number().min(0).max(99999)
+})
+
+export function MyForm() {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      quantity: 0
+    }
+  })
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const formData = new FormData()
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, value.toString())
+    })
+    
+    await serverAction(formData)
   }
-  throw error;
 }
-
-// ✅ DO: Use meaningful variable names
-const customerSpecificPrice = calculateCustomerPrice(basePrice, customerTier);
-
-// ❌ DON'T: Use single letters or abbreviations
-const p = calc(b, t);
-```
-
-### Code Organization
-
-```
-src/
-├── modules/           # Feature modules
-│   ├── inventory/
-│   │   ├── inventory.controller.ts
-│   │   ├── inventory.service.ts
-│   │   ├── inventory.module.ts
-│   │   └── inventory.spec.ts
-│   └── pricing/
-├── common/           # Shared code
-│   ├── guards/
-│   ├── interceptors/
-│   └── utils/
-└── integrations/     # External system integrations
 ```
 
 ### Commit Message Format
 
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-<type>(<scope>): <subject>
+feat(inventory): add bulk upload functionality
 
-<body>
-
-<footer>
-```
-
-Examples:
-```
-feat(inventory): add bulk update endpoint
-
-- Implement POST /api/v1/inventory/bulk-update
-- Add validation for up to 1000 items
-- Include transaction support for atomicity
+- Implement CSV parser for inventory data
+- Add validation for SKU format
+- Include progress indicator during upload
 
 Closes #123
-
----
-
-fix(sync): handle NetSuite timeout errors
-
-Circuit breaker now properly activates after 3 consecutive
-timeouts. Previously it would retry indefinitely.
-
----
-
-docs(api): update pricing endpoint examples
-
-Added customer-specific pricing examples to API docs
 ```
 
 Types:
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc)
-- `refactor`: Code changes that neither fix bugs nor add features
+- `style`: Code style changes
+- `refactor`: Code refactoring
 - `perf`: Performance improvements
-- `test`: Adding or updating tests
+- `test`: Test additions/changes
 - `chore`: Maintenance tasks
 
 ## 🧪 Testing Requirements
@@ -242,93 +300,81 @@ Types:
 ### Test Coverage Standards
 - Minimum 80% code coverage
 - 100% coverage for critical business logic
-- All API endpoints must have integration tests
-- All bug fixes must include regression tests
+- All user flows must have E2E tests
+- All Server Actions must have tests
 
 ### Writing Tests
 
 ```typescript
-// Unit Test Example
-describe('InventoryService', () => {
-  let service: InventoryService;
-  let mockDb: jest.Mocked<DatabaseService>;
+// E2E Test with Playwright
+// tests/e2e/inventory-management.spec.ts
+import { test, expect } from '@playwright/test'
 
-  beforeEach(() => {
-    mockDb = createMockDatabase();
-    service = new InventoryService(mockDb);
-  });
+test.describe('Inventory Management', () => {
+  test.beforeEach(async ({ page }) => {
+    // Login
+    await page.goto('/login')
+    await page.fill('[name="email"]', 'test@example.com')
+    await page.fill('[name="password"]', 'password')
+    await page.click('button[type="submit"]')
+  })
 
-  describe('checkAvailability', () => {
-    it('should return true when inventory is available', async () => {
-      // Arrange
-      const sku = 'WIDGET-001';
-      mockDb.query.mockResolvedValueOnce({ 
-        rows: [{ quantity: 100 }] 
-      });
-
-      // Act
-      const available = await service.checkAvailability(sku, 50);
-
-      // Assert
-      expect(available).toBe(true);
-      expect(mockDb.query).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT quantity'),
-        [sku]
-      );
-    });
-
-    it('should throw NotFoundError for invalid SKU', async () => {
-      // Arrange
-      mockDb.query.mockResolvedValueOnce({ rows: [] });
-
-      // Act & Assert
-      await expect(service.checkAvailability('INVALID', 1))
-        .rejects.toThrow(NotFoundError);
-    });
-  });
-});
-
-// Integration Test Example
-describe('POST /api/v1/inventory/bulk-check', () => {
-  it('should validate multiple SKUs', async () => {
-    // Arrange
-    const skus = ['WIDGET-001', 'GADGET-002'];
+  test('should update inventory quantity', async ({ page }) => {
+    await page.goto('/inventory')
     
-    // Act
-    const response = await request(app)
-      .post('/api/v1/inventory/bulk-check')
-      .set('Authorization', 'Bearer test-token')
-      .send({ skus });
+    // Find product row
+    const row = page.locator('tr', { hasText: 'WIDGET-001' })
+    
+    // Click edit button
+    await row.locator('button[aria-label="Edit quantity"]').click()
+    
+    // Update quantity
+    await page.fill('[name="quantity"]', '150')
+    await page.click('button[type="submit"]')
+    
+    // Verify update
+    await expect(row.locator('[data-testid="quantity"]')).toHaveText('150')
+  })
+})
 
-    // Assert
-    expect(response.status).toBe(200);
-    expect(response.body.data.items).toHaveLength(2);
-    expect(response.body.data.items[0]).toMatchObject({
-      sku: 'WIDGET-001',
-      available: expect.any(Number),
-      errors: []
-    });
-  });
-});
+// Component Test
+// components/features/inventory/__tests__/inventory-table.test.tsx
+import { render, screen } from '@testing-library/react'
+import { InventoryTable } from '../inventory-table'
+
+describe('InventoryTable', () => {
+  it('renders inventory data correctly', () => {
+    const mockData = [
+      {
+        id: '1',
+        sku: 'WIDGET-001',
+        quantity: 100,
+        warehouse: 'Main'
+      }
+    ]
+    
+    render(<InventoryTable data={mockData} />)
+    
+    expect(screen.getByText('WIDGET-001')).toBeInTheDocument()
+    expect(screen.getByText('100')).toBeInTheDocument()
+  })
+})
 ```
 
 ### Running Tests
 
 ```bash
 # Run all tests
-npm test
+pnpm test
+
+# Run E2E tests with UI
+pnpm test:e2e:ui
 
 # Run specific test file
-npm test inventory.service.spec.ts
+pnpm test inventory-table.test.tsx
 
 # Run with coverage
-npm run test:coverage
-
-# Run in watch mode
-npm run test:watch
-
-# Run E2E tests
-npm run test:e2e
+pnpm test:coverage
 ```
 
 ## 🔄 Pull Request Process
@@ -341,7 +387,7 @@ git checkout main
 git pull upstream main
 
 # Create feature branch
-git checkout -b feat/add-bulk-pricing-update
+git checkout -b feat/add-inventory-import
 ```
 
 ### 2. Make Your Changes
@@ -349,207 +395,188 @@ git checkout -b feat/add-bulk-pricing-update
 - Write code following our standards
 - Add/update tests
 - Update documentation
-- Run linter: `npm run lint`
-- Run tests: `npm test`
+- Run linter: `pnpm lint`
+- Run type check: `pnpm typecheck`
+- Run tests: `pnpm test`
 
-### 3. Commit Your Changes
+### 3. Test Locally
 
 ```bash
-# Stage changes
-git add .
+# Build the app
+pnpm build
 
-# Commit with conventional format
-git commit -m "feat(pricing): add bulk pricing update endpoint"
+# Test the production build
+pnpm start
 ```
 
 ### 4. Push and Create PR
 
 ```bash
 # Push to your fork
-git push origin feat/add-bulk-pricing-update
-
-# Create PR on GitHub
+git push origin feat/add-inventory-import
 ```
 
-### 5. PR Template
+### PR Template
 
 Your PR should include:
 
 ```markdown
 ## Description
-Brief description of what this PR does
+Brief description of changes
 
 ## Type of Change
-- [ ] Bug fix (non-breaking change)
-- [ ] New feature (non-breaking change)
+- [ ] Bug fix
+- [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
 ## Testing
 - [ ] Unit tests pass
-- [ ] Integration tests pass
+- [ ] E2E tests pass
 - [ ] Manual testing completed
+
+## Screenshots (if applicable)
+[Add screenshots for UI changes]
 
 ## Checklist
 - [ ] Code follows style guidelines
 - [ ] Self-review completed
-- [ ] Comments added for complex code
-- [ ] Documentation updated
-- [ ] No new warnings
 - [ ] Tests added/updated
-- [ ] All tests passing
+- [ ] Documentation updated
+- [ ] No console.logs left
+- [ ] Database migrations included (if needed)
 ```
 
-### 6. PR Review Process
+## 🗄 Supabase Guidelines
 
-1. **Automated Checks**: CI/CD runs tests, linting, security scans
-2. **Code Review**: At least one maintainer reviews
-3. **Address Feedback**: Make requested changes
-4. **Approval**: Maintainer approves
-5. **Merge**: Maintainer merges to main
+### Database Migrations
 
-## 📋 Issue Guidelines
+```bash
+# Create a new migration
+pnpm supabase migration new add_customer_tiers
 
-### Reporting Bugs
-
-Use the bug report template:
-
-```markdown
-**Describe the bug**
-Clear description of the problem
-
-**To Reproduce**
-1. Go to '...'
-2. Click on '...'
-3. See error
-
-**Expected behavior**
-What should happen
-
-**Screenshots**
-If applicable
-
-**Environment:**
-- OS: [e.g. Ubuntu 20.04]
-- Node version: [e.g. 18.16.0]
-- Browser: [e.g. Chrome 91]
+# Edit the migration file
+# supabase/migrations/[timestamp]_add_customer_tiers.sql
 ```
 
-### Requesting Features
+Example migration:
+```sql
+-- Add customer tiers table
+CREATE TABLE customer_tiers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  discount_percentage DECIMAL(5,2) DEFAULT 0,
+  min_order_value DECIMAL(10,2),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-Use the feature request template:
+-- Add RLS
+ALTER TABLE customer_tiers ENABLE ROW LEVEL SECURITY;
 
-```markdown
-**Problem Statement**
-What problem does this solve?
+CREATE POLICY "Organization members can manage tiers" ON customer_tiers
+  FOR ALL USING (
+    organization_id IN (
+      SELECT organization_id FROM user_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );
 
-**Proposed Solution**
-How should it work?
+-- Add indexes
+CREATE INDEX idx_customer_tiers_org ON customer_tiers(organization_id);
+```
 
-**Alternatives Considered**
-Other approaches?
+### RLS (Row Level Security) Rules
 
-**Additional Context**
-Mockups, examples, etc.
+Every table MUST have RLS enabled:
+```sql
+ALTER TABLE your_table ENABLE ROW LEVEL SECURITY;
+
+-- Basic org isolation
+CREATE POLICY "org_isolation" ON your_table
+  FOR ALL USING (
+    organization_id IN (
+      SELECT organization_id FROM user_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );
+```
+
+### Edge Functions
+
+```typescript
+// supabase/functions/calculate-shipping/index.ts
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+
+serve(async (req) => {
+  const { items, destination } = await req.json()
+  
+  // Function logic here
+  
+  return new Response(
+    JSON.stringify({ shipping: calculated }),
+    { headers: { 'Content-Type': 'application/json' } }
+  )
+})
 ```
 
 ## 📚 Documentation
 
 ### Where to Add Documentation
 
-- **API Changes**: Update `docs/technical/api-specification.md`
-- **New Features**: Add to `docs/product/features/`
+- **Component Documentation**: In component files using JSDoc
+- **API Changes**: Update `docs/technical/supabase-integration-guide.md`
+- **New Features**: Add to `docs/features/`
 - **Architecture Changes**: Update `ARCHITECTURE.md`
-- **Integration Guides**: Add to `docs/workflows/integration-guides/`
 
 ### Documentation Standards
 
-```markdown
-# Feature Name
-
-## Overview
-Brief description of what this does
-
-## Usage
-How to use this feature
-
-## Examples
-```typescript
-// Code examples with comments
-const example = await truthsource.doSomething();
+```tsx
+/**
+ * Displays inventory data in a sortable, filterable table
+ * 
+ * @example
+ * <InventoryTable 
+ *   data={inventoryData} 
+ *   warehouseId="wh-001"
+ *   onUpdate={handleUpdate}
+ * />
+ */
+export function InventoryTable({ data, warehouseId, onUpdate }: Props) {
+  // Implementation
+}
 ```
-
-## Configuration
-Any settings or options
-
-## Troubleshooting
-Common issues and solutions
-```
-
-## 🏆 Recognition
-
-We believe in recognizing our contributors!
-
-### Contributor Levels
-
-- **Contributor**: 1+ merged PRs
-- **Regular Contributor**: 5+ merged PRs
-- **Core Contributor**: 10+ merged PRs + consistent participation
-- **Maintainer**: Invited based on sustained high-quality contributions
-
-### Benefits
-
-- Listed in our [CONTRIBUTORS.md](CONTRIBUTORS.md)
-- Special Discord role
-- Early access to new features
-- Invitation to contributor meetings
-- TruthSource swag (for significant contributions)
 
 ## 💬 Getting Help
 
 - **Discord**: Join our [Discord server](https://discord.gg/truthsource)
 - **Documentation**: Check [docs/](docs/) folder
 - **Issues**: Ask questions in GitHub issues
-- **Email**: dev@truthsource.io for sensitive matters
-
-## 🔐 Security
-
-If you discover a security vulnerability:
-1. **DO NOT** open a public issue
-2. Email security@truthsource.io
-3. Include steps to reproduce
-4. Allow 48 hours for initial response
-
-See [SECURITY.md](SECURITY.md) for full details.
-
----
 
 ## Quick Commands Reference
 
 ```bash
 # Development
-npm run dev           # Start development server
-npm run build         # Build for production
-npm run lint          # Run linter
-npm run lint:fix      # Fix linting issues
-
-# Testing
-npm test              # Run all tests
-npm run test:unit     # Unit tests only
-npm run test:int      # Integration tests only
-npm run test:e2e      # End-to-end tests
-npm run test:coverage # Generate coverage report
+pnpm dev              # Start dev server
+pnpm build            # Build for production
+pnpm start            # Start production server
 
 # Database
-npm run db:migrate    # Run migrations
-npm run db:rollback   # Rollback migration
-npm run db:seed       # Seed dev data
-npm run db:reset      # Reset database
+pnpm db:generate-types # Generate TypeScript types
+pnpm db:seed          # Seed development data
+pnpm supabase status  # Check local Supabase
 
 # Code Quality
-npm run typecheck     # TypeScript type checking
-npm run format        # Format code with Prettier
-npm run analyze       # Bundle size analysis
+pnpm lint             # Run ESLint
+pnpm lint:fix         # Fix linting issues
+pnpm typecheck        # TypeScript type checking
+pnpm format           # Format with Prettier
+
+# Testing
+pnpm test             # Run all tests
+pnpm test:e2e         # E2E tests only
+pnpm test:e2e:ui      # E2E with Playwright UI
+pnpm test:coverage    # Generate coverage report
 ```
 
 ---
