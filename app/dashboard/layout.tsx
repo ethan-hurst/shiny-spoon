@@ -1,16 +1,47 @@
 import { ReactNode } from "react"
+import { redirect } from "next/navigation"
 import DashboardSideBar from "./_components/dashboard-side-bar"
 import DashboardTopNav from "./_components/dashbord-top-nav"
-import { isAuthorized } from "@/utils/data/user/isAuthorized"
-import { redirect } from "next/dist/server/api-utils"
-import { currentUser } from "@clerk/nextjs/server"
+import { createClient } from "@/lib/supabase/server"
+import config from "@/config"
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-
-  const user = await currentUser()
-  const { authorized, message } = await isAuthorized(user?.id!)
-  if (!authorized) {
-    console.log('authorized check fired')
+  // Use Supabase auth if configured
+  if (!config.auth.provider || config.auth.provider === 'supabase') {
+    const supabase = createClient()
+    
+    // Check if user is authenticated
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error || !user) {
+      redirect('/login')
+    }
+    
+    // Get user profile and organization
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select(`
+        *,
+        organizations (*)
+      `)
+      .eq('user_id', user.id)
+      .single()
+    
+    if (!profile) {
+      // User exists but no profile - shouldn't happen with trigger
+      redirect('/login')
+    }
+  } else if (config.auth.provider === 'clerk') {
+    // Existing Clerk logic
+    const { currentUser } = await import("@clerk/nextjs/server")
+    const { isAuthorized } = await import("@/utils/data/user/isAuthorized")
+    
+    const user = await currentUser()
+    const { authorized } = await isAuthorized(user?.id!)
+    
+    if (!authorized) {
+      redirect('/login')
+    }
   }
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">

@@ -4,7 +4,8 @@
       "Bash(pnpm supabase:*)",
       "Bash(npm:*)",
       "Bash(npx supabase:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npx:*)"
     ],
     "deny": []
   }
