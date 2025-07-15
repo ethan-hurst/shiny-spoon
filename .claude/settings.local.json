@@ -3,7 +3,8 @@
     "allow": [
       "Bash(pnpm supabase:*)",
       "Bash(npm:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }

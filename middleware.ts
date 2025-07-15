@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import config from "./config";
+import { updateSession } from '@/lib/supabase/middleware'
 
 let clerkMiddleware: (arg0: (auth: any, req: any) => any) => { (arg0: any): any; new(): any; }, createRouteMatcher;
 
-if (config.auth.enabled) {
+if (config.auth.enabled && config.auth.provider === 'clerk') {
   try {
     ({ clerkMiddleware, createRouteMatcher } = require("@clerk/nextjs/server"));
   } catch (error) {
@@ -12,12 +14,23 @@ if (config.auth.enabled) {
   }
 }
 
-const isProtectedRoute = config.auth.enabled
+const isProtectedRoute = config.auth.enabled && config.auth.provider === 'clerk'
   ? createRouteMatcher(["/dashboard(.*)"])
   : () => false;
 
-export default function middleware(req: any) {
-  if (config.auth.enabled) {
+export default async function middleware(req: NextRequest) {
+  // If auth is disabled, pass through
+  if (!config.auth.enabled) {
+    return NextResponse.next();
+  }
+
+  // Use Supabase auth by default
+  if (!config.auth.provider || config.auth.provider === 'supabase') {
+    return await updateSession(req);
+  }
+
+  // Fall back to Clerk if configured
+  if (config.auth.provider === 'clerk' && clerkMiddleware) {
     return clerkMiddleware(async (auth, req) => {
       const resolvedAuth = await auth();
 
@@ -27,9 +40,9 @@ export default function middleware(req: any) {
         return NextResponse.next();
       }
     })(req);
-  } else {
-    return NextResponse.next();
   }
+
+  return NextResponse.next();
 }
 
 export const middlewareConfig = {
