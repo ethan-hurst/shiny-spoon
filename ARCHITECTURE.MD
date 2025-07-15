@@ -1,14 +1,14 @@
-# TruthSource Architecture Overview
+# TruthSource Architecture Overview (Next.js + Supabase)
 
-This document provides a high-level overview of TruthSource's architecture. For detailed technical specifications, see [docs/technical/architecture.md](docs/technical/architecture.md).
+This document provides a high-level overview of TruthSource's architecture using Next.js and Supabase.
 
 ## 🎯 Architecture Goals
 
 1. **Data Accuracy**: Maintain 99.9% synchronization accuracy across systems
-2. **Real-time Performance**: Sub-30 second end-to-end sync latency
-3. **Scalability**: Handle 10,000+ requests/second and 100,000+ SKUs per customer
-4. **Reliability**: 99.9% uptime SLA with automatic failover
-5. **Security**: SOC2 compliant with end-to-end encryption
+2. **Real-time Performance**: Instant updates using Supabase Realtime
+3. **Scalability**: Leverage Supabase's infrastructure for automatic scaling
+4. **Developer Experience**: Rapid development with Next.js and Supabase
+5. **Security**: Built-in RLS (Row Level Security) and Supabase Auth
 
 ## 🏗 High-Level Architecture
 
@@ -23,245 +23,200 @@ This document provides a high-level overview of TruthSource's architecture. For 
          └─────────────────┴─────────────────┴─────────────────┘
                                     │
                            ┌────────▼────────┐
-                           │ TruthSource API │
-                           │    Gateway      │
+                           │  Next.js App    │
+                           │  (App Router)   │
                            └────────┬────────┘
                                     │
         ┌───────────────────────────┼───────────────────────────┐
         │                           │                           │
 ┌───────▼────────┐       ┌─────────▼─────────┐       ┌────────▼────────┐
-│  Sync Engine   │       │  Business Logic   │       │   API Service   │
+│   API Routes   │       │  Server Actions   │       │ Client Components│
 │                │       │                   │       │                 │
-│ • Webhooks     │       │ • Validation      │       │ • REST API      │
-│ • Polling      │       │ • Pricing Rules   │       │ • GraphQL       │
-│ • Conflict Res │       │ • Inventory Calc  │       │ • Webhooks      │
+│ • Webhooks     │       │ • Data mutations  │       │ • Real-time UI  │
+│ • Integrations │       │ • Form handling   │       │ • Dashboards    │
+│ • Scheduled    │       │ • Validation      │       │ • Forms         │
 └────────┬───────┘       └─────────┬─────────┘       └────────┬────────┘
          │                         │                           │
          └─────────────────────────┴───────────────────────────┘
                                     │
                            ┌────────▼────────┐
-                           │   Data Layer    │
+                           │    Supabase     │
                            ├─────────────────┤
-                           │  PostgreSQL     │
-                           │  Redis Cache    │
-                           │  Elasticsearch  │
+                           │ • PostgreSQL    │
+                           │ • Auth          │
+                           │ • Realtime      │
+                           │ • Edge Functions│
+                           │ • Storage       │
                            └────────┬────────┘
                                     │
                 ┌───────────────────┴───────────────────┐
                 │                                       │
        ┌────────▼────────┐                   ┌─────────▼─────────┐
-       │  Message Queue  │                   │   Monitoring      │
-       │   (RabbitMQ)    │                   │ Prometheus/Grafana│
+       │ Background Jobs │                   │   Monitoring      │
+       │  (Vercel Cron)  │                   │   (Vercel)        │
        └─────────────────┘                   └───────────────────┘
 ```
 
 ## 🔧 Core Components
 
-### 1. API Gateway
-- **Purpose**: Single entry point for all external requests
-- **Technology**: Node.js + Express/NestJS
-- **Responsibilities**:
-  - Authentication/Authorization
-  - Rate limiting
-  - Request routing
-  - API versioning
+### 1. Next.js Application
+- **App Router**: Modern Next.js 14+ architecture
+- **Server Components**: Default for better performance
+- **Client Components**: For interactive features
+- **API Routes**: External webhooks and integrations
+- **Server Actions**: Form submissions and mutations
 
-### 2. Sync Engine
-- **Purpose**: Maintains data consistency across systems
-- **Technology**: TypeScript workers + RabbitMQ
-- **Key Features**:
-  - Webhook listeners for real-time updates
-  - Polling fallback for systems without webhooks
-  - Conflict resolution based on configurable rules
-  - Automatic retry with exponential backoff
+### 2. Supabase Backend
+- **PostgreSQL Database**: With RLS policies
+- **Auth**: Built-in authentication with providers
+- **Realtime**: Live data synchronization
+- **Edge Functions**: Serverless compute for complex logic
+- **Storage**: File uploads and documents
 
-### 3. Business Logic Layer
-- **Purpose**: Enforces business rules and data validation
-- **Technology**: NestJS services
-- **Responsibilities**:
-  - Customer-specific pricing calculations
-  - Inventory buffer management
-  - Delivery time predictions
-  - Data transformation between systems
-
-### 4. Data Layer
-- **Primary Database**: PostgreSQL 14+
-  - Multi-tenant with row-level security
-  - JSONB for flexible integrations
-  - Partitioned tables for audit logs
-- **Cache**: Redis 6+
-  - Session management
-  - API response caching
-  - Real-time pub/sub
-- **Search**: Elasticsearch
-  - Log aggregation
-  - Full-text search
-  - Analytics queries
-
-### 5. Message Queue
-- **Technology**: RabbitMQ
-- **Use Cases**:
-  - Async processing of sync operations
-  - Event broadcasting
-  - Task scheduling
-  - Dead letter queue for failed operations
+### 3. Integration Layer
+- **API Routes**: Handle external webhooks
+- **Background Jobs**: Vercel Cron for scheduled syncs
+- **Edge Functions**: Process-intensive operations
+- **Queue**: Supabase Queue (or Upstash) for async work
 
 ## 🔄 Data Flow
 
 ### Real-time Sync Flow
 ```
-1. External System → Webhook → API Gateway
-2. API Gateway → Validation → Message Queue
-3. Worker → Process Change → Update Database
-4. Database Trigger → Propagate to Other Systems
-5. Update Cache → Notify Subscribers
+1. External System → Webhook → API Route
+2. API Route → Validate → Supabase Insert/Update
+3. Supabase → Realtime → Client Components
+4. RLS Policies → Filter by Organization
+5. UI Updates → Instantly via Subscription
 ```
 
-### Batch Sync Flow
+### User Interaction Flow
 ```
-1. Scheduler → Trigger Batch Job
-2. Fetch Data from External System
-3. Compare with Current State
-4. Generate Change Set
-5. Process Changes in Batches
-6. Update Systems → Log Results
+1. User Action → Client Component
+2. Client → Server Action (for mutations)
+3. Server Action → Supabase Client
+4. Supabase → Execute with RLS
+5. Response → Revalidate Cache → Update UI
 ```
 
 ## 🛡 Security Architecture
 
-### Network Security
-- All traffic over TLS 1.3
-- VPC isolation for internal services
-- WAF for API protection
-- DDoS protection via CloudFlare
-
-### Application Security
-- JWT-based authentication
-- API key management with rotation
-- Role-based access control (RBAC)
-- Input validation at every layer
+### Authentication & Authorization
+- Supabase Auth with multiple providers
+- JWT tokens handled automatically
+- RLS policies for data isolation
+- Organization-based multi-tenancy
 
 ### Data Security
-- Encryption at rest (AES-256)
-- Encryption in transit (TLS 1.3)
-- PII data masking in logs
-- Audit trail for all operations
+- RLS (Row Level Security) at database level
+- Column-level encryption for sensitive data
+- SSL/TLS for all connections
+- Audit logs via Supabase
 
-## 📊 Scalability Strategy
+## 📊 Key Architecture Decisions
 
-### Horizontal Scaling
-- Stateless API servers behind load balancer
-- Multiple sync workers with queue-based distribution
-- Read replicas for database queries
-- Redis cluster for cache distribution
+### Why Next.js?
+- Full-stack framework with excellent DX
+- Server Components for performance
+- Built-in optimization and caching
+- Great TypeScript support
+- Vercel deployment integration
 
-### Performance Optimization
-- Database query optimization with indexes
-- Aggressive caching strategy
-- CDN for static assets
-- Connection pooling for external APIs
+### Why Supabase?
+- PostgreSQL with built-in APIs
+- Real-time subscriptions out of the box
+- Authentication without custom code
+- RLS for secure multi-tenancy
+- Automatic API generation
 
-### Monitoring & Observability
-- Prometheus metrics for all services
-- Distributed tracing with OpenTelemetry
-- Centralized logging with ELK stack
-- Real-time dashboards with Grafana
+### Why This Stack for B2B SaaS?
+- Rapid development without sacrificing quality
+- Enterprise features (audit, RLS) built-in
+- Scales automatically with Vercel + Supabase
+- Modern stack attracts developers
+- Cost-effective for startups
 
-## 🔌 Integration Patterns
+## 🚀 Deployment Architecture
 
-### Webhook Integration
-```typescript
-POST /webhooks/netsuite/inventory-change
-{
-  "event": "inventory.updated",
-  "timestamp": "2025-07-15T10:30:00Z",
-  "data": {
-    "sku": "WIDGET-001",
-    "quantity": 150
-  }
-}
+```
+┌─────────────────┐     ┌─────────────────┐
+│     Vercel      │     │    Supabase     │
+├─────────────────┤     ├─────────────────┤
+│ • Next.js App   │────▶│ • PostgreSQL    │
+│ • Edge Runtime  │     │ • Auth Service  │
+│ • Cron Jobs     │     │ • Realtime      │
+│ • Analytics     │     │ • Edge Functions│
+└─────────────────┘     └─────────────────┘
+         │                       │
+         └───────────┬───────────┘
+                     │
+              ┌──────▼──────┐
+              │  CDN (Global)│
+              └─────────────┘
 ```
 
-### Polling Integration
-- Configurable intervals (1, 5, 15, 30 minutes)
-- Delta detection to minimize processing
-- Checksum validation for data integrity
+## 📁 Project Structure
 
-### API Integration
-- RESTful endpoints for CRUD operations
-- GraphQL for flexible queries
-- Batch endpoints for bulk operations
+```
+truthsource/
+├── app/                    # Next.js App Router
+│   ├── (auth)/            # Auth pages (login, signup)
+│   ├── (dashboard)/       # Protected dashboard routes
+│   ├── api/               # API routes for webhooks
+│   └── actions/           # Server actions
+├── components/            # React components
+│   ├── ui/               # shadcn/ui components
+│   └── features/         # Feature-specific components
+├── lib/                   # Utilities and helpers
+│   ├── supabase/         # Supabase client setup
+│   └── integrations/     # External API clients
+├── hooks/                 # Custom React hooks
+├── types/                 # TypeScript definitions
+└── supabase/             # Database migrations & types
+```
 
-## 🚦 Architectural Decisions
+## 🔮 Technology Choices
 
-### Why Event-Driven Architecture?
-- Decouples systems for better scalability
-- Enables real-time processing
-- Provides natural audit trail
-- Allows for easy replay of events
+### Frontend
+- **Next.js 14+**: App Router, Server Components
+- **TypeScript**: Type safety
+- **Tailwind CSS**: Utility-first styling
+- **shadcn/ui**: Component library
+- **React Query**: Client-side caching
 
-### Why PostgreSQL?
-- ACID compliance for financial data
-- Strong consistency guarantees
-- Excellent JSON support for flexible schemas
-- Mature ecosystem and tooling
+### Backend
+- **Supabase**: PostgreSQL + Auth + Realtime
+- **Edge Functions**: Complex business logic
+- **Vercel Cron**: Scheduled jobs
+- **Zod**: Schema validation
 
-### Why Microservices?
-- Independent scaling of components
-- Technology flexibility per service
-- Fault isolation
-- Easier team parallelization
+### Development
+- **pnpm**: Fast package manager
+- **Prettier**: Code formatting
+- **ESLint**: Code quality
+- **Playwright**: E2E testing
 
-### Why Redis?
-- Sub-millisecond latency
-- Pub/sub for real-time updates
-- Data structure variety
-- High availability with clustering
+## 📈 Performance Optimizations
 
-## 📈 Performance Characteristics
+### Next.js Optimizations
+- Server Components by default
+- Dynamic imports for code splitting
+- Image optimization with next/image
+- Font optimization
+- Incremental Static Regeneration
 
-### Latency Targets
-- API Response: <200ms (p99)
-- Cache Hit: <5ms
-- Database Query: <50ms
-- End-to-end Sync: <30s
+### Database Optimizations
+- Proper indexes on foreign keys
+- Composite indexes for common queries
+- Materialized views for analytics
+- Connection pooling via Supabase
 
-### Throughput Targets
-- API Requests: 10,000/second
-- Webhook Processing: 1,000/second
-- Batch Processing: 1M records/hour
-- Real-time Updates: 100/second/customer
-
-## 🔮 Future Architecture Considerations
-
-### Phase 2 (Months 4-6)
-- GraphQL subscriptions for real-time updates
-- ML pipeline for anomaly detection
-- Multi-region deployment
-- Event sourcing for complex workflows
-
-### Phase 3 (Months 7-12)
-- Kubernetes for container orchestration
-- Service mesh for microservice communication
-- Edge computing for global latency reduction
-- Blockchain for audit trail integrity
-
-## 📚 Related Documentation
-
-- [Detailed Technical Architecture](docs/technical/architecture.md)
-- [API Specification](docs/technical/api-specification.md)
-- [Database Schema](docs/technical/database-schema.md)
-- [Security Requirements](docs/technical/security-requirements.md)
-- [Integration Guides](docs/workflows/integration-guides/)
-
-## 🤝 Architecture Principles
-
-1. **Data Accuracy Over Speed**: Never sacrifice correctness for performance
-2. **Fail Gracefully**: Every external call must have a fallback
-3. **Audit Everything**: Complete trail of all data changes
-4. **Security First**: Consider security implications in every decision
-5. **Scale Horizontally**: Design for distributed systems from day one
+### Caching Strategy
+- Next.js Data Cache for server-side
+- React Query for client-side
+- Revalidation on mutations
+- Static pages where possible
 
 ---
 
-For implementation details and code examples, see the [technical documentation](docs/technical/).
+For implementation details, see the [technical documentation](docs/technical/).
