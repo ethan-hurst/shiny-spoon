@@ -17,6 +17,49 @@ export const CSV_PARSE_CONFIG: Papa.ParseConfig = {
   comments: '#',
 }
 
+// Dangerous formula injection prefixes
+const FORMULA_PREFIXES = ['=', '+', '-', '@', '\t', '\r']
+
+// Sanitize cell content to prevent CSV formula injection
+function sanitizeCSVContent(content: string): string {
+  if (typeof content !== 'string') return String(content)
+  
+  const trimmed = content.trim()
+  
+  // Check for formula injection attempts
+  if (FORMULA_PREFIXES.some(prefix => trimmed.startsWith(prefix))) {
+    // Prepend single quote to neutralize formula
+    return `'${trimmed}`
+  }
+  
+  return trimmed
+}
+
+// Validate cell content for security risks
+function validateCellContent(content: string, fieldName: string): { valid: boolean; error?: string } {
+  if (typeof content !== 'string') return { valid: true }
+  
+  const trimmed = content.trim()
+  
+  // Check for suspicious patterns
+  if (trimmed.includes('javascript:') || trimmed.includes('data:')) {
+    return { 
+      valid: false, 
+      error: `Field '${fieldName}' contains potentially dangerous URL schemes` 
+    }
+  }
+  
+  // Check for excessive length
+  if (trimmed.length > 10000) {
+    return { 
+      valid: false, 
+      error: `Field '${fieldName}' exceeds maximum length of 10,000 characters` 
+    }
+  }
+  
+  return { valid: true }
+}
+
 // Column mappings for flexibility in CSV headers
 export const COLUMN_MAPPINGS: Record<string, string[]> = {
   sku: ['sku', 'product_sku', 'item_sku', 'product_code', 'item_code'],
@@ -75,7 +118,23 @@ export function parseCSV<T>(
       let found = false
       for (const header of possibleHeaders) {
         if (row.hasOwnProperty(header)) {
-          mappedRow[targetColumn] = row[header]
+          // Sanitize content to prevent formula injection
+          const rawValue = row[header]
+          const sanitizedValue = sanitizeCSVContent(rawValue)
+          
+          // Validate content for security risks
+          const validation = validateCellContent(sanitizedValue, targetColumn)
+          if (!validation.valid) {
+            errors.push({
+              row: rowNumber,
+              column: targetColumn,
+              message: validation.error!,
+              value: rawValue,
+            })
+            return
+          }
+          
+          mappedRow[targetColumn] = sanitizedValue
           found = true
           break
         }
@@ -161,8 +220,9 @@ export function generateCSV<T extends Record<string, any>>(
         const value = item[col.key]
         if (value === null || value === undefined) return '""'
         
-        // Escape quotes and wrap in quotes
-        const escaped = String(value).replace(/"/g, '""')
+        // Sanitize content and escape quotes
+        const sanitized = sanitizeCSVContent(String(value))
+        const escaped = sanitized.replace(/"/g, '""')
         return `"${escaped}"`
       })
       .join(',')
@@ -173,15 +233,34 @@ export function generateCSV<T extends Record<string, any>>(
 
 // Validate CSV file before parsing
 export function validateCSVFile(file: File): { valid: boolean; error?: string } {
-  // Check file type
-  if (!file.type.includes('csv') && !file.name.endsWith('.csv')) {
-    return { valid: false, error: 'File must be a CSV file' }
+  // Check file extension
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    return { valid: false, error: 'File must have a .csv extension' }
   }
 
-  // Check file size (10MB limit)
-  const maxSize = 10 * 1024 * 1024 // 10MB
+  // Check MIME type (be more strict)
+  const validMimeTypes = [
+    'text/csv',
+    'application/csv',
+    'text/plain', // Some browsers report CSV as text/plain
+  ]
+  
+  if (!validMimeTypes.includes(file.type)) {
+    return { 
+      valid: false, 
+      error: `Invalid file type: ${file.type}. Only CSV files are allowed.` 
+    }
+  }
+
+  // Check file size (5MB limit for security)
+  const maxSize = 5 * 1024 * 1024 // 5MB (reduced from 10MB)
   if (file.size > maxSize) {
-    return { valid: false, error: 'File size must be less than 10MB' }
+    return { valid: false, error: 'File size must be less than 5MB' }
+  }
+
+  // Check minimum file size (prevent empty/suspicious files)
+  if (file.size < 10) {
+    return { valid: false, error: 'File appears to be empty or corrupted' }
   }
 
   return { valid: true }

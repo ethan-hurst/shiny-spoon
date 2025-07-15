@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import type { InventoryWithRelations } from '@/types/inventory.types'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
@@ -24,7 +24,7 @@ export function useInventoryRealtime({
 }: UseInventoryOptions) {
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createBrowserClient()
+  const supabase = createClient()
 
   const handleRealtimeUpdate = useCallback(
     (payload: RealtimePostgresChangesPayload<any>) => {
@@ -77,8 +77,11 @@ export function useInventoryRealtime({
   )
 
   useEffect(() => {
+    let inventoryChannel: any = null
+    let adjustmentChannel: any = null
+
     // Set up real-time subscription for inventory changes
-    const inventoryChannel = supabase
+    inventoryChannel = supabase
       .channel(`inventory-changes-${organizationId}`)
       .on(
         'postgres_changes',
@@ -93,7 +96,7 @@ export function useInventoryRealtime({
       .subscribe()
 
     // Set up subscription for adjustment changes (to track who's making changes)
-    const adjustmentChannel = supabase
+    adjustmentChannel = supabase
       .channel(`adjustment-changes-${organizationId}`)
       .on(
         'postgres_changes',
@@ -103,19 +106,23 @@ export function useInventoryRealtime({
           table: 'inventory_adjustments',
           filter: `organization_id=eq.${organizationId}`,
         },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<any>) => {
           // Refresh when adjustments are made
           router.refresh()
         }
       )
       .subscribe()
 
-    // Cleanup subscriptions
+    // Cleanup subscriptions on unmount or dependency change
     return () => {
-      supabase.removeChannel(inventoryChannel)
-      supabase.removeChannel(adjustmentChannel)
+      if (inventoryChannel) {
+        supabase.removeChannel(inventoryChannel)
+      }
+      if (adjustmentChannel) {
+        supabase.removeChannel(adjustmentChannel)
+      }
     }
-  }, [organizationId, handleRealtimeUpdate, router, supabase])
+  }, [organizationId, handleRealtimeUpdate, router, supabase]) // Added supabase to dependencies
 
   // Function to manually trigger a refresh
   const refreshInventory = useCallback(() => {

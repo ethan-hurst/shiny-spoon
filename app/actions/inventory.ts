@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { adjustmentSchema, bulkUpdateSchema, type InventoryExportRow } from '@/types/inventory.types'
 import { revalidatePath } from 'next/cache'
 import { parse } from 'papaparse'
@@ -42,7 +42,7 @@ export async function adjustInventory(formData: FormData) {
   const { inventory_id, new_quantity, reason, notes } = validationResult.data
   
   // Use admin client for transaction
-  const adminSupabase = createAdminClient()
+  const adminSupabase = supabaseAdmin
   
   try {
     // Start transaction by getting current inventory
@@ -167,70 +167,109 @@ export async function bulkUpdateInventory(csvData: string) {
     }
   }
 
-  const adminSupabase = createAdminClient()
+  const adminSupabase = supabaseAdmin
   let successCount = 0
   let errorCount = 0
   const errors: string[] = []
 
+  // First, batch fetch all inventory items to avoid N+1 queries
+  const skus = validationResult.data.updates.map(u => u.sku)
+  const warehouseCodes = validationResult.data.updates.map(u => u.warehouse_code)
+  
+  const { data: inventoryItems, error: fetchError } = await adminSupabase
+    .from('inventory')
+    .select(`
+      *,
+      product:products!inner(sku),
+      warehouse:warehouses!inner(code)
+    `)
+    .eq('organization_id', profile.organization_id)
+    .in('product.sku', skus)
+    .in('warehouse.code', warehouseCodes)
+
+  if (fetchError) {
+    return { 
+      error: `Failed to fetch inventory items: ${fetchError.message}`,
+      successCount: 0,
+      errorCount: validationResult.data.updates.length
+    }
+  }
+
+  // Create a map for quick lookup
+  const inventoryMap = new Map()
+  inventoryItems?.forEach(item => {
+    const key = `${item.product.sku}-${item.warehouse.code}`
+    inventoryMap.set(key, item)
+  })
+
+  // Prepare batch updates
+  const batchUpdates: any[] = []
+  const batchAdjustments: any[] = []
+
   // Process each update
   for (const update of validationResult.data.updates) {
     try {
-      // Find inventory item
-      const { data: inventoryItems } = await adminSupabase
-        .from('inventory')
-        .select(`
-          *,
-          product:products!inner(sku),
-          warehouse:warehouses!inner(code)
-        `)
-        .eq('organization_id', profile.organization_id)
-        .eq('product.sku', update.sku)
-        .eq('warehouse.code', update.warehouse_code)
+      const key = `${update.sku}-${update.warehouse_code}`
+      const inventory = inventoryMap.get(key)
 
-      if (!inventoryItems || inventoryItems.length === 0) {
+      if (!inventory) {
         errors.push(`SKU ${update.sku} not found in warehouse ${update.warehouse_code}`)
         errorCount++
         continue
       }
 
-      const inventory = inventoryItems[0]
       const currentQuantity = inventory.quantity || 0
       const adjustment = update.quantity - currentQuantity
 
-      // Update inventory
-      const { error: updateError } = await adminSupabase
-        .from('inventory')
-        .update({ 
-          quantity: update.quantity,
-          updated_at: new Date().toISOString(),
-          updated_by: user.id
-        })
-        .eq('id', inventory.id)
+      // Prepare update for batch processing
+      batchUpdates.push({
+        id: inventory.id,
+        quantity: update.quantity,
+        updated_at: new Date().toISOString(),
+        updated_by: user.id
+      })
 
-      if (updateError) {
-        errors.push(`Failed to update ${update.sku}: ${updateError.message}`)
-        errorCount++
-        continue
-      }
-
-      // Log adjustment
-      await adminSupabase
-        .from('inventory_adjustments')
-        .insert({
-          inventory_id: inventory.id,
-          organization_id: profile.organization_id,
-          previous_quantity: currentQuantity,
-          new_quantity: update.quantity,
-          adjustment,
-          reason: update.reason as any,
-          notes: 'Bulk update via CSV',
-          created_by: user.id
-        })
+      // Prepare adjustment log for batch processing
+      batchAdjustments.push({
+        inventory_id: inventory.id,
+        organization_id: profile.organization_id,
+        previous_quantity: currentQuantity,
+        new_quantity: update.quantity,
+        adjustment,
+        reason: update.reason as any,
+        notes: 'Bulk update via CSV',
+        created_by: user.id
+      })
 
       successCount++
     } catch (error) {
       errors.push(`Error processing ${update.sku}: ${error}`)
       errorCount++
+    }
+  }
+
+  // Execute batch updates using Supabase upsert for better performance
+  if (batchUpdates.length > 0) {
+    const { error: updateError } = await adminSupabase
+      .from('inventory')
+      .upsert(batchUpdates, { onConflict: 'id' })
+
+    if (updateError) {
+      return { 
+        error: `Batch update failed: ${updateError.message}`,
+        successCount: 0,
+        errorCount: batchUpdates.length
+      }
+    }
+
+    // Batch insert adjustment logs
+    const { error: adjustmentError } = await adminSupabase
+      .from('inventory_adjustments')
+      .insert(batchAdjustments)
+
+    if (adjustmentError) {
+      console.error('Failed to log adjustments:', adjustmentError)
+      // Continue anyway as the inventory was updated successfully
     }
   }
 

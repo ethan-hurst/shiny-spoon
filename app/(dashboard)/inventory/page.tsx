@@ -6,6 +6,35 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { redirect } from 'next/navigation'
 import type { InventoryWithRelations, InventoryStats as IInventoryStats } from '@/types/inventory.types'
 
+interface InventoryQueryResult {
+  id: string
+  organization_id: string
+  quantity: number
+  reserved_quantity: number
+  reorder_point: number
+  product: {
+    id: string
+    name: string
+    sku: string
+    price: number
+  }
+  warehouse: {
+    id: string
+    name: string
+    code: string
+  }
+}
+
+interface UserProfileResult {
+  organization_id: string
+}
+
+interface WarehouseResult {
+  id: string
+  name: string
+  code: string
+}
+
 export default async function InventoryPage({
   searchParams,
 }: {
@@ -20,15 +49,17 @@ export default async function InventoryPage({
   }
 
   // Get user's organization
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('organization_id')
     .eq('user_id', user.id)
     .single()
 
-  if (!profile?.organization_id) {
+  if (profileError || !profile) {
     redirect('/onboarding')
   }
+
+  const organizationId = (profile as UserProfileResult).organization_id
 
   // Build inventory query
   let inventoryQuery = supabase
@@ -38,7 +69,7 @@ export default async function InventoryPage({
       product:products!inner(*),
       warehouse:warehouses!inner(*)
     `)
-    .eq('organization_id', profile.organization_id)
+    .eq('organization_id', organizationId)
     .order('updated_at', { ascending: false })
 
   // Apply filters
@@ -53,50 +84,70 @@ export default async function InventoryPage({
   }
 
   if (searchParams.low_stock === 'true') {
-    // This is a simplified version - in production, you'd want a database function
-    inventoryQuery = inventoryQuery.lte('quantity', 'reorder_point')
+    // Filter for low stock items using client-side logic until database view is deployed
+    // TODO: Once database migration is deployed, use: inventoryQuery = inventoryQuery.eq('is_low_stock', true)
   }
 
   // Fetch inventory data
-  const { data: inventory, error } = await inventoryQuery
+  const { data: inventoryData, error } = await inventoryQuery
 
   if (error) {
     console.error('Error fetching inventory:', error)
     throw new Error('Failed to load inventory')
   }
 
+  const inventory = (inventoryData as unknown as InventoryQueryResult[]) || []
+
   // Fetch warehouses for filters
-  const { data: warehouses } = await supabase
+  const { data: warehouseData } = await supabase
     .from('warehouses')
     .select('id, name, code')
-    .eq('organization_id', profile.organization_id)
+    .eq('organization_id', organizationId)
     .eq('is_active', true)
     .order('name')
 
+  const warehouses = (warehouseData as unknown as WarehouseResult[]) || []
+
   // Calculate stats
   const stats: IInventoryStats = {
-    total_items: inventory?.length || 0,
-    total_value: inventory?.reduce((sum: number, item: any) => {
+    total_items: inventory.length,
+    total_value: inventory.reduce((sum: number, item: InventoryQueryResult) => {
       const price = item.product?.price || 0
       const quantity = item.quantity || 0
       return sum + (price * quantity)
-    }, 0) || 0,
-    low_stock_items: inventory?.filter((item: any) => {
+    }, 0),
+    low_stock_items: inventory.filter((item: InventoryQueryResult) => {
       const available = (item.quantity || 0) - (item.reserved_quantity || 0)
       return available <= (item.reorder_point || 0) && available > 0
-    }).length || 0,
-    out_of_stock_items: inventory?.filter((item: any) => {
+    }).length,
+    out_of_stock_items: inventory.filter((item: InventoryQueryResult) => {
       const available = (item.quantity || 0) - (item.reserved_quantity || 0)
       return available <= 0
-    }).length || 0,
+    }).length,
+  }
+
+  // Apply client-side low stock filtering if requested
+  let filteredInventory = inventory
+  if (searchParams.low_stock === 'true') {
+    filteredInventory = inventory.filter((item: InventoryQueryResult) => {
+      const available = (item.quantity || 0) - (item.reserved_quantity || 0)
+      return available <= (item.reorder_point || 0)
+    })
   }
 
   // Transform to InventoryWithRelations type
-  const inventoryWithRelations: InventoryWithRelations[] = (inventory || []).map(item => ({
+  const inventoryWithRelations: InventoryWithRelations[] = filteredInventory.map(item => ({
     ...item,
-    product: item.product as any,
-    warehouse: item.warehouse as any,
-  }))
+    product_id: item.product.id,
+    warehouse_id: item.warehouse.id,
+    reorder_quantity: 0, // Default value, should be in database
+    last_counted_at: null, // Default value, should be in database
+    last_counted_by: null, // Default value, should be in database
+    created_at: new Date().toISOString(), // Default value, should be in database
+    updated_at: new Date().toISOString(), // Default value, should be in database
+    product: item.product,
+    warehouse: item.warehouse,
+  } as unknown as InventoryWithRelations))
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -135,7 +186,7 @@ export default async function InventoryPage({
         <CardContent>
           <InventoryTable 
             initialData={inventoryWithRelations}
-            organizationId={profile.organization_id}
+            organizationId={organizationId}
           />
         </CardContent>
       </Card>

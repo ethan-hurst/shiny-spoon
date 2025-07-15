@@ -60,7 +60,10 @@ interface InventoryTableProps {
   organizationId: string
 }
 
-export function InventoryTable({ initialData, organizationId }: InventoryTableProps) {
+export const InventoryTable = React.memo(function InventoryTable({ 
+  initialData, 
+  organizationId 
+}: InventoryTableProps) {
   const router = useRouter()
   const [data, setData] = React.useState(initialData)
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -71,26 +74,32 @@ export function InventoryTable({ initialData, organizationId }: InventoryTablePr
   const [bulkUploadOpen, setBulkUploadOpen] = React.useState(false)
   const [selectedInventory, setSelectedInventory] = React.useState<InventoryWithRelations | null>(null)
 
+  // Memoize callback functions for real-time updates
+  const handleUpdate = React.useCallback((payload: any) => {
+    setData(prevData => 
+      prevData.map(item => 
+        item.id === payload.new.id 
+          ? { ...item, ...payload.new }
+          : item
+      )
+    )
+  }, [])
+
+  const handleInsert = React.useCallback((payload: any) => {
+    // Refresh to get the full data with relations
+    router.refresh()
+  }, [router])
+
+  const handleDelete = React.useCallback((payload: any) => {
+    setData(prevData => prevData.filter(item => item.id !== payload.old.id))
+  }, [])
+
   // Set up real-time subscriptions
   useInventoryRealtime({
     organizationId,
-    onUpdate: (payload) => {
-      // Update local data when inventory changes
-      setData(prevData => 
-        prevData.map(item => 
-          item.id === payload.new.id 
-            ? { ...item, ...payload.new }
-            : item
-        )
-      )
-    },
-    onInsert: (payload) => {
-      // Refresh to get the full data with relations
-      router.refresh()
-    },
-    onDelete: (payload) => {
-      setData(prevData => prevData.filter(item => item.id !== payload.old.id))
-    },
+    onUpdate: handleUpdate,
+    onInsert: handleInsert,
+    onDelete: handleDelete,
   })
 
   // Update data when initialData changes (e.g., after filtering)
@@ -98,7 +107,8 @@ export function InventoryTable({ initialData, organizationId }: InventoryTablePr
     setData(initialData)
   }, [initialData])
 
-  const columns: ColumnDef<InventoryWithRelations>[] = [
+  // Memoize columns definition to prevent unnecessary re-renders
+  const columns: ColumnDef<InventoryWithRelations>[] = React.useMemo(() => [
     {
       accessorKey: 'product.sku',
       header: ({ column }) => {
@@ -270,8 +280,9 @@ export function InventoryTable({ initialData, organizationId }: InventoryTablePr
         )
       },
     },
-  ]
+  ], [setSelectedInventory, setAdjustmentOpen]) // Dependencies for memoization
 
+  // Memoize table configuration
   const table = useReactTable({
     data,
     columns,
@@ -445,4 +456,4 @@ export function InventoryTable({ initialData, organizationId }: InventoryTablePr
       />
     </div>
   )
-}
+})

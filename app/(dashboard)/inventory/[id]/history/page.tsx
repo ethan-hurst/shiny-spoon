@@ -7,7 +7,23 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Package, User, Calendar, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { ADJUSTMENT_REASON_LABELS, ADJUSTMENT_REASON_COLORS } from '@/types/inventory.types'
-import type { InventoryAdjustment } from '@/types/inventory.types'
+import type { InventoryAdjustment, AdjustmentReason } from '@/types/inventory.types'
+
+// Interface for raw adjustment data from database
+interface RawAdjustmentData {
+  id: string
+  inventory_id: string
+  organization_id: string
+  previous_quantity: number
+  new_quantity: number
+  adjustment: number
+  reason: AdjustmentReason
+  notes: string | null
+  created_at: string
+  created_by: string
+  user_full_name: string | null
+  user_email: string
+}
 
 export default async function InventoryHistoryPage({
   params,
@@ -68,11 +84,11 @@ export default async function InventoryHistoryPage({
     previous_quantity: adj.previous_quantity,
     new_quantity: adj.new_quantity,
     adjustment: adj.adjustment,
-    reason: adj.reason,
+    reason: adj.reason as AdjustmentReason,
     notes: adj.notes,
     created_at: adj.created_at,
     created_by: adj.created_by,
-    user_full_name: adj.user_full_name,
+    user_full_name: adj.user_full_name || undefined,
     user_email: adj.user_email,
   }))
 
