@@ -1,396 +1,490 @@
-# TruthSource AI Assistant Context
+# TruthSource AI Assistant Context (Next.js + Supabase)
 
 ## 🎯 Project Overview
 
-You are working on **TruthSource**, a B2B e-commerce data accuracy platform that prevents costly order errors by synchronizing inventory, pricing, and delivery data between ERPs (NetSuite, SAP, Dynamics) and e-commerce platforms (Shopify B2B, BigCommerce).
+You are working on **TruthSource**, a B2B e-commerce data accuracy platform built with **Next.js 14+** and **Supabase**. It prevents costly order errors by synchronizing inventory, pricing, and delivery data between ERPs and e-commerce platforms.
 
-**Core Problem**: 33% of B2B e-commerce orders contain errors, costing distributors an average of $400,000 annually in lost revenue, returns, and customer churn.
+**Core Problem**: 33% of B2B e-commerce orders contain errors, costing distributors $400,000/year on average.
 
-**Our Solution**: Real-time, bidirectional data synchronization with 99.9% accuracy guarantee.
+## 📋 Critical Context
 
-## 📋 Project Awareness & Context
+### Tech Stack
+- **Frontend**: Next.js 14+ (App Router), TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime + Edge Functions)
+- **Deployment**: Vercel (frontend) + Supabase (backend)
+- **State Management**: Zustand + React Query (TanStack Query)
+- **Forms**: React Hook Form + Zod validation
+- **Testing**: Playwright (E2E), React Testing Library
 
-### Critical Files to Read First
-1. **`README.md`** - Project overview and quick start guide
-2. **`ARCHITECTURE.md`** - High-level system design and decisions
-3. **`.ai/context.md`** - Detailed coding patterns, anti-patterns, and constraints
-4. **`docs/technical/api-specification.md`** - Complete API reference with examples
-5. **`docs/product/PRD.md`** - Product requirements and user stories
-6. **`CONTRIBUTING.md`** - Development workflow and standards
+### Architecture Principles
+1. **Server Components by Default** - Use Client Components only when needed
+2. **Data Accuracy First** - Show loading states rather than stale data
+3. **RLS Everything** - All tables must have Row Level Security policies
+4. **Type Safety** - Generate types from Supabase schema
+5. **Real-time When Needed** - Use Supabase Realtime for inventory/pricing
 
-### Before Starting Any Task
-- **Check `TASK.md`** for current sprint tasks and priorities
-- **Review recent commits** to understand current work
-- **Check open PRs** to avoid duplicate work
-- **Read relevant integration guides** in `docs/workflows/integration-guides/`
+## 🏗 Project Structure
 
-## 🏗 Architecture & Technical Constraints
-
-### Core Architecture Principles
-1. **Data Accuracy Over Speed** - Never show incorrect data, even if it means showing a loading state
-2. **Multi-Tenant Isolation** - ALWAYS filter by `customerId` in every database query
-3. **Async Processing** - NEVER make synchronous external API calls in request handlers
-4. **Defensive Programming** - Validate ALL external data before storing
-5. **Comprehensive Audit Trail** - Log all data changes but NEVER log sensitive data
-
-### Performance Requirements
-- **API Response Time**: <200ms for reads, <500ms for writes
-- **Sync Latency**: <30 seconds end-to-end
-- **Throughput**: 10,000 requests/second
-- **Data Volume**: 5,000-100,000 SKUs per customer
-- **Uptime SLA**: 99.9% (43 minutes downtime/month maximum)
-
-### Security Requirements
-- **SOC2 Type II** compliance required
-- **Encryption**: AES-256 at rest, TLS 1.3 in transit
-- **Authentication**: JWT tokens (1-hour expiry)
-- **API Keys**: Environment-prefixed (`ts_live_`, `ts_test_`)
-- **PII Handling**: Never log customer data, mask in non-production
-
-## 💻 Tech Stack & Conventions
-
-### Core Technologies
-- **Runtime**: Node.js 18+ (NOT Python - note the discrepancy in original rules)
-- **Language**: TypeScript (strict mode enabled)
-- **Framework**: NestJS for enterprise architecture
-- **Database**: PostgreSQL 14+ with row-level security
-- **Cache**: Redis 6+ for session and response caching
-- **Queue**: RabbitMQ for async task processing
-- **Testing**: Jest with 80% minimum coverage
-
-### Code Structure
 ```
-src/
-├── modules/              # Feature modules
+app/
+├── (auth)/                 # Public auth routes
+│   ├── login/
+│   ├── signup/
+│   └── reset-password/
+├── (dashboard)/           # Protected routes (with layout)
+│   ├── layout.tsx         # Dashboard layout with sidebar
 │   ├── inventory/
-│   │   ├── inventory.controller.ts    # HTTP endpoints
-│   │   ├── inventory.service.ts       # Business logic
-│   │   ├── inventory.module.ts        # Module definition
-│   │   ├── dto/                       # Data transfer objects
-│   │   └── __tests__/                 # Module tests
-│   └── pricing/
-├── common/               # Shared utilities
-│   ├── guards/          # Auth, rate limit guards
-│   ├── interceptors/    # Logging, metrics
-│   └── exceptions/      # Custom exceptions
-├── integrations/        # External system connectors
+│   ├── pricing/
+│   ├── settings/
+│   └── sync/
+├── api/                   # API routes for webhooks
+│   ├── webhooks/
+│   │   ├── netsuite/
+│   │   └── shopify/
+│   └── cron/             # Scheduled jobs
+└── actions/              # Server actions
+    ├── inventory.ts
+    ├── pricing.ts
+    └── sync.ts
+
+components/
+├── ui/                   # shadcn/ui components
+├── features/             # Feature-specific components
+│   ├── inventory/
+│   ├── pricing/
+│   └── sync/
+└── layouts/              # Layout components
+
+lib/
+├── supabase/            # Supabase clients
+│   ├── client.ts        # Browser client
+│   ├── server.ts        # Server client
+│   ├── admin.ts         # Admin client (service role)
+│   └── middleware.ts    # Auth middleware
+├── integrations/        # External APIs
 │   ├── netsuite/
 │   ├── shopify/
-│   └── sap/
-└── config/              # Configuration modules
+│   └── types.ts
+└── utils/               # Helper functions
+
+supabase/
+├── migrations/          # SQL migrations
+├── functions/           # Edge Functions
+└── types/              # Generated types
 ```
 
-### File Size Limits
-- **Maximum file length**: 300 lines for services, 200 for controllers
-- **Split large files** into focused modules with clear responsibilities
-- **Extract complex business logic** into separate service files
+## 💻 Code Patterns
 
-## 🎨 Coding Standards
+### Server Component Pattern
+```tsx
+// app/(dashboard)/inventory/page.tsx
+import { createServerClient } from '@/lib/supabase/server'
+import { InventoryTable } from '@/components/features/inventory/inventory-table'
 
-### TypeScript Patterns
+export default async function InventoryPage() {
+  const supabase = createServerClient()
+  
+  // Fetch data on server
+  const { data: inventory, error } = await supabase
+    .from('inventory')
+    .select('*, products(name, sku)')
+    .order('updated_at', { ascending: false })
+    .limit(50)
 
-```typescript
-// ✅ ALWAYS use explicit types and interfaces
-interface InventoryUpdateDto {
-  sku: string;
-  quantity: number;
-  warehouseId: string;
-  reason: 'sale' | 'return' | 'adjustment' | 'transfer';
-}
-
-// ✅ ALWAYS use dependency injection
-constructor(
-  private readonly inventoryService: InventoryService,
-  @InjectQueue('sync') private readonly syncQueue: Queue,
-  @InjectRedis() private readonly redis: Redis
-) {}
-
-// ✅ ALWAYS handle errors explicitly
-async updateInventory(dto: InventoryUpdateDto): Promise<InventoryItem> {
-  try {
-    // Validate business rules
-    if (dto.quantity < 0 && dto.reason !== 'adjustment') {
-      throw new BadRequestException('Negative quantities only allowed for adjustments');
-    }
-
-    // Check cache first
-    const cached = await this.redis.get(`inv:${dto.sku}`);
-    if (cached) {
-      await this.redis.del(`inv:${dto.sku}`); // Invalidate cache
-    }
-
-    // Update database
-    const result = await this.inventoryService.update(dto);
-
-    // Queue sync to external systems
-    await this.syncQueue.add('inventory-update', {
-      sku: dto.sku,
-      customerId: this.currentUser.customerId,
-      timestamp: new Date()
-    });
-
-    return result;
-  } catch (error) {
-    this.logger.error('Inventory update failed', {
-      sku: dto.sku,
-      customerId: this.currentUser.customerId,
-      error: error.message,
-      // NEVER log: dto.apiKey, full request body, sensitive data
-    });
-    throw error;
+  if (error) {
+    throw new Error('Failed to load inventory')
   }
+
+  // Pass to Client Component for interactivity
+  return (
+    <div className="container py-6">
+      <h1 className="text-3xl font-bold mb-6">Inventory Management</h1>
+      <InventoryTable initialData={inventory} />
+    </div>
+  )
 }
-
-// ❌ NEVER use 'any' type
-const processData = (data: any) => {} // BAD!
-
-// ❌ NEVER make sync external calls
-const price = await externalApi.getPrice(sku); // BAD in request handler!
-
-// ❌ NEVER forget customerId in queries
-const items = await db.query('SELECT * FROM inventory'); // SECURITY RISK!
 ```
 
-### API Endpoint Pattern
+### Client Component with Real-time
+```tsx
+'use client'
+
+import { useEffect } from 'react'
+import { createBrowserClient } from '@/lib/supabase/client'
+import { useQueryClient } from '@tanstack/react-query'
+
+export function InventoryTable({ initialData }: { initialData: Inventory[] }) {
+  const supabase = createBrowserClient()
+  const queryClient = useQueryClient()
+
+  // Set up real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('inventory-changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'inventory',
+          filter: `organization_id=eq.${user.organizationId}`
+        },
+        (payload) => {
+          // Invalidate and refetch
+          queryClient.invalidateQueries({ queryKey: ['inventory'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, queryClient])
+
+  return (
+    // Table implementation
+  )
+}
+```
+
+### Server Action Pattern
 ```typescript
-@Controller('inventory')
-@UseGuards(JwtAuthGuard, RateLimitGuard)
-@UseInterceptors(LoggingInterceptor, MetricsInterceptor)
-export class InventoryController {
-  @Post('bulk-update')
-  @ApiOperation({ summary: 'Bulk update inventory levels' })
-  @ApiResponse({ status: 200, description: 'Update successful' })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  async bulkUpdate(
-    @Body() dto: BulkUpdateDto,
-    @CurrentUser() user: User
-  ): Promise<ApiResponse<BulkUpdateResult>> {
-    // Controller only handles HTTP concerns
-    const result = await this.inventoryService.bulkUpdate(dto, user.customerId);
-    
-    return {
-      success: true,
-      data: result,
-      meta: {
-        timestamp: new Date().toISOString(),
-        version: '1.0'
-      }
-    };
+// app/actions/inventory.ts
+'use server'
+
+import { createServerClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+
+const updateInventorySchema = z.object({
+  id: z.string().uuid(),
+  quantity: z.number().min(0),
+  warehouseId: z.string().uuid(),
+  reason: z.enum(['sale', 'return', 'adjustment', 'transfer'])
+})
+
+export async function updateInventory(formData: FormData) {
+  const supabase = createServerClient()
+  
+  // Get session
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  // Validate input
+  const parsed = updateInventorySchema.parse({
+    id: formData.get('id'),
+    quantity: Number(formData.get('quantity')),
+    warehouseId: formData.get('warehouseId'),
+    reason: formData.get('reason')
+  })
+
+  // Update with RLS
+  const { error } = await supabase
+    .from('inventory')
+    .update({ 
+      quantity: parsed.quantity,
+      warehouse_id: parsed.warehouseId,
+      updated_by: user.id
+    })
+    .eq('id', parsed.id)
+
+  if (error) throw error
+
+  // Trigger sync to external systems
+  await supabase.functions.invoke('sync-inventory', {
+    body: { inventoryId: parsed.id }
+  })
+
+  // Revalidate cache
+  revalidatePath('/inventory')
+}
+```
+
+### API Route for Webhooks
+```typescript
+// app/api/webhooks/shopify/route.ts
+import { headers } from 'next/headers'
+import { createAdminClient } from '@/lib/supabase/admin'
+import crypto from 'crypto'
+
+export async function POST(request: Request) {
+  const body = await request.text()
+  const signature = headers().get('x-shopify-hmac-sha256')
+
+  // Verify webhook
+  const hash = crypto
+    .createHmac('sha256', process.env.SHOPIFY_WEBHOOK_SECRET!)
+    .update(body, 'utf8')
+    .digest('base64')
+
+  if (hash !== signature) {
+    return new Response('Unauthorized', { status: 401 })
   }
+
+  const data = JSON.parse(body)
+  const supabase = createAdminClient()
+
+  // Process inventory update
+  if (data.topic === 'inventory_levels/update') {
+    await supabase
+      .from('inventory')
+      .upsert({
+        external_id: data.inventory_item_id,
+        quantity: data.available,
+        location_id: data.location_id,
+        platform: 'shopify',
+        last_sync: new Date().toISOString()
+      })
+  }
+
+  return new Response('OK', { status: 200 })
 }
 ```
 
-### Database Query Pattern
-```typescript
-// ✅ ALWAYS include customerId and use parameterized queries
-const inventory = await this.db.query(
-  `SELECT sku, quantity, warehouse_id, last_updated
-   FROM inventory
-   WHERE customer_id = $1 
-     AND sku = ANY($2)
-     AND deleted_at IS NULL
-   ORDER BY sku`,
-  [customerId, skus]
+### Database Schema with RLS
+```sql
+-- Inventory table with multi-tenancy
+CREATE TABLE inventory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id UUID REFERENCES organizations(id) NOT NULL,
+  product_id UUID REFERENCES products(id) NOT NULL,
+  warehouse_id UUID REFERENCES warehouses(id) NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 0,
+  reserved_quantity INTEGER NOT NULL DEFAULT 0,
+  reorder_point INTEGER,
+  reorder_quantity INTEGER,
+  last_sync TIMESTAMPTZ,
+  sync_status TEXT DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_by UUID REFERENCES auth.users(id)
 );
 
-// ✅ Use transactions for multi-step operations
-async transferInventory(from: string, to: string, sku: string, qty: number) {
-  const client = await this.db.getClient();
-  try {
-    await client.query('BEGIN');
-    
-    // Deduct from source
-    await client.query(
-      'UPDATE inventory SET quantity = quantity - $1 WHERE warehouse_id = $2 AND sku = $3',
-      [qty, from, sku]
-    );
-    
-    // Add to destination
-    await client.query(
-      'UPDATE inventory SET quantity = quantity + $1 WHERE warehouse_id = $2 AND sku = $3',
-      [qty, to, sku]
-    );
-    
-    await client.query('COMMIT');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
+-- RLS Policies
+ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
+
+-- Users can only see their organization's inventory
+CREATE POLICY "Users can view own organization inventory" ON inventory
+  FOR SELECT USING (
+    organization_id = (
+      SELECT organization_id FROM user_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- Users can update their organization's inventory
+CREATE POLICY "Users can update own organization inventory" ON inventory
+  FOR UPDATE USING (
+    organization_id = (
+      SELECT organization_id FROM user_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- Indexes for performance
+CREATE INDEX idx_inventory_org_product ON inventory(organization_id, product_id);
+CREATE INDEX idx_inventory_sync_status ON inventory(sync_status) WHERE sync_status = 'pending';
+```
+
+### Custom Hook Pattern
+```typescript
+// hooks/use-inventory.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { createBrowserClient } from '@/lib/supabase/client'
+
+export function useInventory(warehouseId?: string) {
+  const supabase = createBrowserClient()
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
+    queryKey: ['inventory', warehouseId],
+    queryFn: async () => {
+      let query = supabase
+        .from('inventory')
+        .select('*, products(*), warehouses(*)')
+        
+      if (warehouseId) {
+        query = query.eq('warehouse_id', warehouseId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: async (update: InventoryUpdate) => {
+      const { error } = await supabase
+        .from('inventory')
+        .update(update)
+        .eq('id', update.id)
+      
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] })
+    }
+  })
+
+  return {
+    inventory: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    updateInventory: updateMutation.mutate
   }
 }
 ```
 
-## 🧪 Testing Requirements
+## 🚨 Critical Rules
 
-### Test Structure
-```typescript
-describe('InventoryService', () => {
-  let service: InventoryService;
-  let mockDb: jest.Mocked<DatabaseService>;
-  let mockRedis: jest.Mocked<Redis>;
+### Supabase Specific
+1. **ALWAYS use RLS** - Every table needs Row Level Security policies
+2. **Organization isolation** - Filter by organization_id in all queries
+3. **Type safety** - Generate types with `supabase gen types`
+4. **Service role carefully** - Only use admin client in secure server contexts
+5. **Handle auth states** - Check user session before mutations
 
-  beforeEach(() => {
-    // Setup mocks
-    mockDb = createMock<DatabaseService>();
-    mockRedis = createMock<Redis>();
+### Next.js Specific
+1. **Server Components default** - Only use 'use client' when needed
+2. **No sensitive data in client** - API keys only in server components/actions
+3. **Revalidate after mutations** - Use revalidatePath or revalidateTag
+4. **Error boundaries** - Wrap pages in error boundaries
+5. **Loading states** - Always show loading.tsx for async operations
+
+### General Rules
+1. **Never trust user input** - Validate with Zod
+2. **Never log sensitive data** - No passwords, API keys, tokens
+3. **Always handle errors** - Show user-friendly messages
+4. **Test critical paths** - E2E tests for core workflows
+5. **Document complex logic** - Future you will thank you
+
+## 📝 Common Patterns to Follow
+
+### Form Handling
+```tsx
+// Always use React Hook Form + Zod
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+
+const formSchema = z.object({
+  quantity: z.number().min(0).max(999999),
+  reason: z.string().min(1)
+})
+
+export function UpdateInventoryForm() {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema)
+  })
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const formData = new FormData()
+    Object.entries(values).forEach(([key, value]) => {
+      formData.append(key, value.toString())
+    })
     
-    // Create service with mocks
-    service = new InventoryService(mockDb, mockRedis);
-  });
-
-  describe('updateInventory', () => {
-    it('should update inventory and invalidate cache', async () => {
-      // Arrange
-      const dto: InventoryUpdateDto = {
-        sku: 'WIDGET-001',
-        quantity: 100,
-        warehouseId: 'WH-001',
-        reason: 'adjustment'
-      };
-      mockDb.query.mockResolvedValueOnce({ rows: [{ id: 1, ...dto }] });
-
-      // Act
-      const result = await service.updateInventory(dto, 'CUST-123');
-
-      // Assert
-      expect(mockDb.query).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE inventory'),
-        expect.arrayContaining(['CUST-123', 'WIDGET-001'])
-      );
-      expect(mockRedis.del).toHaveBeenCalledWith('inv:WIDGET-001');
-    });
-
-    it('should handle database errors gracefully', async () => {
-      // Arrange
-      mockDb.query.mockRejectedValueOnce(new Error('Connection lost'));
-
-      // Act & Assert
-      await expect(service.updateInventory(dto, 'CUST-123'))
-        .rejects.toThrow('Connection lost');
-    });
-  });
-});
+    await updateInventory(formData)
+  }
+}
 ```
 
-### Testing Checklist
-- [ ] Unit tests for all business logic (services)
-- [ ] Integration tests for all API endpoints
-- [ ] Error cases and edge cases covered
-- [ ] External API calls are mocked
-- [ ] Database queries are tested
-- [ ] Authentication/authorization tested
-- [ ] Rate limiting tested
-- [ ] 80% minimum code coverage
+### Error Handling
+```tsx
+// Global error boundary
+export function ErrorBoundary({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <h2 className="text-xl font-semibold mb-2">Something went wrong!</h2>
+      <p className="text-muted-foreground mb-4">{error.message}</p>
+      <Button onClick={reset}>Try again</Button>
+    </div>
+  )
+}
+```
 
-## 📝 Documentation Requirements
+### Data Fetching
+```tsx
+// Parallel data fetching in Server Components
+export default async function DashboardPage() {
+  const supabase = createServerClient()
 
-### When to Update Documentation
-1. **API Changes**: Update `docs/technical/api-specification.md`
-2. **New Features**: Update `README.md` and add to `docs/product/features/`
-3. **Integration Changes**: Update relevant guide in `docs/workflows/integration-guides/`
-4. **Architecture Changes**: Update `ARCHITECTURE.md`
-5. **Breaking Changes**: Update `CHANGELOG.md` with migration guide
+  // Parallel fetching
+  const [inventoryResult, ordersResult, alertsResult] = await Promise.all([
+    supabase.from('inventory').select('*').limit(10),
+    supabase.from('orders').select('*').limit(10),
+    supabase.from('alerts').select('*').eq('status', 'active')
+  ])
 
-### Code Documentation
+  return (
+    <Dashboard 
+      inventory={inventoryResult.data}
+      orders={ordersResult.data}
+      alerts={alertsResult.data}
+    />
+  )
+}
+```
+
+## 🧪 Testing Approach
+
+### E2E Tests with Playwright
 ```typescript
-/**
- * Updates inventory levels for a specific SKU
- * 
- * @param dto - Inventory update details
- * @param customerId - Customer ID for multi-tenancy
- * @returns Updated inventory item
- * @throws {BadRequestException} If quantity is invalid
- * @throws {NotFoundException} If SKU doesn't exist
- * 
- * @example
- * const updated = await service.updateInventory({
- *   sku: 'WIDGET-001',
- *   quantity: 100,
- *   warehouseId: 'WH-001',
- *   reason: 'adjustment'
- * }, 'CUST-123');
- */
+import { test, expect } from '@playwright/test'
+
+test('update inventory quantity', async ({ page }) => {
+  // Login
+  await page.goto('/login')
+  await page.fill('[name="email"]', 'test@example.com')
+  await page.fill('[name="password"]', 'password')
+  await page.click('button[type="submit"]')
+
+  // Navigate to inventory
+  await page.goto('/inventory')
+  await page.waitForSelector('[data-testid="inventory-table"]')
+
+  // Update quantity
+  await page.click('[data-testid="edit-quantity-btn"]')
+  await page.fill('[name="quantity"]', '150')
+  await page.click('button[type="submit"]')
+
+  // Verify update
+  await expect(page.locator('[data-testid="quantity-display"]')).toHaveText('150')
+})
 ```
 
-## ✅ Task Management
+## 🔍 Debugging Tips
 
-### Before Starting a Task
-1. Check `TASK.md` for task details and acceptance criteria
-2. Create a feature branch: `git checkout -b feat/task-description`
-3. Review related documentation
-4. Check for existing tests that might need updates
+### Common Issues
+1. **"RLS policy violation"** - Check user's organization_id matches
+2. **"Hydration mismatch"** - Ensure consistent server/client rendering
+3. **"Invalid auth token"** - Refresh session or check middleware
+4. **"CORS error"** - Check Supabase URL configuration
+5. **"Type error after schema change"** - Regenerate types
 
-### During Development
-1. Write tests FIRST (TDD) when possible
-2. Commit frequently with conventional commits
-3. Update documentation as you go
-4. Add discovered tasks to `TASK.md`
+### Useful Commands
+```bash
+# Generate TypeScript types from Supabase
+pnpm supabase gen types typescript --local > supabase/types/database.ts
 
-### Task Completion Checklist
-- [ ] All acceptance criteria met
-- [ ] Tests written and passing
-- [ ] Documentation updated
-- [ ] No console.logs or debugging code left
-- [ ] Code reviewed against standards
-- [ ] `TASK.md` updated with completion date
-- [ ] PR created with proper template
+# Run local Supabase
+pnpm supabase start
 
-## 🚨 Critical Rules - NEVER VIOLATE THESE
+# Apply migrations
+pnpm supabase db push
 
-1. **NEVER query database without customerId filter** - This is a security breach
-2. **NEVER log sensitive data** (API keys, passwords, full request bodies, PII)
-3. **NEVER make synchronous external API calls** in request handlers
-4. **NEVER trust external data** without validation
-5. **NEVER use `any` type** in TypeScript
-6. **NEVER commit code without tests**
-7. **NEVER store credentials in code** - Use environment variables
-8. **NEVER ignore rate limits** on external APIs
+# Create new migration
+pnpm supabase migration new <name>
 
-## 🤝 AI Behavior Guidelines
-
-### When You're Unsure
-- **Ask for clarification** rather than making assumptions
-- **Reference the documentation** before suggesting solutions
-- **Check existing patterns** in the codebase
-- **Propose multiple approaches** with trade-offs
-
-### Code Generation Rules
-- **Always follow existing patterns** found in the codebase
-- **Generate complete, working code** with proper error handling
-- **Include comprehensive tests** with your code
-- **Add helpful comments** explaining complex logic
-- **Update all affected documentation**
-
-### Common Patterns to Remember
-- All endpoints need authentication (except health checks)
-- All database queries need customerId filtering
-- All external calls need circuit breakers
-- All responses follow the standard format
-- All errors are properly typed and handled
-
-## 🔍 Quick Reference
-
-### Key Business Context
-- **Target Market**: Mid-market distributors ($10M-$100M revenue)
-- **Pricing Tiers**: Starter ($499), Professional ($1,499), Enterprise ($3,999+)
-- **Main Value Prop**: Reduce order errors from 33% to <1%
-- **ROI**: Average customer saves $400k/year
-
-### Important Metrics
-- Order Error Rate: Target <1%
-- Sync Accuracy: Target 99.9%
-- API Response Time: <200ms
-- Customer Churn: Target <5% monthly
-- Implementation Time: Target <5 days
-
-### Getting Help
-- Architecture questions → `ARCHITECTURE.md`
-- API details → `docs/technical/api-specification.md`
-- Business context → `docs/product/PRD.md`
-- Integration guides → `docs/workflows/integration-guides/`
-- Coding patterns → `.ai/context.md`
+# Test Edge Functions locally
+pnpm supabase functions serve
+```
 
 ---
 
-**Remember**: You're building a system that handles critical business data worth millions of dollars. Every order error costs real money. When in doubt, choose reliability and accuracy over speed or cleverness. Our customers depend on TruthSource to be their single source of truth.
+**Remember**: You're building a system handling critical B2B data. Prioritize data accuracy, security (RLS), and user experience. When in doubt, choose reliability over complexity.
