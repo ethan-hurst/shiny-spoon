@@ -48,12 +48,15 @@ export default async function ProductsPage() {
     const totalReserved = product.inventory?.reduce((sum: number, inv: any) => 
       sum + (inv.reserved_quantity || 0), 0) || 0
     
+    // Get low stock threshold (configurable per organization)
+    const lowStockThreshold = product.reorder_point || 10 // Use reorder_point or default to 10
+    
     return {
       ...product,
       inventory_count: product.inventory?.length || 0,
       total_quantity: totalQuantity,
       available_quantity: totalQuantity - totalReserved,
-      low_stock: totalQuantity < 10 // Simple threshold for now
+      low_stock: totalQuantity < lowStockThreshold
     }
   }) || []
 

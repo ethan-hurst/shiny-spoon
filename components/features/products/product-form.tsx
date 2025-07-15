@@ -72,11 +72,21 @@ export function ProductForm({ product }: ProductFormProps) {
       if (result?.error) {
         if (typeof result.error === 'string') {
           toast.error(result.error)
+        } else if (result.error?.fieldErrors) {
+          // Handle validation errors
+          const fieldErrors = result.error.fieldErrors
+          const errorMessages = Object.entries(fieldErrors)
+            .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
+            .join('; ')
+          toast.error(`Validation errors: ${errorMessages}`)
+        } else if (result.error?.message) {
+          // Handle API errors with specific messages
+          toast.error(result.error.message)
         } else {
-          toast.error('Failed to save product')
+          toast.error('Failed to save product. Please check your input and try again.')
         }
       } else {
-        toast.success(product ? 'Product updated' : 'Product created')
+        toast.success(product ? 'Product updated successfully' : 'Product created successfully')
         router.push('/dashboard/products')
         router.refresh()
       }

@@ -22,9 +22,17 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
     if (file) {
       onChange(file)
       const reader = new FileReader()
+      
       reader.onloadend = () => {
         setPreview(reader.result as string)
       }
+      
+      reader.onerror = (error) => {
+        console.error('Error reading file:', error)
+        // You could also show a toast notification here
+        // toast.error('Failed to read the selected file')
+      }
+      
       reader.readAsDataURL(file)
     }
   }, [onChange])

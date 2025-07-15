@@ -11,17 +11,26 @@ export const productSchema = z.object({
   description: z.string().max(1000).optional(),
   category: z.string().optional(),
   base_price: z.string()
-    .regex(/^\d+(\.\d{1,2})?$/, 'Invalid price format')
-    .transform((val) => parseFloat(val)),
+    .regex(/^$|^\d+(\.\d{1,2})?$/, 'Invalid price format')
+    .transform((val) => val === '' ? 0 : parseFloat(val)),
   cost: z.string()
-    .regex(/^\d+(\.\d{1,2})?$/, 'Invalid cost format')
-    .transform((val) => parseFloat(val))
+    .regex(/^$|^\d+(\.\d{1,2})?$/, 'Invalid cost format')
+    .transform((val) => val === '' ? 0 : parseFloat(val))
     .optional(),
   weight: z.string()
-    .regex(/^\d+(\.\d{1,3})?$/, 'Invalid weight format')
-    .transform((val) => parseFloat(val))
-    .optional(),
-  image: z.instanceof(File).optional().or(z.string().optional()),
+    .optional()
+    .refine((val) => val === '' || val === undefined || /^\d+(\.\d{1,3})?$/.test(val), {
+      message: 'Invalid weight format'
+    })
+    .transform((val) => val === '' || val === undefined ? undefined : parseFloat(val)),
+  image: z.instanceof(File)
+    .refine((file) => {
+      if (!file) return true
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      return allowedTypes.includes(file.type)
+    }, 'Only JPEG, PNG, and WebP image formats are allowed')
+    .optional()
+    .or(z.string().optional()),
 })
 
 export const bulkProductSchema = z.object({

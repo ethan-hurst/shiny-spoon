@@ -6,7 +6,9 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "build-check": "npm run type-check && npm run lint && npm run build"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.0.2",
@@ -30,7 +32,6 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-toast": "^1.1.5",
-    "@react-pdf/renderer": "^3.4.4",
     "@stripe/stripe-js": "^3.4.0",
     "@supabase/auth-helpers-nextjs": "^0.8.1",
     "@supabase/ssr": "^0.3.0",

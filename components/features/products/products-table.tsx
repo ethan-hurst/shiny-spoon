@@ -94,7 +94,14 @@ export function ProductsTable({ initialData, categories }: ProductsTableProps) {
         accessorKey: 'base_price',
         header: 'Price',
         cell: ({ row }) => {
-          const price = parseFloat(row.getValue('base_price'))
+          const priceValue = row.getValue('base_price')
+          const price = parseFloat(priceValue as string)
+          
+          // Validate if price is a valid number
+          if (isNaN(price) || priceValue === null || priceValue === undefined) {
+            return <div className="text-muted-foreground">—</div>
+          }
+          
           const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',

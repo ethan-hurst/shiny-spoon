@@ -25,37 +25,67 @@ export function CategorySelect({ value, onChange, disabled }: CategorySelectProp
   const [newCategory, setNewCategory] = useState('')
   const supabase = createClient()
 
+  const [isLoading, setIsLoading] = useState(false)
+
   useEffect(() => {
     fetchCategories()
   }, [])
 
   const fetchCategories = async () => {
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('organization_id')
-      .single()
+    setIsLoading(true)
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('organization_id')
+        .single()
 
-    if (!profile) return
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError)
+        return
+      }
 
-    const { data: products } = await supabase
-      .from('products')
-      .select('category')
-      .eq('organization_id', profile.organization_id)
-      .not('category', 'is', null)
+      if (!profile) return
 
-    if (products) {
-      const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
-      setCategories(uniqueCategories.sort())
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('category')
+        .eq('organization_id', profile.organization_id)
+        .not('category', 'is', null)
+
+      if (productsError) {
+        console.error('Error fetching product categories:', productsError)
+        return
+      }
+
+      if (products) {
+        const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
+        setCategories(uniqueCategories.sort())
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching categories:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleAddNew = () => {
-    if (newCategory.trim()) {
-      onChange(newCategory.trim())
-      setCategories([...categories, newCategory.trim()].sort())
-      setNewCategory('')
-      setIsAddingNew(false)
+    const trimmedCategory = newCategory.trim()
+    
+    // Validate input
+    if (!trimmedCategory) {
+      return // Don't add empty categories
     }
+    
+    // Check if category already exists (case-insensitive)
+    if (categories.some(cat => cat.toLowerCase() === trimmedCategory.toLowerCase())) {
+      return // Don't add duplicate categories
+    }
+    
+    // Add the new category
+    onChange(trimmedCategory)
+    setCategories([...categories, trimmedCategory].sort())
+    setNewCategory('')
+    setIsAddingNew(false)
   }
 
   if (isAddingNew) {
