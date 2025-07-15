@@ -1,156 +1,153 @@
-# TruthSource Project Context
+# TruthSource - Next.js + Supabase Project
 
-You are working on TruthSource, a B2B e-commerce data accuracy platform that prevents costly order errors by synchronizing inventory, pricing, and delivery data between ERPs and e-commerce platforms.
-
-## Critical Context Files to Read First
-- README.md - Project overview and quick start
-- ARCHITECTURE.md - High-level system design
-- .ai/context.md - Detailed coding patterns and anti-patterns
-- docs/technical/api-specification.md - Complete API reference
-- docs/technical/architecture.md - Detailed technical architecture
-- docs/product/PRD.md - Product requirements and user stories
-
-## Core Problem
-33% of B2B e-commerce orders contain errors, costing distributors an average of $400,000 annually. We fix this through real-time data synchronization.
-
-## Key Technical Constraints
-- Response time: <200ms for reads, <500ms for writes
-- Sync latency: <30 seconds end-to-end
-- Scale: 10,000 requests/second, 100,000 SKUs per customer
-- Uptime: 99.9% SLA
-- Security: SOC2 compliant, all data encrypted
-
-## Architecture Principles
-1. Data accuracy over speed - never show wrong data
-2. Multi-tenant isolation - always filter by customerId
-3. Async processing - never block on external API calls
-4. Defensive programming - validate all external data
-5. Comprehensive logging - but never log sensitive data
+You are working on TruthSource, a B2B e-commerce data accuracy platform that prevents order errors by synchronizing data between ERPs and e-commerce platforms.
 
 ## Tech Stack
-- Backend: Node.js 18+, TypeScript, NestJS
-- Database: PostgreSQL 14+ (primary), Redis (cache)
-- Queue: RabbitMQ for async processing
-- Monitoring: Prometheus + Grafana
-- Testing: Jest with 80% coverage minimum
+- Next.js 14+ (App Router)
+- TypeScript with strict mode
+- Supabase (PostgreSQL, Auth, Realtime, Storage)
+- Tailwind CSS + shadcn/ui
+- React Query (TanStack Query)
+- React Hook Form + Zod
+- Vercel deployment
 
-## Critical Patterns to Follow
+## Project Context
+- Problem: 33% of B2B orders contain errors, costing $400k/year per distributor
+- Solution: Real-time sync with 99.9% accuracy
+- Users: IT Directors, E-commerce Managers, Operations Managers
 
-### API Endpoint Pattern
-```typescript
-@Post('/endpoint')
-@UseGuards(AuthGuard, RateLimitGuard)
-async method(@Body() dto: ValidatedDto, @CurrentUser() user: User) {
-  // 1. Validate input (done by DTO)
-  // 2. Check cache
-  // 3. Business logic
-  // 4. Update database
-  // 5. Clear cache
-  // 6. Return consistent format
+## Critical Patterns
+
+### File Structure
+```
+app/
+├── (auth)/           # Public auth routes
+├── (dashboard)/      # Protected dashboard routes
+├── api/              # Webhook endpoints
+└── actions/          # Server actions
+components/
+├── ui/               # shadcn/ui components
+└── features/         # Feature-specific components
+lib/
+├── supabase/         # Supabase clients
+└── utils/            # Helpers
+```
+
+### Server Components (Default)
+```tsx
+// app/(dashboard)/inventory/page.tsx
+export default async function InventoryPage() {
+  const supabase = createServerClient()
+  const { data } = await supabase
+    .from('inventory')
+    .select('*, products(*)')
+    .order('updated_at', { ascending: false })
+
+  return <InventoryTable data={data} />
 }
 ```
 
-### Error Handling Pattern
+### Client Components (Interactive)
+```tsx
+'use client'
+
+export function InventoryTable({ data }: Props) {
+  // Interactive features here
+}
+```
+
+### Server Actions
+```typescript
+'use server'
+
+export async function updateInventory(formData: FormData) {
+  const supabase = createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  // Validate with Zod
+  const parsed = schema.parse(Object.fromEntries(formData))
+  
+  // Update with RLS
+  const { error } = await supabase
+    .from('inventory')
+    .update(parsed)
+    .eq('id', parsed.id)
+    
+  revalidatePath('/inventory')
+}
+```
+
+### Supabase Patterns
+```typescript
+// Always check organization context
+.eq('organization_id', user.organizationId)
+
+// Use RLS for security
+ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
+
+// Real-time subscriptions in Client Components only
+const channel = supabase
+  .channel('changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, handler)
+  .subscribe()
+```
+
+## Critical Rules
+1. ALWAYS use Server Components by default
+2. ALWAYS check auth before mutations
+3. ALWAYS use RLS policies on tables
+4. ALWAYS validate with Zod schemas
+5. NEVER log sensitive data
+6. NEVER trust external input
+7. NEVER query without organization context
+
+## Common Imports
+```typescript
+import { createServerClient } from '@/lib/supabase/server'
+import { createBrowserClient } from '@/lib/supabase/client'
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { z } from 'zod'
+```
+
+## Performance
+- Use Server Components for data fetching
+- Use React Query for client-side caching
+- Use Suspense boundaries for loading states
+- Use dynamic imports for code splitting
+- Optimize images with next/image
+
+## Security
+- All tables must have RLS policies
+- Filter by organization_id in every query
+- Use Supabase Auth for authentication
+- Validate all inputs with Zod
+- Use CSRF protection on mutations
+
+## Testing
+- E2E tests with Playwright
+- Component tests with React Testing Library
+- Always test error states
+- Test RLS policies separately
+
+## Error Handling
 ```typescript
 try {
-  const result = await externalApi.call();
-  return result;
+  // operation
 } catch (error) {
-  logger.error('External API failed', {
-    service: 'api-name',
-    customerId: user.customerId,
-    // NEVER log: apiKey, passwords, full request/response
-  });
-  
-  if (isRetryable(error)) {
-    await queue.retry(task);
+  if (error.code === '23505') {
+    return { error: 'This SKU already exists' }
   }
-  
-  throw new ServiceException('User-friendly message');
+  console.error('Operation failed:', error.message)
+  return { error: 'Something went wrong' }
 }
 ```
 
-### Database Query Pattern
-```typescript
-// ALWAYS include customerId for multi-tenancy
-const result = await db.query(
-  'SELECT * FROM table WHERE customer_id = $1 AND id = $2',
-  [customerId, id]
-);
-```
+## Key Business Rules
+- Inventory must sync within 30 seconds
+- Pricing must include customer-specific rules
+- All changes must be audited
+- Multi-warehouse support required
+- 99.9% accuracy target
 
-## Anti-Patterns to Avoid
-- NEVER make synchronous external API calls in request handlers
-- NEVER query database without customerId filter
-- NEVER log sensitive information (API keys, passwords, PII)
-- NEVER trust external data without validation
-- NEVER use 'any' type in TypeScript
-- NEVER ignore rate limits on external APIs
-
-## Common Tasks
-
-### Adding a new API endpoint
-1. Define route in controller with proper guards
-2. Create DTO for validation
-3. Implement business logic in service
-4. Add comprehensive tests
-5. Update API specification doc
-6. Add example to examples/ folder
-
-### Adding a new integration
-1. Create connector in src/integrations/{platform}/
-2. Implement standard interface
-3. Add rate limiting based on platform limits
-4. Create integration tests with mocked responses
-5. Document in docs/workflows/integration-guides/
-
-### Debugging sync issues
-1. Check /api/v1/sync/status endpoint
-2. Look for correlation ID in logs
-3. Verify webhook delivery
-4. Check circuit breaker status
-5. Review rate limit headers
-
-## Project Structure
-```
-src/
-├── modules/          # Feature modules (inventory, pricing, etc)
-├── common/           # Shared code (guards, utils)
-├── integrations/     # External system connectors
-docs/
-├── technical/        # Architecture, API specs
-├── product/          # PRD, user stories
-├── business/         # GTM strategy, pricing
-├── workflows/        # Integration guides
-examples/             # Working code examples
-```
-
-## Testing Requirements
-- Unit tests for all business logic
-- Integration tests for all API endpoints
-- E2E tests for critical user flows
-- Minimum 80% code coverage
-- All bug fixes must include regression tests
-
-## Key Business Context
-- Target: Mid-market distributors ($10M-$100M revenue)
-- Pricing: $499-$3,999/month based on SKU count
-- Hero plan: $1,499/month for up to 50K SKUs
-- Main competitors: Generic integration platforms (Zapier)
-- Our advantage: Purpose-built for B2B accuracy
-
-## Documentation Updates
-When you change code:
-1. Update relevant documentation
-2. Add/update tests
-3. Update API specification if endpoints change
-4. Add examples if new patterns introduced
-5. Update CHANGELOG.md
-
-## Getting Help
-- Technical architecture: See ARCHITECTURE.md
-- API details: See docs/technical/api-specification.md
-- Business context: See docs/product/PRD.md
-- Coding patterns: See .ai/context.md
-
-Remember: You're building a system that handles critical business data. When in doubt, choose reliability over speed. Data accuracy is our competitive advantage.
+Remember: This handles critical B2B data. Prioritize accuracy and security over speed.
