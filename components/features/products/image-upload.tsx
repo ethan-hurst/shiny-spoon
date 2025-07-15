@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import Image from 'next/image'
 
 interface ImageUploadProps {
@@ -29,8 +30,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       
       reader.onerror = (error) => {
         console.error('Error reading file:', error)
-        // You could also show a toast notification here
-        // toast.error('Failed to read the selected file')
+        toast.error('Failed to read the selected file')
       }
       
       reader.readAsDataURL(file)

@@ -485,6 +485,30 @@ pnpm supabase migration new <name>
 pnpm supabase functions serve
 ```
 
+## 🛠️ Development Commands
+
+Always run these before committing to catch errors early:
+
+```bash
+# Check TypeScript errors
+npm run typecheck
+
+# Check ESLint errors  
+npm run lint
+
+# Auto-fix linting issues
+npm run lint:fix
+
+# Run all checks in parallel (recommended)
+npm run typecheck && npm run lint
+```
+
+For continuous feedback during development:
+```bash
+# Watch for TypeScript errors in real-time
+npx tsc --noEmit --watch
+```
+
 ---
 
 **Remember**: You're building a system handling critical B2B data. Prioritize data accuracy, security (RLS), and user experience. When in doubt, choose reliability over complexity.

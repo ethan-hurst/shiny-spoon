@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit --pretty",
     "build-check": "npm run type-check && npm run lint && npm run build"
   },
   "dependencies": {
