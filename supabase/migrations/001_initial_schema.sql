@@ -1,8 +1,8 @@
 -- Initial Schema Migration for TruthSource
 -- Multi-tenant B2B e-commerce data accuracy platform
 
--- Enable UUID extension if not already enabled
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Enable UUID extension for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- =============================================
 -- CORE TABLES
@@ -177,11 +177,13 @@ CREATE POLICY "Users can update products in their org"
   ON products FOR UPDATE
   USING (organization_id = get_user_organization_id(auth.uid()));
 
-CREATE POLICY "Admins can delete products in their org"
-  ON products FOR DELETE
+-- Soft delete policy - admins can mark products as inactive
+CREATE POLICY "Admins can soft delete products in their org"
+  ON products FOR UPDATE
   USING (
     organization_id = get_user_organization_id(auth.uid())
     AND is_org_admin(auth.uid(), organization_id)
+    AND (active = false OR OLD.active = true) -- Only allow setting active to false
   );
 
 -- Warehouses policies

@@ -7,6 +7,18 @@ import type { NextRequest } from 'next/server'
 import type { Database } from '@/types/database.types'
 
 export async function updateSession(request: NextRequest) {
+  // Validate environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set')
+  }
+
+  if (!supabaseAnonKey) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set')
+  }
+
   // Create response to modify
   let supabaseResponse = NextResponse.next({
     request,
@@ -14,8 +26,8 @@ export async function updateSession(request: NextRequest) {
 
   // Create Supabase client with cookie handling
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -36,8 +48,14 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
+  // Refresh session if expired - handle potential errors
   const { data: { user }, error } = await supabase.auth.getUser()
+
+  // Handle authentication errors
+  if (error) {
+    console.error('Supabase auth error in middleware:', error)
+    // For auth errors, treat as unauthenticated
+  }
 
   // Protected routes that require authentication
   const protectedPaths = [

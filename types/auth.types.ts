@@ -12,13 +12,41 @@ export interface AuthUser {
   }
 }
 
+// User permissions structure
+export interface UserPermissions {
+  inventory: {
+    read: boolean
+    write: boolean
+    delete: boolean
+  }
+  products: {
+    read: boolean
+    write: boolean
+    delete: boolean
+  }
+  warehouses: {
+    read: boolean
+    write: boolean
+    delete: boolean
+  }
+  users: {
+    read: boolean
+    write: boolean
+    delete: boolean
+  }
+  settings: {
+    read: boolean
+    write: boolean
+  }
+}
+
 export interface UserProfile {
   id: string
   user_id: string
   organization_id: string
   full_name: string | null
   role: 'owner' | 'admin' | 'member'
-  permissions: Record<string, any>
+  permissions: UserPermissions
   created_at: string
   updated_at: string
 }

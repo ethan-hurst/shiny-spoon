@@ -1,12 +1,29 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pnpm supabase:*)",
-      "Bash(npm:*)",
-      "Bash(npx supabase:*)",
-      "Bash(mkdir:*)",
-      "Bash(npx:*)"
+      "Bash(pnpm install)",
+      "Bash(pnpm add)",
+      "Bash(pnpm dev)",
+      "Bash(pnpm build)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm type-check)",
+      "Bash(pnpm dlx create-next-app)",
+      "Bash(pnpm dlx shadcn-ui)",
+      "Bash(pnpm supabase start)",
+      "Bash(pnpm supabase stop)",
+      "Bash(pnpm supabase db push)",
+      "Bash(pnpm supabase db reset)",
+      "Bash(pnpm supabase gen types)",
+      "Bash(npx supabase start)",
+      "Bash(npx supabase stop)",
+      "Bash(npx supabase db push)",
+      "Bash(npx supabase db reset)",
+      "Bash(npx supabase gen types)",
+      "Bash(mkdir:*)"
     ],
-    "deny": []
+    "deny": [
+      "Bash(npm:*)",
+      "Bash(npx:*)"
+    ]
   }
 }

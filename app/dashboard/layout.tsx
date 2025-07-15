@@ -1,7 +1,7 @@
 import { ReactNode } from "react"
 import { redirect } from "next/navigation"
 import DashboardSideBar from "./_components/dashboard-side-bar"
-import DashboardTopNav from "./_components/dashbord-top-nav"
+import DashboardTopNav from "./_components/dashboard-top-nav"
 import { createClient } from "@/lib/supabase/server"
 import config from "@/config"
 
@@ -37,7 +37,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     const { isAuthorized } = await import("@/utils/data/user/isAuthorized")
     
     const user = await currentUser()
-    const { authorized } = await isAuthorized(user?.id!)
+    
+    if (!user || !user.id) {
+      redirect('/login')
+    }
+    
+    const { authorized } = await isAuthorized(user.id)
     
     if (!authorized) {
       redirect('/login')

@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { loginSchema, signupSchema, resetPasswordSchema } from '@/types/auth.types'
+import { loginSchema, signupSchema, resetPasswordSchema, updatePasswordSchema } from '@/types/auth.types'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -152,21 +152,23 @@ export async function resetPassword(formData: FormData) {
 }
 
 export async function updatePassword(formData: FormData) {
-  const newPassword = formData.get('password') as string
-  const confirmPassword = formData.get('confirmPassword') as string
-
-  if (newPassword !== confirmPassword) {
-    return { error: 'Passwords do not match' }
-  }
-
-  if (newPassword.length < 8) {
-    return { error: 'Password must be at least 8 characters' }
+  // Parse and validate input
+  const parsed = updatePasswordSchema.safeParse({
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+  })
+  
+  if (!parsed.success) {
+    return { 
+      error: 'Invalid input',
+      fieldErrors: parsed.error.flatten().fieldErrors 
+    }
   }
 
   const supabase = createClient()
   
   const { error } = await supabase.auth.updateUser({
-    password: newPassword
+    password: parsed.data.password
   })
   
   if (error) {
