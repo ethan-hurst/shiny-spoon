@@ -33,22 +33,26 @@ TruthSource ensures your ERP (NetSuite, SAP, Dynamics) and e-commerce platform (
 ### Local Development Setup
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/your-org/truthsource.git
 cd truthsource
 ```
 
 2. **Install dependencies**
+
 ```bash
 pnpm install
 ```
 
 3. **Set up environment variables**
+
 ```bash
 cp .env.example .env.local
 ```
 
 Edit `.env.local` with your Supabase credentials:
+
 ```env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
@@ -60,6 +64,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 4. **Set up the database**
+
 ```bash
 # Start Supabase locally (optional)
 pnpm supabase start
@@ -72,6 +77,7 @@ pnpm supabase gen types typescript --local > lib/database.types.ts
 ```
 
 5. **Run the development server**
+
 ```bash
 pnpm dev
 ```
@@ -81,6 +87,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 ## 🛠 Tech Stack
 
 ### Frontend
+
 - **[Next.js 14+](https://nextjs.org/)** - React framework with App Router
 - **[TypeScript](https://www.typescriptlang.org/)** - Type safety
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS
@@ -90,6 +97,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 - **[Zod](https://zod.dev/)** - Schema validation
 
 ### Backend
+
 - **[Supabase](https://supabase.com/)** - Backend as a Service
   - PostgreSQL database
   - Authentication
@@ -99,6 +107,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 - **[Vercel](https://vercel.com/)** - Deployment & Edge Functions
 
 ### Development Tools
+
 - **[Playwright](https://playwright.dev/)** - E2E testing
 - **[Prettier](https://prettier.io/)** - Code formatting
 - **[ESLint](https://eslint.org/)** - Linting
@@ -107,6 +116,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 ## ✨ Features
 
 ### Core Features
+
 - ✅ **Real-time Inventory Sync** - Multi-warehouse inventory tracking
 - ✅ **Dynamic Pricing Engine** - Customer-specific pricing rules
 - ✅ **Order Accuracy Monitor** - Detect and prevent errors before they happen
@@ -114,6 +124,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 - ✅ **Audit Trail** - Complete history of all changes
 
 ### Integrations
+
 - ✅ NetSuite (via SuiteTalk API)
 - ✅ Shopify B2B (via Admin API)
 - 🚧 SAP Business One
@@ -121,6 +132,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 - 🚧 BigCommerce B2B
 
 ### Coming Soon
+
 - 📅 AI-powered demand forecasting
 - 📅 Automated reorder suggestions
 - 📅 Mobile app for warehouse management
@@ -165,6 +177,7 @@ TruthSource uses a modern, serverless architecture:
 ```
 
 Key architectural decisions:
+
 - **Server Components by default** for optimal performance
 - **Row Level Security (RLS)** for data isolation
 - **Real-time subscriptions** for instant updates
@@ -286,6 +299,7 @@ This project is proprietary software. See [LICENSE](LICENSE) for details.
 ## 🙏 Acknowledgments
 
 Built with amazing open source projects:
+
 - [Next.js](https://nextjs.org/) by Vercel
 - [Supabase](https://supabase.com/) - The open source Firebase alternative
 - [shadcn/ui](https://ui.shadcn.com/) - Beautifully designed components
