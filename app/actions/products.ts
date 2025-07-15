@@ -6,6 +6,89 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
+// Image upload configuration
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
+
+// Types for product operations
+interface ProductFilters {
+  category?: string
+  active?: boolean
+  search?: string
+  minPrice?: number
+  maxPrice?: number
+  warehouse?: string
+  lowStock?: boolean
+}
+
+// Helper function to validate and upload image
+async function validateAndUploadImage(
+  file: File, 
+  organizationId: string, 
+  supabase: any
+): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE) {
+    return { success: false, error: 'Image file size must be less than 5MB' }
+  }
+
+  // Validate MIME type
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return { success: false, error: 'Only JPEG, PNG, and WebP image formats are allowed' }
+  }
+
+  // Safely extract file extension
+  const nameParts = file.name.split('.')
+  let fileExt = 'jpg' // default extension
+  
+  if (nameParts.length > 1) {
+    const ext = nameParts.pop()?.toLowerCase()
+    if (ext && ALLOWED_EXTENSIONS.includes(ext)) {
+      fileExt = ext
+    }
+  }
+
+  const fileName = `${organizationId}/${crypto.randomUUID()}.${fileExt}`
+  
+  const { error: uploadError, data: uploadData } = await supabase.storage
+    .from('products')
+    .upload(fileName, file)
+  
+  if (uploadError) {
+    console.error('Image upload error:', uploadError)
+    return { success: false, error: 'Failed to upload image. Please try again.' }
+  }
+  
+  const { data: { publicUrl } } = supabase.storage
+    .from('products')
+    .getPublicUrl(fileName)
+  
+  return { success: true, imageUrl: publicUrl }
+}
+
+// Helper function to safely delete image
+async function deleteImage(imageUrl: string, supabase: any): Promise<void> {
+  try {
+    // More robust URL parsing to extract storage path
+    const url = new URL(imageUrl)
+    const pathParts = url.pathname.split('/')
+    
+    // Extract the storage path (typically the last two parts: orgId/fileName)
+    const storagePathIndex = pathParts.findIndex(part => part === 'products')
+    if (storagePathIndex !== -1 && storagePathIndex < pathParts.length - 1) {
+      const storagePath = pathParts.slice(storagePathIndex + 1).join('/')
+      const { error } = await supabase.storage.from('products').remove([storagePath])
+      
+      if (error) {
+        console.error('Error deleting image:', error)
+      }
+    }
+  } catch (error) {
+    console.error('Error parsing image URL for deletion:', error)
+  }
+}
+
 export async function createProduct(formData: FormData) {
   const supabase = createClient()
   
@@ -45,22 +128,13 @@ export async function createProduct(formData: FormData) {
   // Handle image upload if present
   let imageUrl = null
   if (parsed.data.image instanceof File) {
-    const fileExt = parsed.data.image.name.split('.').pop()
-    const fileName = `${profile.organization_id}/${crypto.randomUUID()}.${fileExt}`
+    const uploadResult = await validateAndUploadImage(parsed.data.image, profile.organization_id, supabase)
     
-    const { error: uploadError, data: uploadData } = await supabase.storage
-      .from('products')
-      .upload(fileName, parsed.data.image)
-    
-    if (uploadError) {
-      return { error: 'Failed to upload image' }
+    if (!uploadResult.success) {
+      return { error: uploadResult.error }
     }
     
-    const { data: { publicUrl } } = supabase.storage
-      .from('products')
-      .getPublicUrl(fileName)
-    
-    imageUrl = publicUrl
+    imageUrl = uploadResult.imageUrl
   }
   
   // Check SKU uniqueness
@@ -161,26 +235,16 @@ export async function updateProduct(formData: FormData) {
   if (parsed.data.image instanceof File) {
     // Delete old image if exists
     if (existingProduct.image_url) {
-      const oldPath = existingProduct.image_url.split('/').slice(-2).join('/')
-      await supabase.storage.from('products').remove([oldPath])
+      await deleteImage(existingProduct.image_url, supabase)
     }
 
-    const fileExt = parsed.data.image.name.split('.').pop()
-    const fileName = `${profile.organization_id}/${crypto.randomUUID()}.${fileExt}`
+    const uploadResult = await validateAndUploadImage(parsed.data.image, profile.organization_id, supabase)
     
-    const { error: uploadError } = await supabase.storage
-      .from('products')
-      .upload(fileName, parsed.data.image)
-    
-    if (uploadError) {
-      return { error: 'Failed to upload image' }
+    if (!uploadResult.success) {
+      return { error: uploadResult.error }
     }
     
-    const { data: { publicUrl } } = supabase.storage
-      .from('products')
-      .getPublicUrl(fileName)
-    
-    imageUrl = publicUrl
+    imageUrl = uploadResult.imageUrl
   }
   
   // Update product
@@ -275,7 +339,7 @@ export async function bulkImportProducts(csvData: string) {
   return { error: 'Bulk import not yet implemented' }
 }
 
-export async function exportProducts(filters?: any) {
+export async function exportProducts(filters?: ProductFilters) {
   // TODO: Implement export with filters
   const supabase = createClient()
   
