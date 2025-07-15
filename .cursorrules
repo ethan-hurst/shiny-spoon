@@ -1,0 +1,156 @@
+# TruthSource Project Context
+
+You are working on TruthSource, a B2B e-commerce data accuracy platform that prevents costly order errors by synchronizing inventory, pricing, and delivery data between ERPs and e-commerce platforms.
+
+## Critical Context Files to Read First
+- README.md - Project overview and quick start
+- ARCHITECTURE.md - High-level system design
+- .ai/context.md - Detailed coding patterns and anti-patterns
+- docs/technical/api-specification.md - Complete API reference
+- docs/technical/architecture.md - Detailed technical architecture
+- docs/product/PRD.md - Product requirements and user stories
+
+## Core Problem
+33% of B2B e-commerce orders contain errors, costing distributors an average of $400,000 annually. We fix this through real-time data synchronization.
+
+## Key Technical Constraints
+- Response time: <200ms for reads, <500ms for writes
+- Sync latency: <30 seconds end-to-end
+- Scale: 10,000 requests/second, 100,000 SKUs per customer
+- Uptime: 99.9% SLA
+- Security: SOC2 compliant, all data encrypted
+
+## Architecture Principles
+1. Data accuracy over speed - never show wrong data
+2. Multi-tenant isolation - always filter by customerId
+3. Async processing - never block on external API calls
+4. Defensive programming - validate all external data
+5. Comprehensive logging - but never log sensitive data
+
+## Tech Stack
+- Backend: Node.js 18+, TypeScript, NestJS
+- Database: PostgreSQL 14+ (primary), Redis (cache)
+- Queue: RabbitMQ for async processing
+- Monitoring: Prometheus + Grafana
+- Testing: Jest with 80% coverage minimum
+
+## Critical Patterns to Follow
+
+### API Endpoint Pattern
+```typescript
+@Post('/endpoint')
+@UseGuards(AuthGuard, RateLimitGuard)
+async method(@Body() dto: ValidatedDto, @CurrentUser() user: User) {
+  // 1. Validate input (done by DTO)
+  // 2. Check cache
+  // 3. Business logic
+  // 4. Update database
+  // 5. Clear cache
+  // 6. Return consistent format
+}
+```
+
+### Error Handling Pattern
+```typescript
+try {
+  const result = await externalApi.call();
+  return result;
+} catch (error) {
+  logger.error('External API failed', {
+    service: 'api-name',
+    customerId: user.customerId,
+    // NEVER log: apiKey, passwords, full request/response
+  });
+  
+  if (isRetryable(error)) {
+    await queue.retry(task);
+  }
+  
+  throw new ServiceException('User-friendly message');
+}
+```
+
+### Database Query Pattern
+```typescript
+// ALWAYS include customerId for multi-tenancy
+const result = await db.query(
+  'SELECT * FROM table WHERE customer_id = $1 AND id = $2',
+  [customerId, id]
+);
+```
+
+## Anti-Patterns to Avoid
+- NEVER make synchronous external API calls in request handlers
+- NEVER query database without customerId filter
+- NEVER log sensitive information (API keys, passwords, PII)
+- NEVER trust external data without validation
+- NEVER use 'any' type in TypeScript
+- NEVER ignore rate limits on external APIs
+
+## Common Tasks
+
+### Adding a new API endpoint
+1. Define route in controller with proper guards
+2. Create DTO for validation
+3. Implement business logic in service
+4. Add comprehensive tests
+5. Update API specification doc
+6. Add example to examples/ folder
+
+### Adding a new integration
+1. Create connector in src/integrations/{platform}/
+2. Implement standard interface
+3. Add rate limiting based on platform limits
+4. Create integration tests with mocked responses
+5. Document in docs/workflows/integration-guides/
+
+### Debugging sync issues
+1. Check /api/v1/sync/status endpoint
+2. Look for correlation ID in logs
+3. Verify webhook delivery
+4. Check circuit breaker status
+5. Review rate limit headers
+
+## Project Structure
+```
+src/
+├── modules/          # Feature modules (inventory, pricing, etc)
+├── common/           # Shared code (guards, utils)
+├── integrations/     # External system connectors
+docs/
+├── technical/        # Architecture, API specs
+├── product/          # PRD, user stories
+├── business/         # GTM strategy, pricing
+├── workflows/        # Integration guides
+examples/             # Working code examples
+```
+
+## Testing Requirements
+- Unit tests for all business logic
+- Integration tests for all API endpoints
+- E2E tests for critical user flows
+- Minimum 80% code coverage
+- All bug fixes must include regression tests
+
+## Key Business Context
+- Target: Mid-market distributors ($10M-$100M revenue)
+- Pricing: $499-$3,999/month based on SKU count
+- Hero plan: $1,499/month for up to 50K SKUs
+- Main competitors: Generic integration platforms (Zapier)
+- Our advantage: Purpose-built for B2B accuracy
+
+## Documentation Updates
+When you change code:
+1. Update relevant documentation
+2. Add/update tests
+3. Update API specification if endpoints change
+4. Add examples if new patterns introduced
+5. Update CHANGELOG.md
+
+## Getting Help
+- Technical architecture: See ARCHITECTURE.md
+- API details: See docs/technical/api-specification.md
+- Business context: See docs/product/PRD.md
+- Coding patterns: See .ai/context.md
+
+Remember: You're building a system that handles critical business data. When in doubt, choose reliability over speed. Data accuracy is our competitive advantage.
