@@ -1,1 +1,323 @@
+# PRP-001: Project Setup and Configuration
 
+## Goal
+Initialize a production-ready Next.js 14+ project with TypeScript, Tailwind CSS, shadcn/ui component library, and development tooling configured for the TruthSource B2B data accuracy platform. The project should be immediately ready for team development with consistent code standards and pre-commit quality checks.
+
+## Why
+- **Business Value**: Establishes foundation for $400k/year savings per customer by preventing order errors
+- **Integration**: Creates the base structure all future features will build upon
+- **Problems Solved**: Eliminates setup inconsistencies, enforces code quality from day one, enables rapid feature development
+
+## What
+Create a Next.js application with proper folder structure, development tools, and configurations that enforce our coding standards and architectural patterns.
+
+### Success Criteria
+- [ ] `pnpm dev` starts the development server without errors
+- [ ] `pnpm build` completes successfully
+- [ ] `pnpm lint` passes with no errors
+- [ ] Pre-commit hooks prevent commits with TypeScript/lint errors
+- [ ] Another developer can clone and run in <5 minutes using README
+- [ ] shadcn/ui components can be added via CLI
+
+## All Needed Context
+
+### Documentation & References
+```yaml
+- url: https://nextjs.org/docs/app
+  why: App Router architecture, project structure, configuration options
+  
+- url: https://ui.shadcn.com/docs/installation/next
+  why: Exact steps for shadcn/ui setup with Next.js App Router
+  
+- file: CLAUDE.md
+  why: Project-specific rules about Server Components, file structure, patterns
+  
+- url: https://tailwindcss.com/docs/guides/nextjs
+  why: Tailwind configuration with Next.js, custom theme setup
+
+- docfile: ARCHITECTURE.md
+  why: Required folder structure and architectural decisions
+
+- url: https://github.com/timlrx/tailwind-nextjs-starter-blog
+  why: Reference for Next.js + Tailwind + TypeScript setup patterns
+```
+
+### Current Codebase Tree
+```bash
+# Empty - this is the first PRP
+.
+```
+
+### Desired Codebase Tree
+```bash
+truthsource/
+├── app/                           # Next.js App Router
+│   ├── (auth)/                   # Auth route group (public)
+│   │   └── .gitkeep
+│   ├── (dashboard)/              # Dashboard route group (protected)
+│   │   └── .gitkeep
+│   ├── api/                      # API routes for webhooks
+│   │   └── .gitkeep
+│   ├── actions/                  # Server Actions
+│   │   └── .gitkeep
+│   ├── layout.tsx                # Root layout with providers
+│   ├── page.tsx                  # Homepage (marketing)
+│   └── globals.css               # Global styles with Tailwind
+├── components/                    # React components
+│   ├── ui/                       # shadcn/ui components
+│   │   └── .gitkeep
+│   └── features/                 # Feature-specific components
+│       └── .gitkeep
+├── lib/                          # Utilities and configs
+│   ├── supabase/                # Supabase clients (empty for now)
+│   │   └── .gitkeep
+│   └── utils.ts                 # cn() utility for shadcn/ui
+├── hooks/                        # Custom React hooks
+│   └── .gitkeep
+├── types/                        # TypeScript type definitions
+│   └── .gitkeep
+├── public/                       # Static assets
+│   └── .gitkeep
+├── .env.example                  # Environment template
+├── .env.local                    # Local environment (gitignored)
+├── .eslintrc.json               # ESLint configuration
+├── .gitignore                   # Git ignore rules
+├── .prettierrc                  # Prettier configuration
+├── components.json              # shadcn/ui configuration
+├── next.config.js               # Next.js configuration
+├── package.json                 # Dependencies and scripts
+├── postcss.config.js            # PostCSS for Tailwind
+├── tailwind.config.ts           # Tailwind configuration
+├── tsconfig.json                # TypeScript configuration
+└── README.md                    # Setup instructions
+```
+
+### Known Gotchas
+```typescript
+// CRITICAL: Next.js 14 uses App Router by default
+// Example: Use app/ directory, not pages/
+// Example: Server Components are default, mark Client Components with 'use client'
+// Example: Tailwind requires specific PostCSS config with Next.js
+// Example: shadcn/ui requires specific tailwind.config.ts setup
+// Example: TypeScript strict mode catches more errors but requires more explicit types
+```
+
+## Implementation Blueprint
+
+### Data Models and Structure
+```typescript
+// lib/utils.ts - Required for shadcn/ui
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+// types/global.d.ts - Global type definitions
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      NEXT_PUBLIC_SUPABASE_URL: string
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: string
+      SUPABASE_SERVICE_ROLE_KEY: string
+      NEXT_PUBLIC_APP_URL: string
+    }
+  }
+}
+```
+
+### Task List
+
+```yaml
+Task 1: Initialize Next.js Project
+CREATE truthsource directory:
+  - RUN: pnpx create-next-app@latest truthsource --typescript --tailwind --app --no-src-dir --import-alias "@/*"
+  - CHOOSE: TypeScript Yes, ESLint Yes, Tailwind Yes, App Router Yes
+  - CD: into truthsource directory
+
+Task 2: Install Development Dependencies
+MODIFY package.json:
+  - RUN: pnpm add -D @types/node prettier eslint-config-prettier husky lint-staged @ianvs/prettier-plugin-sort-imports
+  - ADD scripts section for quality checks
+  
+Task 3: Configure TypeScript for Strict Mode
+MODIFY tsconfig.json:
+  - SET: "strict": true
+  - ADD: "noUncheckedIndexedAccess": true
+  - ADD: "noImplicitAny": true
+  - ENSURE: "moduleResolution": "bundler"
+
+Task 4: Setup Tailwind and shadcn/ui
+RUN: pnpx shadcn-ui@latest init
+  - CHOOSE: Default style
+  - CHOOSE: Slate base color
+  - CHOOSE: CSS variables for colors
+  - VERIFY: components.json created
+  - VERIFY: lib/utils.ts created
+
+Task 5: Create Folder Structure
+CREATE directories:
+  - ALL directories from desired tree above
+  - ADD .gitkeep files to empty directories
+  
+Task 6: Configure ESLint and Prettier
+CREATE .prettierrc:
+  - ADD standard config with tailwind plugin
+CREATE .eslintrc.json:
+  - EXTEND: next/core-web-vitals
+  - ADD: custom rules for consistency
+
+Task 7: Setup Git Hooks with Husky
+RUN: pnpm dlx husky-init && pnpm install
+MODIFY .husky/pre-commit:
+  - ADD: lint-staged command
+CREATE .lintstagedrc.js:
+  - ADD: rules for *.ts, *.tsx, *.js, *.jsx files
+
+Task 8: Create Environment Template
+CREATE .env.example:
+  - ADD: all required environment variables with empty values
+  - ADD: comments explaining each variable
+COPY: .env.example to .env.local
+  - GITIGNORE: .env.local already ignored by default
+
+Task 9: Create Initial Pages
+CREATE app/layout.tsx:
+  - SETUP: root layout with html and body tags
+  - ADD: Tailwind directives import
+  - ADD: metadata export
+CREATE app/page.tsx:
+  - ADD: simple landing page placeholder
+  - USE: Server Component (default)
+
+Task 10: Update Documentation
+MODIFY README.md:
+  - ADD: project overview
+  - ADD: setup instructions
+  - ADD: development commands
+  - ADD: architecture notes
+```
+
+### Pseudocode
+```typescript
+// Task 6: .prettierrc configuration
+{
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "plugins": ["@ianvs/prettier-plugin-sort-imports"],
+  "importOrder": [
+    "^(react/(.*)$)|^(react$)",
+    "^(next/(.*)$)|^(next$)",
+    "<THIRD_PARTY_MODULES>",
+    "^@/components/(.*)$",
+    "^@/lib/(.*)$",
+    "^@/(.*)$",
+    "^[./]"
+  ]
+}
+
+// Task 9: app/layout.tsx
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'TruthSource - B2B Data Accuracy Platform',
+  description: 'Eliminate order errors with real-time data synchronization',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>{children}</body>
+    </html>
+  )
+}
+```
+
+### Integration Points
+```yaml
+BUILD_TOOLS:
+  - package.json: Add scripts for dev, build, lint, type-check
+  - next.config.js: Configure for production optimization
+  
+DEVELOPMENT:
+  - VS Code: .vscode/settings.json for consistent formatting
+  - Git: .gitignore for Next.js specific files
+  
+CI/CD_READY:
+  - GitHub Actions: Scripts work in CI environment
+  - Vercel: Configuration compatible with Vercel deployment
+```
+
+## Validation Loop
+
+### Level 1: Syntax & Style
+```bash
+# Run these FIRST - fix any errors before proceeding
+pnpm lint                    # ESLint checks
+pnpm prettier --check .      # Prettier formatting
+pnpm tsc --noEmit           # TypeScript type checking
+
+# Expected: No errors. If errors, READ the error and fix.
+```
+
+### Level 2: Build Validation
+```bash
+# Ensure the project builds
+pnpm build
+
+# Expected output:
+# ✓ Creating an optimized production build
+# ✓ Compiled successfully
+# ✓ Linting and checking validity of types
+```
+
+### Level 3: Development Server
+```bash
+# Start the dev server
+pnpm dev
+
+# Test in browser
+open http://localhost:3000
+
+# Expected: See the landing page with no console errors
+# Check: Browser console should be clean
+# Check: Terminal should show successful compilation
+```
+
+### Level 4: shadcn/ui Component Test
+```bash
+# Add a test component
+pnpx shadcn-ui@latest add button
+
+# Verify component added to components/ui/button.tsx
+# Import and use in app/page.tsx to verify it works
+```
+
+## Final Validation Checklist
+- [ ] All commands pass: `pnpm lint && pnpm prettier --check . && pnpm tsc --noEmit`
+- [ ] Build succeeds: `pnpm build`
+- [ ] Dev server runs: `pnpm dev`
+- [ ] Pre-commit hooks work: Make a change and try to commit
+- [ ] shadcn/ui CLI works: Can add components
+- [ ] README is clear: Another dev could follow it
+- [ ] Folder structure matches desired tree
+- [ ] Environment variables documented
+
+## Anti-Patterns to Avoid
+- ❌ Don't use Pages Router - we're using App Router
+- ❌ Don't skip TypeScript strict mode - catch errors early
+- ❌ Don't forget .gitkeep files - empty folders won't commit
+- ❌ Don't hardcode values - use environment variables
+- ❌ Don't mix npm and pnpm - stick to pnpm
+- ❌ Don't customize shadcn/ui components yet - use defaults
