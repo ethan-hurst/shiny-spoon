@@ -22,8 +22,7 @@
       "Bash(mkdir:*)"
     ],
     "deny": [
-      "Bash(npm:*)",
-      "Bash(npx:*)"
+
     ]
   }
 }

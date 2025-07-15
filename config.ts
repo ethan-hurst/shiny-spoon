@@ -1,11 +1,11 @@
 const config = {
   auth: {
-    enabled: true,
-    provider: 'supabase' as 'supabase' | 'clerk', // Default to Supabase
+    enabled: process.env.NEXT_PUBLIC_AUTH_ENABLED === 'true',
+    provider: (process.env.NEXT_PUBLIC_AUTH_PROVIDER as 'clerk' | 'supabase') || 'supabase'
   },
   payments: {
-    enabled: true,
-  },
-};
+    enabled: process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true'
+  }
+} as const;
 
 export default config;
