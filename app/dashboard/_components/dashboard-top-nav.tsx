@@ -11,6 +11,8 @@ import { HamburgerMenuIcon } from '@radix-ui/react-icons'
 import { Banknote, Folder, HomeIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { ReactNode } from 'react'
+import { RealtimeIndicator } from '@/components/features/inventory/realtime-indicator'
+import { OfflineQueueIndicator } from '@/components/features/inventory/offline-queue-indicator'
 
 export default function DashboardTopNav({ children }: { children: ReactNode }) {
   return (
@@ -67,6 +69,8 @@ export default function DashboardTopNav({ children }: { children: ReactNode }) {
           </SheetContent>
         </Dialog>
         <div className="flex justify-center items-center gap-2 ml-auto">
+          <OfflineQueueIndicator />
+          <RealtimeIndicator />
           {config?.auth?.enabled && <UserProfile />}
           <ModeToggle />
         </div>

@@ -152,10 +152,20 @@ export default async function InventoryPage({
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold">Inventory Management</h1>
-        <p className="text-muted-foreground">
-          Track inventory levels across all warehouses and manage stock adjustments
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Inventory Management</h1>
+            <p className="text-muted-foreground">
+              Track inventory levels across all warehouses and manage stock adjustments
+            </p>
+          </div>
+          <a 
+            href="/dashboard/inventory/realtime-demo"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          >
+            Try Real-time Demo
+          </a>
+        </div>
       </div>
 
       {/* Stats Cards */}
