@@ -34,7 +34,7 @@ export const userUpdate = async ({
         profile_image_url,
         user_id,
       })
-      .eq("email", email)
+      .eq("user_id", user_id)
       .select();
 
     if (data) return data;

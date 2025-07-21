@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -30,6 +30,16 @@ interface QuantityBreaksEditorProps {
 
 export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorProps) {
   const [errors, setErrors] = useState<string[]>([])
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const addBreak = () => {
     const newBreak: QuantityBreak = {
@@ -53,8 +63,11 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
     })
     onChange(updatedBreaks)
     // Debounce validation to improve performance during rapid input changes
-    const timeoutId = setTimeout(() => validateBreaks(updatedBreaks), 300)
-    return () => clearTimeout(timeoutId)
+    // Clear existing timeout before setting a new one
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+    debounceTimeoutRef.current = setTimeout(() => validateBreaks(updatedBreaks), 300)
   }
 
   const removeBreak = (index: number) => {
