@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { OfflineQueue } from '@/lib/realtime/offline-queue'
 import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
 import { OptimisticUpdate } from '@/lib/realtime/types'
@@ -33,7 +33,7 @@ interface InventoryUpdate {
 export function useOptimisticInventory(initialData?: InventoryItem[]) {
   const [data, setData] = useState<InventoryItem[]>(initialData || [])
   const [pendingUpdates, setPendingUpdates] = useState<Map<string, OptimisticUpdate<InventoryItem>>>(new Map())
-  const supabase = createBrowserClient()
+  const supabase = createClient()
   const connectionManager = RealtimeConnectionManager.getInstance()
   const offlineQueue = OfflineQueue.getInstance()
   const rollbackTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map())
@@ -219,6 +219,17 @@ export function useOptimisticInventory(initialData?: InventoryItem[]) {
   const getPendingCount = useCallback((): number => {
     return pendingUpdates.size
   }, [pendingUpdates])
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      // Clear all pending timeout references to prevent memory leaks
+      rollbackTimeouts.current.forEach((timeoutId) => {
+        clearTimeout(timeoutId)
+      })
+      rollbackTimeouts.current.clear()
+    }
+  }, [])
 
   return {
     inventory: data,

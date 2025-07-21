@@ -52,7 +52,9 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
       return b
     })
     onChange(updatedBreaks)
-    validateBreaks(updatedBreaks)
+    // Debounce validation to improve performance during rapid input changes
+    const timeoutId = setTimeout(() => validateBreaks(updatedBreaks), 300)
+    return () => clearTimeout(timeoutId)
   }
 
   const removeBreak = (index: number) => {

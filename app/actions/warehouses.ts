@@ -386,6 +386,7 @@ export async function createWarehouseTyped(data: {
 
 export async function updateWarehouseTyped(id: string, data: {
   name: string
+  code: string
   address: any
   contacts: any[]
   is_default: boolean

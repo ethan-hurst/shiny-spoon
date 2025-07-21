@@ -1,6 +1,6 @@
 import { IndexedDBWrapper, DBConfig } from '@/lib/storage/indexed-db'
 import { QueuedOperation, ProcessResult, ConnectionStatus } from './types'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { RealtimeConnectionManager } from './connection-manager'
 
 const DB_CONFIG: DBConfig = {
@@ -24,7 +24,7 @@ export class OfflineQueue {
   private db: IndexedDBWrapper
   private processing: boolean = false
   private connectionManager: RealtimeConnectionManager
-  private supabase = createBrowserClient()
+  private supabase = createClient()
   private listeners: Map<string, (count: number) => void> = new Map()
 
   private constructor() {

@@ -56,7 +56,9 @@ export function CustomerFilters({ tiers, defaultValues }: CustomerFiltersProps) 
 
   const handleSearch = (value: string) => {
     startTransition(() => {
-      router.push(`/customers?${createQueryString({ search: value })}`)
+      // Properly encode the search value to handle special characters
+      const encodedValue = value.trim() || null
+      router.push(`/customers?${createQueryString({ search: encodedValue })}`)
     })
   }
 

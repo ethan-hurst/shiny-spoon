@@ -23,6 +23,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 export function PerformanceWidget() {
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null)
@@ -191,7 +192,13 @@ export function PerformanceWidget() {
                 onClick={() => {
                   const monitor = RealtimePerformanceMonitor.getInstance()
                   const report = monitor.getDetailedReport()
-                  console.log('Performance Report:', report)
+                  // In production, send to analytics service instead of console
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('Performance Report:', report)
+                  } else {
+                    // TODO: Send to analytics service
+                    toast.success('Performance report generated')
+                  }
                 }}
               >
                 View Detailed Report

@@ -41,12 +41,17 @@ export function RealtimeIndicator() {
   // Simulate receiving updates with pulse animation
   useEffect(() => {
     if (status.state === 'connected') {
+      const timeouts: ReturnType<typeof setTimeout>[] = []
       const interval = setInterval(() => {
         setIsReceivingUpdates(true)
-        setTimeout(() => setIsReceivingUpdates(false), 1000)
+        const timeoutId = setTimeout(() => setIsReceivingUpdates(false), 1000)
+        timeouts.push(timeoutId)
       }, 5000)
 
-      return () => clearInterval(interval)
+      return () => {
+        clearInterval(interval)
+        timeouts.forEach(clearTimeout)
+      }
     }
   }, [status.state])
 

@@ -63,6 +63,7 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
       const result = warehouse 
         ? await updateWarehouseTyped(warehouse.id, {
             name: values.name,
+            code: values.code,
             address: values.address,
             contacts: values.contacts,
             is_default: values.is_default,

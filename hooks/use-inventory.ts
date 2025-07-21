@@ -150,7 +150,7 @@ export function useInventoryRealtime({
         supabase.removeChannel(channel)
       }
     },
-    [supabase]
+    [] // Removed supabase from dependencies as it's stable
   )
 
   return {
