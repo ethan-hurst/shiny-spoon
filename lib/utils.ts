@@ -13,3 +13,11 @@ export function formatCurrency(amount: number, currency: string = 'USD'): string
     maximumFractionDigits: 2,
   }).format(amount)
 }
+
+export function formatPercent(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'percent',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(value / 100)
+}
