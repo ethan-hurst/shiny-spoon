@@ -22,14 +22,20 @@ export async function createProductPricing(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
+  // Parse and validate numeric inputs
+  const costValue = parseFloat(formData.get('cost') as string)
+  const basePriceValue = parseFloat(formData.get('base_price') as string)
+  const minMarginValue = parseFloat(formData.get('min_margin_percent') as string)
+  const unitQuantityValue = parseInt(formData.get('unit_quantity') as string)
+
   const parsed = createProductPricingSchema.parse({
     product_id: formData.get('product_id'),
-    cost: parseFloat(formData.get('cost') as string),
-    base_price: parseFloat(formData.get('base_price') as string),
-    min_margin_percent: parseFloat(formData.get('min_margin_percent') as string) || 20,
+    cost: isNaN(costValue) ? 0 : costValue,
+    base_price: isNaN(basePriceValue) ? 0 : basePriceValue,
+    min_margin_percent: isNaN(minMarginValue) ? 20 : minMarginValue,
     currency: formData.get('currency') || 'USD',
     pricing_unit: formData.get('pricing_unit') || 'EACH',
-    unit_quantity: parseInt(formData.get('unit_quantity') as string) || 1,
+    unit_quantity: isNaN(unitQuantityValue) ? 1 : unitQuantityValue,
     effective_date: formData.get('effective_date') || undefined,
     expiry_date: formData.get('expiry_date') || undefined,
   })
@@ -300,16 +306,63 @@ export async function importPricingRules(file: File) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  // Parse CSV file
+  // Parse CSV file using proper CSV parsing
   const text = await file.text()
-  const lines = text.split('\n').filter(line => line.trim())
-  const headers = lines[0].split(',').map(h => h.trim())
   
-  const rules = lines.slice(1).map(line => {
-    const values = line.split(',').map(v => v.trim())
+  // Simple CSV parser that handles quoted fields
+  function parseCSV(text: string): string[][] {
+    const rows: string[][] = []
+    const lines = text.split('\n').filter(line => line.trim())
+    
+    for (const line of lines) {
+      const row: string[] = []
+      let current = ''
+      let inQuotes = false
+      let i = 0
+      
+      while (i < line.length) {
+        const char = line[i]
+        const nextChar = line[i + 1]
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            // Escaped quote
+            current += '"'
+            i += 2
+          } else {
+            // Toggle quote state
+            inQuotes = !inQuotes
+            i++
+          }
+        } else if (char === ',' && !inQuotes) {
+          // Field separator
+          row.push(current.trim())
+          current = ''
+          i++
+        } else {
+          current += char
+          i++
+        }
+      }
+      
+      // Add the last field
+      row.push(current.trim())
+      rows.push(row)
+    }
+    
+    return rows
+  }
+  
+  const rows = parseCSV(text)
+  if (rows.length < 2) {
+    throw new Error('CSV file must contain headers and at least one data row')
+  }
+  
+  const headers = rows[0].map(h => h.trim())
+  const rules = rows.slice(1).map(values => {
     const rule: any = {}
     headers.forEach((header, index) => {
-      rule[header] = values[index]
+      rule[header] = values[index] || ''
     })
     return rule
   })
@@ -372,7 +425,14 @@ export async function exportPricingRules() {
   const csvContent = [
     headers.join(','),
     ...rules.map(rule => 
-      headers.map(header => rule[header] || '').join(',')
+      headers.map(header => {
+        const value = rule[header] || ''
+        // Escape CSV values that contain commas, quotes, or newlines
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+          return `"${value.replace(/"/g, '""')}"`
+        }
+        return value
+      }).join(',')
     ),
   ].join('\n')
 

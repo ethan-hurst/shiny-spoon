@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -30,6 +31,7 @@ const CSV_TEMPLATE = `company_name,display_name,tax_id,website,tier_name,status,
 "Acme Corporation","Acme Corp","12-3456789","https://acme.com","Gold","active","vip","123 Main St","Suite 100","New York","NY","10001","US","123 Main St","Suite 100","New York","NY","10001","US",50000,30,"USD","Important customer","wholesale,premium","John","Doe","john@acme.com","+1-555-123-4567","+1-555-987-6543"`
 
 export function CustomerImportExport({ organizationId, tierMap }: CustomerImportExportProps) {
+  const router = useRouter()
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [importData, setImportData] = useState('')
@@ -61,7 +63,10 @@ export function CustomerImportExport({ organizationId, tierMap }: CustomerImport
       link.style.visibility = 'hidden'
       document.body.appendChild(link)
       link.click()
+      
+      // Clean up
       document.body.removeChild(link)
+      URL.revokeObjectURL(url)
 
       toast.success(`Exported ${result.count} customers`)
       setIsExportOpen(false)
@@ -134,7 +139,7 @@ export function CustomerImportExport({ organizationId, tierMap }: CustomerImport
         setIsImportOpen(false)
         setImportData('')
         // Refresh the page to show new customers
-        window.location.reload()
+        router.refresh()
       }
     } catch (error) {
       toast.error('Failed to import customers')
@@ -153,7 +158,10 @@ export function CustomerImportExport({ organizationId, tierMap }: CustomerImport
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
+    
+    // Clean up
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   return (

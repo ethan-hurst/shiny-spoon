@@ -152,8 +152,8 @@ export async function getQuantityBreakPrices(
       
       return {
         quantity,
-        unitPrice: result.final_price,
-        totalPrice: result.final_price * quantity,
+        unitPrice: result.final_price / quantity,
+        totalPrice: result.final_price,
         savings: result.discount_amount * quantity,
         savingsPercent: result.discount_percent,
       }

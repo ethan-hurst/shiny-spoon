@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { CustomerHeader } from '@/components/features/customers/customer-header'
 import { CustomerTabs } from '@/components/features/customers/customer-tabs'
-import { CustomerWithStats } from '@/types/customer.types'
+import { CustomerWithStats, ContactRecord } from '@/types/customer.types'
 
 interface PageProps {
   params: {
@@ -16,7 +16,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   // Get user's organization
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    throw new Error('Unauthorized')
+    redirect('/login')
   }
 
   const { data: profile } = await supabase
@@ -26,7 +26,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
     .single()
 
   if (!profile) {
-    throw new Error('User profile not found')
+    notFound()
   }
 
   // Fetch customer with all related data
@@ -49,27 +49,31 @@ export default async function CustomerDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  // Get contacts
-  const { data: contacts } = await supabase
-    .from('customer_contacts')
-    .select('*')
-    .eq('customer_id', params.id)
-    .order('is_primary', { ascending: false })
-    .order('created_at', { ascending: true })
-
-  // Get recent activities
-  const { data: activities } = await supabase
-    .from('customer_activities')
-    .select('*')
-    .eq('customer_id', params.id)
-    .order('created_at', { ascending: false })
-    .limit(50)
-
-  // Get customer stats
-  const { data: stats } = await supabase
-    .rpc('get_customer_stats', {
-      p_customer_id: params.id
-    })
+  // Run queries in parallel for better performance
+  const [
+    { data: contacts },
+    { data: activities },
+    { data: stats }
+  ] = await Promise.all([
+    supabase
+      .from('customer_contacts')
+      .select('*')
+      .eq('customer_id', params.id)
+      .order('is_primary', { ascending: false })
+      .order('created_at', { ascending: true }),
+    
+    supabase
+      .from('customer_activities')
+      .select('*')
+      .eq('customer_id', params.id)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    
+    supabase
+      .rpc('get_customer_stats', {
+        p_customer_id: params.id
+      })
+  ])
 
   // Transform to CustomerWithStats
   const customerWithStats: CustomerWithStats = {
@@ -92,8 +96,8 @@ export default async function CustomerDetailPage({ params }: PageProps) {
       
       <CustomerTabs 
         customer={customerWithStats}
-        contacts={contacts || []}
-        activities={activities || []}
+        contacts={contacts as any || []}
+        activities={activities as any || []}
       />
     </div>
   )

@@ -51,10 +51,8 @@ export function CustomerTable({ customers, currentPage, pageSize, hasMore, organ
   const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   
-  // Enable real-time updates if organizationId is provided
-  if (organizationId) {
-    useCustomerListRealtime(organizationId)
-  }
+  // Enable real-time updates - always call hook unconditionally
+  useCustomerListRealtime(organizationId || '')
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {

@@ -155,7 +155,10 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
-                          {contact.first_name[0]}{contact.last_name[0]}
+                          {contact.first_name?.[0] && contact.last_name?.[0] 
+                            ? `${contact.first_name[0]}${contact.last_name[0]}`
+                            : contact.first_name?.[0] || contact.last_name?.[0] || '?'
+                          }
                         </AvatarFallback>
                       </Avatar>
                       <div>

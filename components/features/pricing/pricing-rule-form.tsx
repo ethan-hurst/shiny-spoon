@@ -378,7 +378,7 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Specific Product</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="All products" />

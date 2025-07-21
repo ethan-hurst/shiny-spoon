@@ -4,8 +4,46 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { customerTierSchema } from '@/types/customer.types'
 
+// Helper function to safely parse JSON fields
+function parseTierFormData(formData: FormData) {
+  let benefits = {}
+  let requirements = {}
+  
+  try {
+    benefits = formData.get('benefits') ? JSON.parse(formData.get('benefits') as string) : {}
+  } catch {
+    benefits = {}
+  }
+  
+  try {
+    requirements = formData.get('requirements') ? JSON.parse(formData.get('requirements') as string) : {}
+  } catch {
+    requirements = {}
+  }
+
+  return customerTierSchema.safeParse({
+    name: formData.get('name'),
+    level: parseInt(formData.get('level') as string),
+    discount_percentage: parseFloat(formData.get('discount_percentage') as string),
+    color: formData.get('color'),
+    benefits,
+    requirements,
+  })
+}
+
 export async function createTier(formData: FormData) {
   const supabase = createClient()
+  
+  const parsed = parseTierFormData(formData)
+
+  if (!parsed.success) {
+    return { error: parsed.error.flatten() }
+  }
+
+  const organizationId = formData.get('organization_id') as string
+  if (!organizationId) {
+    return { error: 'Organization ID is required' }
+  }
   
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {

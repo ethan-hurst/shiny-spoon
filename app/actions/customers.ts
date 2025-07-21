@@ -199,6 +199,23 @@ export async function deleteCustomer(id: string) {
     return { error: error.message }
   }
 
+  // Log deletion activity for audit purposes
+  try {
+    await supabase
+      .from('customer_activities')
+      .insert({
+        customer_id: id,
+        organization_id: profile.organization_id,
+        type: 'settings_update',
+        title: 'Customer Deleted',
+        description: `Customer account was permanently deleted by user ${user.id}`,
+        created_by: user.id
+      })
+  } catch (logError) {
+    // Don't fail the deletion if logging fails
+    console.error('Failed to log customer deletion:', logError)
+  }
+
   revalidatePath('/customers')
   return { success: true }
 }

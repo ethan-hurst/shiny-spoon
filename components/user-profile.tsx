@@ -26,11 +26,12 @@ import { useRouter } from "next/navigation"
 
 export function UserProfile() {
     const router = useRouter()
+    const { user } = useUser();
 
     if (!config?.auth?.enabled) {
         router.back()
     }
-    const { user } = useUser();
+    
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild className="w-[2.25rem] h-[2.25rem]">

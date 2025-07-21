@@ -64,39 +64,23 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
 
   // Reset form when contact changes
   useEffect(() => {
-    if (contact) {
-      form.reset({
-        customer_id: customerId,
-        first_name: contact.first_name,
-        last_name: contact.last_name,
-        email: contact.email,
-        phone: contact.phone || '',
-        mobile: contact.mobile || '',
-        role: contact.role,
-        is_primary: contact.is_primary,
-        portal_access: contact.portal_access,
-        preferred_contact_method: contact.preferred_contact_method,
-        receives_order_updates: contact.receives_order_updates,
-        receives_marketing: contact.receives_marketing,
-        notes: contact.notes || '',
-      })
-    } else {
-      form.reset({
-        customer_id: customerId,
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: '',
-        mobile: '',
-        role: 'contact',
-        is_primary: false,
-        portal_access: false,
-        preferred_contact_method: 'email',
-        receives_order_updates: true,
-        receives_marketing: false,
-        notes: '',
-      })
+    const formData = {
+      customer_id: customerId,
+      first_name: contact?.first_name || '',
+      last_name: contact?.last_name || '',
+      email: contact?.email || '',
+      phone: contact?.phone || '',
+      mobile: contact?.mobile || '',
+      role: contact?.role || 'contact',
+      is_primary: contact?.is_primary || false,
+      portal_access: contact?.portal_access || false,
+      preferred_contact_method: contact?.preferred_contact_method || 'email',
+      receives_order_updates: contact?.receives_order_updates ?? true,
+      receives_marketing: contact?.receives_marketing || false,
+      notes: contact?.notes || '',
     }
+    
+    form.reset(formData)
   }, [contact, customerId, form])
 
   const onSubmit = async (data: FormData) => {

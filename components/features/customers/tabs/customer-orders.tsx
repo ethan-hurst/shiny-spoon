@@ -22,7 +22,7 @@ export function CustomerOrders({ customerId }: CustomerOrdersProps) {
             </CardDescription>
           </div>
           <Button asChild>
-            <Link href={`/orders/new?customer_id=${customerId}`}>
+            <Link href={`/orders/new?customer_id=${encodeURIComponent(customerId)}`}>
               <Plus className="mr-2 h-4 w-4" />
               New Order
             </Link>

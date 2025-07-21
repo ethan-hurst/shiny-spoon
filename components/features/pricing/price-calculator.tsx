@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,7 +46,7 @@ export function PriceCalculator() {
   const supabase = createClient()
 
   // Load products and customers on component mount
-  useState(() => {
+  useEffect(() => {
     async function loadData() {
       setLoading(true)
       try {
@@ -77,7 +77,7 @@ export function PriceCalculator() {
     }
 
     loadData()
-  })
+  }, [])
 
   async function calculatePrice() {
     if (!selectedProduct) {

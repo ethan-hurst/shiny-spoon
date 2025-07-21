@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { PresenceData } from '@/lib/realtime/types'
 import { useUser } from '@/hooks/use-user'
@@ -14,7 +14,7 @@ interface UseInventoryPresenceOptions {
 export function useInventoryPresence({ inventoryId, currentView }: UseInventoryPresenceOptions) {
   const [presenceData, setPresenceData] = useState<PresenceData[]>([])
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
-  const supabase = createBrowserClient()
+  const supabase = createClient()
   const { user } = useUser()
 
   const updatePresence = useCallback(async () => {
@@ -51,19 +51,22 @@ export function useInventoryPresence({ inventoryId, currentView }: UseInventoryP
         
         Object.entries(state).forEach(([id, presenceArray]) => {
           if (Array.isArray(presenceArray) && presenceArray.length > 0) {
-            // Get the most recent presence data for each user
-            const latestPresence = presenceArray[presenceArray.length - 1] as PresenceData
+            // Get the most recent presence data for each user with proper type safety
+            const latestPresence = presenceArray[presenceArray.length - 1] as unknown as PresenceData
             
-            // Don't include self in presence list
-            if (latestPresence.userId !== user.id) {
-              users.push(latestPresence)
+            // Validate the presence data structure before using
+            if (latestPresence && typeof latestPresence === 'object' && 'userId' in latestPresence) {
+              // Don't include self in presence list
+              if (latestPresence.userId !== user.id) {
+                users.push(latestPresence)
+              }
             }
           }
         })
         
         setPresenceData(users)
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           setChannel(presenceChannel)
           

@@ -78,7 +78,7 @@ export const VideoPlayer: React.FC<CustomVideoPlayerProps> = ({ videoSrc }) => {
       }
       clearInterval(inactivityInterval);
     };
-  }, [isFullscreen, lastMouseMoveTime]);
+  }, [isFullscreen, isPlaying]); // Removed lastMouseMoveTime to prevent continuous re-renders
 
   useEffect(() => {
     if (!isFullscreen) {

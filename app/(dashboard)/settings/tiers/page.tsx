@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { TierList } from '@/components/features/customers/tiers/tier-list'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
@@ -9,7 +10,7 @@ export default async function TiersPage() {
   // Get user's organization
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    throw new Error('Unauthorized')
+    redirect('/login')
   }
 
   const { data: profile } = await supabase

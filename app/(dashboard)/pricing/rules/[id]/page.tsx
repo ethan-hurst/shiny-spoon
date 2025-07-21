@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PricingRuleForm } from '@/components/features/pricing/pricing-rule-form'
 
@@ -17,6 +17,22 @@ interface EditPricingRulePageProps {
 export default async function EditPricingRulePage({ params }: EditPricingRulePageProps) {
   const supabase = createClient()
   
+  // Get user's organization for security
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    redirect('/login')
+  }
+
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile) {
+    notFound()
+  }
+
   const { data: rule, error } = await supabase
     .from('pricing_rules')
     .select(`
@@ -24,6 +40,7 @@ export default async function EditPricingRulePage({ params }: EditPricingRulePag
       quantity_breaks (*)
     `)
     .eq('id', params.id)
+    .eq('organization_id', profile.organization_id)
     .single()
 
   if (error || !rule) {

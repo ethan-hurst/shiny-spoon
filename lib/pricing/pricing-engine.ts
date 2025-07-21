@@ -172,8 +172,8 @@ export class PricingEngine {
    * Evaluate custom conditions (extensible for future use)
    */
   private evaluateCustomConditions(custom: Record<string, any>, context: PriceContext): boolean {
-    // Implement custom condition logic here
-    // For now, return true
+    // TODO: Implement custom condition logic here
+    // This is a placeholder - custom condition evaluation is not implemented yet
     return true
   }
 

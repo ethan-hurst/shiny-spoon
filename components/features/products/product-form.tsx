@@ -73,10 +73,10 @@ export function ProductForm({ product }: ProductFormProps) {
         if (typeof result.error === 'string') {
           toast.error(result.error)
         } else if (result.error?.fieldErrors) {
-          // Handle validation errors
+          // Handle validation errors more efficiently
           const fieldErrors = result.error.fieldErrors
           const errorMessages = Object.entries(fieldErrors)
-            .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
             .join('; ')
           toast.error(`Validation errors: ${errorMessages}`)
         } else if (result.error?.message) {

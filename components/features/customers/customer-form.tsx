@@ -231,7 +231,7 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
                   <Label htmlFor="status">Status</Label>
                   <Select
                     value={form.watch('status')}
-                    onValueChange={(value) => form.setValue('status', value as any)}
+                    onValueChange={(value) => form.setValue('status', value as 'active' | 'inactive' | 'suspended')}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -248,7 +248,7 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
                   <Label htmlFor="customer_type">Customer Type</Label>
                   <Select
                     value={form.watch('customer_type')}
-                    onValueChange={(value) => form.setValue('customer_type', value as any)}
+                    onValueChange={(value) => form.setValue('customer_type', value as 'standard' | 'vip' | 'partner')}
                   >
                     <SelectTrigger>
                       <SelectValue />

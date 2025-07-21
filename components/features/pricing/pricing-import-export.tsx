@@ -126,7 +126,14 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
                   id="import-file"
                   type="file"
                   accept=".csv"
-                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null
+                    setImportFile(file)
+                    // Clear previous import results when new file is selected
+                    if (file) {
+                      setImportResults(null)
+                    }
+                  }}
                   disabled={importing}
                 />
               </div>

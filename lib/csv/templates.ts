@@ -92,8 +92,8 @@ export function downloadTemplate(templateKey: keyof typeof CSV_TEMPLATES, filena
   link.click()
   document.body.removeChild(link)
   
-  // Clean up
-  setTimeout(() => URL.revokeObjectURL(url), 100)
+  // Clean up immediately to prevent memory leaks
+  URL.revokeObjectURL(url)
 }
 
 // Generate custom template based on products and warehouses

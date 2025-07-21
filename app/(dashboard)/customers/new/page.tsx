@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect, notFound } from 'next/navigation'
 import { CustomerForm } from '@/components/features/customers/customer-form'
 
 export default async function NewCustomerPage() {
@@ -7,7 +8,7 @@ export default async function NewCustomerPage() {
   // Get user's organization for tier options
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    throw new Error('Unauthorized')
+    redirect('/login')
   }
 
   const { data: profile } = await supabase
@@ -17,7 +18,7 @@ export default async function NewCustomerPage() {
     .single()
 
   if (!profile) {
-    throw new Error('User profile not found')
+    notFound()
   }
 
   // Get available tiers

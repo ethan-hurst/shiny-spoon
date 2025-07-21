@@ -122,7 +122,7 @@ export function useInventoryRealtime({
         supabase.removeChannel(adjustmentChannel)
       }
     }
-  }, [organizationId, handleRealtimeUpdate, router, supabase]) // Added supabase to dependencies
+  }, [organizationId, handleRealtimeUpdate, router]) // Removed supabase from dependencies as it's stable
 
   // Function to manually trigger a refresh
   const refreshInventory = useCallback(() => {
