@@ -42,7 +42,10 @@ export const customerImportSchema = z.object({
   shipping_city: z.string().optional(),
   shipping_state: z.string().optional(),
   shipping_postal_code: z.string().optional(),
-  shipping_country: z.string().length(2).optional(),
+  shipping_country: z.string().optional().refine(
+    (val) => !val || val.length === 2,
+    'Country code must be exactly 2 characters'
+  ),
   credit_limit: z.number().optional(),
   payment_terms: z.number().optional(),
   currency: z.string().length(3).optional(),
@@ -127,15 +130,16 @@ export function transformImportData(data: z.infer<typeof customerImportSchema>) 
     },
   }
 
-  // Add shipping address if provided
-  if (data.shipping_line1) {
+  // Add shipping address if provided and complete
+  if (data.shipping_line1 && data.shipping_city && data.shipping_state && 
+      data.shipping_postal_code && data.shipping_country) {
     customer.shipping_address = {
       line1: data.shipping_line1,
       line2: data.shipping_line2,
-      city: data.shipping_city!,
-      state: data.shipping_state!,
-      postal_code: data.shipping_postal_code!,
-      country: data.shipping_country!,
+      city: data.shipping_city,
+      state: data.shipping_state,
+      postal_code: data.shipping_postal_code,
+      country: data.shipping_country,
     }
   }
 

@@ -10,7 +10,7 @@ CREATE TABLE customer_tiers (
   discount_percentage DECIMAL(5,2) DEFAULT 0 CHECK (discount_percentage >= 0 AND discount_percentage <= 100),
   benefits JSONB DEFAULT '{}',
   requirements JSONB DEFAULT '{}', -- e.g., minimum annual spend
-  color TEXT DEFAULT '#gray', -- For UI display
+  color TEXT DEFAULT '#808080', -- For UI display
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   
@@ -304,7 +304,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Function to get customer stats
+-- Function to get customer stats (placeholder - orders table not yet created)
 CREATE OR REPLACE FUNCTION get_customer_stats(p_customer_id UUID)
 RETURNS TABLE (
   total_orders INTEGER,
@@ -315,14 +315,23 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT
-    COUNT(o.id)::INTEGER as total_orders,
-    COALESCE(SUM(o.total_amount), 0)::DECIMAL as total_revenue,
-    MAX(o.created_at) as last_order_date,
+    0::INTEGER as total_orders,
+    0::DECIMAL as total_revenue,
+    NULL::TIMESTAMPTZ as last_order_date,
     EXTRACT(DAY FROM NOW() - c.created_at)::INTEGER as account_age_days
   FROM customers c
-  LEFT JOIN orders o ON o.customer_id = c.id
-  WHERE c.id = p_customer_id
-  GROUP BY c.id, c.created_at;
+  WHERE c.id = p_customer_id;
+  
+  -- TODO: Update this function when orders table is created:
+  -- SELECT
+  --   COUNT(o.id)::INTEGER as total_orders,
+  --   COALESCE(SUM(o.total_amount), 0)::DECIMAL as total_revenue,
+  --   MAX(o.created_at) as last_order_date,
+  --   EXTRACT(DAY FROM NOW() - c.created_at)::INTEGER as account_age_days
+  -- FROM customers c
+  -- LEFT JOIN orders o ON o.customer_id = c.id
+  -- WHERE c.id = p_customer_id
+  -- GROUP BY c.id, c.created_at;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -359,3 +368,52 @@ LEFT JOIN customer_tiers t ON c.tier_id = t.id;
 
 -- Grant permissions on the view
 GRANT SELECT ON customers_with_tier TO authenticated;
+
+-- Function to get organization customer statistics
+CREATE OR REPLACE FUNCTION get_organization_customer_stats(p_organization_id UUID)
+RETURNS TABLE (
+  total_customers INTEGER,
+  active_customers INTEGER,
+  inactive_customers INTEGER,
+  suspended_customers INTEGER,
+  by_tier JSONB
+) AS $$
+BEGIN
+  RETURN QUERY
+  WITH customer_counts AS (
+    SELECT 
+      COUNT(*)::INTEGER as total,
+      COUNT(*) FILTER (WHERE status = 'active')::INTEGER as active,
+      COUNT(*) FILTER (WHERE status = 'inactive')::INTEGER as inactive,
+      COUNT(*) FILTER (WHERE status = 'suspended')::INTEGER as suspended
+    FROM customers
+    WHERE organization_id = p_organization_id
+  ),
+  tier_counts AS (
+    SELECT 
+      jsonb_agg(
+        jsonb_build_object(
+          'tier_id', t.id,
+          'tier_name', t.name,
+          'count', COALESCE(tc.count, 0)
+        ) ORDER BY t.level
+      ) as by_tier
+    FROM customer_tiers t
+    LEFT JOIN (
+      SELECT tier_id, COUNT(*)::INTEGER as count
+      FROM customers
+      WHERE organization_id = p_organization_id
+      GROUP BY tier_id
+    ) tc ON t.id = tc.tier_id
+    WHERE t.organization_id = p_organization_id
+  )
+  SELECT 
+    cc.total as total_customers,
+    cc.active as active_customers,
+    cc.inactive as inactive_customers,
+    cc.suspended as suspended_customers,
+    tc.by_tier
+  FROM customer_counts cc
+  CROSS JOIN tier_counts tc;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

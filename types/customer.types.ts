@@ -15,7 +15,7 @@ export const customerSchema = z.object({
   company_name: z.string().min(1, 'Company name is required'),
   display_name: z.string().optional(),
   tax_id: z.string().optional(),
-  website: z.string().url().optional().or(z.literal('')),
+  website: z.string().url().optional(),
   tier_id: z.string().uuid().optional(),
   status: z.enum(['active', 'inactive', 'suspended']).default('active'),
   customer_type: z.enum(['standard', 'vip', 'partner']).default('standard'),
@@ -50,7 +50,7 @@ export const customerTierSchema = z.object({
   name: z.string().min(1, 'Tier name is required'),
   level: z.number().min(1).max(10),
   discount_percentage: z.number().min(0).max(100).default(0),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format'),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format').default('#808080'),
   benefits: z.record(z.any()).optional(),
   requirements: z.record(z.any()).optional(),
 })
@@ -172,8 +172,24 @@ export function formatCustomerName(customer: CustomerRecord | CustomerWithTier):
 
 export function getCustomerInitials(customer: CustomerRecord | CustomerWithTier): string {
   const name = formatCustomerName(customer)
-  return name
-    .split(' ')
+  
+  if (!name || name.trim().length === 0) {
+    return ''
+  }
+  
+  const words = name.trim().split(' ').filter(word => word.length > 0)
+  
+  if (words.length === 0) {
+    return ''
+  }
+  
+  if (words.length === 1) {
+    // Single word - take first two characters or just first if only one character
+    return words[0].slice(0, 2).toUpperCase()
+  }
+  
+  // Multiple words - take first character of each word, up to 2 characters
+  return words
     .map(word => word[0])
     .join('')
     .toUpperCase()

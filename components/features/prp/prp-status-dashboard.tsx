@@ -72,11 +72,11 @@ export function PRPStatusDashboard() {
   }
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, any> = {
-      implemented: 'success',
-      partial: 'warning',
-      documented: 'default',
-      planned: 'secondary'
+    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+      implemented: 'default',
+      partial: 'outline',
+      documented: 'secondary',
+      planned: 'outline'
     }
     
     return (
@@ -249,21 +249,22 @@ export function PRPStatusDashboard() {
 
                     <div className="flex items-center gap-2 ml-4">
                       {prp.documentPath && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => window.open(`/PRPs/${prp.documentPath}`, '_blank')}
+                        <a
+                          href={`/PRPs/${prp.documentPath}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3"
                         >
                           <FileText className="h-4 w-4" />
-                        </Button>
+                        </a>
                       )}
                       {prp.status === 'documented' && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            // In a real implementation, this would navigate to implementation guide
-                            alert(`Ready to implement ${prp.id}`)
+                            // Navigate to implementation guide
+                            window.location.href = `/implementation/${prp.id}`
                           }}
                         >
                           <GitBranch className="mr-2 h-4 w-4" />

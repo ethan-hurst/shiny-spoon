@@ -1,7 +1,8 @@
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { CustomerTable } from '@/components/features/customers/customer-table'
 import { CustomerStats } from '@/components/features/customers/customer-stats'
 import { CustomerFilters } from '@/components/features/customers/customer-filters'
+import { CustomerImportExport } from '@/components/features/customers/customer-import-export'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
@@ -18,7 +19,7 @@ interface PageProps {
 }
 
 export default async function CustomersPage({ searchParams }: PageProps) {
-  const supabase = createServerClient()
+  const supabase = createClient()
   
   // Get user's organization
   const { data: { user } } = await supabase.auth.getUser()
@@ -46,9 +47,6 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         level,
         discount_percentage,
         color
-      ),
-      customer_contacts!customer_contacts_customer_id_fkey (
-        count
       )
     `)
     .eq('organization_id', profile.organization_id)
@@ -89,11 +87,29 @@ export default async function CustomersPage({ searchParams }: PageProps) {
     throw new Error('Failed to load customers')
   }
 
+  // Get contact counts for customers
+  const customerIds = customers?.map((c: any) => c.id) || []
+  const { data: contactCounts } = await supabase
+    .from('customer_contacts')
+    .select('customer_id')
+    .in('customer_id', customerIds)
+
+  // Create contact count map
+  const contactCountMap = new Map<string, number>()
+  contactCounts?.forEach((contact: any) => {
+    const currentCount = contactCountMap.get(contact.customer_id) || 0
+    contactCountMap.set(contact.customer_id, currentCount + 1)
+  })
+
   // Get customer stats
-  const { data: stats } = await supabase
+  const { data: stats, error: statsError } = await supabase
     .rpc('get_organization_customer_stats', {
       p_organization_id: profile.organization_id
     })
+
+  if (statsError) {
+    console.error('Error fetching customer stats:', statsError)
+  }
 
   // Get tiers for filters
   const { data: tiers } = await supabase
@@ -103,14 +119,14 @@ export default async function CustomersPage({ searchParams }: PageProps) {
     .order('level', { ascending: true })
 
   // Transform data to include computed fields
-  const customersWithStats: CustomerWithStats[] = (customers || []).map(customer => ({
+  const customersWithStats: CustomerWithStats[] = (customers || []).map((customer: any) => ({
     ...customer,
     tier_name: customer.customer_tiers?.name,
     tier_level: customer.customer_tiers?.level,
     tier_discount: customer.customer_tiers?.discount_percentage,
     tier_color: customer.customer_tiers?.color,
-    contact_count: customer.customer_contacts?.[0]?.count || 0,
-    // These would come from actual order data
+    contact_count: contactCountMap.get(customer.id) || 0,
+    // TODO: Replace with actual order data once orders table is implemented
     total_orders: 0,
     total_revenue: 0,
     last_order_date: null,
@@ -127,23 +143,26 @@ export default async function CustomersPage({ searchParams }: PageProps) {
             Manage your customer profiles, contacts, and pricing tiers
           </p>
         </div>
-        <Link href="/customers/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Customer
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <CustomerImportExport organizationId={profile.organization_id} />
+          <Link href="/customers/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Customer
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
       <CustomerStats stats={stats || {
         total_customers: customers?.length || 0,
-        active_customers: customers?.filter(c => c.status === 'active').length || 0,
-        inactive_customers: customers?.filter(c => c.status === 'inactive').length || 0,
-        suspended_customers: customers?.filter(c => c.status === 'suspended').length || 0,
+        active_customers: customers?.filter((c: any) => c.status === 'active').length || 0,
+        inactive_customers: customers?.filter((c: any) => c.status === 'inactive').length || 0,
+        suspended_customers: customers?.filter((c: any) => c.status === 'suspended').length || 0,
         by_tier: tiers?.map(tier => ({
           tier_name: tier.name,
-          count: customers?.filter(c => c.tier_id === tier.id).length || 0
+          count: customers?.filter((c: any) => c.tier_id === tier.id).length || 0
         })) || []
       }} />
 
@@ -159,6 +178,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         currentPage={page}
         pageSize={pageSize}
         hasMore={customers?.length === pageSize}
+        organizationId={profile.organization_id}
       />
     </div>
   )
