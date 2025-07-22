@@ -1,7 +1,10 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { SignOutButton, useUser } from '@clerk/nextjs'
-import { CreditCard, LogOut, Settings, User as UserIcon } from 'lucide-react'
+import { User } from '@supabase/supabase-js'
+import { LogOut, Settings, User as UserIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -13,22 +16,69 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { createBrowserClient } from '@/lib/supabase/client'
 import config from '@/config'
 
 export function UserProfile() {
   const router = useRouter()
-  const { user } = useUser()
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const supabase = createBrowserClient()
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser()
+
+        if (error) {
+          console.error('Error fetching user:', error)
+          setError(error.message)
+          setUser(null)
+        } else {
+          setUser(user)
+          setError(null)
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching user:', err)
+        setError('Failed to fetch user data')
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [supabase])
 
   if (!config?.auth?.enabled) {
     router.back()
+  }
+
+  if (loading) {
+    return (
+      <div className="w-[2.25rem] h-[2.25rem] rounded-full bg-muted animate-pulse" />
+    )
+  }
+
+  if (error || !user) {
+    return null
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild className="w-[2.25rem] h-[2.25rem]">
         <Avatar>
-          <AvatarImage src={user?.imageUrl} alt="User Profile" />
-          <AvatarFallback></AvatarFallback>
+          <AvatarImage
+            src={user?.user_metadata?.avatar_url}
+            alt="User Profile"
+          />
+          <AvatarFallback>
+            {user?.email?.charAt(0).toUpperCase()}
+          </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
@@ -50,13 +100,17 @@ export function UserProfile() {
             </DropdownMenuItem>
           </Link>
         </DropdownMenuGroup>
-        <SignOutButton>
-          <DropdownMenuItem>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-            <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-          </DropdownMenuItem>
-        </SignOutButton>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={async () => {
+            await supabase.auth.signOut()
+            router.push('/sign-in')
+          }}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
+          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
