@@ -125,18 +125,97 @@ async function processEmail(queueItem: EmailQueueItem): Promise<void> {
 }
 
 /**
+ * Validate email message fields
+ */
+function validateEmailMessage(message: EmailMessage): void {
+  // Validate required fields
+  if (!message.to || (Array.isArray(message.to) && message.to.length === 0)) {
+    throw new Error('Email recipient (to) is required')
+  }
+  
+  if (!message.from) {
+    throw new Error('Email sender (from) is required')
+  }
+  
+  if (!message.subject || message.subject.trim() === '') {
+    throw new Error('Email subject is required')
+  }
+  
+  if (!message.html && !message.text) {
+    throw new Error('Email must have either HTML or text content')
+  }
+  
+  // Validate email format for all addresses
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  
+  const validateEmailAddress = (email: string, field: string) => {
+    if (!emailRegex.test(email)) {
+      throw new Error(`Invalid email address in ${field}: ${email}`)
+    }
+  }
+  
+  // Validate 'to' addresses
+  const toAddresses = Array.isArray(message.to) ? message.to : [message.to]
+  toAddresses.forEach(email => validateEmailAddress(email, 'to'))
+  
+  // Validate 'from' address
+  validateEmailAddress(message.from, 'from')
+  
+  // Validate optional addresses if provided
+  if (message.replyTo) {
+    validateEmailAddress(message.replyTo, 'replyTo')
+  }
+  
+  if (message.cc) {
+    message.cc.forEach(email => validateEmailAddress(email, 'cc'))
+  }
+  
+  if (message.bcc) {
+    message.bcc.forEach(email => validateEmailAddress(email, 'bcc'))
+  }
+}
+
+/**
  * Send email using the configured provider
  * This is where you would integrate with your email service
  */
 async function sendEmail(message: EmailMessage): Promise<void> {
+  // Validate the message before sending
+  validateEmailMessage(message)
+  
   const emailProvider = process.env.EMAIL_PROVIDER || 'console'
   
   switch (emailProvider) {
     case 'resend':
-      // Uncomment when Resend is configured
-      // const resend = new Resend(process.env.RESEND_API_KEY)
-      // await resend.emails.send(message)
-      throw new Error('Resend integration not configured')
+      const resendApiKey = process.env.RESEND_API_KEY
+      if (!resendApiKey) {
+        throw new Error('RESEND_API_KEY environment variable is not configured')
+      }
+      
+      // Send email via Resend API
+      const resendResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: message.from,
+          to: message.to,
+          subject: message.subject,
+          html: message.html,
+          text: message.text,
+          reply_to: message.replyTo,
+          cc: message.cc,
+          bcc: message.bcc,
+        }),
+      })
+      
+      if (!resendResponse.ok) {
+        const errorData = await resendResponse.json().catch(() => ({ message: 'Unknown error' }))
+        throw new Error(`Resend API error (${resendResponse.status}): ${errorData.message || resendResponse.statusText}`)
+      }
+      break
       
     case 'sendgrid':
       // Uncomment when SendGrid is configured

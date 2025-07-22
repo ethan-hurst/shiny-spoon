@@ -138,7 +138,16 @@ export function logComparison(
   current: number,
   unit?: string
 ): void {
-  const improvement = ((baseline - current) / baseline) * 100
+  // Handle division by zero - if baseline is 0, we can't calculate percentage improvement
+  let improvement = 0
+  if (baseline !== 0) {
+    improvement = ((baseline - current) / baseline) * 100
+  } else if (current > 0) {
+    // If baseline is 0 but current is positive, this is technically infinite% worse
+    improvement = -100 // Cap at -100% for practical purposes
+  }
+  // If both are 0, improvement remains 0
+  
   perfReporter.logComparison({ name, baseline, current, improvement, unit })
 }
 
