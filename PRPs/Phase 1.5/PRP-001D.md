@@ -71,6 +71,9 @@ export default function DevelopersPage() {
 }
 
 // components/developers/hero.tsx
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+
 export function DeveloperHero() {
   return (
     <section className="bg-gradient-to-b from-gray-50 to-white py-20">
