@@ -5,35 +5,73 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import AuthWrapper from '@/components/wrapper/auth-wrapper'
 import Provider from '@/app/provider'
+import { JsonLd } from '@/components/seo/json-ld'
+import { GoogleAnalytics } from '@/components/analytics/google-analytics'
 import './globals.css'
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://truthsource.io'
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://starter.rasmic.xyz'),
+  metadataBase: new URL(baseUrl),
   title: {
-    default: 'Nextjs Starter Kit',
-    template: `%s | Nextjs Starter Kit`,
+    default: 'TruthSource - B2B E-commerce Data Accuracy Platform',
+    template: `%s | TruthSource`,
   },
   description:
-    'The Ultimate Nextjs 14 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters',
+    'Prevent costly B2B order errors with real-time inventory sync, dynamic pricing rules, and customer portals. Connect NetSuite, Shopify, and more.',
+  keywords: [
+    'B2B e-commerce',
+    'inventory sync',
+    'NetSuite integration',
+    'Shopify integration',
+    'pricing rules engine',
+    'data accuracy',
+    'order error prevention',
+    'ERP integration',
+  ],
+  authors: [{ name: 'TruthSource' }],
+  creator: 'TruthSource',
+  publisher: 'TruthSource',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: baseUrl,
+    siteName: 'TruthSource',
+    title: 'TruthSource - B2B E-commerce Data Accuracy Platform',
     description:
-      'The Ultimate Nextjs 14 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters',
+      'Prevent costly B2B order errors with real-time inventory sync, dynamic pricing rules, and customer portals. Connect NetSuite, Shopify, and more.',
     images: [
-      'https://utfs.io/f/8a428f85-ae83-4ca7-9237-6f8b65411293-eun6ii.png',
+      {
+        url: `${baseUrl}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: 'TruthSource - B2B E-commerce Data Accuracy Platform',
+      },
     ],
-    url: 'https://starter.rasmic.xyz/',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Nextjs Starter Kit',
+    title: 'TruthSource - B2B E-commerce Data Accuracy Platform',
     description:
-      'The Ultimate Nextjs 14 Starter Kit for quickly building your SaaS, giving you time to focus on what really matters',
-    siteId: '',
-    creator: '@rasmic',
-    creatorId: '',
-    images: [
-      'https://utfs.io/f/8a428f85-ae83-4ca7-9237-6f8b65411293-eun6ii.png',
-    ],
+      'Prevent costly B2B order errors with real-time inventory sync, dynamic pricing rules, and customer portals.',
+    creator: '@truthsource',
+    images: [`${baseUrl}/og-image.png`],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 }
 
@@ -69,6 +107,10 @@ export default function RootLayout({
               <Toaster />
             </ThemeProvider>
           </Provider>
+          <JsonLd />
+          {process.env.NEXT_PUBLIC_GA_ID && (
+            <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+          )}
           <Analytics />
         </body>
       </html>

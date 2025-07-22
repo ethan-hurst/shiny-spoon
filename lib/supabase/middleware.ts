@@ -11,12 +11,12 @@ export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set')
-  }
-
-  if (!supabaseAnonKey) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set')
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase environment variables not set. Auth features disabled.')
+    // Return unmodified response if Supabase is not configured
+    return NextResponse.next({
+      request,
+    })
   }
 
   // Create response to modify
@@ -99,9 +99,17 @@ export async function checkUserRole(
   request: NextRequest,
   requiredRole: 'owner' | 'admin' | 'member'
 ) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase environment variables not set. Role check failed.')
+    return false
+  }
+  
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {

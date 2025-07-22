@@ -81,6 +81,7 @@
     "papaparse": "^5.5.3",
     "prisma": "^5.9.1",
     "react": "latest",
+    "react-countup": "^6.5.3",
     "react-day-picker": "^8.10.1",
     "react-dom": "latest",
     "react-dropzone": "^14.3.8",

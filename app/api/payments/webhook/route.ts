@@ -8,9 +8,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn('Supabase environment variables not set for webhook')
+    return NextResponse.json({
+      status: 500,
+      error: 'Service temporarily unavailable',
+    })
+  }
+  
   const supabase: any = createServerClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
+    supabaseUrl,
+    supabaseServiceKey,
     {
       cookies: {
         get(name: string) {

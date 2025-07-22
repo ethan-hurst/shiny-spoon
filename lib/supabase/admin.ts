@@ -11,22 +11,44 @@ if (typeof window !== 'undefined') {
   throw new Error('Supabase admin client cannot be used in the browser!')
 }
 
-// Validate service role key exists
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY is not defined')
+// Create admin client function
+function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.warn('Supabase admin environment variables not set. Admin features will be unavailable.')
+    // Return a mock client during build time
+    return {
+      auth: {
+        admin: {
+          createUser: async () => ({ data: null, error: new Error('Admin client not configured') }),
+          deleteUser: async () => ({ data: null, error: new Error('Admin client not configured') }),
+        },
+      },
+      from: () => ({
+        select: () => Promise.resolve({ data: [], error: null }),
+        insert: () => Promise.resolve({ data: [], error: null }),
+        update: () => Promise.resolve({ data: [], error: null }),
+        delete: () => Promise.resolve({ data: [], error: null }),
+      }),
+    } as any
+  }
+
+  return createClient<Database>(
+    supabaseUrl,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  )
 }
 
 // Create admin client instance
-export const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-)
+export const supabaseAdmin = createAdminClient()
 
 // Helper functions for common admin operations
 

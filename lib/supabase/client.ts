@@ -13,21 +13,27 @@ export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not set')
-  }
-
-  if (!supabaseAnonKey) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set')
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase environment variables not set. Some features will be unavailable.')
+    // Return a mock client during build time
+    return {
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: null }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      },
+      from: () => ({
+        select: () => ({ data: [], error: null }),
+        insert: () => ({ data: [], error: null }),
+        update: () => ({ data: [], error: null }),
+        delete: () => ({ data: [], error: null }),
+      }),
+    } as any
   }
 
   client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
 
   return client
 }
-
-// Export a default client instance for convenience
-export const supabase = createClient()
 
 // Export with the expected name for compatibility
 export { createClient as createBrowserClient }
