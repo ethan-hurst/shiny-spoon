@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { SignOutButton, useUser } from '@clerk/nextjs'
-import { CreditCard, LogOut, Settings, User } from 'lucide-react'
+import { CreditCard, LogOut, Settings, User as UserIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -37,7 +37,7 @@ export function UserProfile() {
         <DropdownMenuGroup>
           <Link href="/user-profile">
             <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
+              <UserIcon className="mr-2 h-4 w-4" />
               <span>Profile</span>
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>
