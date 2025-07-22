@@ -1,22 +1,17 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { UserProfile } from '@clerk/nextjs'
 import PageWrapper from '@/components/wrapper/page-wrapper'
 import config from '@/config'
 
 const UserProfilePage = () => {
-  const router = useRouter()
-
   if (!config?.auth?.enabled) {
-    router.back()
+    redirect('/')
   }
+
   return (
     <PageWrapper>
       <div className="h-full flex items-center justify-center p-9">
-        {config?.auth?.enabled && (
-          <UserProfile path="/user-profile" routing="path" />
-        )}
+        <UserProfile path="/user-profile" routing="path" />
       </div>
     </PageWrapper>
   )
