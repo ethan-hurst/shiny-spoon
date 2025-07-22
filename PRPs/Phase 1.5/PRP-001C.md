@@ -47,7 +47,7 @@ A complete customer portal featuring:
 // app/portal/page.tsx
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
-import { getSubscription, getUsageStats } from '@/lib/billing'
+import { getSubscription, getUsageStats, getRecentActivity } from '@/lib/billing'
 import { AccountOverview } from '@/components/portal/account-overview'
 import { QuickActions } from '@/components/portal/quick-actions'
 import { UsageSummary } from '@/components/portal/usage-summary'
