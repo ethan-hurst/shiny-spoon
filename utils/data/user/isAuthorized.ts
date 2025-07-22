@@ -1,9 +1,9 @@
-"server only";
+'server only'
 
-import { clerkClient } from "@clerk/nextjs/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-import config from "@/tailwind.config";
+import { cookies } from 'next/headers'
+import { clerkClient } from '@clerk/nextjs/server'
+import { createServerClient } from '@supabase/ssr'
+import config from '@/tailwind.config'
 
 export const isAuthorized = async (
   userId: string
@@ -11,20 +11,20 @@ export const isAuthorized = async (
   if (!config?.payments?.enabled) {
     return {
       authorized: true,
-      message: "Payments are disabled",
-    };
+      message: 'Payments are disabled',
+    }
   }
 
-  const result = (await clerkClient()).users.getUser(userId);
+  const result = (await clerkClient()).users.getUser(userId)
 
   if (!result) {
     return {
       authorized: false,
-      message: "User not found",
-    };
+      message: 'User not found',
+    }
   }
 
-  const cookieStore = await cookies();
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.SUPABASE_URL!,
@@ -32,39 +32,39 @@ export const isAuthorized = async (
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value;
+          return cookieStore.get(name)?.value
         },
       },
     }
-  );
+  )
 
   try {
     const { data, error } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", userId);
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
 
     if (error?.code)
       return {
         authorized: false,
         message: error.message,
-      };
+      }
 
-    if (data && data[0].status === "active") {
+    if (data && data[0].status === 'active') {
       return {
         authorized: true,
-        message: "User is subscribed",
-      };
+        message: 'User is subscribed',
+      }
     }
 
     return {
       authorized: false,
-      message: "User is not subscribed",
-    };
+      message: 'User is not subscribed',
+    }
   } catch (error: any) {
     return {
       authorized: false,
       message: error.message,
-    };
+    }
   }
-};
+}

@@ -1,7 +1,8 @@
-"server only";
-import { userUpdateProps } from "@/utils/types";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+'server only'
+
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
+import { userUpdateProps } from '@/utils/types'
 
 export const userUpdate = async ({
   email,
@@ -10,7 +11,7 @@ export const userUpdate = async ({
   profile_image_url,
   user_id,
 }: userUpdateProps) => {
-  const cookieStore = await cookies();
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.SUPABASE_URL!,
@@ -18,15 +19,15 @@ export const userUpdate = async ({
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value;
+          return cookieStore.get(name)?.value
         },
       },
     }
-  );
+  )
 
   try {
     const { data, error } = await supabase
-      .from("user")
+      .from('user')
       .update({
         email,
         first_name,
@@ -34,13 +35,13 @@ export const userUpdate = async ({
         profile_image_url,
         user_id,
       })
-      .eq("user_id", user_id)
-      .select();
+      .eq('user_id', user_id)
+      .select()
 
-    if (data) return data;
+    if (data) return data
 
-    if (error) return error;
+    if (error) return error
   } catch (error: any) {
-    throw new Error(error.message);
+    throw new Error(error.message)
   }
-};
+}

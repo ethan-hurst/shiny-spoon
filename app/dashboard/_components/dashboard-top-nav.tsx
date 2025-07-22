@@ -1,18 +1,23 @@
-"use client"
+'use client'
 
+import { ReactNode } from 'react'
+import Link from 'next/link'
+import { HamburgerMenuIcon } from '@radix-ui/react-icons'
+import { Banknote, Folder, HomeIcon, Settings } from 'lucide-react'
+import { OfflineQueueIndicator } from '@/components/features/inventory/offline-queue-indicator'
+import { RealtimeIndicator } from '@/components/features/inventory/realtime-indicator'
 import ModeToggle from '@/components/mode-toggle'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogClose } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import {
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
 import { UserProfile } from '@/components/user-profile'
 import config from '@/config'
-import { HamburgerMenuIcon } from '@radix-ui/react-icons'
-import { Banknote, Folder, HomeIcon, Settings } from 'lucide-react'
-import Link from 'next/link'
-import { ReactNode } from 'react'
-import { RealtimeIndicator } from '@/components/features/inventory/realtime-indicator'
-import { OfflineQueueIndicator } from '@/components/features/inventory/offline-queue-indicator'
 
 export default function DashboardTopNav({ children }: { children: ReactNode }) {
   return (

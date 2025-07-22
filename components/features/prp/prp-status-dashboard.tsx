@@ -1,23 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Code,
+  ExternalLink,
+  FileText,
+  GitBranch,
+  Package,
+  Search,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { 
-  FileText, 
-  Code, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle,
-  Search,
-  ExternalLink,
-  GitBranch,
-  Package
-} from 'lucide-react'
 import { prpData } from './prp-data'
 
 export function PRPStatusDashboard() {
@@ -26,35 +32,45 @@ export function PRPStatusDashboard() {
 
   // Calculate statistics
   const totalPRPs = prpData.reduce((sum, phase) => sum + phase.prps.length, 0)
-  const implementedPRPs = prpData.reduce((sum, phase) => 
-    sum + phase.prps.filter(prp => prp.status === 'implemented').length, 0
+  const implementedPRPs = prpData.reduce(
+    (sum, phase) =>
+      sum + phase.prps.filter((prp) => prp.status === 'implemented').length,
+    0
   )
-  const partialPRPs = prpData.reduce((sum, phase) => 
-    sum + phase.prps.filter(prp => prp.status === 'partial').length, 0
+  const partialPRPs = prpData.reduce(
+    (sum, phase) =>
+      sum + phase.prps.filter((prp) => prp.status === 'partial').length,
+    0
   )
-  const documentedPRPs = prpData.reduce((sum, phase) => 
-    sum + phase.prps.filter(prp => prp.status === 'documented').length, 0
+  const documentedPRPs = prpData.reduce(
+    (sum, phase) =>
+      sum + phase.prps.filter((prp) => prp.status === 'documented').length,
+    0
   )
-  const plannedPRPs = prpData.reduce((sum, phase) => 
-    sum + phase.prps.filter(prp => prp.status === 'planned').length, 0
+  const plannedPRPs = prpData.reduce(
+    (sum, phase) =>
+      sum + phase.prps.filter((prp) => prp.status === 'planned').length,
+    0
   )
 
   const implementationProgress = (implementedPRPs / totalPRPs) * 100
-  const documentationProgress = ((implementedPRPs + partialPRPs + documentedPRPs) / totalPRPs) * 100
+  const documentationProgress =
+    ((implementedPRPs + partialPRPs + documentedPRPs) / totalPRPs) * 100
 
   // Filter PRPs
   const filteredPhases = prpData
-    .filter(phase => selectedPhase === 'all' || phase.id === selectedPhase)
-    .map(phase => ({
+    .filter((phase) => selectedPhase === 'all' || phase.id === selectedPhase)
+    .map((phase) => ({
       ...phase,
-      prps: phase.prps.filter(prp => 
-        searchTerm === '' || 
-        prp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        prp.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        prp.description.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      prps: phase.prps.filter(
+        (prp) =>
+          searchTerm === '' ||
+          prp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          prp.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          prp.description.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
     }))
-    .filter(phase => phase.prps.length > 0)
+    .filter((phase) => phase.prps.length > 0)
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -72,18 +88,17 @@ export function PRPStatusDashboard() {
   }
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    const variants: Record<
+      string,
+      'default' | 'secondary' | 'destructive' | 'outline'
+    > = {
       implemented: 'default',
       partial: 'outline',
       documented: 'secondary',
-      planned: 'outline'
+      planned: 'outline',
     }
-    
-    return (
-      <Badge variant={variants[status] || 'secondary'}>
-        {status}
-      </Badge>
-    )
+
+    return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>
   }
 
   return (
@@ -116,7 +131,9 @@ export function PRPStatusDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{implementedPRPs}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {implementedPRPs}
+            </div>
             <Progress value={implementationProgress} className="mt-2 h-2" />
           </CardContent>
         </Card>
@@ -142,7 +159,9 @@ export function PRPStatusDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{plannedPRPs}</div>
+            <div className="text-2xl font-bold text-gray-600">
+              {plannedPRPs}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -158,10 +177,14 @@ export function PRPStatusDashboard() {
             className="pl-9"
           />
         </div>
-        <Tabs value={selectedPhase} onValueChange={setSelectedPhase} className="w-full sm:w-auto">
+        <Tabs
+          value={selectedPhase}
+          onValueChange={setSelectedPhase}
+          className="w-full sm:w-auto"
+        >
           <TabsList>
             <TabsTrigger value="all">All Phases</TabsTrigger>
-            {prpData.map(phase => (
+            {prpData.map((phase) => (
               <TabsTrigger key={phase.id} value={phase.id}>
                 {phase.name}
               </TabsTrigger>
@@ -172,7 +195,7 @@ export function PRPStatusDashboard() {
 
       {/* PRP List */}
       <div className="space-y-6">
-        {filteredPhases.map(phase => (
+        {filteredPhases.map((phase) => (
           <Card key={phase.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -181,7 +204,12 @@ export function PRPStatusDashboard() {
                   <CardDescription>{phase.description}</CardDescription>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{phase.prps.filter(p => p.status === 'implemented').length}</span>
+                  <span>
+                    {
+                      phase.prps.filter((p) => p.status === 'implemented')
+                        .length
+                    }
+                  </span>
                   <span>/</span>
                   <span>{phase.prps.length}</span>
                   <span>implemented</span>
@@ -190,7 +218,7 @@ export function PRPStatusDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {phase.prps.map(prp => (
+                {phase.prps.map((prp) => (
                   <div
                     key={prp.id}
                     className="flex items-start justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
@@ -199,34 +227,43 @@ export function PRPStatusDashboard() {
                       {getStatusIcon(prp.status)}
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{prp.id}: {prp.title}</h4>
+                          <h4 className="font-medium">
+                            {prp.id}: {prp.title}
+                          </h4>
                           {getStatusBadge(prp.status)}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {prp.description}
                         </p>
-                        
+
                         {/* Implementation Details */}
-                        {prp.implementedFiles && prp.implementedFiles.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            <div className="text-xs font-medium text-muted-foreground">
-                              Implemented in:
+                        {prp.implementedFiles &&
+                          prp.implementedFiles.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              <div className="text-xs font-medium text-muted-foreground">
+                                Implemented in:
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {prp.implementedFiles
+                                  .slice(0, 3)
+                                  .map((file, idx) => (
+                                    <Badge
+                                      key={idx}
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      <Code className="mr-1 h-3 w-3" />
+                                      {file}
+                                    </Badge>
+                                  ))}
+                                {prp.implementedFiles.length > 3 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{prp.implementedFiles.length - 3} more
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex flex-wrap gap-1">
-                              {prp.implementedFiles.slice(0, 3).map((file, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  <Code className="mr-1 h-3 w-3" />
-                                  {file}
-                                </Badge>
-                              ))}
-                              {prp.implementedFiles.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{prp.implementedFiles.length - 3} more
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                          )}
 
                         {/* Missing Items for Partial Implementation */}
                         {prp.status === 'partial' && prp.missingFeatures && (
@@ -236,7 +273,10 @@ export function PRPStatusDashboard() {
                             </div>
                             <ul className="text-xs text-muted-foreground mt-1">
                               {prp.missingFeatures.map((feature, idx) => (
-                                <li key={idx} className="flex items-start gap-1">
+                                <li
+                                  key={idx}
+                                  className="flex items-start gap-1"
+                                >
                                   <span>•</span>
                                   <span>{feature}</span>
                                 </li>
@@ -296,9 +336,16 @@ export function PRPStatusDashboard() {
                 Priority 1: Complete Phase 3 (Business Logic)
               </h4>
               <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                <li>• PRP-009: Customer Management - Foundation for B2B features</li>
-                <li>• PRP-010: Pricing Rules Engine - Critical for accurate pricing</li>
-                <li>• PRP-011: Sync Status Dashboard - Visibility into sync health</li>
+                <li>
+                  • PRP-009: Customer Management - Foundation for B2B features
+                </li>
+                <li>
+                  • PRP-010: Pricing Rules Engine - Critical for accurate
+                  pricing
+                </li>
+                <li>
+                  • PRP-011: Sync Status Dashboard - Visibility into sync health
+                </li>
               </ul>
             </div>
 
@@ -308,7 +355,9 @@ export function PRPStatusDashboard() {
                 Priority 2: Phase 4 (Integration Layer)
               </h4>
               <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                <li>• PRP-012: Integration Framework - Base for all connectors</li>
+                <li>
+                  • PRP-012: Integration Framework - Base for all connectors
+                </li>
                 <li>• PRP-013: NetSuite Connector - Primary ERP integration</li>
                 <li>• PRP-014: Shopify B2B - E-commerce platform sync</li>
               </ul>

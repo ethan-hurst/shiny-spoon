@@ -1,4 +1,7 @@
-import { PriceCalculationRequest, PriceCalculationResult } from '@/types/pricing.types'
+import {
+  PriceCalculationRequest,
+  PriceCalculationResult,
+} from '@/types/pricing.types'
 import { getPricingEngine } from './pricing-engine'
 
 /**
@@ -53,16 +56,16 @@ export async function calculatePriceWithExplanation(
 }> {
   const result = await calculatePrice(request)
   const explanation: string[] = []
-  
+
   // Build explanation
   explanation.push(`Base price: $${result.base_price.toFixed(2)}`)
-  
+
   if (result.applied_rules.length > 0) {
     explanation.push('Applied discounts:')
-    
+
     result.applied_rules.forEach((rule) => {
       let ruleText = `• ${rule.name || rule.type}`
-      
+
       if (rule.discount_type === 'percentage') {
         ruleText += ` (${rule.discount_value}% off)`
       } else if (rule.discount_type === 'fixed') {
@@ -70,25 +73,27 @@ export async function calculatePriceWithExplanation(
       } else if (rule.discount_type === 'price') {
         ruleText += ` (special price: $${rule.discount_value})`
       }
-      
+
       if (rule.discount_amount) {
         ruleText += ` = -$${rule.discount_amount.toFixed(2)}`
       }
-      
+
       explanation.push(ruleText)
     })
   }
-  
+
   if (result.discount_amount > 0) {
-    explanation.push(`Total discount: $${result.discount_amount.toFixed(2)} (${result.discount_percent.toFixed(1)}%)`)
+    explanation.push(
+      `Total discount: $${result.discount_amount.toFixed(2)} (${result.discount_percent.toFixed(1)}%)`
+    )
   }
-  
+
   explanation.push(`Final price: $${result.final_price.toFixed(2)}`)
-  
+
   if (result.margin_percent !== undefined) {
     explanation.push(`Margin: ${result.margin_percent.toFixed(1)}%`)
   }
-  
+
   return { result, explanation }
 }
 
@@ -102,12 +107,14 @@ export async function comparePrices(
     quantity: number
     label: string
   }>
-): Promise<Array<{
-  scenario: typeof scenarios[0]
-  result: PriceCalculationResult
-  savings: number
-  savingsPercent: number
-}>> {
+): Promise<
+  Array<{
+    scenario: (typeof scenarios)[0]
+    result: PriceCalculationResult
+    savings: number
+    savingsPercent: number
+  }>
+> {
   const results = await Promise.all(
     scenarios.map(async (scenario) => {
       const result = await calculatePrice({
@@ -115,7 +122,7 @@ export async function comparePrices(
         customer_id: scenario.customerId,
         quantity: scenario.quantity,
       })
-      
+
       return {
         scenario,
         result,
@@ -124,7 +131,7 @@ export async function comparePrices(
       }
     })
   )
-  
+
   return results
 }
 
@@ -135,13 +142,15 @@ export async function getQuantityBreakPrices(
   productId: string,
   customerId?: string,
   quantities: number[] = [1, 10, 25, 50, 100]
-): Promise<Array<{
-  quantity: number
-  unitPrice: number
-  totalPrice: number
-  savings: number
-  savingsPercent: number
-}>> {
+): Promise<
+  Array<{
+    quantity: number
+    unitPrice: number
+    totalPrice: number
+    savings: number
+    savingsPercent: number
+  }>
+> {
   const results = await Promise.all(
     quantities.map(async (quantity) => {
       const result = await calculatePrice({
@@ -149,7 +158,7 @@ export async function getQuantityBreakPrices(
         customer_id: customerId,
         quantity,
       })
-      
+
       return {
         quantity,
         unitPrice: result.final_price / quantity,
@@ -159,7 +168,7 @@ export async function getQuantityBreakPrices(
       }
     })
   )
-  
+
   return results
 }
 
@@ -176,8 +185,8 @@ export function validatePriceMargin(
   requiredPrice: number
 } {
   const currentMargin = ((price - cost) / price) * 100
-  const requiredPrice = cost / (1 - (minMarginPercent / 100))
-  
+  const requiredPrice = cost / (1 - minMarginPercent / 100)
+
   return {
     isValid: currentMargin >= minMarginPercent,
     currentMargin,
@@ -196,7 +205,9 @@ export async function clearPricingCache(productId?: string): Promise<void> {
 /**
  * Clear pricing cache for a customer
  */
-export async function clearCustomerPricingCache(customerId: string): Promise<void> {
+export async function clearCustomerPricingCache(
+  customerId: string
+): Promise<void> {
   const engine = getPricingEngine()
   await engine.clearCustomerCache(customerId)
 }

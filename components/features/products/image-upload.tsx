@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { useDropzone } from 'react-dropzone'
-import { Upload, X, Image as ImageIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
+import { useCallback, useState } from 'react'
 import Image from 'next/image'
+import { Image as ImageIcon, Upload, X } from 'lucide-react'
+import { useDropzone } from 'react-dropzone'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 
 interface ImageUploadProps {
   value?: string | File
@@ -18,29 +18,32 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
     typeof value === 'string' ? value : null
   )
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0]
-    if (file) {
-      onChange(file)
-      const reader = new FileReader()
-      
-      reader.onloadend = () => {
-        setPreview(reader.result as string)
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0]
+      if (file) {
+        onChange(file)
+        const reader = new FileReader()
+
+        reader.onloadend = () => {
+          setPreview(reader.result as string)
+        }
+
+        reader.onerror = (error) => {
+          console.error('Error reading file:', error)
+          toast.error('Failed to read the selected file')
+        }
+
+        reader.readAsDataURL(file)
       }
-      
-      reader.onerror = (error) => {
-        console.error('Error reading file:', error)
-        toast.error('Failed to read the selected file')
-      }
-      
-      reader.readAsDataURL(file)
-    }
-  }, [onChange])
+    },
+    [onChange]
+  )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp']
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
     },
     maxSize: 5 * 1024 * 1024, // 5MB
     multiple: false,
@@ -101,9 +104,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
           ) : (
             <>
               <p className="font-medium">Click to upload or drag and drop</p>
-              <p className="text-muted-foreground">
-                PNG, JPG, WEBP up to 5MB
-              </p>
+              <p className="text-muted-foreground">PNG, JPG, WEBP up to 5MB</p>
             </>
           )}
         </div>

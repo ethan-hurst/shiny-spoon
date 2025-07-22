@@ -25,140 +25,155 @@ Generate a complete, self-sufficient PRP (Product Requirements Plan) for feature
 ## Research Process
 
 ### 1. **Feature File Analysis**
-   - Read and parse the feature file completely
-   - Extract requirements, constraints, and examples
-   - Identify acceptance criteria and success metrics
-   - Note any specific patterns or approaches mentioned
+
+- Read and parse the feature file completely
+- Extract requirements, constraints, and examples
+- Identify acceptance criteria and success metrics
+- Note any specific patterns or approaches mentioned
 
 ### 2. **Codebase Research** (Systematic and Thorough)
-   - **Pattern Discovery**:
-     ```bash
-     # Find similar features
-     grep -r "similar_feature" --include="*.tsx" --include="*.ts"
-     
-     # Analyze component patterns
-     find . -name "*.tsx" -path "*/components/*" | head -20
-     
-     # Review server actions
-     find . -name "*.ts" -path "*/actions/*"
-     ```
-   - **Convention Analysis**:
-     - Database query patterns
-     - Error handling approaches
-     - Form validation strategies
-     - State management patterns
-   - **Test Pattern Review**:
-     - Unit test structure
-     - Integration test approaches
-     - E2E test scenarios
+
+- **Pattern Discovery**:
+
+  ```bash
+  # Find similar features
+  grep -r "similar_feature" --include="*.tsx" --include="*.ts"
+
+  # Analyze component patterns
+  find . -name "*.tsx" -path "*/components/*" | head -20
+
+  # Review server actions
+  find . -name "*.ts" -path "*/actions/*"
+  ```
+
+- **Convention Analysis**:
+  - Database query patterns
+  - Error handling approaches
+  - Form validation strategies
+  - State management patterns
+- **Test Pattern Review**:
+  - Unit test structure
+  - Integration test approaches
+  - E2E test scenarios
 
 ### 3. **External Research** (Document Everything)
-   - **Official Documentation**:
-     - Framework docs (Next.js, React, etc.)
-     - Library APIs (with version specifics)
-     - Best practices guides
-   - **Implementation Examples**:
-     - GitHub repositories
-     - Stack Overflow solutions
-     - Blog posts and tutorials
-   - **Performance Considerations**:
-     - Benchmarks and optimization techniques
-     - Common bottlenecks and solutions
+
+- **Official Documentation**:
+  - Framework docs (Next.js, React, etc.)
+  - Library APIs (with version specifics)
+  - Best practices guides
+- **Implementation Examples**:
+  - GitHub repositories
+  - Stack Overflow solutions
+  - Blog posts and tutorials
+- **Performance Considerations**:
+  - Benchmarks and optimization techniques
+  - Common bottlenecks and solutions
 
 ### 4. **Technical Validation**
-   - Verify library compatibility
-   - Check for security implications
-   - Validate performance requirements feasibility
-   - Assess accessibility requirements
+
+- Verify library compatibility
+- Check for security implications
+- Validate performance requirements feasibility
+- Assess accessibility requirements
 
 ## PRP Structure Requirements
 
 ### 1. **Goal Section**
-   - Clear, concise objective (1-2 sentences)
-   - Measurable outcome
-   - Business value proposition
+
+- Clear, concise objective (1-2 sentences)
+- Measurable outcome
+- Business value proposition
 
 ### 2. **Why Section**
-   - Business value with metrics
-   - Integration benefits
-   - Problems being solved
-   - Risk mitigation
+
+- Business value with metrics
+- Integration benefits
+- Problems being solved
+- Risk mitigation
 
 ### 3. **What Section**
-   - Detailed feature description
-   - Success criteria (checkbox format)
-   - Acceptance tests
-   - Performance benchmarks
+
+- Detailed feature description
+- Success criteria (checkbox format)
+- Acceptance tests
+- Performance benchmarks
 
 ### 4. **Context Section** (CRITICAL)
-   - **Documentation & References**:
-     ```yaml
-     - url: [specific documentation URL]
-       why: [specific reason for reference]
-       section: [exact section if applicable]
-     
-     - file: [codebase file path]
-       why: [pattern or example to follow]
-       lines: [specific line numbers if relevant]
-     ```
-   - **Codebase Tree**: Current relevant structure
-   - **Dependencies**: Required PRPs and libraries
-   - **Gotchas**: Known issues, version conflicts, workarounds
+
+- **Documentation & References**:
+
+  ```yaml
+  - url: [specific documentation URL]
+    why: [specific reason for reference]
+    section: [exact section if applicable]
+
+  - file: [codebase file path]
+    why: [pattern or example to follow]
+    lines: [specific line numbers if relevant]
+  ```
+
+- **Codebase Tree**: Current relevant structure
+- **Dependencies**: Required PRPs and libraries
+- **Gotchas**: Known issues, version conflicts, workarounds
 
 ### 5. **Implementation Blueprint**
-   - **Approach Overview**: High-level strategy
-   - **Pseudocode**: Clear implementation steps with REAL operations
-   - **File Structure**: New files and modifications
-   - **Task Breakdown**: Ordered implementation tasks
-   - **Error Handling**: Specific strategies for failures
-   - **NO MOCK IMPLEMENTATIONS**:
-     ```typescript
-     // ❌ NEVER include mock implementations like:
-     // setTimeout(() => setProgress(50), 1000)
-     // const mockData = [{id: 1, name: 'Test'}]
-     // const fakeUsers = generateFakeUsers(10)
-     // const dummyResponse = {success: true}
-     // console.log('Simulating API call...')
-     // await sleep(1000) // artificial delay
-     // function stubFunction() { return true }
-     // <div>TODO: Implement this feature</div>
-     // alert('Feature not implemented yet')
-     
-     // ✅ ALWAYS show real implementation patterns:
-     // const { data } = await supabase.from('table').select()
-     // const result = await processItems(items)
-     // setProgress(processed / total * 100)
-     // const response = await fetch('/api/endpoint')
-     // toast.success('Operation completed')
-     ```
+
+- **Approach Overview**: High-level strategy
+- **Pseudocode**: Clear implementation steps with REAL operations
+- **File Structure**: New files and modifications
+- **Task Breakdown**: Ordered implementation tasks
+- **Error Handling**: Specific strategies for failures
+- **NO MOCK IMPLEMENTATIONS**:
+
+  ```typescript
+  // ❌ NEVER include mock implementations like:
+  // setTimeout(() => setProgress(50), 1000)
+  // const mockData = [{id: 1, name: 'Test'}]
+  // const fakeUsers = generateFakeUsers(10)
+  // const dummyResponse = {success: true}
+  // console.log('Simulating API call...')
+  // await sleep(1000) // artificial delay
+  // function stubFunction() { return true }
+  // <div>TODO: Implement this feature</div>
+  // alert('Feature not implemented yet')
+
+  // ✅ ALWAYS show real implementation patterns:
+  // const { data } = await supabase.from('table').select()
+  // const result = await processItems(items)
+  // setProgress(processed / total * 100)
+  // const response = await fetch('/api/endpoint')
+  // toast.success('Operation completed')
+  ```
 
 ### 6. **Validation Gates** (Must be Executable)
-   ```bash
-   # Level 1: Syntax & Style
-   pnpm lint && pnpm prettier --check . && pnpm tsc --noEmit
-   
-   # Level 2: Build
-   pnpm build
-   
-   # Level 3: Mock Detection
-   grep -r "setTimeout.*progress" --include="*.ts" --include="*.tsx" || echo "No mock progress found ✓"
-   grep -r "mock[A-Z]" --include="*.ts" --include="*.tsx" || echo "No mock data found ✓"
-   grep -r "fake[A-Z]" --include="*.ts" --include="*.tsx" || echo "No fake data found ✓"
-   grep -r "dummy[A-Z]" --include="*.ts" --include="*.tsx" || echo "No dummy data found ✓"
-   grep -r "stub[A-Z]" --include="*.ts" --include="*.tsx" || echo "No stub functions found ✓"
-   grep -r "TODO.*implement" --include="*.ts" --include="*.tsx" || echo "No TODOs found ✓"
-   grep -r "FIXME" --include="*.ts" --include="*.tsx" || echo "No FIXMEs found ✓"
-   grep -r "console\.log.*simula" --include="*.ts" --include="*.tsx" || echo "No simulations found ✓"
-   grep -r "alert\(" --include="*.ts" --include="*.tsx" || echo "No alerts found ✓"
-   grep -r "sleep\(" --include="*.ts" --include="*.tsx" || echo "No sleep delays found ✓"
-   
-   # Level 4: Tests (if applicable)
-   pnpm test [specific test files]
-   
-   # Level 5: Feature Validation
-   # Specific commands to verify feature works with REAL data
-   # Must include actual database operations
-   ```
+
+```bash
+# Level 1: Syntax & Style
+pnpm lint && pnpm prettier --check . && pnpm tsc --noEmit
+
+# Level 2: Build
+pnpm build
+
+# Level 3: Mock Detection
+grep -r "setTimeout.*progress" --include="*.ts" --include="*.tsx" || echo "No mock progress found ✓"
+grep -r "mock[A-Z]" --include="*.ts" --include="*.tsx" || echo "No mock data found ✓"
+grep -r "fake[A-Z]" --include="*.ts" --include="*.tsx" || echo "No fake data found ✓"
+grep -r "dummy[A-Z]" --include="*.ts" --include="*.tsx" || echo "No dummy data found ✓"
+grep -r "stub[A-Z]" --include="*.ts" --include="*.tsx" || echo "No stub functions found ✓"
+grep -r "TODO.*implement" --include="*.ts" --include="*.tsx" || echo "No TODOs found ✓"
+grep -r "FIXME" --include="*.ts" --include="*.tsx" || echo "No FIXMEs found ✓"
+grep -r "console\.log.*simula" --include="*.ts" --include="*.tsx" || echo "No simulations found ✓"
+grep -r "alert\(" --include="*.ts" --include="*.tsx" || echo "No alerts found ✓"
+grep -r "sleep\(" --include="*.ts" --include="*.tsx" || echo "No sleep delays found ✓"
+
+# Level 4: Tests (if applicable)
+pnpm test [specific test files]
+
+# Level 5: Feature Validation
+# Specific commands to verify feature works with REAL data
+# Must include actual database operations
+```
 
 ## ULTRATHINK Phase (REQUIRED)
 
@@ -187,19 +202,22 @@ Before writing the PRP, perform deep analysis:
 ## Output Generation
 
 ### 1. **File Creation**
-   - Save as: `PRPs/Phase X/PRP-XXX.md`
-   - Use next available PRP number
-   - Follow naming convention exactly
+
+- Save as: `PRPs/Phase X/PRP-XXX.md`
+- Use next available PRP number
+- Follow naming convention exactly
 
 ### 2. **Quality Validation**
-   - Run through quality checklist
-   - Score confidence level (1-10)
-   - Document any concerns or limitations
+
+- Run through quality checklist
+- Score confidence level (1-10)
+- Document any concerns or limitations
 
 ### 3. **Status Update**
-   - Add entry to PRP-STATUS.md
-   - Mark as "📄 Documented"
-   - List dependencies
+
+- Add entry to PRP-STATUS.md
+- Mark as "📄 Documented"
+- List dependencies
 
 ## Quality Checklist
 
@@ -221,6 +239,7 @@ Before writing the PRP, perform deep analysis:
 ## Confidence Scoring
 
 Rate the PRP on these factors (1-10 each):
+
 - **Completeness**: All information present
 - **Clarity**: Easy to understand and follow
 - **Executability**: Can be implemented without questions
@@ -252,6 +271,7 @@ Remember: The goal is ONE-PASS implementation success. Every piece of context ma
 ## 🚫 CRITICAL: Production-Ready Code Only
 
 **NEVER include in PRPs:**
+
 - Mock/fake/dummy data or simulated responses
 - setTimeout/sleep/delay for artificial delays or progress
 - Stub/placeholder functions that don't work
@@ -264,6 +284,7 @@ Remember: The goal is ONE-PASS implementation success. Every piece of context ma
 - Artificial loading states without real operations
 
 **ALWAYS include in PRPs:**
+
 - Real Supabase query examples with error handling
 - Actual async operation handling with try/catch
 - Complete error handling flows with user feedback

@@ -23,47 +23,56 @@ const FORMULA_PREFIXES = ['=', '+', '-', '@', '\t', '\r']
 // Sanitize cell content to prevent CSV formula injection
 function sanitizeCSVContent(content: string): string {
   if (typeof content !== 'string') return String(content)
-  
+
   const trimmed = content.trim()
-  
+
   // Check for formula injection attempts
-  if (FORMULA_PREFIXES.some(prefix => trimmed.startsWith(prefix))) {
+  if (FORMULA_PREFIXES.some((prefix) => trimmed.startsWith(prefix))) {
     // Prepend single quote to neutralize formula
     return `'${trimmed}`
   }
-  
+
   return trimmed
 }
 
 // Validate cell content for security risks
-function validateCellContent(content: string, fieldName: string): { valid: boolean; error?: string } {
+function validateCellContent(
+  content: string,
+  fieldName: string
+): { valid: boolean; error?: string } {
   if (typeof content !== 'string') return { valid: true }
-  
+
   const trimmed = content.trim()
-  
+
   // Check for suspicious patterns
   if (trimmed.includes('javascript:') || trimmed.includes('data:')) {
-    return { 
-      valid: false, 
-      error: `Field '${fieldName}' contains potentially dangerous URL schemes` 
+    return {
+      valid: false,
+      error: `Field '${fieldName}' contains potentially dangerous URL schemes`,
     }
   }
-  
+
   // Check for excessive length
   if (trimmed.length > 10000) {
-    return { 
-      valid: false, 
-      error: `Field '${fieldName}' exceeds maximum length of 10,000 characters` 
+    return {
+      valid: false,
+      error: `Field '${fieldName}' exceeds maximum length of 10,000 characters`,
     }
   }
-  
+
   return { valid: true }
 }
 
 // Column mappings for flexibility in CSV headers
 export const COLUMN_MAPPINGS: Record<string, string[]> = {
   sku: ['sku', 'product_sku', 'item_sku', 'product_code', 'item_code'],
-  warehouse_code: ['warehouse_code', 'warehouse', 'location', 'warehouse_id', 'location_code'],
+  warehouse_code: [
+    'warehouse_code',
+    'warehouse',
+    'location',
+    'warehouse_id',
+    'location_code',
+  ],
   quantity: ['quantity', 'qty', 'count', 'stock', 'on_hand'],
   reason: ['reason', 'adjustment_reason', 'type'],
   notes: ['notes', 'comments', 'description', 'memo'],
@@ -114,14 +123,16 @@ export function parseCSV<T>(
 
     // Map columns based on mappings
     const mappedRow: any = {}
-    for (const [targetColumn, possibleHeaders] of Object.entries(columnMappings)) {
+    for (const [targetColumn, possibleHeaders] of Object.entries(
+      columnMappings
+    )) {
       let found = false
       for (const header of possibleHeaders) {
         if (row.hasOwnProperty(header)) {
           // Sanitize content to prevent formula injection
           const rawValue = row[header]
           const sanitizedValue = sanitizeCSVContent(rawValue)
-          
+
           // Validate content for security risks
           const validation = validateCellContent(sanitizedValue, targetColumn)
           if (!validation.valid) {
@@ -133,7 +144,7 @@ export function parseCSV<T>(
             })
             return
           }
-          
+
           mappedRow[targetColumn] = sanitizedValue
           found = true
           break
@@ -191,7 +202,9 @@ export function parseCSV<T>(
 }
 
 // Specific parser for inventory imports
-export function parseInventoryCSV(csvContent: string): ParseResult<InventoryImportRow> {
+export function parseInventoryCSV(
+  csvContent: string
+): ParseResult<InventoryImportRow> {
   const inventorySchema = z.object({
     sku: z.string().min(1, 'SKU is required'),
     warehouse_code: z.string().min(1, 'Warehouse code is required'),
@@ -211,15 +224,15 @@ export function generateCSV<T extends Record<string, any>>(
   if (data.length === 0) return ''
 
   // Generate headers
-  const headers = columns.map(col => `"${col.header}"`).join(',')
+  const headers = columns.map((col) => `"${col.header}"`).join(',')
 
   // Generate rows
-  const rows = data.map(item => {
+  const rows = data.map((item) => {
     return columns
-      .map(col => {
+      .map((col) => {
         const value = item[col.key]
         if (value === null || value === undefined) return '""'
-        
+
         // Sanitize content and escape quotes
         const sanitized = sanitizeCSVContent(String(value))
         const escaped = sanitized.replace(/"/g, '""')
@@ -232,7 +245,10 @@ export function generateCSV<T extends Record<string, any>>(
 }
 
 // Validate CSV file before parsing
-export function validateCSVFile(file: File): { valid: boolean; error?: string } {
+export function validateCSVFile(file: File): {
+  valid: boolean
+  error?: string
+} {
   // Check file extension
   if (!file.name.toLowerCase().endsWith('.csv')) {
     return { valid: false, error: 'File must have a .csv extension' }
@@ -244,11 +260,11 @@ export function validateCSVFile(file: File): { valid: boolean; error?: string } 
     'application/csv',
     'text/plain', // Some browsers report CSV as text/plain
   ]
-  
+
   if (!validMimeTypes.includes(file.type)) {
-    return { 
-      valid: false, 
-      error: `Invalid file type: ${file.type}. Only CSV files are allowed.` 
+    return {
+      valid: false,
+      error: `Invalid file type: ${file.type}. Only CSV files are allowed.`,
     }
   }
 

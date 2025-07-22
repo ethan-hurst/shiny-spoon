@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { OfflineQueue } from '@/lib/realtime/offline-queue'
-import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
-import { OptimisticUpdate } from '@/lib/realtime/types'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
+import { OfflineQueue } from '@/lib/realtime/offline-queue'
+import { OptimisticUpdate } from '@/lib/realtime/types'
+import { createClient } from '@/lib/supabase/client'
 
 interface InventoryItem {
   id: string
@@ -32,185 +32,220 @@ interface InventoryUpdate {
 
 export function useOptimisticInventory(initialData?: InventoryItem[]) {
   const [data, setData] = useState<InventoryItem[]>(initialData || [])
-  const [pendingUpdates, setPendingUpdates] = useState<Map<string, OptimisticUpdate<InventoryItem>>>(new Map())
+  const [pendingUpdates, setPendingUpdates] = useState<
+    Map<string, OptimisticUpdate<InventoryItem>>
+  >(new Map())
   const supabase = createClient()
   const connectionManager = RealtimeConnectionManager.getInstance()
   const offlineQueue = OfflineQueue.getInstance()
   const rollbackTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
-  const applyOptimisticUpdate = useCallback((
-    itemId: string,
-    updates: Partial<InventoryItem>
-  ): OptimisticUpdate<InventoryItem> => {
-    const originalItem = data.find(item => item.id === itemId)
-    if (!originalItem) {
-      throw new Error('Item not found')
-    }
+  const applyOptimisticUpdate = useCallback(
+    (
+      itemId: string,
+      updates: Partial<InventoryItem>
+    ): OptimisticUpdate<InventoryItem> => {
+      const originalItem = data.find((item) => item.id === itemId)
+      if (!originalItem) {
+        throw new Error('Item not found')
+      }
 
-    const optimisticItem = { ...originalItem, ...updates, updated_at: new Date().toISOString() }
-    const optimisticUpdate: OptimisticUpdate<InventoryItem> = {
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-      originalValue: originalItem,
-      optimisticValue: optimisticItem,
-      status: 'pending'
-    }
+      const optimisticItem = {
+        ...originalItem,
+        ...updates,
+        updated_at: new Date().toISOString(),
+      }
+      const optimisticUpdate: OptimisticUpdate<InventoryItem> = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        originalValue: originalItem,
+        optimisticValue: optimisticItem,
+        status: 'pending',
+      }
 
-    // Apply update to state
-    setData(prevData => 
-      prevData.map(item => item.id === itemId ? optimisticItem : item)
-    )
-
-    // Track pending update
-    setPendingUpdates(prev => {
-      const newMap = new Map(prev)
-      newMap.set(itemId, optimisticUpdate)
-      return newMap
-    })
-
-    // Set rollback timeout (30 seconds)
-    const timeoutId = setTimeout(() => {
-      rollbackUpdate(itemId, optimisticUpdate.id)
-    }, 30000)
-
-    rollbackTimeouts.current.set(optimisticUpdate.id, timeoutId)
-
-    return optimisticUpdate
-  }, [data])
-
-  const rollbackUpdate = useCallback((itemId: string, updateId: string) => {
-    const update = pendingUpdates.get(itemId)
-    if (!update || update.id !== updateId) return
-
-    // Rollback to original value
-    setData(prevData =>
-      prevData.map(item => 
-        item.id === itemId ? update.originalValue : item
+      // Apply update to state
+      setData((prevData) =>
+        prevData.map((item) => (item.id === itemId ? optimisticItem : item))
       )
-    )
 
-    // Remove from pending
-    setPendingUpdates(prev => {
-      const newMap = new Map(prev)
-      newMap.delete(itemId)
-      return newMap
-    })
+      // Track pending update
+      setPendingUpdates((prev) => {
+        const newMap = new Map(prev)
+        newMap.set(itemId, optimisticUpdate)
+        return newMap
+      })
 
-    // Clear timeout
-    const timeoutId = rollbackTimeouts.current.get(updateId)
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-      rollbackTimeouts.current.delete(updateId)
-    }
+      // Set rollback timeout (30 seconds)
+      const timeoutId = setTimeout(() => {
+        rollbackUpdate(itemId, optimisticUpdate.id)
+      }, 30000)
 
-    // Show error message
-    toast.error('Update failed. Changes have been reverted.')
-  }, [pendingUpdates])
+      rollbackTimeouts.current.set(optimisticUpdate.id, timeoutId)
 
-  const confirmUpdate = useCallback((itemId: string, updateId: string) => {
-    const update = pendingUpdates.get(itemId)
-    if (!update || update.id !== updateId) return
+      return optimisticUpdate
+    },
+    [data]
+  )
 
-    // Mark as confirmed
-    setPendingUpdates(prev => {
-      const newMap = new Map(prev)
-      const confirmedUpdate = { ...update, status: 'confirmed' as const }
-      newMap.set(itemId, confirmedUpdate)
-      return newMap
-    })
+  const rollbackUpdate = useCallback(
+    (itemId: string, updateId: string) => {
+      const update = pendingUpdates.get(itemId)
+      if (!update || update.id !== updateId) return
 
-    // Clear timeout
-    const timeoutId = rollbackTimeouts.current.get(updateId)
-    if (timeoutId) {
-      clearTimeout(timeoutId)
-      rollbackTimeouts.current.delete(updateId)
-    }
+      // Rollback to original value
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === itemId ? update.originalValue : item
+        )
+      )
 
-    // Remove from pending after a short delay
-    setTimeout(() => {
-      setPendingUpdates(prev => {
+      // Remove from pending
+      setPendingUpdates((prev) => {
         const newMap = new Map(prev)
         newMap.delete(itemId)
         return newMap
       })
-    }, 1000)
-  }, [pendingUpdates])
 
-  const updateInventory = useCallback(async (itemId: string, updates: InventoryUpdate) => {
-    const connectionStatus = connectionManager.getStatus()
-    
-    // Apply optimistic update immediately
-    const optimisticUpdate = applyOptimisticUpdate(itemId, updates)
+      // Clear timeout
+      const timeoutId = rollbackTimeouts.current.get(updateId)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        rollbackTimeouts.current.delete(updateId)
+      }
 
-    try {
-      if (connectionStatus.state === 'connected') {
-        // Online - attempt direct update
-        const { data: updatedItem, error } = await supabase
-          .from('inventory')
-          .update(updates)
-          .eq('id', itemId)
-          .select()
-          .single()
+      // Show error message
+      toast.error('Update failed. Changes have been reverted.')
+    },
+    [pendingUpdates]
+  )
 
-        if (error) throw error
+  const confirmUpdate = useCallback(
+    (itemId: string, updateId: string) => {
+      const update = pendingUpdates.get(itemId)
+      if (!update || update.id !== updateId) return
 
-        // Confirm update
-        confirmUpdate(itemId, optimisticUpdate.id)
-        
-        // Update with server response
-        setData(prevData =>
-          prevData.map(item => item.id === itemId ? updatedItem : item)
-        )
+      // Mark as confirmed
+      setPendingUpdates((prev) => {
+        const newMap = new Map(prev)
+        const confirmedUpdate = { ...update, status: 'confirmed' as const }
+        newMap.set(itemId, confirmedUpdate)
+        return newMap
+      })
 
-        toast.success('Inventory updated successfully')
-      } else {
-        // Offline - queue the operation
-        await offlineQueue.addToQueue({
-          type: 'UPDATE',
-          table: 'inventory',
-          data: { id: itemId, ...updates }
-        })
+      // Clear timeout
+      const timeoutId = rollbackTimeouts.current.get(updateId)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        rollbackTimeouts.current.delete(updateId)
+      }
 
-        // Mark as queued
-        setPendingUpdates(prev => {
+      // Remove from pending after a short delay
+      setTimeout(() => {
+        setPendingUpdates((prev) => {
           const newMap = new Map(prev)
-          const queuedUpdate = { ...optimisticUpdate, status: 'pending' as const }
-          newMap.set(itemId, queuedUpdate)
+          newMap.delete(itemId)
           return newMap
         })
+      }, 1000)
+    },
+    [pendingUpdates]
+  )
 
-        toast.info('Update saved offline. Will sync when connected.')
+  const updateInventory = useCallback(
+    async (itemId: string, updates: InventoryUpdate) => {
+      const connectionStatus = connectionManager.getStatus()
+
+      // Apply optimistic update immediately
+      const optimisticUpdate = applyOptimisticUpdate(itemId, updates)
+
+      try {
+        if (connectionStatus.state === 'connected') {
+          // Online - attempt direct update
+          const { data: updatedItem, error } = await supabase
+            .from('inventory')
+            .update(updates)
+            .eq('id', itemId)
+            .select()
+            .single()
+
+          if (error) throw error
+
+          // Confirm update
+          confirmUpdate(itemId, optimisticUpdate.id)
+
+          // Update with server response
+          setData((prevData) =>
+            prevData.map((item) => (item.id === itemId ? updatedItem : item))
+          )
+
+          toast.success('Inventory updated successfully')
+        } else {
+          // Offline - queue the operation
+          await offlineQueue.addToQueue({
+            type: 'UPDATE',
+            table: 'inventory',
+            data: { id: itemId, ...updates },
+          })
+
+          // Mark as queued
+          setPendingUpdates((prev) => {
+            const newMap = new Map(prev)
+            const queuedUpdate = {
+              ...optimisticUpdate,
+              status: 'pending' as const,
+            }
+            newMap.set(itemId, queuedUpdate)
+            return newMap
+          })
+
+          toast.info('Update saved offline. Will sync when connected.')
+        }
+      } catch (error) {
+        // Rollback on error
+        rollbackUpdate(itemId, optimisticUpdate.id)
+
+        const errorMessage =
+          error instanceof Error ? error.message : 'Update failed'
+        toast.error(errorMessage)
+
+        throw error
       }
-    } catch (error) {
-      // Rollback on error
-      rollbackUpdate(itemId, optimisticUpdate.id)
-      
-      const errorMessage = error instanceof Error ? error.message : 'Update failed'
-      toast.error(errorMessage)
-      
-      throw error
-    }
-  }, [applyOptimisticUpdate, confirmUpdate, rollbackUpdate, supabase, connectionManager, offlineQueue])
+    },
+    [
+      applyOptimisticUpdate,
+      confirmUpdate,
+      rollbackUpdate,
+      supabase,
+      connectionManager,
+      offlineQueue,
+    ]
+  )
 
-  const batchUpdate = useCallback(async (updates: InventoryUpdate[]) => {
-    const updatePromises = updates.map(update => 
-      updateInventory(update.id, update)
-    )
+  const batchUpdate = useCallback(
+    async (updates: InventoryUpdate[]) => {
+      const updatePromises = updates.map((update) =>
+        updateInventory(update.id, update)
+      )
 
-    try {
-      await Promise.all(updatePromises)
-      toast.success(`${updates.length} items updated successfully`)
-    } catch (error) {
-      // Individual errors are already handled
-      console.error('Batch update partially failed:', error)
-    }
-  }, [updateInventory])
+      try {
+        await Promise.all(updatePromises)
+        toast.success(`${updates.length} items updated successfully`)
+      } catch (error) {
+        // Individual errors are already handled
+        console.error('Batch update partially failed:', error)
+      }
+    },
+    [updateInventory]
+  )
 
-  const getItemStatus = useCallback((itemId: string): 'pending' | 'confirmed' | 'synced' => {
-    const update = pendingUpdates.get(itemId)
-    if (!update) return 'synced'
-    return update.status === 'confirmed' ? 'confirmed' : 'pending'
-  }, [pendingUpdates])
+  const getItemStatus = useCallback(
+    (itemId: string): 'pending' | 'confirmed' | 'synced' => {
+      const update = pendingUpdates.get(itemId)
+      if (!update) return 'synced'
+      return update.status === 'confirmed' ? 'confirmed' : 'pending'
+    },
+    [pendingUpdates]
+  )
 
   const hasPendingUpdates = useCallback((): boolean => {
     return pendingUpdates.size > 0
@@ -238,6 +273,6 @@ export function useOptimisticInventory(initialData?: InventoryItem[]) {
     getItemStatus,
     hasPendingUpdates,
     getPendingCount,
-    pendingUpdates: Array.from(pendingUpdates.values())
+    pendingUpdates: Array.from(pendingUpdates.values()),
   }
 }

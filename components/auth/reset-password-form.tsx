@@ -1,15 +1,25 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { resetPasswordSchema, type ResetPasswordFormData } from '@/types/auth.types'
-import { resetPassword } from '@/app/actions/auth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { toast } from 'sonner'
 import { Mail } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { resetPassword } from '@/app/actions/auth'
+import {
+  resetPasswordSchema,
+  type ResetPasswordFormData,
+} from '@/types/auth.types'
 
 export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -90,11 +100,7 @@ export function ResetPasswordForm() {
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? 'Sending reset link...' : 'Send reset link'}
         </Button>
       </form>

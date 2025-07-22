@@ -79,19 +79,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "user_profiles_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: 'user_profiles_organization_id_fkey'
+            columns: ['organization_id']
             isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "user_profiles_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'user_profiles_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
         ]
       }
       products: {
@@ -148,12 +148,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "products_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: 'products_organization_id_fkey'
+            columns: ['organization_id']
             isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
+          },
         ]
       }
       warehouses: {
@@ -195,12 +195,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "warehouses_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: 'warehouses_organization_id_fkey'
+            columns: ['organization_id']
             isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
+          },
         ]
       }
       inventory: {
@@ -248,33 +248,33 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "inventory_last_counted_by_fkey"
-            columns: ["last_counted_by"]
+            foreignKeyName: 'inventory_last_counted_by_fkey'
+            columns: ['last_counted_by']
             isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
+            referencedRelation: 'users'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "inventory_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: 'inventory_organization_id_fkey'
+            columns: ['organization_id']
             isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "inventory_product_id_fkey"
-            columns: ["product_id"]
+            foreignKeyName: 'inventory_product_id_fkey'
+            columns: ['product_id']
             isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            referencedRelation: 'products'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "inventory_warehouse_id_fkey"
-            columns: ["warehouse_id"]
+            foreignKeyName: 'inventory_warehouse_id_fkey'
+            columns: ['warehouse_id']
             isOneToOne: false
-            referencedRelation: "warehouses"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'warehouses'
+            referencedColumns: ['id']
+          },
         ]
       }
     }

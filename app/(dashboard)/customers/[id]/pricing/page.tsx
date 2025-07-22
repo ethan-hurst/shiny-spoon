@@ -1,25 +1,31 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  DollarSign, 
-  FileText, 
-  History, 
-  Clock, 
-  Upload, 
+import {
+  AlertCircle,
+  Clock,
+  DollarSign,
   Download,
+  FileText,
+  History,
   Plus,
-  AlertCircle
+  Upload,
 } from 'lucide-react'
+// Components
+import { CustomerPriceList } from '@/components/features/pricing/customer-price-list'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { createServerClient } from '@/lib/supabase/server'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { CustomerPricingStats } from '@/types/customer-pricing.types'
 
-// Components
-import { CustomerPriceList } from '@/components/features/pricing/customer-price-list'
 // import { BulkPriceUpdate } from '@/components/features/pricing/bulk-price-update'
 // import { PriceExportButton } from '@/components/features/pricing/price-export-button'
 
@@ -29,16 +35,19 @@ interface CustomerPricingPageProps {
   }
 }
 
-export async function generateMetadata({ params }: CustomerPricingPageProps): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: CustomerPricingPageProps): Promise<Metadata> {
   const supabase = createServerClient()
-  
+
   const { data: customer } = await supabase
     .from('customers')
     .select('company_name, display_name')
     .eq('id', params.id)
     .single()
 
-  const customerName = customer?.display_name || customer?.company_name || 'Customer'
+  const customerName =
+    customer?.display_name || customer?.company_name || 'Customer'
 
   return {
     title: `${customerName} - Pricing | TruthSource`,
@@ -52,13 +61,15 @@ async function getCustomerData(customerId: string) {
   // Get customer details
   const { data: customer, error: customerError } = await supabase
     .from('customers')
-    .select(`
+    .select(
+      `
       *,
       customer_tiers (
         name,
         discount_percentage
       )
-    `)
+    `
+    )
     .eq('id', customerId)
     .single()
 
@@ -68,7 +79,7 @@ async function getCustomerData(customerId: string) {
 
   // Get pricing statistics
   const { data: stats } = await supabase.rpc('get_customer_pricing_stats', {
-    p_customer_id: customerId
+    p_customer_id: customerId,
   })
 
   // Get pending approvals count
@@ -91,18 +102,20 @@ async function getCustomerData(customerId: string) {
 
   return {
     customer,
-    stats: stats as CustomerPricingStats || {
+    stats: (stats as CustomerPricingStats) || {
       total_products: 0,
       custom_prices: 0,
       contract_prices: 0,
       average_discount: 0,
       pending_approvals: pendingApprovals || 0,
       expiring_contracts: expiringContracts || 0,
-    }
+    },
   }
 }
 
-export default async function CustomerPricingPage({ params }: CustomerPricingPageProps) {
+export default async function CustomerPricingPage({
+  params,
+}: CustomerPricingPageProps) {
   const data = await getCustomerData(params.id)
 
   if (!data) {
@@ -158,20 +171,29 @@ export default async function CustomerPricingPage({ params }: CustomerPricingPag
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Discount</CardTitle>
-            <Badge variant="secondary">{customer.customer_tiers?.name || 'Standard'}</Badge>
+            <CardTitle className="text-sm font-medium">
+              Average Discount
+            </CardTitle>
+            <Badge variant="secondary">
+              {customer.customer_tiers?.name || 'Standard'}
+            </Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercent(stats.average_discount)}</div>
+            <div className="text-2xl font-bold">
+              {formatPercent(stats.average_discount)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Tier discount: {formatPercent(customer.customer_tiers?.discount_percentage || 0)}
+              Tier discount:{' '}
+              {formatPercent(customer.customer_tiers?.discount_percentage || 0)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contract Prices</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Contract Prices
+            </CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -187,14 +209,14 @@ export default async function CustomerPricingPage({ params }: CustomerPricingPag
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Approvals
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pending_approvals}</div>
-            <p className="text-xs text-muted-foreground">
-              Awaiting review
-            </p>
+            <p className="text-xs text-muted-foreground">Awaiting review</p>
           </CardContent>
         </Card>
       </div>
@@ -208,8 +230,8 @@ export default async function CustomerPricingPage({ params }: CustomerPricingPag
           <TabsTrigger value="approvals" className="relative">
             Approvals
             {stats.pending_approvals > 0 && (
-              <Badge 
-                variant="destructive" 
+              <Badge
+                variant="destructive"
                 className="ml-2 h-5 w-5 rounded-full p-0 text-xs"
               >
                 {stats.pending_approvals}

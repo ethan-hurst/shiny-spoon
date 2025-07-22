@@ -1,11 +1,11 @@
 'use client'
 
+import Link from 'next/link'
+import { AlertCircle, ArrowRight } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import Link from 'next/link'
 
 interface MarginAlert {
   id: string

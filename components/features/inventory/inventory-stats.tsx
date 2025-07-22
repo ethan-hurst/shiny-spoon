@@ -1,14 +1,9 @@
 'use client'
 
+import { AlertTriangle, DollarSign, Package, TrendingDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  Package, 
-  AlertTriangle, 
-  TrendingDown, 
-  DollarSign 
-} from 'lucide-react'
-import type { InventoryStats as IInventoryStats } from '@/types/inventory.types'
 import { cn } from '@/lib/utils'
+import type { InventoryStats as IInventoryStats } from '@/types/inventory.types'
 
 interface InventoryStatsProps {
   stats: IInventoryStats
@@ -62,7 +57,7 @@ export function InventoryStats({ stats }: InventoryStatsProps) {
       {cards.map((card) => {
         const Icon = card.icon
         return (
-          <Card 
+          <Card
             key={card.title}
             className={cn(
               'relative overflow-hidden',
@@ -73,10 +68,7 @@ export function InventoryStats({ stats }: InventoryStatsProps) {
               <CardTitle className="text-sm font-medium">
                 {card.title}
               </CardTitle>
-              <div className={cn(
-                'rounded-lg p-2',
-                card.bgColor
-              )}>
+              <div className={cn('rounded-lg p-2', card.bgColor)}>
                 <Icon className={cn('h-4 w-4', card.iconColor)} />
               </div>
             </CardHeader>

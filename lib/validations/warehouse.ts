@@ -17,19 +17,25 @@ export const contactSchema = z.object({
 })
 
 export const warehouseSchema = z.object({
-  name: z.string()
+  name: z
+    .string()
     .min(1, 'Warehouse name is required')
     .max(100, 'Name must be less than 100 characters'),
-  code: z.string()
+  code: z
+    .string()
     .min(2, 'Code must be at least 2 characters')
     .max(20, 'Code must be less than 20 characters')
-    .regex(/^[A-Z0-9-]+$/, 'Code must be uppercase letters, numbers, and hyphens only')
-    .transform(val => val.toUpperCase()),
+    .regex(
+      /^[A-Z0-9-]+$/,
+      'Code must be uppercase letters, numbers, and hyphens only'
+    )
+    .transform((val) => val.toUpperCase()),
   address: addressSchema,
-  contacts: z.array(contactSchema)
+  contacts: z
+    .array(contactSchema)
     .min(1, 'At least one contact is required')
     .refine(
-      (contacts) => contacts.filter(c => c.isPrimary).length === 1,
+      (contacts) => contacts.filter((c) => c.isPrimary).length === 1,
       'Exactly one contact must be marked as primary'
     ),
   is_default: z.boolean().default(false),

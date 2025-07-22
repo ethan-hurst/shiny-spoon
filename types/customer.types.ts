@@ -36,10 +36,14 @@ export const contactSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   mobile: z.string().optional(),
-  role: z.enum(['primary', 'billing', 'shipping', 'contact']).default('contact'),
+  role: z
+    .enum(['primary', 'billing', 'shipping', 'contact'])
+    .default('contact'),
   is_primary: z.boolean().default(false),
   portal_access: z.boolean().default(false),
-  preferred_contact_method: z.enum(['email', 'phone', 'mobile']).default('email'),
+  preferred_contact_method: z
+    .enum(['email', 'phone', 'mobile'])
+    .default('email'),
   receives_order_updates: z.boolean().default(true),
   receives_marketing: z.boolean().default(false),
   notes: z.string().optional(),
@@ -50,7 +54,10 @@ export const customerTierSchema = z.object({
   name: z.string().min(1, 'Tier name is required'),
   level: z.number().min(1).max(10),
   discount_percentage: z.number().min(0).max(100).default(0),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format').default('#808080'),
+  color: z
+    .string()
+    .regex(/^#[0-9A-F]{6}$/i, 'Invalid color format')
+    .default('#808080'),
   benefits: z.record(z.any()).optional(),
   requirements: z.record(z.any()).optional(),
 })
@@ -89,7 +96,19 @@ export interface CustomerActivity {
   id: string
   customer_id: string
   organization_id: string
-  type: 'order' | 'payment' | 'contact' | 'note' | 'email' | 'phone' | 'meeting' | 'tier_change' | 'status_change' | 'contact_added' | 'contact_removed' | 'settings_update'
+  type:
+    | 'order'
+    | 'payment'
+    | 'contact'
+    | 'note'
+    | 'email'
+    | 'phone'
+    | 'meeting'
+    | 'tier_change'
+    | 'status_change'
+    | 'contact_added'
+    | 'contact_removed'
+    | 'settings_update'
   title: string
   description?: string
   metadata?: Record<string, any>
@@ -166,31 +185,38 @@ export interface CustomerImportData {
 }
 
 // Utility functions
-export function formatCustomerName(customer: CustomerRecord | CustomerWithTier): string {
+export function formatCustomerName(
+  customer: CustomerRecord | CustomerWithTier
+): string {
   return customer.display_name || customer.company_name
 }
 
-export function getCustomerInitials(customer: CustomerRecord | CustomerWithTier): string {
+export function getCustomerInitials(
+  customer: CustomerRecord | CustomerWithTier
+): string {
   const name = formatCustomerName(customer)
-  
+
   if (!name || name.trim().length === 0) {
     return ''
   }
-  
-  const words = name.trim().split(' ').filter(word => word.length > 0)
-  
+
+  const words = name
+    .trim()
+    .split(' ')
+    .filter((word) => word.length > 0)
+
   if (words.length === 0) {
     return ''
   }
-  
+
   if (words.length === 1) {
     // Single word - take first two characters or just first if only one character
     return words[0].slice(0, 2).toUpperCase()
   }
-  
+
   // Multiple words - take first character of each word, up to 2 characters
   return words
-    .map(word => word[0])
+    .map((word) => word[0])
     .join('')
     .toUpperCase()
     .slice(0, 2)
@@ -209,9 +235,9 @@ export function formatAddress(address: Address): string {
     address.line1,
     address.line2,
     `${address.city}, ${address.state} ${address.postal_code}`,
-    address.country
+    address.country,
   ].filter(Boolean)
-  
+
   return parts.join('\n')
 }
 

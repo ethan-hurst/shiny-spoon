@@ -1,11 +1,38 @@
 'use client'
 
 import { useState } from 'react'
-import { ContactRecord, formatContactName } from '@/types/customer.types'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { useRouter } from 'next/navigation'
+import {
+  Bell,
+  BellOff,
+  Edit,
+  Mail,
+  MoreHorizontal,
+  Phone,
+  Plus,
+  Shield,
+  Smartphone,
+  Star,
+  Trash2,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { ContactDialog } from '@/components/features/customers/contact-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Table,
   TableBody,
@@ -14,39 +41,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { ContactDialog } from '@/components/features/customers/contact-dialog'
 import { deleteContact } from '@/app/actions/customers'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Edit, 
-  Trash2, 
-  Mail, 
-  Phone,
-  Smartphone,
-  Star,
-  Shield,
-  Bell,
-  BellOff
-} from 'lucide-react'
+import { ContactRecord, formatContactName } from '@/types/customer.types'
 
 interface CustomerContactsProps {
   customerId: string
   contacts: ContactRecord[]
 }
 
-export function CustomerContacts({ customerId, contacts }: CustomerContactsProps) {
+export function CustomerContacts({
+  customerId,
+  contacts,
+}: CustomerContactsProps) {
   const router = useRouter()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingContact, setEditingContact] = useState<ContactRecord | null>(null)
+  const [editingContact, setEditingContact] = useState<ContactRecord | null>(
+    null
+  )
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleEdit = (contact: ContactRecord) => {
@@ -85,14 +96,10 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
       primary: 'default',
       billing: 'secondary',
       shipping: 'secondary',
-      contact: 'outline'
+      contact: 'outline',
     }
-    
-    return (
-      <Badge variant={variants[role] || 'outline'}>
-        {role}
-      </Badge>
-    )
+
+    return <Badge variant={variants[role] || 'outline'}>{role}</Badge>
   }
 
   if (contacts.length === 0) {
@@ -100,9 +107,7 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
       <Card>
         <CardHeader>
           <CardTitle>Contacts</CardTitle>
-          <CardDescription>
-            No contacts have been added yet
-          </CardDescription>
+          <CardDescription>No contacts have been added yet</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-6">
@@ -155,10 +160,11 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
-                          {contact.first_name?.[0] && contact.last_name?.[0] 
+                          {contact.first_name?.[0] && contact.last_name?.[0]
                             ? `${contact.first_name[0]}${contact.last_name[0]}`
-                            : contact.first_name?.[0] || contact.last_name?.[0] || '?'
-                          }
+                            : contact.first_name?.[0] ||
+                              contact.last_name?.[0] ||
+                              '?'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -169,13 +175,15 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
                           )}
                         </div>
                         {contact.notes && (
-                          <p className="text-sm text-muted-foreground">{contact.notes}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {contact.notes}
+                          </p>
                         )}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <a 
+                    <a
                       href={`mailto:${contact.email}`}
                       className="flex items-center gap-1 text-sm hover:underline"
                     >
@@ -186,7 +194,7 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
                   <TableCell>
                     <div className="space-y-1">
                       {contact.phone && (
-                        <a 
+                        <a
                           href={`tel:${contact.phone}`}
                           className="flex items-center gap-1 text-sm hover:underline"
                         >
@@ -195,7 +203,7 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
                         </a>
                       )}
                       {contact.mobile && (
-                        <a 
+                        <a
                           href={`tel:${contact.mobile}`}
                           className="flex items-center gap-1 text-sm hover:underline"
                         >
@@ -224,8 +232,8 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           className="h-8 w-8 p-0"
                           disabled={deletingId === contact.id}
                         >
@@ -238,7 +246,7 @@ export function CustomerContacts({ customerId, contacts }: CustomerContactsProps
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => handleDelete(contact.id)}
                         >

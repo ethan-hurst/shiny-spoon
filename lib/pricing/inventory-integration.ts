@@ -16,29 +16,29 @@ export async function getProductInventory(
   warehouseId?: string
 ): Promise<InventoryData | null> {
   const supabase = createClient()
-  
+
   try {
     let query = supabase
       .from('inventory')
       .select('quantity, reserved_quantity, warehouse_id')
       .eq('product_id', productId)
       .eq('organization_id', organizationId)
-    
+
     if (warehouseId) {
       query = query.eq('warehouse_id', warehouseId)
     }
-    
+
     const { data, error } = await query
-    
+
     if (error) {
       console.error('Failed to fetch inventory:', error)
       return null
     }
-    
+
     if (!data || data.length === 0) {
       return null
     }
-    
+
     // Aggregate inventory across warehouses
     const aggregated = data.reduce(
       (acc, item) => {
@@ -48,12 +48,13 @@ export async function getProductInventory(
       },
       { totalQuantity: 0, reservedQuantity: 0 }
     )
-    
+
     return {
       totalQuantity: aggregated.totalQuantity,
       availableQuantity: aggregated.totalQuantity - aggregated.reservedQuantity,
       reservedQuantity: aggregated.reservedQuantity,
-      warehouseId: warehouseId || (data.length === 1 ? data[0].warehouse_id : undefined),
+      warehouseId:
+        warehouseId || (data.length === 1 ? data[0].warehouse_id : undefined),
     }
   } catch (error) {
     console.error('Inventory fetch error:', error)
@@ -64,7 +65,10 @@ export async function getProductInventory(
 /**
  * Get inventory data with caching
  */
-const inventoryCache = new Map<string, { data: InventoryData; expires: number }>()
+const inventoryCache = new Map<
+  string,
+  { data: InventoryData; expires: number }
+>()
 const INVENTORY_CACHE_TTL = 60000 // 1 minute
 
 export async function getCachedInventory(
@@ -73,23 +77,23 @@ export async function getCachedInventory(
   warehouseId?: string
 ): Promise<InventoryData | null> {
   const cacheKey = `${productId}:${organizationId}:${warehouseId || 'all'}`
-  
+
   // Check cache
   const cached = inventoryCache.get(cacheKey)
   if (cached && cached.expires > Date.now()) {
     return cached.data
   }
-  
+
   // Fetch fresh data
   const data = await getProductInventory(productId, organizationId, warehouseId)
-  
+
   if (data) {
     inventoryCache.set(cacheKey, {
       data,
       expires: Date.now() + INVENTORY_CACHE_TTL,
     })
   }
-  
+
   return data
 }
 
@@ -127,13 +131,14 @@ export function calculateInventoryBasedPrice(
     lowLevelMultiplier = 1.1, // 10% increase
     excessLevelDiscount = 10, // 10% discount
   } = rules
-  
+
   if (inventoryData.totalQuantity <= 0) {
     return basePrice // No valid inventory data
   }
-  
-  const inventoryPercent = (inventoryData.availableQuantity / inventoryData.totalQuantity) * 100
-  
+
+  const inventoryPercent =
+    (inventoryData.availableQuantity / inventoryData.totalQuantity) * 100
+
   if (inventoryPercent < 10) {
     // Critical level
     return basePrice * criticalLevelMultiplier
@@ -144,7 +149,7 @@ export function calculateInventoryBasedPrice(
     // Excess level
     return basePrice * (1 - excessLevelDiscount / 100)
   }
-  
+
   return basePrice
 }
 
@@ -158,23 +163,26 @@ export function isQuantityAvailable(
   if (!inventoryData) {
     return false // Conservative approach - treat missing data as unavailable
   }
-  
+
   return requestedQuantity <= inventoryData.availableQuantity
 }
 
 /**
  * Get inventory-based pricing rule conditions
  */
-export function getInventoryConditions(inventoryData: InventoryData): Record<string, any> {
+export function getInventoryConditions(
+  inventoryData: InventoryData
+): Record<string, any> {
   if (inventoryData.totalQuantity <= 0) {
     return {
       inventory_level: 'unknown',
-      inventory_percent: 0
+      inventory_percent: 0,
     }
   }
-  
-  const inventoryPercent = (inventoryData.availableQuantity / inventoryData.totalQuantity) * 100
-  
+
+  const inventoryPercent =
+    (inventoryData.availableQuantity / inventoryData.totalQuantity) * 100
+
   let level: string
   if (inventoryPercent < 10) {
     level = 'critical'
@@ -187,7 +195,7 @@ export function getInventoryConditions(inventoryData: InventoryData): Record<str
   } else {
     level = 'excess'
   }
-  
+
   return {
     inventory_level: level,
     available_quantity: inventoryData.availableQuantity,

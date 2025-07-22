@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
+import { Plus, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -9,9 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Plus, X } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface CategorySelectProps {
   value?: string
@@ -19,7 +19,11 @@ interface CategorySelectProps {
   disabled?: boolean
 }
 
-export function CategorySelect({ value, onChange, disabled }: CategorySelectProps) {
+export function CategorySelect({
+  value,
+  onChange,
+  disabled,
+}: CategorySelectProps) {
   const [categories, setCategories] = useState<string[]>([])
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [newCategory, setNewCategory] = useState('')
@@ -58,7 +62,9 @@ export function CategorySelect({ value, onChange, disabled }: CategorySelectProp
       }
 
       if (products) {
-        const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))] as string[]
+        const uniqueCategories = [
+          ...new Set(products.map((p) => p.category).filter(Boolean)),
+        ] as string[]
         setCategories(uniqueCategories.sort())
       }
     } catch (error) {
@@ -70,17 +76,21 @@ export function CategorySelect({ value, onChange, disabled }: CategorySelectProp
 
   const handleAddNew = () => {
     const trimmedCategory = newCategory.trim()
-    
+
     // Validate input
     if (!trimmedCategory) {
       return // Don't add empty categories
     }
-    
+
     // Check if category already exists (case-insensitive)
-    if (categories.some(cat => cat.toLowerCase() === trimmedCategory.toLowerCase())) {
+    if (
+      categories.some(
+        (cat) => cat.toLowerCase() === trimmedCategory.toLowerCase()
+      )
+    ) {
       return // Don't add duplicate categories
     }
-    
+
     // Add the new category
     onChange(trimmedCategory)
     setCategories([...categories, trimmedCategory].sort())

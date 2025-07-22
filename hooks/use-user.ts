@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createBrowserClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
+import { createBrowserClient } from '@/lib/supabase/client'
 
 interface UserProfile extends User {
   full_name?: string
@@ -18,8 +18,11 @@ export function useUser() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-        
+        const {
+          data: { user: authUser },
+          error: authError,
+        } = await supabase.auth.getUser()
+
         if (authError || !authUser) {
           setUser(null)
           return
@@ -37,7 +40,7 @@ export function useUser() {
             ...authUser,
             full_name: profile.full_name,
             avatar_url: profile.avatar_url,
-            organization_id: profile.organization_id
+            organization_id: profile.organization_id,
           })
         } else {
           setUser(authUser)
@@ -53,7 +56,9 @@ export function useUser() {
     fetchUser()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const { data: profile } = await supabase
           .from('user_profiles')
@@ -65,7 +70,7 @@ export function useUser() {
           ...session.user,
           full_name: profile?.full_name,
           avatar_url: profile?.avatar_url,
-          organization_id: profile?.organization_id
+          organization_id: profile?.organization_id,
         })
       } else if (event === 'SIGNED_OUT') {
         setUser(null)

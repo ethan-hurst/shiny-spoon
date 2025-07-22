@@ -7,10 +7,10 @@ const createJestConfig = nextJest({ dir: './' })
 const customJestConfig = {
   // Test environment
   testEnvironment: 'jest-environment-jsdom',
-  
+
   // Setup files after environment
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  
+
   // Module paths
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
@@ -20,7 +20,7 @@ const customJestConfig = {
     '^@/types/(.*)$': '<rootDir>/types/$1',
     '^@/utils/(.*)$': '<rootDir>/utils/$1',
   },
-  
+
   // Coverage configuration
   collectCoverageFrom: [
     'app/**/*.{js,jsx,ts,tsx}',
@@ -35,19 +35,19 @@ const customJestConfig = {
     '!**/*.config.js',
     '!**/middleware.ts',
   ],
-  
+
   // Test patterns
   testMatch: [
     '**/__tests__/**/*.{js,jsx,ts,tsx}',
     '**/?(*.)+(spec|test).{js,jsx,ts,tsx}',
   ],
-  
+
   // Transform ignore patterns
   transformIgnorePatterns: [
     '/node_modules/',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
-  
+
   // Verbose output
   verbose: true,
 }

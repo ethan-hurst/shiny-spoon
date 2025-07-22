@@ -1,21 +1,29 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ColumnDef,
   ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  SortingState,
   useReactTable,
+  VisibilityState,
 } from '@tanstack/react-table'
-import { Product } from '@/types/product.types'
+import { Filter, Search } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -24,16 +32,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
+import { Product } from '@/types/product.types'
 import { ProductActions } from './product-actions'
-import { Search, Filter } from 'lucide-react'
 
 interface ProductWithStats extends Product {
   inventory_count: number
@@ -96,12 +96,12 @@ export function ProductsTable({ initialData, categories }: ProductsTableProps) {
         cell: ({ row }) => {
           const priceValue = row.getValue('base_price')
           const price = parseFloat(priceValue as string)
-          
+
           // Validate if price is a valid number
           if (isNaN(price) || priceValue === null || priceValue === undefined) {
             return <div className="text-muted-foreground">—</div>
           }
-          
+
           const formatted = new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'USD',
@@ -116,7 +116,7 @@ export function ProductsTable({ initialData, categories }: ProductsTableProps) {
           const quantity = row.original.total_quantity
           const available = row.original.available_quantity
           const lowStock = row.original.low_stock
-          
+
           return (
             <div className="space-y-1">
               <div className={lowStock ? 'text-destructive font-medium' : ''}>
@@ -169,8 +169,12 @@ export function ProductsTable({ initialData, categories }: ProductsTableProps) {
       const sku = row.original.sku?.toLowerCase() || ''
       const name = row.original.name?.toLowerCase() || ''
       const description = row.original.description?.toLowerCase() || ''
-      
-      return sku.includes(search) || name.includes(search) || description.includes(search)
+
+      return (
+        sku.includes(search) ||
+        name.includes(search) ||
+        description.includes(search)
+      )
     },
     state: {
       sorting,
@@ -194,13 +198,18 @@ export function ProductsTable({ initialData, categories }: ProductsTableProps) {
           />
         </div>
         <Select
-          value={(columnFilters.find(f => f.id === 'category')?.value as string) || 'all'}
+          value={
+            (columnFilters.find((f) => f.id === 'category')?.value as string) ||
+            'all'
+          }
           onValueChange={(value) => {
             if (value === 'all') {
-              setColumnFilters(filters => filters.filter(f => f.id !== 'category'))
+              setColumnFilters((filters) =>
+                filters.filter((f) => f.id !== 'category')
+              )
             } else {
-              setColumnFilters(filters => {
-                const newFilters = filters.filter(f => f.id !== 'category')
+              setColumnFilters((filters) => {
+                const newFilters = filters.filter((f) => f.id !== 'category')
                 return [...newFilters, { id: 'category', value }]
               })
             }
@@ -219,14 +228,22 @@ export function ProductsTable({ initialData, categories }: ProductsTableProps) {
           </SelectContent>
         </Select>
         <Select
-          value={(columnFilters.find(f => f.id === 'active')?.value as string) || 'all'}
+          value={
+            (columnFilters.find((f) => f.id === 'active')?.value as string) ||
+            'all'
+          }
           onValueChange={(value) => {
             if (value === 'all') {
-              setColumnFilters(filters => filters.filter(f => f.id !== 'active'))
+              setColumnFilters((filters) =>
+                filters.filter((f) => f.id !== 'active')
+              )
             } else {
-              setColumnFilters(filters => {
-                const newFilters = filters.filter(f => f.id !== 'active')
-                return [...newFilters, { id: 'active', value: value === 'true' }]
+              setColumnFilters((filters) => {
+                const newFilters = filters.filter((f) => f.id !== 'active')
+                return [
+                  ...newFilters,
+                  { id: 'active', value: value === 'true' },
+                ]
               })
             }
           }}
@@ -267,7 +284,7 @@ export function ProductsTable({ initialData, categories }: ProductsTableProps) {
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
+                  data-state={row.getIsSelected() && 'selected'}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -295,8 +312,7 @@ export function ProductsTable({ initialData, categories }: ProductsTableProps) {
 
       <div className="flex items-center justify-end space-x-2">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} of{" "}
-          {data.length} product(s)
+          {table.getFilteredRowModel().rows.length} of {data.length} product(s)
         </div>
         <div className="space-x-2">
           <Button

@@ -1,9 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  AlertCircle,
+  Calculator,
+  DollarSign,
+  History,
+  Percent,
+  TrendingDown,
+} from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -22,43 +34,46 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { 
-  AlertCircle, 
-  Calculator, 
-  DollarSign,
-  Percent,
-  TrendingDown,
-  History
-} from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
 import { formatCurrency, formatPercent } from '@/lib/utils'
-import { calculateDiscount, calculateMargin, validatePriceChange } from '@/types/customer-pricing.types'
-import { toast } from 'sonner'
+import {
+  calculateDiscount,
+  calculateMargin,
+  validatePriceChange,
+} from '@/types/customer-pricing.types'
 
-const priceEditSchema = z.object({
-  priceType: z.enum(['fixed', 'discount']),
-  fixedPrice: z.number().min(0).optional(),
-  discountPercent: z.number().min(0).max(100).optional(),
-  reason: z.string().min(1, 'Please provide a reason for the price change'),
-  effectiveDate: z.string().optional(),
-  expiryDate: z.string().optional(),
-}).refine((data) => {
-  if (data.priceType === 'fixed' && (data.fixedPrice === undefined || data.fixedPrice === null)) {
-    return false
-  }
-  if (data.priceType === 'discount' && (data.discountPercent === undefined || data.discountPercent === null)) {
-    return false
-  }
-  return true
-}, {
-  message: 'Please enter a price or discount value',
-  path: ['fixedPrice']
-})
+const priceEditSchema = z
+  .object({
+    priceType: z.enum(['fixed', 'discount']),
+    fixedPrice: z.number().min(0).optional(),
+    discountPercent: z.number().min(0).max(100).optional(),
+    reason: z.string().min(1, 'Please provide a reason for the price change'),
+    effectiveDate: z.string().optional(),
+    expiryDate: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (
+        data.priceType === 'fixed' &&
+        (data.fixedPrice === undefined || data.fixedPrice === null)
+      ) {
+        return false
+      }
+      if (
+        data.priceType === 'discount' &&
+        (data.discountPercent === undefined || data.discountPercent === null)
+      ) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Please enter a price or discount value',
+      path: ['fixedPrice'],
+    }
+  )
 
 interface PriceEditDialogProps {
   open: boolean
@@ -81,7 +96,7 @@ export function PriceEditDialog({
   onOpenChange,
   product,
   customerId,
-  onSave
+  onSave,
 }: PriceEditDialogProps) {
   const [loading, setLoading] = useState(false)
   const [requiresApproval, setRequiresApproval] = useState(false)
@@ -95,7 +110,7 @@ export function PriceEditDialog({
       discountPercent: product.currentDiscount || 0,
       reason: '',
       effectiveDate: new Date().toISOString().split('T')[0],
-    }
+    },
   })
 
   const watchPriceType = form.watch('priceType')
@@ -103,10 +118,11 @@ export function PriceEditDialog({
   const watchDiscountPercent = form.watch('discountPercent')
 
   // Calculate metrics
-  const currentPrice = watchPriceType === 'fixed' 
-    ? watchFixedPrice || 0
-    : product.basePrice * (1 - (watchDiscountPercent || 0) / 100)
-  
+  const currentPrice =
+    watchPriceType === 'fixed'
+      ? watchFixedPrice || 0
+      : product.basePrice * (1 - (watchDiscountPercent || 0) / 100)
+
   const discount = calculateDiscount(product.basePrice, currentPrice)
   const margin = calculateMargin(currentPrice, product.cost)
 
@@ -139,15 +155,15 @@ export function PriceEditDialog({
         requiresApproval,
         calculatedPrice: currentPrice,
         discount,
-        margin
+        margin,
       })
-      
+
       if (requiresApproval) {
         toast.info('Price change submitted for approval')
       } else {
         toast.success('Price updated successfully')
       }
-      
+
       onOpenChange(false)
     } catch (error) {
       toast.error('Failed to update price')
@@ -172,7 +188,9 @@ export function PriceEditDialog({
             <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
               <div>
                 <p className="text-sm text-muted-foreground">Base Price</p>
-                <p className="font-semibold">{formatCurrency(product.basePrice)}</p>
+                <p className="font-semibold">
+                  {formatCurrency(product.basePrice)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Cost</p>
@@ -244,7 +262,9 @@ export function PriceEditDialog({
                           placeholder="0.00"
                           className="pl-9"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value))
+                          }
                         />
                       </div>
                     </FormControl>
@@ -270,7 +290,9 @@ export function PriceEditDialog({
                           placeholder="0"
                           className="pr-9"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value))
+                          }
                         />
                         <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       </div>
@@ -291,21 +313,27 @@ export function PriceEditDialog({
                   <Calculator className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">New Price</p>
                 </div>
-                <p className="text-lg font-semibold">{formatCurrency(currentPrice)}</p>
+                <p className="text-lg font-semibold">
+                  {formatCurrency(currentPrice)}
+                </p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <TrendingDown className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">Discount</p>
                 </div>
-                <p className="text-lg font-semibold">{formatPercent(discount)}</p>
+                <p className="text-lg font-semibold">
+                  {formatPercent(discount)}
+                </p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Percent className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">Margin</p>
                 </div>
-                <p className={`text-lg font-semibold ${margin < 15 ? 'text-destructive' : ''}`}>
+                <p
+                  className={`text-lg font-semibold ${margin < 15 ? 'text-destructive' : ''}`}
+                >
                   {formatPercent(margin)}
                 </p>
               </div>
@@ -317,7 +345,8 @@ export function PriceEditDialog({
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Approval Required</AlertTitle>
                 <AlertDescription>
-                  {approvalReason}. This price change will need to be approved before taking effect.
+                  {approvalReason}. This price change will need to be approved
+                  before taking effect.
                 </AlertDescription>
               </Alert>
             )}
@@ -337,7 +366,8 @@ export function PriceEditDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    This will be included in the approval request and audit trail
+                    This will be included in the approval request and audit
+                    trail
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -372,9 +402,7 @@ export function PriceEditDialog({
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>
-                    <FormDescription>
-                      Leave blank for no expiry
-                    </FormDescription>
+                    <FormDescription>Leave blank for no expiry</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -391,7 +419,11 @@ export function PriceEditDialog({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Saving...' : requiresApproval ? 'Submit for Approval' : 'Save Price'}
+                {loading
+                  ? 'Saving...'
+                  : requiresApproval
+                    ? 'Submit for Approval'
+                    : 'Save Price'}
               </Button>
             </DialogFooter>
           </form>

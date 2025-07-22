@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { CustomerForm } from '@/components/features/customers/customer-form'
+import { createClient } from '@/lib/supabase/server'
 
 interface PageProps {
   params: {
@@ -10,9 +10,11 @@ interface PageProps {
 
 export default async function EditCustomerPage({ params }: PageProps) {
   const supabase = createClient()
-  
+
   // Get user's organization
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -56,11 +58,7 @@ export default async function EditCustomerPage({ params }: PageProps) {
           </p>
         </div>
 
-        <CustomerForm 
-          customer={customer}
-          tiers={tiers || []}
-          mode="edit"
-        />
+        <CustomerForm customer={customer} tiers={tiers || []} mode="edit" />
       </div>
     </div>
   )

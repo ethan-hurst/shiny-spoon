@@ -1,9 +1,10 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useTransition } from 'react'
-import { Input } from '@/components/ui/input'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -11,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, X } from 'lucide-react'
 
 interface CustomerFiltersProps {
   tiers: Array<{
@@ -27,7 +27,10 @@ interface CustomerFiltersProps {
   }
 }
 
-export function CustomerFilters({ tiers, defaultValues }: CustomerFiltersProps) {
+export function CustomerFilters({
+  tiers,
+  defaultValues,
+}: CustomerFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -35,7 +38,7 @@ export function CustomerFilters({ tiers, defaultValues }: CustomerFiltersProps) 
   const createQueryString = useCallback(
     (params: Record<string, string | null>) => {
       const newSearchParams = new URLSearchParams(searchParams.toString())
-      
+
       Object.entries(params).forEach(([key, value]) => {
         if (value === null || value === '') {
           newSearchParams.delete(key)
@@ -43,12 +46,12 @@ export function CustomerFilters({ tiers, defaultValues }: CustomerFiltersProps) 
           newSearchParams.set(key, value)
         }
       })
-      
+
       // Reset to page 1 when filters change
       if (Object.keys(params).length > 0) {
         newSearchParams.delete('page')
       }
-      
+
       return newSearchParams.toString()
     },
     [searchParams]
@@ -74,8 +77,11 @@ export function CustomerFilters({ tiers, defaultValues }: CustomerFiltersProps) 
     })
   }
 
-  const hasActiveFilters = defaultValues?.search || defaultValues?.status || 
-    defaultValues?.tier_id || defaultValues?.customer_type
+  const hasActiveFilters =
+    defaultValues?.search ||
+    defaultValues?.status ||
+    defaultValues?.tier_id ||
+    defaultValues?.customer_type
 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -122,8 +128,8 @@ export function CustomerFilters({ tiers, defaultValues }: CustomerFiltersProps) 
           {tiers.map((tier) => (
             <SelectItem key={tier.id} value={tier.id}>
               <div className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
+                <div
+                  className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: tier.color }}
                 />
                 {tier.name}

@@ -1,4 +1,3 @@
-
 const logos = [
   {
     name: 'Prime',

@@ -2,7 +2,11 @@
  * Shared types for real-time features
  */
 
-export type ConnectionState = 'connected' | 'connecting' | 'disconnected' | 'error'
+export type ConnectionState =
+  | 'connected'
+  | 'connecting'
+  | 'disconnected'
+  | 'error'
 
 export type ConnectionQuality = 'excellent' | 'good' | 'fair' | 'poor'
 

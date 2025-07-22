@@ -1,11 +1,17 @@
 'use client'
 
-import { CustomerActivity, getActivityTypeIcon } from '@/types/customer.types'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Clock, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Clock, FileText } from 'lucide-react'
+import { CustomerActivity, getActivityTypeIcon } from '@/types/customer.types'
 
 // Helper function to format distance to now
 function formatDistanceToNow(date: Date): string {
@@ -15,7 +21,7 @@ function formatDistanceToNow(date: Date): string {
   const diffMins = Math.floor(diffSecs / 60)
   const diffHours = Math.floor(diffMins / 60)
   const diffDays = Math.floor(diffHours / 24)
-  
+
   if (diffDays > 0) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
   if (diffHours > 0) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
   if (diffMins > 0) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`
@@ -27,7 +33,10 @@ interface CustomerActivityTimelineProps {
   activities: CustomerActivity[]
 }
 
-export function CustomerActivityTimeline({ customerId, activities }: CustomerActivityTimelineProps) {
+export function CustomerActivityTimeline({
+  customerId,
+  activities,
+}: CustomerActivityTimelineProps) {
   const getActivityColor = (type: CustomerActivity['type']) => {
     const colors: Record<CustomerActivity['type'], string> = {
       order: 'text-blue-600 bg-blue-50',
@@ -51,9 +60,7 @@ export function CustomerActivityTimeline({ customerId, activities }: CustomerAct
       <Card>
         <CardHeader>
           <CardTitle>Activity Timeline</CardTitle>
-          <CardDescription>
-            No activities recorded yet
-          </CardDescription>
+          <CardDescription>No activities recorded yet</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
@@ -92,13 +99,17 @@ export function CustomerActivityTimeline({ customerId, activities }: CustomerAct
                 {index < activities.length - 1 && (
                   <div className="absolute left-5 top-10 bottom-0 w-px bg-border" />
                 )}
-                
+
                 <div className="flex gap-4">
                   {/* Icon */}
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${getActivityColor(activity.type)}`}>
-                    <span className="text-xl">{getActivityTypeIcon(activity.type)}</span>
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${getActivityColor(activity.type)}`}
+                  >
+                    <span className="text-xl">
+                      {getActivityTypeIcon(activity.type)}
+                    </span>
                   </div>
-                  
+
                   {/* Content */}
                   <div className="flex-1 space-y-1">
                     <div className="flex items-start justify-between gap-2">
@@ -114,39 +125,46 @@ export function CustomerActivityTimeline({ customerId, activities }: CustomerAct
                         {activity.type.replace('_', ' ')}
                       </Badge>
                     </div>
-                    
+
                     {/* Metadata */}
-                    {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-                      <div className="mt-2 rounded bg-muted p-3">
-                        <dl className="space-y-1 text-sm">
-                          {Object.entries(activity.metadata).map(([key, value]) => (
-                            <div key={key} className="flex gap-2">
-                              <dt className="font-medium capitalize">
-                                {key.replace('_', ' ')}:
-                              </dt>
-                              <dd className="text-muted-foreground">
-                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                              </dd>
-                            </div>
-                          ))}
-                        </dl>
-                      </div>
-                    )}
-                    
+                    {activity.metadata &&
+                      Object.keys(activity.metadata).length > 0 && (
+                        <div className="mt-2 rounded bg-muted p-3">
+                          <dl className="space-y-1 text-sm">
+                            {Object.entries(activity.metadata).map(
+                              ([key, value]) => (
+                                <div key={key} className="flex gap-2">
+                                  <dt className="font-medium capitalize">
+                                    {key.replace('_', ' ')}:
+                                  </dt>
+                                  <dd className="text-muted-foreground">
+                                    {typeof value === 'object'
+                                      ? JSON.stringify(value)
+                                      : String(value)}
+                                  </dd>
+                                </div>
+                              )
+                            )}
+                          </dl>
+                        </div>
+                      )}
+
                     {/* Related link */}
                     {activity.related_type && activity.related_id && (
-                      <Button 
-                        variant="link" 
-                        size="sm" 
+                      <Button
+                        variant="link"
+                        size="sm"
                         className="h-auto p-0 text-xs"
                         asChild
                       >
-                        <a href={`/${activity.related_type}s/${activity.related_id}`}>
+                        <a
+                          href={`/${activity.related_type}s/${activity.related_id}`}
+                        >
                           View {activity.related_type} →
                         </a>
                       </Button>
                     )}
-                    
+
                     {/* Timestamp */}
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="h-3 w-3" />

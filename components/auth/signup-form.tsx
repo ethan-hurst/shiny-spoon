@@ -1,15 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { signupSchema, type SignupFormData } from '@/types/auth.types'
-import { signUp } from '@/app/actions/auth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { toast } from 'sonner'
 import { CheckCircle } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { signUp } from '@/app/actions/auth'
+import { signupSchema, type SignupFormData } from '@/types/auth.types'
 
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -62,7 +69,8 @@ export function SignupForm() {
           We&apos;ve sent a confirmation link to {form.getValues('email')}
         </p>
         <p className="text-sm text-gray-500 mt-4">
-          Didn&apos;t receive the email? Check your spam folder or contact support.
+          Didn&apos;t receive the email? Check your spam folder or contact
+          support.
         </p>
       </div>
     )
@@ -166,16 +174,13 @@ export function SignupForm() {
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? 'Creating account...' : 'Create account'}
         </Button>
 
         <p className="text-xs text-gray-500 text-center">
-          By creating an account, you agree to our Terms of Service and Privacy Policy
+          By creating an account, you agree to our Terms of Service and Privacy
+          Policy
         </p>
       </form>
     </Form>

@@ -1,13 +1,25 @@
 'use client'
 
-import { UseFormReturn, UseFieldArrayReturn } from 'react-hook-form'
+import { Plus, Trash2, User } from 'lucide-react'
+import { UseFieldArrayReturn, UseFormReturn } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Card } from '@/components/ui/card'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card } from '@/components/ui/card'
-import { Plus, Trash2, User } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface ContactListProps {
   fields: UseFieldArrayReturn['fields']
@@ -26,7 +38,12 @@ const CONTACT_ROLES = [
   'Other',
 ]
 
-export function ContactList({ fields, append, remove, form }: ContactListProps) {
+export function ContactList({
+  fields,
+  append,
+  remove,
+  form,
+}: ContactListProps) {
   const addContact = () => {
     append({
       name: '',
@@ -65,7 +82,10 @@ export function ContactList({ fields, append, remove, form }: ContactListProps) 
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a role" />
@@ -93,7 +113,11 @@ export function ContactList({ fields, append, remove, form }: ContactListProps) 
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input {...field} type="email" placeholder="john@example.com" />
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="john@example.com"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -135,8 +159,14 @@ export function ContactList({ fields, append, remove, form }: ContactListProps) 
                         className="flex items-center gap-4"
                       >
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="true" id={`primary-${index}`} />
-                          <label htmlFor={`primary-${index}`} className="text-sm">
+                          <RadioGroupItem
+                            value="true"
+                            id={`primary-${index}`}
+                          />
+                          <label
+                            htmlFor={`primary-${index}`}
+                            className="text-sm"
+                          >
                             Yes, this is the primary contact
                           </label>
                         </div>

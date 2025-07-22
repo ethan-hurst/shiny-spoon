@@ -2,20 +2,39 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useFieldArray, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
-import { warehouseSchema } from '@/lib/validations/warehouse'
-import { createWarehouse, updateWarehouse, createWarehouseTyped, updateWarehouseTyped } from '@/app/actions/warehouses'
-import { AddressFields } from './address-fields'
-import { ContactList } from './contact-list'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { toast } from 'sonner'
+import { warehouseSchema } from '@/lib/validations/warehouse'
+import {
+  createWarehouse,
+  createWarehouseTyped,
+  updateWarehouse,
+  updateWarehouseTyped,
+} from '@/app/actions/warehouses'
 import { Warehouse } from '@/types/warehouse.types'
+import { AddressFields } from './address-fields'
+import { ContactList } from './contact-list'
 
 interface WarehouseFormProps {
   warehouse?: Warehouse
@@ -39,13 +58,15 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
         postalCode: '',
         country: 'USA',
       },
-      contacts: warehouse?.contact || [{
-        name: '',
-        role: 'Manager',
-        email: '',
-        phone: '',
-        isPrimary: true,
-      }],
+      contacts: warehouse?.contact || [
+        {
+          name: '',
+          role: 'Manager',
+          email: '',
+          phone: '',
+          isPrimary: true,
+        },
+      ],
       is_default: warehouse?.is_default || false,
       active: warehouse?.active ?? true,
     },
@@ -58,9 +79,9 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
 
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true)
-    
+
     try {
-      const result = warehouse 
+      const result = warehouse
         ? await updateWarehouseTyped(warehouse.id, {
             name: values.name,
             address: values.address,
@@ -114,7 +135,10 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
                   <FormItem>
                     <FormLabel>Warehouse Name</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Main Distribution Center" />
+                      <Input
+                        {...field}
+                        placeholder="Main Distribution Center"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -128,12 +152,14 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
                   <FormItem>
                     <FormLabel>Warehouse Code</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         placeholder="MAIN-DC"
                         className="uppercase"
                         disabled={!!warehouse} // Can't change code after creation
-                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        onChange={(e) =>
+                          field.onChange(e.target.value.toUpperCase())
+                        }
                       />
                     </FormControl>
                     <FormDescription>
@@ -169,7 +195,7 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ContactList 
+            <ContactList
               fields={fields}
               append={append}
               remove={remove}
@@ -193,7 +219,9 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">Default Warehouse</FormLabel>
+                    <FormLabel className="text-base">
+                      Default Warehouse
+                    </FormLabel>
                     <FormDescription>
                       Use as default location for new inventory
                     </FormDescription>
@@ -234,8 +262,11 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
 
         <div className="flex gap-4">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 
-             warehouse ? 'Update Warehouse' : 'Create Warehouse'}
+            {isSubmitting
+              ? 'Saving...'
+              : warehouse
+                ? 'Update Warehouse'
+                : 'Create Warehouse'}
           </Button>
           <Button
             type="button"

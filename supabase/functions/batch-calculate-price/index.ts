@@ -3,7 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
 }
 
 interface BatchPriceRequest {
@@ -45,35 +46,53 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
       )
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token)
+
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Parse request body
     const body: BatchPriceCalculationRequest = await req.json()
-    
+
     // Validate request
-    if (!body.requests || !Array.isArray(body.requests) || body.requests.length === 0) {
+    if (
+      !body.requests ||
+      !Array.isArray(body.requests) ||
+      body.requests.length === 0
+    ) {
       return new Response(
-        JSON.stringify({ error: 'requests array is required and must not be empty' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: 'requests array is required and must not be empty',
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
       )
     }
 
     if (body.requests.length > 100) {
       return new Response(
         JSON.stringify({ error: 'Maximum 100 requests allowed per batch' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
       )
     }
 
@@ -85,15 +104,19 @@ serve(async (req) => {
       .single()
 
     if (!profile) {
-      return new Response(
-        JSON.stringify({ error: 'User profile not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: 'User profile not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Get all unique product IDs and customer IDs
-    const productIds = [...new Set(body.requests.map(r => r.product_id))]
-    const customerIds = [...new Set(body.requests.filter(r => r.customer_id).map(r => r.customer_id!))]
+    const productIds = [...new Set(body.requests.map((r) => r.product_id))]
+    const customerIds = [
+      ...new Set(
+        body.requests.filter((r) => r.customer_id).map((r) => r.customer_id!)
+      ),
+    ]
 
     // Verify all products belong to organization
     const { data: products } = await supabase
@@ -102,7 +125,7 @@ serve(async (req) => {
       .in('id', productIds)
       .eq('organization_id', profile.organization_id)
 
-    const validProductIds = new Set(products?.map(p => p.id) || [])
+    const validProductIds = new Set(products?.map((p) => p.id) || [])
 
     // Verify all customers belong to organization
     let validCustomerIds = new Set<string>()
@@ -112,8 +135,8 @@ serve(async (req) => {
         .select('id')
         .in('id', customerIds)
         .eq('organization_id', profile.organization_id)
-      
-      validCustomerIds = new Set(customers?.map(c => c.id) || [])
+
+      validCustomerIds = new Set(customers?.map((c) => c.id) || [])
     }
 
     // Calculate prices for each request
@@ -135,7 +158,10 @@ serve(async (req) => {
           }
 
           // Validate customer if provided
-          if (request.customer_id && !validCustomerIds.has(request.customer_id)) {
+          if (
+            request.customer_id &&
+            !validCustomerIds.has(request.customer_id)
+          ) {
             return {
               product_id: request.product_id,
               base_price: 0,
@@ -149,12 +175,16 @@ serve(async (req) => {
           }
 
           // Calculate price
-          const { data: result, error: calcError } = await supabase.rpc('calculate_product_price', {
-            p_product_id: request.product_id,
-            p_customer_id: request.customer_id || null,
-            p_quantity: request.quantity || 1,
-            p_requested_date: body.requested_date || new Date().toISOString().split('T')[0],
-          })
+          const { data: result, error: calcError } = await supabase.rpc(
+            'calculate_product_price',
+            {
+              p_product_id: request.product_id,
+              p_customer_id: request.customer_id || null,
+              p_quantity: request.quantity || 1,
+              p_requested_date:
+                body.requested_date || new Date().toISOString().split('T')[0],
+            }
+          )
 
           if (calcError || !result || result.length === 0) {
             return {
@@ -180,7 +210,11 @@ serve(async (req) => {
             applied_rules: priceData.applied_rules || [],
           }
         } catch (error) {
-          console.error('Error calculating price for product:', request.product_id, error)
+          console.error(
+            'Error calculating price for product:',
+            request.product_id,
+            error
+          )
           return {
             product_id: request.product_id,
             base_price: 0,
@@ -196,14 +230,18 @@ serve(async (req) => {
     )
 
     // Log batch calculation
-    const successfulResults = results.filter(r => !r.error)
+    const successfulResults = results.filter((r) => !r.error)
     if (successfulResults.length > 0) {
       await supabase.from('price_calculations').insert(
-        successfulResults.map(result => ({
+        successfulResults.map((result) => ({
           organization_id: profile.organization_id,
           product_id: result.product_id,
-          customer_id: body.requests.find(r => r.product_id === result.product_id)?.customer_id,
-          quantity: body.requests.find(r => r.product_id === result.product_id)?.quantity || 1,
+          customer_id: body.requests.find(
+            (r) => r.product_id === result.product_id
+          )?.customer_id,
+          quantity:
+            body.requests.find((r) => r.product_id === result.product_id)
+              ?.quantity || 1,
           requested_by: user.id,
           base_price: result.base_price,
           final_price: result.final_price,
@@ -227,19 +265,16 @@ serve(async (req) => {
         successful: successfulResults.length,
         failed: results.length - successfulResults.length,
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 200 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       }
     )
   } catch (error) {
     console.error('Batch calculation error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 })

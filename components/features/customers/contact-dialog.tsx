@@ -2,11 +2,12 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { createContactSchema } from '@/lib/customers/validations'
-import { createContact, updateContact } from '@/app/actions/customers'
-import { ContactRecord } from '@/types/customer.types'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -15,11 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -27,8 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { toast } from 'sonner'
-import { z } from 'zod'
+import { Textarea } from '@/components/ui/textarea'
+import { createContactSchema } from '@/lib/customers/validations'
+import { createContact, updateContact } from '@/app/actions/customers'
+import { ContactRecord } from '@/types/customer.types'
 
 interface ContactDialogProps {
   customerId: string
@@ -39,7 +39,12 @@ interface ContactDialogProps {
 
 type FormData = z.infer<typeof createContactSchema>
 
-export function ContactDialog({ customerId, contact, open, onOpenChange }: ContactDialogProps) {
+export function ContactDialog({
+  customerId,
+  contact,
+  open,
+  onOpenChange,
+}: ContactDialogProps) {
   const router = useRouter()
   const isEditing = !!contact
 
@@ -79,14 +84,14 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
       receives_marketing: contact?.receives_marketing || false,
       notes: contact?.notes || '',
     }
-    
+
     form.reset(formData)
   }, [contact, customerId, form])
 
   const onSubmit = async (data: FormData) => {
     try {
       const formData = new FormData()
-      
+
       // Add all fields to FormData
       Object.entries(data).forEach(([key, value]) => {
         if (value !== null && value !== undefined) {
@@ -99,7 +104,7 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
         formData.append('id', contact.id)
       }
 
-      const result = isEditing 
+      const result = isEditing
         ? await updateContact(formData)
         : await createContact(formData)
 
@@ -113,11 +118,11 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
       }
 
       toast.success(
-        isEditing 
-          ? 'Contact updated successfully' 
+        isEditing
+          ? 'Contact updated successfully'
           : 'Contact created successfully'
       )
-      
+
       onOpenChange(false)
       router.refresh()
     } catch (error) {
@@ -134,10 +139,9 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
               {isEditing ? 'Edit Contact' : 'Add New Contact'}
             </DialogTitle>
             <DialogDescription>
-              {isEditing 
-                ? 'Update the contact information below' 
-                : 'Enter the contact details below'
-              }
+              {isEditing
+                ? 'Update the contact information below'
+                : 'Enter the contact details below'}
             </DialogDescription>
           </DialogHeader>
 
@@ -229,10 +233,14 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="preferred_contact_method">Preferred Contact</Label>
+                <Label htmlFor="preferred_contact_method">
+                  Preferred Contact
+                </Label>
                 <Select
                   value={form.watch('preferred_contact_method')}
-                  onValueChange={(value) => form.setValue('preferred_contact_method', value as any)}
+                  onValueChange={(value) =>
+                    form.setValue('preferred_contact_method', value as any)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -251,7 +259,9 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
                 <Checkbox
                   id="is_primary"
                   checked={form.watch('is_primary')}
-                  onCheckedChange={(checked) => form.setValue('is_primary', checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    form.setValue('is_primary', checked as boolean)
+                  }
                 />
                 <Label htmlFor="is_primary" className="cursor-pointer">
                   Set as primary contact
@@ -262,7 +272,9 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
                 <Checkbox
                   id="portal_access"
                   checked={form.watch('portal_access')}
-                  onCheckedChange={(checked) => form.setValue('portal_access', checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    form.setValue('portal_access', checked as boolean)
+                  }
                 />
                 <Label htmlFor="portal_access" className="cursor-pointer">
                   Grant customer portal access
@@ -273,9 +285,14 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
                 <Checkbox
                   id="receives_order_updates"
                   checked={form.watch('receives_order_updates')}
-                  onCheckedChange={(checked) => form.setValue('receives_order_updates', checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    form.setValue('receives_order_updates', checked as boolean)
+                  }
                 />
-                <Label htmlFor="receives_order_updates" className="cursor-pointer">
+                <Label
+                  htmlFor="receives_order_updates"
+                  className="cursor-pointer"
+                >
                   Send order updates
                 </Label>
               </div>
@@ -284,7 +301,9 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
                 <Checkbox
                   id="receives_marketing"
                   checked={form.watch('receives_marketing')}
-                  onCheckedChange={(checked) => form.setValue('receives_marketing', checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    form.setValue('receives_marketing', checked as boolean)
+                  }
                 />
                 <Label htmlFor="receives_marketing" className="cursor-pointer">
                   Send marketing communications
@@ -304,20 +323,19 @@ export function ContactDialog({ customerId, contact, open, onOpenChange }: Conta
           </div>
 
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting 
-                ? 'Saving...' 
-                : isEditing 
-                  ? 'Update Contact' 
-                  : 'Add Contact'
-              }
+              {form.formState.isSubmitting
+                ? 'Saving...'
+                : isEditing
+                  ? 'Update Contact'
+                  : 'Add Contact'}
             </Button>
           </DialogFooter>
         </form>

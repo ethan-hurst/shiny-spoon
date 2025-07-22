@@ -1,22 +1,45 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Calendar } from '@/components/ui/calendar'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  isSameDay,
+  startOfMonth,
+  subMonths,
+} from 'date-fns'
+import {
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus } from 'lucide-react'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns'
-import { PricingRuleRecord, getRuleTypeColor, formatDiscountDisplay } from '@/types/pricing.types'
-import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import {
+  formatDiscountDisplay,
+  getRuleTypeColor,
+  PricingRuleRecord,
+} from '@/types/pricing.types'
 
 interface PromotionDay {
   date: Date
@@ -28,7 +51,7 @@ export function PromotionCalendar() {
   const [promotions, setPromotions] = useState<PricingRuleRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>()
-  
+
   const supabase = createClient()
   const router = useRouter()
 
@@ -46,7 +69,9 @@ export function PromotionCalendar() {
         .select('*')
         .eq('rule_type', 'promotion')
         .lte('start_date', end.toISOString().split('T')[0])
-        .or(`end_date.gte.${start.toISOString().split('T')[0]},end_date.is.null`)
+        .or(
+          `end_date.gte.${start.toISOString().split('T')[0]},end_date.is.null`
+        )
         .order('start_date', { ascending: true })
 
       if (error) throw error
@@ -59,22 +84,27 @@ export function PromotionCalendar() {
   }
 
   // Group promotions by day
-  const promotionsByDay = promotions.reduce((acc, rule) => {
-    const startDate = rule.start_date ? new Date(rule.start_date) : new Date()
-    const endDate = rule.end_date ? new Date(rule.end_date) : endOfMonth(currentMonth)
-    
-    const days = eachDayOfInterval({ start: startDate, end: endDate })
-    
-    days.forEach(day => {
-      const dayKey = format(day, 'yyyy-MM-dd')
-      if (!acc[dayKey]) {
-        acc[dayKey] = []
-      }
-      acc[dayKey].push(rule)
-    })
-    
-    return acc
-  }, {} as Record<string, PricingRuleRecord[]>)
+  const promotionsByDay = promotions.reduce(
+    (acc, rule) => {
+      const startDate = rule.start_date ? new Date(rule.start_date) : new Date()
+      const endDate = rule.end_date
+        ? new Date(rule.end_date)
+        : endOfMonth(currentMonth)
+
+      const days = eachDayOfInterval({ start: startDate, end: endDate })
+
+      days.forEach((day) => {
+        const dayKey = format(day, 'yyyy-MM-dd')
+        if (!acc[dayKey]) {
+          acc[dayKey] = []
+        }
+        acc[dayKey].push(rule)
+      })
+
+      return acc
+    },
+    {} as Record<string, PricingRuleRecord[]>
+  )
 
   const getDayPromotions = (date: Date) => {
     const dayKey = format(date, 'yyyy-MM-dd')
@@ -82,12 +112,16 @@ export function PromotionCalendar() {
   }
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
-    setCurrentMonth(direction === 'prev' ? subMonths(currentMonth, 1) : addMonths(currentMonth, 1))
+    setCurrentMonth(
+      direction === 'prev'
+        ? subMonths(currentMonth, 1)
+        : addMonths(currentMonth, 1)
+    )
   }
 
   const PromotionList = ({ date }: { date: Date }) => {
     const dayPromotions = getDayPromotions(date)
-    
+
     if (dayPromotions.length === 0) {
       return (
         <div className="text-center py-4 text-muted-foreground">
@@ -114,20 +148,28 @@ export function PromotionCalendar() {
                     </p>
                   )}
                 </div>
-                <Badge variant={rule.is_active ? 'default' : 'secondary'} className="text-xs">
+                <Badge
+                  variant={rule.is_active ? 'default' : 'secondary'}
+                  className="text-xs"
+                >
                   {rule.is_active ? 'Active' : 'Inactive'}
                 </Badge>
               </div>
               {rule.discount_type && rule.discount_value && (
                 <div className="mt-2">
                   <Badge variant="outline" className="text-xs">
-                    {formatDiscountDisplay(rule.discount_type, rule.discount_value)}
+                    {formatDiscountDisplay(
+                      rule.discount_type,
+                      rule.discount_value
+                    )}
                   </Badge>
                 </div>
               )}
               <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
                 {rule.start_date && (
-                  <span>From: {format(new Date(rule.start_date), 'MMM d')}</span>
+                  <span>
+                    From: {format(new Date(rule.start_date), 'MMM d')}
+                  </span>
                 )}
                 {rule.end_date && (
                   <span>To: {format(new Date(rule.end_date), 'MMM d')}</span>
@@ -196,8 +238,10 @@ export function PromotionCalendar() {
                 Day: ({ date, ...props }) => {
                   const dayPromotions = getDayPromotions(date)
                   const hasPromotions = dayPromotions.length > 0
-                  const hasActivePromotions = dayPromotions.some(p => p.is_active)
-                  
+                  const hasActivePromotions = dayPromotions.some(
+                    (p) => p.is_active
+                  )
+
                   return (
                     <Popover>
                       <PopoverTrigger asChild>
@@ -205,8 +249,8 @@ export function PromotionCalendar() {
                           {...props}
                           className={cn(
                             props.className,
-                            hasPromotions && "relative",
-                            "hover:bg-accent focus:bg-accent"
+                            hasPromotions && 'relative',
+                            'hover:bg-accent focus:bg-accent'
                           )}
                         >
                           {format(date, 'd')}
@@ -214,8 +258,10 @@ export function PromotionCalendar() {
                             <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
                               <div
                                 className={cn(
-                                  "w-1 h-1 rounded-full",
-                                  hasActivePromotions ? "bg-primary" : "bg-muted-foreground"
+                                  'w-1 h-1 rounded-full',
+                                  hasActivePromotions
+                                    ? 'bg-primary'
+                                    : 'bg-muted-foreground'
                                 )}
                               />
                             </div>
@@ -228,7 +274,8 @@ export function PromotionCalendar() {
                             {format(date, 'EEEE, MMMM d, yyyy')}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            {dayPromotions.length} promotion{dayPromotions.length !== 1 ? 's' : ''}
+                            {dayPromotions.length} promotion
+                            {dayPromotions.length !== 1 ? 's' : ''}
                           </p>
                         </div>
                         <div className="p-4">
@@ -244,14 +291,15 @@ export function PromotionCalendar() {
             {/* Promotion Summary */}
             <div className="rounded-lg border p-4">
               <h3 className="font-medium mb-3">Active Promotions This Month</h3>
-              {promotions.filter(p => p.is_active).length === 0 ? (
+              {promotions.filter((p) => p.is_active).length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No active promotions scheduled for {format(currentMonth, 'MMMM yyyy')}
+                  No active promotions scheduled for{' '}
+                  {format(currentMonth, 'MMMM yyyy')}
                 </p>
               ) : (
                 <div className="space-y-2">
                   {promotions
-                    .filter(p => p.is_active)
+                    .filter((p) => p.is_active)
                     .slice(0, 5)
                     .map((rule) => (
                       <div
@@ -260,16 +308,23 @@ export function PromotionCalendar() {
                         onClick={() => router.push(`/pricing/rules/${rule.id}`)}
                       >
                         <div className="flex-1">
-                          <span className="text-sm font-medium">{rule.name}</span>
+                          <span className="text-sm font-medium">
+                            {rule.name}
+                          </span>
                           {rule.discount_type && rule.discount_value && (
                             <Badge variant="outline" className="ml-2 text-xs">
-                              {formatDiscountDisplay(rule.discount_type, rule.discount_value)}
+                              {formatDiscountDisplay(
+                                rule.discount_type,
+                                rule.discount_value
+                              )}
                             </Badge>
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {rule.start_date && format(new Date(rule.start_date), 'MMM d')}
-                          {rule.end_date && ` - ${format(new Date(rule.end_date), 'MMM d')}`}
+                          {rule.start_date &&
+                            format(new Date(rule.start_date), 'MMM d')}
+                          {rule.end_date &&
+                            ` - ${format(new Date(rule.end_date), 'MMM d')}`}
                         </div>
                       </div>
                     ))}

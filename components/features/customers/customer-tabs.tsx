@@ -1,13 +1,17 @@
 'use client'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CustomerWithStats, ContactRecord, CustomerActivity } from '@/types/customer.types'
-import { useCustomerDetailRealtime } from '@/hooks/use-customer-realtime'
-import { CustomerOverview } from '@/components/features/customers/tabs/customer-overview'
-import { CustomerContacts } from '@/components/features/customers/tabs/customer-contacts'
+import { Activity, FileText, Package, Users } from 'lucide-react'
 import { CustomerActivityTimeline } from '@/components/features/customers/tabs/customer-activity-timeline'
+import { CustomerContacts } from '@/components/features/customers/tabs/customer-contacts'
 import { CustomerOrders } from '@/components/features/customers/tabs/customer-orders'
-import { FileText, Users, Activity, Package } from 'lucide-react'
+import { CustomerOverview } from '@/components/features/customers/tabs/customer-overview'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCustomerDetailRealtime } from '@/hooks/use-customer-realtime'
+import {
+  ContactRecord,
+  CustomerActivity,
+  CustomerWithStats,
+} from '@/types/customer.types'
 
 interface CustomerTabsProps {
   customer: CustomerWithStats
@@ -15,10 +19,14 @@ interface CustomerTabsProps {
   activities: CustomerActivity[]
 }
 
-export function CustomerTabs({ customer, contacts, activities }: CustomerTabsProps) {
+export function CustomerTabs({
+  customer,
+  contacts,
+  activities,
+}: CustomerTabsProps) {
   // Enable real-time updates for this customer
   useCustomerDetailRealtime(customer.id, customer.organization_id)
-  
+
   return (
     <Tabs defaultValue="overview" className="space-y-4">
       <TabsList className="grid w-full grid-cols-4">
@@ -45,16 +53,13 @@ export function CustomerTabs({ customer, contacts, activities }: CustomerTabsPro
       </TabsContent>
 
       <TabsContent value="contacts" className="space-y-4">
-        <CustomerContacts 
-          customerId={customer.id} 
-          contacts={contacts} 
-        />
+        <CustomerContacts customerId={customer.id} contacts={contacts} />
       </TabsContent>
 
       <TabsContent value="activity" className="space-y-4">
-        <CustomerActivityTimeline 
+        <CustomerActivityTimeline
           customerId={customer.id}
-          activities={activities} 
+          activities={activities}
         />
       </TabsContent>
 

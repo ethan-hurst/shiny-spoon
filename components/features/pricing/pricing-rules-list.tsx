@@ -1,16 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { format } from 'date-fns'
+import { Copy, Edit, MoreHorizontal, Search, Trash } from 'lucide-react'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,9 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -30,10 +23,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { MoreHorizontal, Search, Copy, Edit, Trash } from 'lucide-react'
-import { PricingRuleRecord, getRuleTypeColor, formatDiscountDisplay, isRuleActive } from '@/types/pricing.types'
-import { format } from 'date-fns'
-import { toast } from 'sonner'
+import { Switch } from '@/components/ui/switch'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { createClient } from '@/lib/supabase/client'
+import {
+  formatDiscountDisplay,
+  getRuleTypeColor,
+  isRuleActive,
+  PricingRuleRecord,
+} from '@/types/pricing.types'
 
 export function PricingRulesList() {
   const [rules, setRules] = useState<PricingRuleRecord[]>([])
@@ -41,7 +46,7 @@ export function PricingRulesList() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  
+
   const supabase = createClient()
   const router = useRouter()
 
@@ -53,13 +58,15 @@ export function PricingRulesList() {
     try {
       const { data, error } = await supabase
         .from('pricing_rules')
-        .select(`
+        .select(
+          `
           *,
           product:products(name, sku),
           category:product_categories(name),
           customer:customers(name),
           tier:customer_tiers(name)
-        `)
+        `
+        )
         .order('priority', { ascending: true })
         .order('created_at', { ascending: false })
 
@@ -82,10 +89,12 @@ export function PricingRulesList() {
 
       if (error) throw error
 
-      setRules(rules.map(rule => 
-        rule.id === ruleId ? { ...rule, is_active: isActive } : rule
-      ))
-      
+      setRules(
+        rules.map((rule) =>
+          rule.id === ruleId ? { ...rule, is_active: isActive } : rule
+        )
+      )
+
       toast.success(`Rule ${isActive ? 'activated' : 'deactivated'}`)
     } catch (error) {
       console.error('Error updating rule status:', error)
@@ -95,17 +104,15 @@ export function PricingRulesList() {
 
   async function duplicateRule(ruleId: string) {
     try {
-      const ruleToDuplicate = rules.find(r => r.id === ruleId)
+      const ruleToDuplicate = rules.find((r) => r.id === ruleId)
       if (!ruleToDuplicate) return
 
       const { id, created_at, updated_at, ...ruleData } = ruleToDuplicate
-      const { error } = await supabase
-        .from('pricing_rules')
-        .insert({
-          ...ruleData,
-          name: `${ruleData.name} (Copy)`,
-          is_active: false,
-        })
+      const { error } = await supabase.from('pricing_rules').insert({
+        ...ruleData,
+        name: `${ruleData.name} (Copy)`,
+        is_active: false,
+      })
 
       if (error) throw error
 
@@ -128,7 +135,7 @@ export function PricingRulesList() {
 
       if (error) throw error
 
-      setRules(rules.filter(rule => rule.id !== ruleId))
+      setRules(rules.filter((rule) => rule.id !== ruleId))
       toast.success('Rule deleted successfully')
     } catch (error) {
       console.error('Error deleting rule:', error)
@@ -137,18 +144,22 @@ export function PricingRulesList() {
   }
 
   // Filter rules based on search and filters
-  const filteredRules = rules.filter(rule => {
-    const matchesSearch = searchTerm === '' || 
+  const filteredRules = rules.filter((rule) => {
+    const matchesSearch =
+      searchTerm === '' ||
       rule.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rule.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     const matchesType = filterType === 'all' || rule.rule_type === filterType
-    
-    const matchesStatus = filterStatus === 'all' ||
+
+    const matchesStatus =
+      filterStatus === 'all' ||
       (filterStatus === 'active' && rule.is_active && isRuleActive(rule)) ||
       (filterStatus === 'inactive' && !rule.is_active) ||
-      (filterStatus === 'expired' && rule.end_date && new Date(rule.end_date) < new Date())
-    
+      (filterStatus === 'expired' &&
+        rule.end_date &&
+        new Date(rule.end_date) < new Date())
+
     return matchesSearch && matchesType && matchesStatus
   })
 
@@ -212,7 +223,10 @@ export function PricingRulesList() {
           <TableBody>
             {filteredRules.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={8}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   No pricing rules found
                 </TableCell>
               </TableRow>
@@ -222,7 +236,9 @@ export function PricingRulesList() {
                   <TableCell>
                     <Switch
                       checked={rule.is_active}
-                      onCheckedChange={(checked) => toggleRuleStatus(rule.id, checked)}
+                      onCheckedChange={(checked) =>
+                        toggleRuleStatus(rule.id, checked)
+                      }
                     />
                   </TableCell>
                   <TableCell>
@@ -243,37 +259,46 @@ export function PricingRulesList() {
                   <TableCell>{rule.priority}</TableCell>
                   <TableCell>
                     {rule.discount_type && rule.discount_value ? (
-                      formatDiscountDisplay(rule.discount_type, rule.discount_value)
+                      formatDiscountDisplay(
+                        rule.discount_type,
+                        rule.discount_value
+                      )
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {rule.product && (
-                        <div>Product: {rule.product.name}</div>
-                      )}
+                      {rule.product && <div>Product: {rule.product.name}</div>}
                       {rule.category && (
                         <div>Category: {rule.category.name}</div>
                       )}
                       {rule.customer && (
                         <div>Customer: {rule.customer.name}</div>
                       )}
-                      {rule.tier && (
-                        <div>Tier: {rule.tier.name}</div>
-                      )}
-                      {!rule.product && !rule.category && !rule.customer && !rule.tier && (
-                        <span className="text-muted-foreground">All Products</span>
-                      )}
+                      {rule.tier && <div>Tier: {rule.tier.name}</div>}
+                      {!rule.product &&
+                        !rule.category &&
+                        !rule.customer &&
+                        !rule.tier && (
+                          <span className="text-muted-foreground">
+                            All Products
+                          </span>
+                        )}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
                       {rule.start_date && (
-                        <div>From: {format(new Date(rule.start_date), 'MMM d, yyyy')}</div>
+                        <div>
+                          From:{' '}
+                          {format(new Date(rule.start_date), 'MMM d, yyyy')}
+                        </div>
                       )}
                       {rule.end_date && (
-                        <div>To: {format(new Date(rule.end_date), 'MMM d, yyyy')}</div>
+                        <div>
+                          To: {format(new Date(rule.end_date), 'MMM d, yyyy')}
+                        </div>
                       )}
                       {!rule.start_date && !rule.end_date && (
                         <span className="text-muted-foreground">Always</span>
@@ -291,12 +316,16 @@ export function PricingRulesList() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
-                          onClick={() => router.push(`/pricing/rules/${rule.id}`)}
+                          onClick={() =>
+                            router.push(`/pricing/rules/${rule.id}`)
+                          }
                         >
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => duplicateRule(rule.id)}>
+                        <DropdownMenuItem
+                          onClick={() => duplicateRule(rule.id)}
+                        >
                           <Copy className="mr-2 h-4 w-4" />
                           Duplicate
                         </DropdownMenuItem>

@@ -1,5 +1,6 @@
 'use client'
 
+import { AnimatePresence, motion } from 'framer-motion'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Tooltip,
@@ -9,7 +10,6 @@ import {
 } from '@/components/ui/tooltip'
 import { PresenceData } from '@/lib/realtime/types'
 import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
 
 interface PresenceAvatarsProps {
   users: PresenceData[]
@@ -24,7 +24,7 @@ export function PresenceAvatars({
   maxDisplay = 3,
   size = 'sm',
   showTooltip = true,
-  className
+  className,
 }: PresenceAvatarsProps) {
   const displayUsers = users.slice(0, maxDisplay)
   const remainingCount = Math.max(0, users.length - maxDisplay)
@@ -32,13 +32,13 @@ export function PresenceAvatars({
   const sizeClasses = {
     sm: 'h-6 w-6',
     md: 'h-8 w-8',
-    lg: 'h-10 w-10'
+    lg: 'h-10 w-10',
   }
 
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(part => part[0])
+      .map((part) => part[0])
       .join('')
       .toUpperCase()
       .slice(0, 2)
@@ -51,7 +51,7 @@ export function PresenceAvatars({
 
     if (minutes < 1) return 'Active now'
     if (minutes < 60) return `Active ${minutes}m ago`
-    
+
     const hours = Math.floor(minutes / 60)
     return `Active ${hours}h ago`
   }
@@ -63,11 +63,11 @@ export function PresenceAvatars({
         initial={{ scale: 0, x: -10 }}
         animate={{ scale: 1, x: 0 }}
         exit={{ scale: 0, x: -10 }}
-        transition={{ 
+        transition={{
           delay: index * 0.05,
           type: 'spring',
           stiffness: 500,
-          damping: 30
+          damping: 30,
         }}
         className={cn(
           'relative ring-2 ring-background rounded-full',
@@ -76,15 +76,12 @@ export function PresenceAvatars({
         style={{ zIndex: maxDisplay - index }}
       >
         <Avatar className={cn(sizeClasses[size], 'border-2 border-background')}>
-          <AvatarImage 
-            src={user.avatarUrl} 
-            alt={user.userName}
-          />
+          <AvatarImage src={user.avatarUrl} alt={user.userName} />
           <AvatarFallback className="text-xs font-medium">
             {getInitials(user.userName)}
           </AvatarFallback>
         </Avatar>
-        
+
         {/* Activity indicator */}
         <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" />
       </motion.div>
@@ -94,9 +91,7 @@ export function PresenceAvatars({
 
     return (
       <Tooltip key={user.userId}>
-        <TooltipTrigger asChild>
-          {avatar}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{avatar}</TooltipTrigger>
         <TooltipContent>
           <div className="space-y-1">
             <p className="font-medium">{user.userName}</p>
@@ -105,9 +100,7 @@ export function PresenceAvatars({
               {getActivityText(user.lastActivity)}
             </p>
             {user.currentView === 'item' && user.itemId && (
-              <p className="text-xs text-muted-foreground">
-                Viewing this item
-              </p>
+              <p className="text-xs text-muted-foreground">Viewing this item</p>
             )}
           </div>
         </TooltipContent>
@@ -123,7 +116,7 @@ export function PresenceAvatars({
         <AnimatePresence mode="popLayout">
           {displayUsers.map((user, index) => renderAvatar(user, index))}
         </AnimatePresence>
-        
+
         {remainingCount > 0 && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -144,9 +137,10 @@ export function PresenceAvatars({
             <TooltipContent>
               <div className="space-y-1">
                 <p className="font-medium">
-                  {remainingCount} more {remainingCount === 1 ? 'person' : 'people'}
+                  {remainingCount} more{' '}
+                  {remainingCount === 1 ? 'person' : 'people'}
                 </p>
-                {users.slice(maxDisplay).map(user => (
+                {users.slice(maxDisplay).map((user) => (
                   <p key={user.userId} className="text-xs">
                     {user.userName}
                   </p>

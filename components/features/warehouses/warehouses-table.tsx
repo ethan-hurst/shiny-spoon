@@ -4,15 +4,18 @@ import { useState } from 'react'
 import {
   ColumnDef,
   ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  SortingState,
   useReactTable,
+  VisibilityState,
 } from '@tanstack/react-table'
+import { Building2, MapPin, Phone } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -21,12 +24,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { WarehouseWithDetails } from '@/types/warehouse.types'
 import { WarehouseActions } from './warehouse-actions'
 import { WarehouseFilters } from './warehouse-filters'
-import { Building2, MapPin, Phone } from 'lucide-react'
 
 interface WarehousesTableProps {
   initialData: WarehouseWithDetails[]
@@ -50,7 +50,9 @@ export function WarehousesTable({ initialData, states }: WarehousesTableProps) {
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{warehouse.code}</span>
             {warehouse.is_default && (
-              <Badge variant="secondary" className="text-xs">Default</Badge>
+              <Badge variant="secondary" className="text-xs">
+                Default
+              </Badge>
             )}
           </div>
         )
@@ -68,12 +70,14 @@ export function WarehousesTable({ initialData, states }: WarehousesTableProps) {
         const warehouse = row.original
         const address = warehouse.address as any
         if (!address) return null
-        
+
         return (
           <div className="flex items-start gap-2">
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
             <div className="text-sm">
-              <div>{address.city}, {address.state}</div>
+              <div>
+                {address.city}, {address.state}
+              </div>
               <div className="text-muted-foreground">{address.country}</div>
             </div>
           </div>
@@ -86,10 +90,10 @@ export function WarehousesTable({ initialData, states }: WarehousesTableProps) {
       cell: ({ row }) => {
         const warehouse = row.original
         const contacts = warehouse.contact as any[]
-        const primaryContact = contacts?.find(c => c.isPrimary)
-        
+        const primaryContact = contacts?.find((c) => c.isPrimary)
+
         if (!primaryContact) return null
-        
+
         return (
           <div className="flex items-start gap-2">
             <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
@@ -156,7 +160,7 @@ export function WarehousesTable({ initialData, states }: WarehousesTableProps) {
   return (
     <div className="space-y-4">
       <WarehouseFilters table={table} states={states} />
-      
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
+import { Calculator, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -15,10 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Calculator, Loader2 } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { PriceCalculationResult } from '@/types/pricing.types'
-import { toast } from 'sonner'
 
 interface Product {
   id: string
@@ -101,7 +101,8 @@ export function PriceCalculator() {
       })
 
       if (error) throw error
-      if (!data || data.length === 0) throw new Error('No pricing data returned')
+      if (!data || data.length === 0)
+        throw new Error('No pricing data returned')
 
       const calculationResult = data[0]
       setResult({
@@ -118,7 +119,10 @@ export function PriceCalculator() {
         `Base price: ${formatCurrency(parseFloat(calculationResult.base_price))}`,
       ]
 
-      if (calculationResult.applied_rules && calculationResult.applied_rules.length > 0) {
+      if (
+        calculationResult.applied_rules &&
+        calculationResult.applied_rules.length > 0
+      ) {
         explanationLines.push('Applied discounts:')
         calculationResult.applied_rules.forEach((rule: any) => {
           let ruleText = `• ${rule.name || rule.type}`
@@ -137,8 +141,12 @@ export function PriceCalculator() {
         )
       }
 
-      explanationLines.push(`Final price: ${formatCurrency(parseFloat(calculationResult.final_price))}`)
-      explanationLines.push(`Margin: ${parseFloat(calculationResult.margin_percent).toFixed(1)}%`)
+      explanationLines.push(
+        `Final price: ${formatCurrency(parseFloat(calculationResult.final_price))}`
+      )
+      explanationLines.push(
+        `Margin: ${parseFloat(calculationResult.margin_percent).toFixed(1)}%`
+      )
 
       setExplanation(explanationLines)
     } catch (error) {
@@ -202,7 +210,11 @@ export function PriceCalculator() {
         </div>
       </div>
 
-      <Button onClick={calculatePrice} disabled={calculating} className="w-full md:w-auto">
+      <Button
+        onClick={calculatePrice}
+        disabled={calculating}
+        className="w-full md:w-auto"
+      >
         {calculating ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -222,7 +234,9 @@ export function PriceCalculator() {
             <div className="grid gap-4 md:grid-cols-3">
               <div>
                 <p className="text-sm text-muted-foreground">Base Price</p>
-                <p className="text-2xl font-bold">{formatCurrency(result.base_price)}</p>
+                <p className="text-2xl font-bold">
+                  {formatCurrency(result.base_price)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Final Price</p>
@@ -231,7 +245,8 @@ export function PriceCalculator() {
                 </p>
                 {quantity !== '1' && (
                   <p className="text-sm text-muted-foreground">
-                    Total: {formatCurrency(result.final_price * parseInt(quantity))}
+                    Total:{' '}
+                    {formatCurrency(result.final_price * parseInt(quantity))}
                   </p>
                 )}
               </div>
@@ -252,7 +267,10 @@ export function PriceCalculator() {
               <h4 className="font-medium mb-2">Price Calculation Details</h4>
               <div className="space-y-1 text-sm">
                 {explanation.map((line, index) => (
-                  <div key={index} className={line.startsWith('•') ? 'ml-4' : ''}>
+                  <div
+                    key={index}
+                    className={line.startsWith('•') ? 'ml-4' : ''}
+                  >
                     {line}
                   </div>
                 ))}
@@ -277,7 +295,9 @@ export function PriceCalculator() {
 
             <div className="pt-2">
               <Badge
-                variant={result.margin_percent >= 20 ? 'default' : 'destructive'}
+                variant={
+                  result.margin_percent >= 20 ? 'default' : 'destructive'
+                }
                 className="text-xs"
               >
                 Margin: {result.margin_percent.toFixed(1)}%

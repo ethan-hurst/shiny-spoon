@@ -1,17 +1,26 @@
 'use client'
 
 import { Table } from '@tanstack/react-table'
-import { Input } from '@/components/ui/input'
+import { Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { X, Search } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface WarehouseFiltersProps<TData> {
   table: Table<TData>
   states: string[]
 }
 
-export function WarehouseFilters<TData>({ table, states }: WarehouseFiltersProps<TData>) {
+export function WarehouseFilters<TData>({
+  table,
+  states,
+}: WarehouseFiltersProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
 
   return (
@@ -30,7 +39,9 @@ export function WarehouseFilters<TData>({ table, states }: WarehouseFiltersProps
         </div>
 
         <Select
-          value={(table.getColumn('active')?.getFilterValue() as string) ?? 'all'}
+          value={
+            (table.getColumn('active')?.getFilterValue() as string) ?? 'all'
+          }
           onValueChange={(value) => {
             if (value === 'all') {
               table.getColumn('active')?.setFilterValue(undefined)

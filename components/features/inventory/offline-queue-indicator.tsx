@@ -10,8 +10,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { OfflineQueue } from '@/lib/realtime/offline-queue'
 import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
+import { OfflineQueue } from '@/lib/realtime/offline-queue'
 import { ConnectionStatus } from '@/lib/realtime/types'
 import { cn } from '@/lib/utils'
 
@@ -30,9 +30,12 @@ export function OfflineQueueIndicator() {
     })
 
     // Subscribe to connection status
-    const unsubscribeConnection = connectionManager.subscribe('queue-indicator', (status) => {
-      setConnectionStatus(status)
-    })
+    const unsubscribeConnection = connectionManager.subscribe(
+      'queue-indicator',
+      (status) => {
+        setConnectionStatus(status)
+      }
+    )
 
     return () => {
       unsubscribeQueue()
@@ -47,7 +50,7 @@ export function OfflineQueueIndicator() {
     try {
       const queue = OfflineQueue.getInstance()
       const result = await queue.processQueue()
-      
+
       if (result.conflicts.length > 0) {
         // TODO: Show conflict resolution dialog
         console.log('Conflicts detected:', result.conflicts)
@@ -66,11 +69,11 @@ export function OfflineQueueIndicator() {
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="flex items-center gap-2">
-            <Badge 
-              variant={isOffline ? "destructive" : "secondary"}
+            <Badge
+              variant={isOffline ? 'destructive' : 'secondary'}
               className={cn(
-                "flex items-center gap-1.5",
-                !isOffline && "animate-pulse"
+                'flex items-center gap-1.5',
+                !isOffline && 'animate-pulse'
               )}
             >
               {isOffline ? (
@@ -100,7 +103,8 @@ export function OfflineQueueIndicator() {
               {isOffline ? 'Working Offline' : 'Syncing Changes'}
             </p>
             <p className="text-sm text-muted-foreground">
-              {queueSize} operation{queueSize !== 1 ? 's' : ''} will sync when connected
+              {queueSize} operation{queueSize !== 1 ? 's' : ''} will sync when
+              connected
             </p>
             {isOffline && (
               <p className="text-xs text-muted-foreground">

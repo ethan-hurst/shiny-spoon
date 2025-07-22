@@ -1,7 +1,37 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Calendar as CalendarIcon,
+  Download,
+  Filter,
+  Loader2,
+  Search,
+  User,
+} from 'lucide-react'
+import { DateRange } from 'react-day-picker'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -10,39 +40,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Calendar } from '@/components/ui/calendar'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Calendar as CalendarIcon,
-  Download,
-  Filter,
-  Loader2,
-  Search,
-  User,
-} from 'lucide-react'
-import { formatCurrency, formatPercent, cn } from '@/lib/utils'
-import { toast } from 'sonner'
 import { createBrowserClient } from '@/lib/supabase/client'
-import { PriceHistoryEntry, getChangeTypeIcon } from '@/types/customer-pricing.types'
-import { DateRange } from 'react-day-picker'
+import { cn, formatCurrency, formatPercent } from '@/lib/utils'
+import {
+  getChangeTypeIcon,
+  PriceHistoryEntry,
+} from '@/types/customer-pricing.types'
 
 interface PriceHistoryViewerProps {
   customerId?: string
@@ -50,18 +53,18 @@ interface PriceHistoryViewerProps {
   limit?: number
 }
 
-export function PriceHistoryViewer({ 
-  customerId, 
+export function PriceHistoryViewer({
+  customerId,
   productId,
-  limit = 50 
+  limit = 50,
 }: PriceHistoryViewerProps) {
   const supabase = createBrowserClient()
-  
+
   // State
   const [history, setHistory] = useState<PriceHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
-  
+
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [changeTypeFilter, setChangeTypeFilter] = useState<string>('all')
@@ -74,7 +77,8 @@ export function PriceHistoryViewer({
     try {
       let query = supabase
         .from('customer_price_history')
-        .select(`
+        .select(
+          `
           *,
           products (
             id,
@@ -91,7 +95,8 @@ export function PriceHistoryViewer({
             full_name,
             email
           )
-        `)
+        `
+        )
         .order('created_at', { ascending: false })
         .limit(limit)
 
@@ -144,22 +149,40 @@ export function PriceHistoryViewer({
     setExporting(true)
     try {
       const csvContent = [
-        ['Date', 'Product', 'SKU', 'Old Price', 'New Price', 'Change %', 'Type', 'Reason', 'Changed By', 'Status'],
-        ...history.map(entry => [
+        [
+          'Date',
+          'Product',
+          'SKU',
+          'Old Price',
+          'New Price',
+          'Change %',
+          'Type',
+          'Reason',
+          'Changed By',
+          'Status',
+        ],
+        ...history.map((entry) => [
           format(new Date(entry.created_at), 'yyyy-MM-dd HH:mm'),
           entry.products?.name || '',
           entry.products?.sku || '',
           entry.old_price?.toString() || '',
           entry.new_price?.toString() || '',
-          entry.old_price && entry.new_price 
-            ? ((entry.new_price - entry.old_price) / entry.old_price * 100).toFixed(2) + '%'
+          entry.old_price && entry.new_price
+            ? (
+                ((entry.new_price - entry.old_price) / entry.old_price) *
+                100
+              ).toFixed(2) + '%'
             : '',
           entry.change_type || '',
           entry.change_reason || '',
           entry.created_by_user?.email || '',
-          entry.approval_status || 'approved'
-        ])
-      ].map(row => row.map(field => escapeCsvField(field.toString())).join(',')).join('\n')
+          entry.approval_status || 'approved',
+        ]),
+      ]
+        .map((row) =>
+          row.map((field) => escapeCsvField(field.toString())).join(',')
+        )
+        .join('\n')
 
       const blob = new Blob([csvContent], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)
@@ -168,7 +191,7 @@ export function PriceHistoryViewer({
       a.download = `price-history-${format(new Date(), 'yyyy-MM-dd')}.csv`
       a.click()
       URL.revokeObjectURL(url)
-      
+
       toast.success('History exported successfully')
     } catch (error) {
       console.error('Export error:', error)
@@ -187,7 +210,7 @@ export function PriceHistoryViewer({
   // Get change indicator
   const getChangeIndicator = (change: number | null) => {
     if (!change) return null
-    
+
     if (change > 0) {
       return (
         <span className="flex items-center text-red-600">
@@ -220,7 +243,7 @@ export function PriceHistoryViewer({
   }
 
   // Filtered history
-  const filteredHistory = history.filter(entry => {
+  const filteredHistory = history.filter((entry) => {
     if (searchTerm) {
       const search = searchTerm.toLowerCase()
       return (
@@ -275,7 +298,10 @@ export function PriceHistoryViewer({
               />
             </div>
 
-            <Select value={changeTypeFilter} onValueChange={setChangeTypeFilter}>
+            <Select
+              value={changeTypeFilter}
+              onValueChange={setChangeTypeFilter}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="All change types" />
               </SelectTrigger>
@@ -293,19 +319,19 @@ export function PriceHistoryViewer({
                 <Button
                   variant="outline"
                   className={cn(
-                    "justify-start text-left font-normal",
-                    !dateRange && "text-muted-foreground"
+                    'justify-start text-left font-normal',
+                    !dateRange && 'text-muted-foreground'
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {dateRange?.from ? (
                     dateRange.to ? (
                       <>
-                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                        {format(dateRange.to, "LLL dd, y")}
+                        {format(dateRange.from, 'LLL dd, y')} -{' '}
+                        {format(dateRange.to, 'LLL dd, y')}
                       </>
                     ) : (
-                      format(dateRange.from, "LLL dd, y")
+                      format(dateRange.from, 'LLL dd, y')
                     )
                   ) : (
                     <span>Pick a date range</span>
@@ -371,16 +397,23 @@ export function PriceHistoryViewer({
                       {entry.new_price ? formatCurrency(entry.new_price) : '-'}
                     </TableCell>
                     <TableCell>
-                      {getChangeIndicator(getPriceChange(entry.old_price, entry.new_price))}
+                      {getChangeIndicator(
+                        getPriceChange(entry.old_price, entry.new_price)
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className="flex items-center gap-1">
-                        <span>{getChangeTypeIcon(entry.change_type as any)}</span>
+                        <span>
+                          {getChangeTypeIcon(entry.change_type as any)}
+                        </span>
                         <span className="capitalize">{entry.change_type}</span>
                       </span>
                     </TableCell>
                     <TableCell className="max-w-[200px]">
-                      <span className="truncate" title={entry.change_reason || ''}>
+                      <span
+                        className="truncate"
+                        title={entry.change_reason || ''}
+                      >
                         {entry.change_reason || '-'}
                       </span>
                     </TableCell>
@@ -388,9 +421,9 @@ export function PriceHistoryViewer({
                       <div className="flex items-center gap-1">
                         <User className="h-3 w-3" />
                         <span className="text-sm">
-                          {entry.created_by_user?.user_metadata?.full_name || 
-                           entry.created_by_user?.email?.split('@')[0] || 
-                           'System'}
+                          {entry.created_by_user?.user_metadata?.full_name ||
+                            entry.created_by_user?.email?.split('@')[0] ||
+                            'System'}
                         </span>
                       </div>
                     </TableCell>

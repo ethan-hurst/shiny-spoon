@@ -3,7 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
 }
 
 interface PriceCalculationRequest {
@@ -43,7 +44,7 @@ serve(async (req) => {
     // Create Supabase client with service role for server-side operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Get the authorization header
@@ -51,39 +52,36 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
     }
 
     // Verify the user token
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token)
+
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Parse request body
     const body: PriceCalculationRequest = await req.json()
-    
+
     // Validate required fields
     if (!body.product_id) {
-      return new Response(
-        JSON.stringify({ error: 'product_id is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      return new Response(JSON.stringify({ error: 'product_id is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Get user's organization
@@ -94,13 +92,10 @@ serve(async (req) => {
       .single()
 
     if (profileError || !profile) {
-      return new Response(
-        JSON.stringify({ error: 'User profile not found' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      return new Response(JSON.stringify({ error: 'User profile not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Verify product belongs to user's organization
@@ -110,12 +105,16 @@ serve(async (req) => {
       .eq('id', body.product_id)
       .single()
 
-    if (productError || !product || product.organization_id !== profile.organization_id) {
+    if (
+      productError ||
+      !product ||
+      product.organization_id !== profile.organization_id
+    ) {
       return new Response(
         JSON.stringify({ error: 'Product not found or access denied' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
     }
@@ -128,32 +127,40 @@ serve(async (req) => {
         .eq('id', body.customer_id)
         .single()
 
-      if (customerError || !customer || customer.organization_id !== profile.organization_id) {
+      if (
+        customerError ||
+        !customer ||
+        customer.organization_id !== profile.organization_id
+      ) {
         return new Response(
           JSON.stringify({ error: 'Customer not found or access denied' }),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         )
       }
     }
 
     // Call the database function to calculate price
-    const { data: result, error: calcError } = await supabase.rpc('calculate_product_price', {
-      p_product_id: body.product_id,
-      p_customer_id: body.customer_id || null,
-      p_quantity: body.quantity || 1,
-      p_requested_date: body.requested_date || new Date().toISOString().split('T')[0],
-    })
+    const { data: result, error: calcError } = await supabase.rpc(
+      'calculate_product_price',
+      {
+        p_product_id: body.product_id,
+        p_customer_id: body.customer_id || null,
+        p_quantity: body.quantity || 1,
+        p_requested_date:
+          body.requested_date || new Date().toISOString().split('T')[0],
+      }
+    )
 
     if (calcError) {
       console.error('Price calculation error:', calcError)
       return new Response(
         JSON.stringify({ error: 'Failed to calculate price' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
     }
@@ -161,9 +168,9 @@ serve(async (req) => {
     if (!result || result.length === 0) {
       return new Response(
         JSON.stringify({ error: 'No pricing data available' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
     }
@@ -200,21 +207,15 @@ serve(async (req) => {
       },
     })
 
-    return new Response(
-      JSON.stringify(response),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 200 
-      }
-    )
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    })
   } catch (error) {
     console.error('Edge function error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 })

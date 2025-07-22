@@ -1,31 +1,38 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import {
-  createProductPricingSchema,
-  updateProductPricingSchema,
-  createPricingRuleSchema,
-  updatePricingRuleSchema,
+  clearCustomerPricingCache,
+  clearPricingCache,
+} from '@/lib/pricing/calculate-price'
+import {
   createCustomerPricingSchema,
-  updateCustomerPricingSchema,
+  createPricingRuleSchema,
+  createProductPricingSchema,
   priceCalculationRequestSchema,
+  updateCustomerPricingSchema,
+  updatePricingRuleSchema,
+  updateProductPricingSchema,
 } from '@/lib/pricing/validations'
-import { clearPricingCache, clearCustomerPricingCache } from '@/lib/pricing/calculate-price'
+import { createClient } from '@/lib/supabase/server'
 
 // Product Pricing Actions
 export async function createProductPricing(formData: FormData) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   // Parse and validate numeric inputs
   const costValue = parseFloat(formData.get('cost') as string)
   const basePriceValue = parseFloat(formData.get('base_price') as string)
-  const minMarginValue = parseFloat(formData.get('min_margin_percent') as string)
+  const minMarginValue = parseFloat(
+    formData.get('min_margin_percent') as string
+  )
   const unitQuantityValue = parseInt(formData.get('unit_quantity') as string)
 
   const parsed = createProductPricingSchema.parse({
@@ -40,26 +47,26 @@ export async function createProductPricing(formData: FormData) {
     expiry_date: formData.get('expiry_date') || undefined,
   })
 
-  const { error } = await supabase
-    .from('product_pricing')
-    .insert({
-      ...parsed,
-      created_by: user.id,
-    })
+  const { error } = await supabase.from('product_pricing').insert({
+    ...parsed,
+    created_by: user.id,
+  })
 
   if (error) throw error
 
   // Clear pricing cache for this product
   clearPricingCache(parsed.product_id)
-  
+
   revalidatePath('/pricing')
   revalidatePath(`/products/${parsed.product_id}`)
 }
 
 export async function updateProductPricing(formData: FormData) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const id = formData.get('id') as string
@@ -67,9 +74,15 @@ export async function updateProductPricing(formData: FormData) {
 
   const parsed = updateProductPricingSchema.parse({
     id,
-    cost: formData.has('cost') ? parseFloat(formData.get('cost') as string) : undefined,
-    base_price: formData.has('base_price') ? parseFloat(formData.get('base_price') as string) : undefined,
-    min_margin_percent: formData.has('min_margin_percent') ? parseFloat(formData.get('min_margin_percent') as string) : undefined,
+    cost: formData.has('cost')
+      ? parseFloat(formData.get('cost') as string)
+      : undefined,
+    base_price: formData.has('base_price')
+      ? parseFloat(formData.get('base_price') as string)
+      : undefined,
+    min_margin_percent: formData.has('min_margin_percent')
+      ? parseFloat(formData.get('min_margin_percent') as string)
+      : undefined,
     effective_date: formData.get('effective_date') || undefined,
     expiry_date: formData.get('expiry_date') || undefined,
   })
@@ -83,16 +96,20 @@ export async function updateProductPricing(formData: FormData) {
 
   // Clear pricing cache for this product
   await clearPricingCache(productId)
-  
+
   revalidatePath('/pricing')
   revalidatePath(`/products/${productId}`)
 }
 
 // Pricing Rule Actions
-export async function createPricingRule(data: z.infer<typeof createPricingRuleSchema>) {
+export async function createPricingRule(
+  data: z.infer<typeof createPricingRuleSchema>
+) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const { quantity_breaks, ...ruleData } = data
@@ -126,15 +143,19 @@ export async function createPricingRule(data: z.infer<typeof createPricingRuleSc
 
   // Clear all pricing cache since rules affect pricing
   await clearPricingCache()
-  
+
   revalidatePath('/pricing')
   return rule
 }
 
-export async function updatePricingRule(data: z.infer<typeof updatePricingRuleSchema>) {
+export async function updatePricingRule(
+  data: z.infer<typeof updatePricingRuleSchema>
+) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const { id, quantity_breaks, ...ruleData } = data
@@ -161,22 +182,27 @@ export async function updatePricingRule(data: z.infer<typeof updatePricingRuleSc
         })
       } else if (qb.id) {
         const { _action, id: breakId, ...breakData } = qb
-        await supabase.from('quantity_breaks').update(breakData).eq('id', breakId)
+        await supabase
+          .from('quantity_breaks')
+          .update(breakData)
+          .eq('id', breakId)
       }
     }
   }
 
   // Clear all pricing cache since rules affect pricing
   await clearPricingCache()
-  
+
   revalidatePath('/pricing')
   revalidatePath(`/pricing/rules/${id}`)
 }
 
 export async function deletePricingRule(ruleId: string) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const { error } = await supabase
@@ -188,22 +214,28 @@ export async function deletePricingRule(ruleId: string) {
 
   // Clear all pricing cache since rules affect pricing
   await clearPricingCache()
-  
+
   revalidatePath('/pricing')
 }
 
 // Customer Pricing Actions
 export async function createCustomerPricing(formData: FormData) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const parsed = createCustomerPricingSchema.parse({
     customer_id: formData.get('customer_id'),
     product_id: formData.get('product_id'),
-    override_price: formData.has('override_price') ? parseFloat(formData.get('override_price') as string) : undefined,
-    override_discount_percent: formData.has('override_discount_percent') ? parseFloat(formData.get('override_discount_percent') as string) : undefined,
+    override_price: formData.has('override_price')
+      ? parseFloat(formData.get('override_price') as string)
+      : undefined,
+    override_discount_percent: formData.has('override_discount_percent')
+      ? parseFloat(formData.get('override_discount_percent') as string)
+      : undefined,
     contract_number: formData.get('contract_number') || undefined,
     contract_start: formData.get('contract_start') || undefined,
     contract_end: formData.get('contract_end') || undefined,
@@ -211,26 +243,26 @@ export async function createCustomerPricing(formData: FormData) {
     notes: formData.get('notes') || undefined,
   })
 
-  const { error } = await supabase
-    .from('customer_pricing')
-    .insert({
-      ...parsed,
-      created_by: user.id,
-    })
+  const { error } = await supabase.from('customer_pricing').insert({
+    ...parsed,
+    created_by: user.id,
+  })
 
   if (error) throw error
 
   // Clear pricing cache for this product
   clearPricingCache(parsed.product_id)
-  
+
   revalidatePath('/pricing')
   revalidatePath(`/customers/${parsed.customer_id}`)
 }
 
 export async function updateCustomerPricing(formData: FormData) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const id = formData.get('id') as string
@@ -238,8 +270,12 @@ export async function updateCustomerPricing(formData: FormData) {
 
   const parsed = updateCustomerPricingSchema.parse({
     id,
-    override_price: formData.has('override_price') ? parseFloat(formData.get('override_price') as string) : undefined,
-    override_discount_percent: formData.has('override_discount_percent') ? parseFloat(formData.get('override_discount_percent') as string) : undefined,
+    override_price: formData.has('override_price')
+      ? parseFloat(formData.get('override_price') as string)
+      : undefined,
+    override_discount_percent: formData.has('override_discount_percent')
+      ? parseFloat(formData.get('override_discount_percent') as string)
+      : undefined,
     contract_number: formData.get('contract_number') || undefined,
     contract_start: formData.get('contract_start') || undefined,
     contract_end: formData.get('contract_end') || undefined,
@@ -256,14 +292,16 @@ export async function updateCustomerPricing(formData: FormData) {
 
   // Clear pricing cache for this product
   await clearPricingCache(productId)
-  
+
   revalidatePath('/pricing')
 }
 
 export async function approveCustomerPricing(pricingId: string) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const { error } = await supabase
@@ -282,19 +320,27 @@ export async function approveCustomerPricing(pricingId: string) {
 // Bulk update customer prices
 export async function bulkUpdateCustomerPrices(formData: FormData) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const customerId = formData.get('customer_id') as string
   const updatesJson = formData.get('updates') as string
-  const applyToAllWarehouses = formData.get('apply_to_all_warehouses') === 'true'
+  const applyToAllWarehouses =
+    formData.get('apply_to_all_warehouses') === 'true'
 
   if (!customerId || !updatesJson) {
     throw new Error('Missing required fields')
   }
 
-  let updates: Array<{ sku: string; price?: number; discount_percent?: number; reason: string }>
+  let updates: Array<{
+    sku: string
+    price?: number
+    discount_percent?: number
+    reason: string
+  }>
   try {
     updates = JSON.parse(updatesJson)
   } catch (error) {
@@ -306,13 +352,15 @@ export async function bulkUpdateCustomerPrices(formData: FormData) {
 
   try {
     // Execute bulk update using stored procedure within a transaction
-    const { data: result, error } = await supabase
-      .rpc('bulk_update_customer_prices_transaction', {
+    const { data: result, error } = await supabase.rpc(
+      'bulk_update_customer_prices_transaction',
+      {
         p_customer_id: customerId,
         p_updates: updates,
         p_bulk_update_id: bulkUpdateId,
-        p_user_id: user.id
-      })
+        p_user_id: user.id,
+      }
+    )
 
     if (error) {
       throw error
@@ -330,21 +378,30 @@ export async function bulkUpdateCustomerPrices(formData: FormData) {
 }
 
 // Price Calculation Actions
-export async function calculatePrice(data: z.infer<typeof priceCalculationRequestSchema>) {
+export async function calculatePrice(
+  data: z.infer<typeof priceCalculationRequestSchema>
+) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  const { data: result, error } = await supabase.rpc('calculate_product_price', {
-    p_product_id: data.product_id,
-    p_customer_id: data.customer_id || null,
-    p_quantity: data.quantity,
-    p_requested_date: data.requested_date || new Date().toISOString().split('T')[0],
-  })
+  const { data: result, error } = await supabase.rpc(
+    'calculate_product_price',
+    {
+      p_product_id: data.product_id,
+      p_customer_id: data.customer_id || null,
+      p_quantity: data.quantity,
+      p_requested_date:
+        data.requested_date || new Date().toISOString().split('T')[0],
+    }
+  )
 
   if (error) throw error
-  if (!result || result.length === 0) throw new Error('No pricing data returned')
+  if (!result || result.length === 0)
+    throw new Error('No pricing data returned')
 
   return result[0]
 }
@@ -352,28 +409,30 @@ export async function calculatePrice(data: z.infer<typeof priceCalculationReques
 // Bulk Import Actions
 export async function importPricingRules(file: File) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   // Parse CSV file using proper CSV parsing
   const text = await file.text()
-  
+
   // Simple CSV parser that handles quoted fields
   function parseCSV(text: string): string[][] {
     const rows: string[][] = []
-    const lines = text.split('\n').filter(line => line.trim())
-    
+    const lines = text.split('\n').filter((line) => line.trim())
+
     for (const line of lines) {
       const row: string[] = []
       let current = ''
       let inQuotes = false
       let i = 0
-      
+
       while (i < line.length) {
         const char = line[i]
         const nextChar = line[i + 1]
-        
+
         if (char === '"') {
           if (inQuotes && nextChar === '"') {
             // Escaped quote
@@ -394,22 +453,22 @@ export async function importPricingRules(file: File) {
           i++
         }
       }
-      
+
       // Add the last field
       row.push(current.trim())
       rows.push(row)
     }
-    
+
     return rows
   }
-  
+
   const rows = parseCSV(text)
   if (rows.length < 2) {
     throw new Error('CSV file must contain headers and at least one data row')
   }
-  
-  const headers = rows[0].map(h => h.trim())
-  const rules = rows.slice(1).map(values => {
+
+  const headers = rows[0].map((h) => h.trim())
+  const rules = rows.slice(1).map((values) => {
     const rule: any = {}
     headers.forEach((header, index) => {
       rule[header] = values[index] || ''
@@ -448,8 +507,10 @@ export async function importPricingRules(file: File) {
 
 export async function exportPricingRules() {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const { data: rules, error } = await supabase
@@ -474,15 +535,20 @@ export async function exportPricingRules() {
 
   const csvContent = [
     headers.join(','),
-    ...rules.map(rule => 
-      headers.map(header => {
-        const value = rule[header] || ''
-        // Escape CSV values that contain commas, quotes, or newlines
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
-          return `"${value.replace(/"/g, '""')}"`
-        }
-        return value
-      }).join(',')
+    ...rules.map((rule) =>
+      headers
+        .map((header) => {
+          const value = rule[header] || ''
+          // Escape CSV values that contain commas, quotes, or newlines
+          if (
+            typeof value === 'string' &&
+            (value.includes(',') || value.includes('"') || value.includes('\n'))
+          ) {
+            return `"${value.replace(/"/g, '""')}"`
+          }
+          return value
+        })
+        .join(',')
     ),
   ].join('\n')
 

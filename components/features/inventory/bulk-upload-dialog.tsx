@@ -2,6 +2,16 @@
 
 import { useState } from 'react'
 import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  FileUp,
+  Loader2,
+  XCircle,
+} from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -9,28 +19,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Progress } from '@/components/ui/progress'
-import { 
-  FileUp, 
-  Download, 
-  Loader2, 
-  CheckCircle2, 
-  XCircle,
-  AlertCircle
-} from 'lucide-react'
-import { bulkUpdateInventory } from '@/app/actions/inventory'
-import { useToast } from '@/components/ui/use-toast'
-import { cn } from '@/lib/utils'
-import { parseInventoryCSV, validateCSVFile } from '@/lib/csv/parser'
-import { downloadTemplate, TEMPLATE_DESCRIPTIONS } from '@/lib/csv/templates'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Progress } from '@/components/ui/progress'
+import { useToast } from '@/components/ui/use-toast'
+import { parseInventoryCSV, validateCSVFile } from '@/lib/csv/parser'
+import { downloadTemplate, TEMPLATE_DESCRIPTIONS } from '@/lib/csv/templates'
+import { cn } from '@/lib/utils'
+import { bulkUpdateInventory } from '@/app/actions/inventory'
 
 interface BulkUploadDialogProps {
   open: boolean
@@ -41,7 +41,7 @@ interface BulkUploadDialogProps {
 export function BulkUploadDialog({
   open,
   onOpenChange,
-  onSuccess
+  onSuccess,
 }: BulkUploadDialogProps) {
   const { toast } = useToast()
   const [file, setFile] = useState<File | null>(null)
@@ -78,10 +78,10 @@ export function BulkUploadDialog({
 
     try {
       const csvContent = await file.text()
-      
+
       // Parse CSV first to validate
       const parseResult = parseInventoryCSV(csvContent)
-      
+
       if (parseResult.errors.length > 0) {
         toast({
           title: 'CSV validation failed',
@@ -91,22 +91,25 @@ export function BulkUploadDialog({
         setUploadResult({
           successCount: 0,
           errorCount: parseResult.errors.length,
-          errors: parseResult.errors.slice(0, 10).map(err => 
-            `Row ${err.row}: ${err.column ? `${err.column} - ` : ''}${err.message}`
-          ),
+          errors: parseResult.errors
+            .slice(0, 10)
+            .map(
+              (err) =>
+                `Row ${err.row}: ${err.column ? `${err.column} - ` : ''}${err.message}`
+            ),
         })
         return
       }
-      
+
       if (parseResult.warnings.length > 0) {
-        parseResult.warnings.forEach(warning => {
+        parseResult.warnings.forEach((warning) => {
           toast({
             title: 'Warning',
             description: warning,
           })
         })
       }
-      
+
       // Proceed with upload
       const result = await bulkUpdateInventory(csvContent)
 
@@ -130,7 +133,7 @@ export function BulkUploadDialog({
               result.errorCount > 0 ? `, ${result.errorCount} errors` : ''
             }`,
           })
-          
+
           if (result.errorCount === 0) {
             setTimeout(() => {
               onSuccess()
@@ -157,7 +160,9 @@ export function BulkUploadDialog({
     onOpenChange(false)
   }
 
-  const handleTemplateDownload = (templateKey: keyof typeof TEMPLATE_DESCRIPTIONS) => {
+  const handleTemplateDownload = (
+    templateKey: keyof typeof TEMPLATE_DESCRIPTIONS
+  ) => {
     downloadTemplate(templateKey)
     toast({
       title: 'Template downloaded',
@@ -184,28 +189,30 @@ export function BulkUploadDialog({
                 <span>Download a template to see the required format</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="h-auto p-0"
-                    >
+                    <Button variant="link" size="sm" className="h-auto p-0">
                       <Download className="mr-2 h-4 w-4" />
                       Templates
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[250px]">
-                    {Object.entries(TEMPLATE_DESCRIPTIONS).map(([key, template]) => (
-                      <DropdownMenuItem
-                        key={key}
-                        onClick={() => handleTemplateDownload(key as keyof typeof TEMPLATE_DESCRIPTIONS)}
-                        className="flex flex-col items-start py-2"
-                      >
-                        <div className="font-medium">{template.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {template.useCase}
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
+                    {Object.entries(TEMPLATE_DESCRIPTIONS).map(
+                      ([key, template]) => (
+                        <DropdownMenuItem
+                          key={key}
+                          onClick={() =>
+                            handleTemplateDownload(
+                              key as keyof typeof TEMPLATE_DESCRIPTIONS
+                            )
+                          }
+                          className="flex flex-col items-start py-2"
+                        >
+                          <div className="font-medium">{template.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {template.useCase}
+                          </div>
+                        </DropdownMenuItem>
+                      )
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -220,25 +227,32 @@ export function BulkUploadDialog({
                 'flex flex-col items-center justify-center w-full h-32',
                 'border-2 border-dashed rounded-lg cursor-pointer',
                 'hover:bg-muted/50 transition-colors',
-                file ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
+                file
+                  ? 'border-primary bg-primary/5'
+                  : 'border-muted-foreground/25'
               )}
             >
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <FileUp className={cn(
-                  'w-8 h-8 mb-2',
-                  file ? 'text-primary' : 'text-muted-foreground'
-                )} />
+                <FileUp
+                  className={cn(
+                    'w-8 h-8 mb-2',
+                    file ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                />
                 <p className="mb-2 text-sm text-center">
                   {file ? (
                     <span className="font-semibold">{file.name}</span>
                   ) : (
                     <>
-                      <span className="font-semibold">Click to upload</span> or drag and drop
+                      <span className="font-semibold">Click to upload</span> or
+                      drag and drop
                     </>
                   )}
                 </p>
                 {!file && (
-                  <p className="text-xs text-muted-foreground">CSV files only (max 10MB, 10,000 rows)</p>
+                  <p className="text-xs text-muted-foreground">
+                    CSV files only (max 10MB, 10,000 rows)
+                  </p>
                 )}
               </div>
               <input
@@ -261,7 +275,9 @@ export function BulkUploadDialog({
                   <li>SKU (or Product SKU, Item Code)</li>
                   <li>Warehouse Code (or Warehouse, Location)</li>
                   <li>Quantity (or Qty, Count, Stock)</li>
-                  <li>Reason (optional, defaults to &quot;cycle_count&quot;)</li>
+                  <li>
+                    Reason (optional, defaults to &quot;cycle_count&quot;)
+                  </li>
                   <li>Notes (optional)</li>
                 </ul>
               </AlertDescription>
@@ -305,9 +321,10 @@ export function BulkUploadDialog({
                 </Alert>
               )}
 
-              {uploadResult.successCount > 0 && uploadResult.errorCount === 0 && (
-                <Progress value={100} className="h-2" />
-              )}
+              {uploadResult.successCount > 0 &&
+                uploadResult.errorCount === 0 && (
+                  <Progress value={100} className="h-2" />
+                )}
             </div>
           )}
         </div>
@@ -320,10 +337,7 @@ export function BulkUploadDialog({
           >
             {uploadResult && uploadResult.errorCount > 0 ? 'Close' : 'Cancel'}
           </Button>
-          <Button
-            onClick={handleUpload}
-            disabled={!file || isUploading}
-          >
+          <Button onClick={handleUpload} disabled={!file || isUploading}>
             {isUploading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

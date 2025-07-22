@@ -1,11 +1,14 @@
 import { PricingEngine } from '@/lib/pricing/pricing-engine'
-import { 
-  PriceCalculationRequest, 
+import {
+  PriceCalculationRequest,
   PriceCalculationResult,
   PriceContext,
-  PricingRuleRecord 
+  PricingRuleRecord,
 } from '@/types/pricing.types'
-import { createMockQueryBuilder, setupSupabaseMocks } from '../../../utils/supabase-mocks'
+import {
+  createMockQueryBuilder,
+  setupSupabaseMocks,
+} from '../../../utils/supabase-mocks'
 
 // Mock dependencies
 const mockPricingCache = {
@@ -18,7 +21,7 @@ const mockPricingCache = {
 
 jest.mock('@/lib/supabase/client')
 jest.mock('@/lib/pricing/redis-cache', () => ({
-  pricingCache: mockPricingCache
+  pricingCache: mockPricingCache,
 }))
 
 describe('PricingEngine', () => {
@@ -28,24 +31,26 @@ describe('PricingEngine', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     setupSupabaseMocks()
-    
+
     // Mock supabase responses
     mockSupabase = {
       rpc: jest.fn().mockResolvedValue({
-        data: [{
-          base_price: 100,
-          final_price: 90,
-          discount_amount: 10,
-          discount_percent: 10,
-          margin_percent: 30,
-          applied_rules: []
-        }],
-        error: null
+        data: [
+          {
+            base_price: 100,
+            final_price: 90,
+            discount_amount: 10,
+            discount_percent: 10,
+            margin_percent: 30,
+            applied_rules: [],
+          },
+        ],
+        error: null,
       }),
       from: jest.fn(() => createMockQueryBuilder()),
       functions: {
-        invoke: jest.fn().mockResolvedValue({ data: null, error: null })
-      }
+        invoke: jest.fn().mockResolvedValue({ data: null, error: null }),
+      },
     }
 
     // Create pricing engine with mocked client
@@ -62,15 +67,17 @@ describe('PricingEngine', () => {
       }
 
       mockSupabase.rpc.mockResolvedValueOnce({
-        data: [{
-          base_price: 100,
-          final_price: 100,
-          discount_amount: 0,
-          discount_percent: 0,
-          margin_percent: 50,
-          applied_rules: []
-        }],
-        error: null
+        data: [
+          {
+            base_price: 100,
+            final_price: 100,
+            discount_amount: 0,
+            discount_percent: 0,
+            margin_percent: 50,
+            applied_rules: [],
+          },
+        ],
+        error: null,
       })
 
       const result = await pricingEngine.calculatePrice(request)
@@ -85,28 +92,30 @@ describe('PricingEngine', () => {
       const request: PriceCalculationRequest = {
         product_id: 'test-product-id',
         quantity: 100,
-        customer_id: 'test-customer-id'
+        customer_id: 'test-customer-id',
       }
 
       mockSupabase.rpc.mockResolvedValueOnce({
-        data: [{
-          base_price: 100,
-          final_price: 85,
-          discount_amount: 15,
-          discount_percent: 15,
-          margin_percent: 40,
-          applied_rules: [
-            {
-              rule_id: 'rule-1',
-              type: 'quantity',
-              name: 'Bulk Discount',
-              discount_type: 'percentage',
-              discount_value: 15,
-              discount_amount: 15
-            }
-          ]
-        }],
-        error: null
+        data: [
+          {
+            base_price: 100,
+            final_price: 85,
+            discount_amount: 15,
+            discount_percent: 15,
+            margin_percent: 40,
+            applied_rules: [
+              {
+                rule_id: 'rule-1',
+                type: 'quantity',
+                name: 'Bulk Discount',
+                discount_type: 'percentage',
+                discount_value: 15,
+                discount_amount: 15,
+              },
+            ],
+          },
+        ],
+        error: null,
       })
 
       const result = await pricingEngine.calculatePrice(request)
@@ -121,28 +130,30 @@ describe('PricingEngine', () => {
       const request: PriceCalculationRequest = {
         product_id: 'test-product-id',
         customer_id: 'vip-customer-id',
-        quantity: 10
+        quantity: 10,
       }
 
       mockSupabase.rpc.mockResolvedValueOnce({
-        data: [{
-          base_price: 100,
-          final_price: 75,
-          discount_amount: 25,
-          discount_percent: 25,
-          margin_percent: 35,
-          applied_rules: [
-            {
-              rule_id: 'rule-2',
-              type: 'customer',
-              name: 'VIP Customer Discount',
-              discount_type: 'percentage',
-              discount_value: 25,
-              discount_amount: 25
-            }
-          ]
-        }],
-        error: null
+        data: [
+          {
+            base_price: 100,
+            final_price: 75,
+            discount_amount: 25,
+            discount_percent: 25,
+            margin_percent: 35,
+            applied_rules: [
+              {
+                rule_id: 'rule-2',
+                type: 'customer',
+                name: 'VIP Customer Discount',
+                discount_type: 'percentage',
+                discount_value: 25,
+                discount_amount: 25,
+              },
+            ],
+          },
+        ],
+        error: null,
       })
 
       const result = await pricingEngine.calculatePrice(request)
@@ -156,28 +167,30 @@ describe('PricingEngine', () => {
       const request: PriceCalculationRequest = {
         product_id: 'test-product-id',
         quantity: 1,
-        requested_date: '2024-12-25' // Christmas promotion
+        requested_date: '2024-12-25', // Christmas promotion
       }
 
       mockSupabase.rpc.mockResolvedValueOnce({
-        data: [{
-          base_price: 100,
-          final_price: 80,
-          discount_amount: 20,
-          discount_percent: 20,
-          margin_percent: 30,
-          applied_rules: [
-            {
-              rule_id: 'rule-3',
-              type: 'promotion',
-              name: 'Christmas Sale',
-              discount_type: 'percentage',
-              discount_value: 20,
-              discount_amount: 20
-            }
-          ]
-        }],
-        error: null
+        data: [
+          {
+            base_price: 100,
+            final_price: 80,
+            discount_amount: 20,
+            discount_percent: 20,
+            margin_percent: 30,
+            applied_rules: [
+              {
+                rule_id: 'rule-3',
+                type: 'promotion',
+                name: 'Christmas Sale',
+                discount_type: 'percentage',
+                discount_value: 20,
+                discount_amount: 20,
+              },
+            ],
+          },
+        ],
+        error: null,
       })
 
       const result = await pricingEngine.calculatePrice(request)
@@ -190,29 +203,33 @@ describe('PricingEngine', () => {
     it('should handle errors from the database', async () => {
       const request: PriceCalculationRequest = {
         product_id: 'test-product-id',
-        quantity: 1
+        quantity: 1,
       }
 
       mockSupabase.rpc.mockResolvedValueOnce({
         data: null,
-        error: { message: 'Database error' }
+        error: { message: 'Database error' },
       })
 
-      await expect(pricingEngine.calculatePrice(request)).rejects.toThrow('Price calculation failed: Database error')
+      await expect(pricingEngine.calculatePrice(request)).rejects.toThrow(
+        'Price calculation failed: Database error'
+      )
     })
 
     it('should handle empty results', async () => {
       const request: PriceCalculationRequest = {
         product_id: 'non-existent-product',
-        quantity: 1
+        quantity: 1,
       }
 
       mockSupabase.rpc.mockResolvedValueOnce({
         data: [],
-        error: null
+        error: null,
       })
 
-      await expect(pricingEngine.calculatePrice(request)).rejects.toThrow('No pricing data returned')
+      await expect(pricingEngine.calculatePrice(request)).rejects.toThrow(
+        'No pricing data returned'
+      )
     })
   })
 
@@ -233,7 +250,7 @@ describe('PricingEngine', () => {
         basePrice: 100,
         cost: 50,
         minMargin: 20,
-        organizationId: 'test-org'
+        organizationId: 'test-org',
       }
 
       const mockRules = [
@@ -244,7 +261,7 @@ describe('PricingEngine', () => {
           start_date: summerStart.toISOString().split('T')[0],
           end_date: summerEnd.toISOString().split('T')[0],
           is_active: true,
-          conditions: {}
+          conditions: {},
         },
         {
           id: 'rule-2',
@@ -253,15 +270,15 @@ describe('PricingEngine', () => {
           start_date: winterStart.toISOString().split('T')[0],
           end_date: winterEnd.toISOString().split('T')[0],
           is_active: true,
-          conditions: {}
-        }
+          conditions: {},
+        },
       ]
 
       mockSupabase.from = jest.fn(() => ({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockRules, error: null })
+        order: jest.fn().mockResolvedValue({ data: mockRules, error: null }),
       }))
 
       const rules = await pricingEngine.getApplicableRules(context)
@@ -280,7 +297,7 @@ describe('PricingEngine', () => {
         basePrice: 100,
         cost: 50,
         minMargin: 20,
-        organizationId: 'test-org'
+        organizationId: 'test-org',
       }
 
       const mockRules = [
@@ -290,7 +307,7 @@ describe('PricingEngine', () => {
           rule_type: 'product',
           product_id: 'test-product',
           is_active: true,
-          conditions: {}
+          conditions: {},
         },
         {
           id: 'rule-2',
@@ -298,7 +315,7 @@ describe('PricingEngine', () => {
           rule_type: 'category',
           category_id: 'electronics',
           is_active: true,
-          conditions: {}
+          conditions: {},
         },
         {
           id: 'rule-3',
@@ -306,24 +323,24 @@ describe('PricingEngine', () => {
           rule_type: 'product',
           product_id: 'other-product',
           is_active: true,
-          conditions: {}
-        }
+          conditions: {},
+        },
       ]
 
       mockSupabase.from = jest.fn(() => ({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({ data: mockRules, error: null })
+        order: jest.fn().mockResolvedValue({ data: mockRules, error: null }),
       }))
 
       const rules = await pricingEngine.getApplicableRules(context)
 
       // Should return product specific and category rules, but not different product
       expect(rules).toHaveLength(2)
-      expect(rules.map(r => r.name)).toContain('Product Specific')
-      expect(rules.map(r => r.name)).toContain('Category Wide')
-      expect(rules.map(r => r.name)).not.toContain('Different Product')
+      expect(rules.map((r) => r.name)).toContain('Product Specific')
+      expect(rules.map((r) => r.name)).toContain('Category Wide')
+      expect(rules.map((r) => r.name)).not.toContain('Different Product')
     })
   })
 
@@ -342,7 +359,7 @@ describe('PricingEngine', () => {
         can_stack: true,
         organization_id: 'test-org',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       const context: PriceContext = {
@@ -352,7 +369,7 @@ describe('PricingEngine', () => {
         basePrice: 100,
         cost: 50,
         minMargin: 20,
-        organizationId: 'test-org'
+        organizationId: 'test-org',
       }
 
       const result = pricingEngine.applyRule(rule, 100, context)
@@ -376,7 +393,7 @@ describe('PricingEngine', () => {
         can_stack: true,
         organization_id: 'test-org',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       const context: PriceContext = {
@@ -386,7 +403,7 @@ describe('PricingEngine', () => {
         basePrice: 100,
         cost: 50,
         minMargin: 20,
-        organizationId: 'test-org'
+        organizationId: 'test-org',
       }
 
       const result = pricingEngine.applyRule(rule, 100, context)
@@ -410,7 +427,7 @@ describe('PricingEngine', () => {
         can_stack: true,
         organization_id: 'test-org',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       const context: PriceContext = {
@@ -420,7 +437,7 @@ describe('PricingEngine', () => {
         basePrice: 100,
         cost: 50,
         minMargin: 20,
-        organizationId: 'test-org'
+        organizationId: 'test-org',
       }
 
       const result = pricingEngine.applyRule(rule, 100, context)
@@ -454,7 +471,7 @@ describe('PricingEngine', () => {
           max_quantity: 50,
           discount_type: 'percentage',
           discount_value: 5,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         },
         {
           id: 'qb-2',
@@ -463,8 +480,8 @@ describe('PricingEngine', () => {
           max_quantity: null,
           discount_type: 'percentage',
           discount_value: 10,
-          created_at: new Date().toISOString()
-        }
+          created_at: new Date().toISOString(),
+        },
       ]
 
       // Test quantity 25 (should get 5% discount)
@@ -475,7 +492,7 @@ describe('PricingEngine', () => {
         basePrice: 100,
         cost: 50,
         minMargin: 20,
-        organizationId: 'test-org'
+        organizationId: 'test-org',
       }
 
       const result1 = pricingEngine.applyRule(rule, 100, context1)
@@ -484,7 +501,7 @@ describe('PricingEngine', () => {
       // Test quantity 100 (should get 10% discount)
       const context2: PriceContext = {
         ...context1,
-        quantity: 100
+        quantity: 100,
       }
 
       const result2 = pricingEngine.applyRule(rule, 100, context2)
@@ -493,7 +510,7 @@ describe('PricingEngine', () => {
       // Test quantity 5 (no applicable break)
       const context3: PriceContext = {
         ...context1,
-        quantity: 5
+        quantity: 5,
       }
 
       const result3 = pricingEngine.applyRule(rule, 100, context3)
@@ -505,11 +522,15 @@ describe('PricingEngine', () => {
     it('should enforce minimum margin correctly', () => {
       const cost = 70
       const minMargin = 30 // 30%
-      
+
       // Price that would give 20% margin (too low)
       const lowPrice = 87.5
-      const adjustedPrice = pricingEngine.enforceMinimumMargin(lowPrice, cost, minMargin)
-      
+      const adjustedPrice = pricingEngine.enforceMinimumMargin(
+        lowPrice,
+        cost,
+        minMargin
+      )
+
       // Should be adjusted to maintain 30% margin
       expect(adjustedPrice).toBe(100)
     })
@@ -518,9 +539,13 @@ describe('PricingEngine', () => {
       const cost = 50
       const minMargin = 20
       const goodPrice = 100 // 50% margin
-      
-      const adjustedPrice = pricingEngine.enforceMinimumMargin(goodPrice, cost, minMargin)
-      
+
+      const adjustedPrice = pricingEngine.enforceMinimumMargin(
+        goodPrice,
+        cost,
+        minMargin
+      )
+
       expect(adjustedPrice).toBe(goodPrice)
     })
   })
@@ -529,12 +554,12 @@ describe('PricingEngine', () => {
     it('should cache price calculations', async () => {
       const request: PriceCalculationRequest = {
         product_id: 'test-product-id',
-        quantity: 1
+        quantity: 1,
       }
 
       // Mock cache miss on first call
       mockPricingCache.get.mockResolvedValueOnce(null)
-      
+
       // First call - should invoke RPC and cache result
       await pricingEngine.calculatePrice(request)
       expect(mockSupabase.rpc).toHaveBeenCalledTimes(1)
@@ -547,7 +572,7 @@ describe('PricingEngine', () => {
         discount_amount: 10,
         discount_percent: 10,
         margin_percent: 30,
-        applied_rules: []
+        applied_rules: [],
       })
 
       // Second call should use cache and not invoke RPC again
@@ -558,7 +583,9 @@ describe('PricingEngine', () => {
 
     it('should clear cache for specific product', async () => {
       await pricingEngine.clearCache('test-product-id')
-      expect(mockPricingCache.clearProduct).toHaveBeenCalledWith('test-product-id')
+      expect(mockPricingCache.clearProduct).toHaveBeenCalledWith(
+        'test-product-id'
+      )
     })
 
     it('should clear all cache', async () => {

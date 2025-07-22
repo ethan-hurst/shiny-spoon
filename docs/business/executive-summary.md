@@ -7,6 +7,7 @@ TruthSource is a B2B e-commerce data accuracy platform that eliminates costly or
 ## The Problem
 
 **33% of B2B e-commerce orders contain errors**, causing:
+
 - Lost revenue from canceled orders and returns
 - Customer churn (75% willing to switch suppliers over data issues)
 - Manual intervention costs averaging $400,000 annually per distributor
@@ -15,6 +16,7 @@ TruthSource is a B2B e-commerce data accuracy platform that eliminates costly or
 ## The Solution
 
 TruthSource provides a specialized middleware platform that:
+
 - **Real-time Inventory Sync**: Maintains accurate stock levels across all systems
 - **Dynamic Pricing Validation**: Ensures customer-specific pricing accuracy
 - **Delivery Prediction**: Uses ML to provide accurate delivery promises
@@ -30,12 +32,14 @@ TruthSource provides a specialized middleware platform that:
 ## Business Model
 
 ### Pricing Strategy
+
 - **Starter**: $499/month (up to 5,000 SKUs)
 - **Professional**: $1,499/month (up to 50,000 SKUs) - Hero plan
 - **Enterprise**: $3,999/month base + usage-based pricing
 - **Implementation Fees**: $1,500 - $15,000 based on tier
 
 ### Unit Economics
+
 - **Average Contract Value**: $18,000/year
 - **Gross Margin**: 85%
 - **Customer Acquisition Cost**: $2,000
@@ -45,17 +49,20 @@ TruthSource provides a specialized middleware platform that:
 ## Go-to-Market Strategy
 
 ### Target Customer Profile
+
 - **Industry**: Industrial supplies, electrical components, medical supplies
 - **Size**: $10M - $100M annual revenue
 - **Characteristics**: 5,000-50,000 SKUs, using NetSuite + Shopify B2B
 - **Pain Level**: Processing 50+ orders/day with 20%+ error rates
 
 ### Sales Strategy
+
 - **Phase 1** (Months 1-6): Founder-led sales, 20 pilot customers
 - **Phase 2** (Months 7-12): Inside sales team, scale to 100 customers
 - **Phase 3** (Year 2): Channel partnerships with system integrators
 
 ### Marketing Approach
+
 - **Core Message**: "Stop losing revenue to preventable order errors"
 - **Lead Generation**: Order Error Calculator showing revenue impact
 - **Content Strategy**: SEO-focused integration guides and industry reports
@@ -80,12 +87,14 @@ TruthSource provides a specialized middleware platform that:
 ## Team Requirements
 
 ### Immediate Hires (Months 1-6)
+
 - VP of Engineering
 - Senior Full-Stack Engineers (2)
 - Customer Success Manager
 - SDR/Inside Sales Rep
 
 ### Scale Hires (Months 7-12)
+
 - Sales Manager
 - Additional Engineers (3)
 - Marketing Manager
@@ -94,18 +103,21 @@ TruthSource provides a specialized middleware platform that:
 ## Financial Projections
 
 ### Year 1
+
 - **Revenue**: $1.2M ARR
 - **Customers**: 100
 - **Burn Rate**: $50k/month
 - **Runway**: 24 months (with seed funding)
 
 ### Year 2
+
 - **Revenue**: $5M ARR
 - **Customers**: 350
 - **Team Size**: 25
 - **Cash Flow Positive**: Month 18
 
 ### Year 3
+
 - **Revenue**: $15M ARR
 - **Customers**: 1,000
 - **EBITDA Margin**: 20%
@@ -114,6 +126,7 @@ TruthSource provides a specialized middleware platform that:
 ## Funding Requirements
 
 ### Seed Round: $2M
+
 - **Use of Funds**:
   - Product Development: 40%
   - Sales & Marketing: 35%
@@ -134,11 +147,13 @@ TruthSource provides a specialized middleware platform that:
 ## Risk Mitigation
 
 ### Technical Risks
+
 - Platform API changes → Maintain strong partner relationships
 - Scaling challenges → Build for 10x capacity from day one
 - Security concerns → SOC2 compliance by Month 9
 
 ### Market Risks
+
 - Economic downturn → Position as cost-saving solution
 - Competitor entry → Build moat through customer success
 - Platform consolidation → Focus on multi-platform support
@@ -146,12 +161,14 @@ TruthSource provides a specialized middleware platform that:
 ## Exit Strategy
 
 **Potential Acquirers**:
+
 - E-commerce Platforms (Shopify, BigCommerce)
 - ERP Vendors (Oracle/NetSuite, SAP)
 - Integration Platforms (MuleSoft, Boomi)
 - PE Roll-ups in B2B software space
 
 **Target Exit Metrics**:
+
 - $20M+ ARR
 - 1,000+ customers
 - 130% net revenue retention
@@ -180,4 +197,4 @@ TruthSource provides a specialized middleware platform that:
 [Phone]  
 [LinkedIn]
 
-*Building the single source of truth for B2B commerce*
+_Building the single source of truth for B2B commerce_

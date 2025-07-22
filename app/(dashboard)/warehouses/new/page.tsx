@@ -9,7 +9,7 @@ export default function NewWarehousePage() {
           Create a new warehouse location for inventory storage
         </p>
       </div>
-      
+
       <WarehouseForm />
     </div>
   )

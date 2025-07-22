@@ -15,6 +15,7 @@
 ## Testing Steps
 
 ### 1. Test Sign Up Flow
+
 - Navigate to `/signup`
 - Fill in all fields:
   - Full Name: "Test User"
@@ -27,6 +28,7 @@
 - Check `organizations` and `user_profiles` tables for created records
 
 ### 2. Test Login Flow
+
 - Navigate to `/login`
 - Enter credentials from signup
 - Submit form
@@ -34,12 +36,14 @@
 - Should show error for invalid credentials
 
 ### 3. Test Protected Routes
+
 - Clear browser cookies/storage to sign out
 - Try accessing `/dashboard` directly
 - Should redirect to `/login?redirectTo=/dashboard`
 - After login, should redirect back to dashboard
 
 ### 4. Test Password Reset
+
 - Navigate to `/reset-password`
 - Enter registered email
 - Submit form
@@ -47,6 +51,7 @@
 - If SMTP is configured, check email for reset link
 
 ### 5. Test Sign Out
+
 - While logged in, use the user menu to sign out
 - Should redirect to home page
 - Try accessing `/dashboard` - should redirect to login

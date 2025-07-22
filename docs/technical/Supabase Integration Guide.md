@@ -5,8 +5,9 @@ This document replaces the traditional API specification with Supabase-specific 
 ## Overview
 
 TruthSource uses Supabase as its backend, providing:
+
 - **Auto-generated REST APIs** from PostgreSQL schemas
-- **GraphQL API** (if enabled) 
+- **GraphQL API** (if enabled)
 - **Real-time subscriptions** for live data updates
 - **Row Level Security (RLS)** for multi-tenant data isolation
 - **Edge Functions** for complex business logic
@@ -29,6 +30,7 @@ export function createClient() {
 ```
 
 ### Sign Up Flow
+
 ```typescript
 const supabase = createClient()
 
@@ -40,35 +42,39 @@ const { data, error } = await supabase.auth.signUp({
     data: {
       organization_name: 'Acme Corp',
       full_name: 'John Doe',
-      role: 'admin'
-    }
-  }
+      role: 'admin',
+    },
+  },
 })
 
 // Email confirmation will be sent
 ```
 
 ### Sign In Flow
+
 ```typescript
 // Email/Password
 const { data, error } = await supabase.auth.signInWithPassword({
   email: 'user@example.com',
-  password: 'secure-password'
+  password: 'secure-password',
 })
 
 // OAuth (Google, Microsoft, etc.)
 const { data, error } = await supabase.auth.signInWithOAuth({
   provider: 'google',
   options: {
-    redirectTo: `${window.location.origin}/auth/callback`
-  }
+    redirectTo: `${window.location.origin}/auth/callback`,
+  },
 })
 ```
 
 ### Session Management
+
 ```typescript
 // Get current user
-const { data: { user } } = await supabase.auth.getUser()
+const {
+  data: { user },
+} = await supabase.auth.getUser()
 
 // Listen for auth changes
 supabase.auth.onAuthStateChange((event, session) => {
@@ -85,6 +91,7 @@ supabase.auth.onAuthStateChange((event, session) => {
 ### Core Tables
 
 #### Organizations
+
 ```sql
 CREATE TABLE organizations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -103,13 +110,14 @@ ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their organization" ON organizations
   FOR SELECT USING (
     id IN (
-      SELECT organization_id FROM user_profiles 
+      SELECT organization_id FROM user_profiles
       WHERE user_id = auth.uid()
     )
   );
 ```
 
 #### User Profiles
+
 ```sql
 CREATE TABLE user_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -133,6 +141,7 @@ CREATE POLICY "Users can update own profile" ON user_profiles
 ```
 
 #### Products
+
 ```sql
 CREATE TABLE products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -161,13 +170,14 @@ ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Organization members can view products" ON products
   FOR SELECT USING (
     organization_id IN (
-      SELECT organization_id FROM user_profiles 
+      SELECT organization_id FROM user_profiles
       WHERE user_id = auth.uid()
     )
   );
 ```
 
 #### Inventory
+
 ```sql
 CREATE TABLE inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -188,9 +198,9 @@ CREATE TABLE inventory (
 
 -- Indexes for performance
 CREATE INDEX idx_inventory_org_product ON inventory(organization_id, product_id);
-CREATE INDEX idx_inventory_sync_status ON inventory(sync_status) 
+CREATE INDEX idx_inventory_sync_status ON inventory(sync_status)
   WHERE sync_status IN ('pending', 'error');
-CREATE INDEX idx_inventory_low_stock ON inventory(organization_id, warehouse_id) 
+CREATE INDEX idx_inventory_low_stock ON inventory(organization_id, warehouse_id)
   WHERE quantity <= reorder_point;
 
 -- RLS
@@ -199,13 +209,14 @@ ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Organization members can manage inventory" ON inventory
   FOR ALL USING (
     organization_id IN (
-      SELECT organization_id FROM user_profiles 
+      SELECT organization_id FROM user_profiles
       WHERE user_id = auth.uid()
     )
   );
 ```
 
 #### Pricing Rules
+
 ```sql
 CREATE TABLE pricing_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -239,6 +250,7 @@ CREATE TABLE pricing_rules (
 ### Real-time Subscriptions
 
 #### Subscribe to Inventory Changes
+
 ```typescript
 // In a Client Component
 'use client'
@@ -263,7 +275,7 @@ export function InventoryRealtime({ warehouseId }: { warehouseId: string }) {
         },
         (payload) => {
           console.log('Inventory changed:', payload)
-          
+
           if (payload.eventType === 'UPDATE') {
             // Handle inventory update
             if (payload.new.quantity <= payload.new.reorder_point) {
@@ -284,6 +296,7 @@ export function InventoryRealtime({ warehouseId }: { warehouseId: string }) {
 ```
 
 #### Subscribe to Sync Status
+
 ```typescript
 const channel = supabase
   .channel('sync-status')
@@ -293,7 +306,7 @@ const channel = supabase
       event: 'UPDATE',
       schema: 'public',
       table: 'sync_jobs',
-      filter: 'status=eq.completed'
+      filter: 'status=eq.completed',
     },
     (payload) => {
       toast.success(`Sync completed for ${payload.new.entity_type}`)
@@ -305,6 +318,7 @@ const channel = supabase
 ## Edge Functions
 
 ### Inventory Sync Function
+
 ```typescript
 // supabase/functions/sync-inventory/index.ts
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -318,8 +332,9 @@ interface SyncRequest {
 
 serve(async (req) => {
   try {
-    const { organizationId, platform, warehouseId } = await req.json() as SyncRequest
-    
+    const { organizationId, platform, warehouseId } =
+      (await req.json()) as SyncRequest
+
     // Create Supabase client with service role
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -339,24 +354,25 @@ serve(async (req) => {
     }
 
     // Fetch from external system
-    const externalInventory = await fetchExternalInventory(platform, integration.credentials)
+    const externalInventory = await fetchExternalInventory(
+      platform,
+      integration.credentials
+    )
 
     // Bulk upsert inventory
-    const { error } = await supabase
-      .from('inventory')
-      .upsert(
-        externalInventory.map(item => ({
-          organization_id: organizationId,
-          external_id: item.id,
-          product_id: item.productId,
-          warehouse_id: warehouseId || item.warehouseId,
-          quantity: item.quantity,
-          platform,
-          last_sync_at: new Date().toISOString(),
-          sync_status: 'synced'
-        })),
-        { onConflict: 'organization_id,external_id,platform' }
-      )
+    const { error } = await supabase.from('inventory').upsert(
+      externalInventory.map((item) => ({
+        organization_id: organizationId,
+        external_id: item.id,
+        product_id: item.productId,
+        warehouse_id: warehouseId || item.warehouseId,
+        quantity: item.quantity,
+        platform,
+        last_sync_at: new Date().toISOString(),
+        sync_status: 'synced',
+      })),
+      { onConflict: 'organization_id,external_id,platform' }
+    )
 
     if (error) throw error
 
@@ -365,20 +381,21 @@ serve(async (req) => {
       { headers: { 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 })
 ```
 
 ### Price Calculation Function
+
 ```typescript
 // supabase/functions/calculate-price/index.ts
 serve(async (req) => {
   const { productId, customerId, quantity } = await req.json()
-  
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -396,7 +413,9 @@ serve(async (req) => {
     .from('pricing_rules')
     .select('*')
     .eq('active', true)
-    .or(`conditions->customer_id.eq.${customerId},conditions->customer_id.is.null`)
+    .or(
+      `conditions->customer_id.eq.${customerId},conditions->customer_id.is.null`
+    )
     .order('priority', { ascending: false })
 
   let finalPrice = product.base_price
@@ -409,11 +428,11 @@ serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ 
+    JSON.stringify({
       productId,
       basePrice: product.base_price,
       finalPrice,
-      appliedRules: rules.map(r => r.name)
+      appliedRules: rules.map((r) => r.name),
     }),
     { headers: { 'Content-Type': 'application/json' } }
   )
@@ -423,12 +442,14 @@ serve(async (req) => {
 ## Client SDK Usage
 
 ### TypeScript Types Generation
+
 ```bash
 # Generate types from your database schema
 npx supabase gen types typescript --project-id your-project-id > lib/database.types.ts
 ```
 
 ### Typed Client
+
 ```typescript
 // lib/supabase/client.ts
 import { createBrowserClient } from '@supabase/ssr'
@@ -445,11 +466,13 @@ export function createClient() {
 ### CRUD Operations
 
 #### Fetch with Relations
+
 ```typescript
 // Get inventory with product and warehouse details
 const { data, error } = await supabase
   .from('inventory')
-  .select(`
+  .select(
+    `
     *,
     product:products (
       sku,
@@ -460,13 +483,15 @@ const { data, error } = await supabase
       name,
       location
     )
-  `)
+  `
+  )
   .eq('quantity', 0) // Out of stock items
   .order('updated_at', { ascending: false })
   .limit(20)
 ```
 
 #### Insert with Return
+
 ```typescript
 const { data, error } = await supabase
   .from('products')
@@ -475,19 +500,20 @@ const { data, error } = await supabase
     sku: 'WIDGET-001',
     name: 'Premium Widget',
     base_price: 49.99,
-    category: 'widgets'
+    category: 'widgets',
   })
   .select()
   .single()
 ```
 
 #### Update with Conditions
+
 ```typescript
 const { data, error } = await supabase
   .from('inventory')
-  .update({ 
+  .update({
     quantity: newQuantity,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   })
   .eq('id', inventoryId)
   .eq('organization_id', user.organizationId) // Ensure org isolation
@@ -501,25 +527,25 @@ if (error?.code === 'PGRST116') {
 ```
 
 #### Batch Operations
+
 ```typescript
 // Bulk update prices
-const updates = products.map(product => ({
+const updates = products.map((product) => ({
   id: product.id,
   base_price: product.base_price * 1.1, // 10% increase
-  updated_at: new Date().toISOString()
+  updated_at: new Date().toISOString(),
 }))
 
-const { error } = await supabase
-  .from('products')
-  .upsert(updates, { 
-    onConflict: 'id',
-    ignoreDuplicates: false 
-  })
+const { error } = await supabase.from('products').upsert(updates, {
+  onConflict: 'id',
+  ignoreDuplicates: false,
+})
 ```
 
 ### RPC Functions
 
 #### Complex Inventory Transfer
+
 ```sql
 -- Create stored procedure
 CREATE OR REPLACE FUNCTION transfer_inventory(
@@ -536,7 +562,7 @@ BEGIN
   -- Lock the source inventory row
   SELECT * INTO v_from_inventory
   FROM inventory
-  WHERE warehouse_id = p_from_warehouse 
+  WHERE warehouse_id = p_from_warehouse
     AND product_id = p_product_id
   FOR UPDATE;
 
@@ -546,7 +572,7 @@ BEGIN
   END IF;
 
   -- Deduct from source
-  UPDATE inventory 
+  UPDATE inventory
   SET quantity = quantity - p_quantity
   WHERE id = v_from_inventory.id;
 
@@ -556,7 +582,7 @@ BEGIN
   ) VALUES (
     v_from_inventory.organization_id, p_product_id, p_to_warehouse, p_quantity
   )
-  ON CONFLICT (organization_id, product_id, warehouse_id) 
+  ON CONFLICT (organization_id, product_id, warehouse_id)
   DO UPDATE SET quantity = inventory.quantity + p_quantity;
 
   -- Log the transfer
@@ -570,27 +596,28 @@ BEGIN
     'success', true,
     'transferred', p_quantity
   );
-  
+
   RETURN v_result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
 #### Call RPC from Client
+
 ```typescript
-const { data, error } = await supabase
-  .rpc('transfer_inventory', {
-    p_from_warehouse: fromId,
-    p_to_warehouse: toId,
-    p_product_id: productId,
-    p_quantity: quantity,
-    p_user_id: user.id
-  })
+const { data, error } = await supabase.rpc('transfer_inventory', {
+  p_from_warehouse: fromId,
+  p_to_warehouse: toId,
+  p_product_id: productId,
+  p_quantity: quantity,
+  p_user_id: user.id,
+})
 ```
 
 ## Error Handling
 
 ### Common Error Codes
+
 ```typescript
 interface SupabaseError {
   code: string
@@ -604,19 +631,19 @@ if (error) {
   switch (error.code) {
     case '23505': // Unique violation
       throw new Error('This SKU already exists')
-    
+
     case '23503': // Foreign key violation
       throw new Error('Related record not found')
-    
+
     case '23514': // Check violation
       throw new Error('Invalid data provided')
-    
+
     case 'PGRST116': // No rows returned
       throw new Error('Record not found')
-    
+
     case '42501': // Insufficient privilege (RLS)
       throw new Error('Access denied')
-    
+
     default:
       console.error('Database error:', error)
       throw new Error('An unexpected error occurred')
@@ -627,23 +654,25 @@ if (error) {
 ## Performance Optimization
 
 ### Indexes
+
 ```sql
 -- Composite indexes for common queries
-CREATE INDEX idx_inventory_low_stock 
-  ON inventory(organization_id, warehouse_id) 
+CREATE INDEX idx_inventory_low_stock
+  ON inventory(organization_id, warehouse_id)
   WHERE quantity <= reorder_point;
 
-CREATE INDEX idx_products_search 
+CREATE INDEX idx_products_search
   ON products USING gin(
     to_tsvector('english', name || ' ' || coalesce(description, ''))
   );
 
-CREATE INDEX idx_orders_date_range 
-  ON orders(organization_id, created_at) 
+CREATE INDEX idx_orders_date_range
+  ON orders(organization_id, created_at)
   WHERE status != 'cancelled';
 ```
 
 ### Query Optimization
+
 ```typescript
 // Bad - N+1 query problem
 const products = await supabase.from('products').select('*')
@@ -655,9 +684,7 @@ for (const product of products.data) {
 }
 
 // Good - Single query with join
-const { data } = await supabase
-  .from('products')
-  .select(`
+const { data } = await supabase.from('products').select(`
     *,
     inventory (
       quantity,
@@ -668,6 +695,7 @@ const { data } = await supabase
 ```
 
 ### Connection Pooling
+
 ```typescript
 // For server-side operations, reuse clients
 import { createServerClient } from '@/lib/supabase/server'
@@ -683,6 +711,7 @@ export async function GET(request: Request) {
 ## Security Best Practices
 
 ### RLS Policy Examples
+
 ```sql
 -- Multi-tenant isolation
 CREATE POLICY "Tenant isolation" ON ALL TABLES
@@ -704,23 +733,24 @@ CREATE POLICY "Admins can manage all products" ON products
 -- Time-based access
 CREATE POLICY "View active pricing only" ON pricing_rules
   FOR SELECT USING (
-    active = true 
+    active = true
     AND (valid_from IS NULL OR valid_from <= NOW())
     AND (valid_until IS NULL OR valid_until >= NOW())
   );
 ```
 
 ### API Security Headers
+
 ```typescript
 // middleware.ts
 export function middleware(request: NextRequest) {
   const response = NextResponse.next()
-  
+
   // Security headers
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin')
-  
+
   return response
 }
 ```
@@ -728,6 +758,7 @@ export function middleware(request: NextRequest) {
 ## Testing
 
 ### Test Helpers
+
 ```typescript
 // tests/helpers/supabase.ts
 import { createClient } from '@supabase/supabase-js'
@@ -741,17 +772,17 @@ export function createTestClient(userId?: string) {
   if (userId) {
     // Mock authenticated user
     client.auth.getUser = async () => ({
-      data: { 
-        user: { 
+      data: {
+        user: {
           id: userId,
           email: 'test@example.com',
           app_metadata: {},
           user_metadata: {},
           aud: 'authenticated',
-          created_at: new Date().toISOString()
-        }
+          created_at: new Date().toISOString(),
+        },
       },
-      error: null
+      error: null,
     })
   }
 
@@ -760,13 +791,14 @@ export function createTestClient(userId?: string) {
 ```
 
 ### Integration Tests
+
 ```typescript
 import { createTestClient } from '@/tests/helpers/supabase'
 
 describe('Inventory Management', () => {
   it('should update inventory quantity', async () => {
     const supabase = createTestClient('test-user-id')
-    
+
     const { data, error } = await supabase
       .from('inventory')
       .update({ quantity: 100 })
@@ -783,16 +815,18 @@ describe('Inventory Management', () => {
 ## Migration Examples
 
 ### Create Migration
+
 ```bash
 supabase migration new add_inventory_tracking
 ```
 
 ### Migration File
+
 ```sql
 -- supabase/migrations/20240315_add_inventory_tracking.sql
 
 -- Add tracking fields
-ALTER TABLE inventory 
+ALTER TABLE inventory
 ADD COLUMN tracked_at TIMESTAMPTZ,
 ADD COLUMN tracked_by UUID REFERENCES auth.users(id),
 ADD COLUMN tracking_notes TEXT;
@@ -809,7 +843,7 @@ CREATE TABLE inventory_tracking_history (
 );
 
 -- Index for history queries
-CREATE INDEX idx_tracking_history_inventory 
+CREATE INDEX idx_tracking_history_inventory
   ON inventory_tracking_history(inventory_id, tracked_at DESC);
 
 -- RLS for tracking history
@@ -818,9 +852,9 @@ ALTER TABLE inventory_tracking_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view tracking history" ON inventory_tracking_history
   FOR SELECT USING (
     inventory_id IN (
-      SELECT id FROM inventory 
+      SELECT id FROM inventory
       WHERE organization_id IN (
-        SELECT organization_id FROM user_profiles 
+        SELECT organization_id FROM user_profiles
         WHERE user_id = auth.uid()
       )
     )

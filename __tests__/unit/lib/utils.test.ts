@@ -29,27 +29,33 @@ describe('cn utility', () => {
   })
 
   it('handles objects with boolean values', () => {
-    expect(cn({
-      'text-red-500': false,
-      'text-blue-500': true,
-      'font-bold': true,
-    })).toBe('text-blue-500 font-bold')
+    expect(
+      cn({
+        'text-red-500': false,
+        'text-blue-500': true,
+        'font-bold': true,
+      })
+    ).toBe('text-blue-500 font-bold')
   })
 
   it('handles complex combinations', () => {
     const isActive = true
     const isDisabled = false
-    
-    expect(cn(
-      'base-class',
-      isActive && 'active-class',
-      isDisabled && 'disabled-class',
-      {
-        'hover:bg-gray-100': !isDisabled,
-        'cursor-not-allowed': isDisabled,
-      },
-      ['array-class-1', 'array-class-2']
-    )).toBe('base-class active-class hover:bg-gray-100 array-class-1 array-class-2')
+
+    expect(
+      cn(
+        'base-class',
+        isActive && 'active-class',
+        isDisabled && 'disabled-class',
+        {
+          'hover:bg-gray-100': !isDisabled,
+          'cursor-not-allowed': isDisabled,
+        },
+        ['array-class-1', 'array-class-2']
+      )
+    ).toBe(
+      'base-class active-class hover:bg-gray-100 array-class-1 array-class-2'
+    )
   })
 
   it('handles no arguments', () => {
@@ -65,19 +71,27 @@ describe('cn utility', () => {
   })
 
   it('preserves important modifiers', () => {
-    expect(cn('!text-red-500', 'text-blue-500')).toBe('!text-red-500 text-blue-500')
+    expect(cn('!text-red-500', 'text-blue-500')).toBe(
+      '!text-red-500 text-blue-500'
+    )
   })
 
   it('handles responsive modifiers correctly', () => {
     expect(cn('sm:p-4', 'md:p-6', 'lg:p-8')).toBe('sm:p-4 md:p-6 lg:p-8')
-    expect(cn('sm:text-sm md:text-base', 'lg:text-lg')).toBe('sm:text-sm md:text-base lg:text-lg')
+    expect(cn('sm:text-sm md:text-base', 'lg:text-lg')).toBe(
+      'sm:text-sm md:text-base lg:text-lg'
+    )
   })
 
   it('handles hover and focus states', () => {
-    expect(cn('hover:bg-gray-100', 'focus:outline-none')).toBe('hover:bg-gray-100 focus:outline-none')
+    expect(cn('hover:bg-gray-100', 'focus:outline-none')).toBe(
+      'hover:bg-gray-100 focus:outline-none'
+    )
   })
 
   it('handles dark mode classes', () => {
-    expect(cn('text-gray-900', 'dark:text-gray-100')).toBe('text-gray-900 dark:text-gray-100')
+    expect(cn('text-gray-900', 'dark:text-gray-100')).toBe(
+      'text-gray-900 dark:text-gray-100'
+    )
   })
 })

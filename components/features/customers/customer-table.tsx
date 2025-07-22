@@ -1,19 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCustomerListRealtime } from '@/hooks/use-customer-realtime'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Edit,
+  Eye,
+  FileText,
+  MoreHorizontal,
+  Trash2,
+  UserPlus,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,22 +26,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { 
-  MoreHorizontal, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  UserPlus,
-  CreditCard,
-  FileText,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react'
-import { CustomerWithStats, formatCustomerName, getCustomerInitials } from '@/types/customer.types'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { formatCurrency } from '@/lib/utils'
 import { deleteCustomer } from '@/app/actions/customers'
-import { toast } from 'sonner'
+import { useCustomerListRealtime } from '@/hooks/use-customer-realtime'
+import {
+  CustomerWithStats,
+  formatCustomerName,
+  getCustomerInitials,
+} from '@/types/customer.types'
 
 interface CustomerTableProps {
   customers: CustomerWithStats[]
@@ -47,15 +51,25 @@ interface CustomerTableProps {
   organizationId?: string
 }
 
-export function CustomerTable({ customers, currentPage, pageSize, hasMore, organizationId }: CustomerTableProps) {
+export function CustomerTable({
+  customers,
+  currentPage,
+  pageSize,
+  hasMore,
+  organizationId,
+}: CustomerTableProps) {
   const router = useRouter()
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  
+
   // Enable real-time updates - always call hook unconditionally
   useCustomerListRealtime(organizationId || '')
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this customer? This action cannot be undone.')) {
+    if (
+      !confirm(
+        'Are you sure you want to delete this customer? This action cannot be undone.'
+      )
+    ) {
       return
     }
 
@@ -79,25 +93,21 @@ export function CustomerTable({ customers, currentPage, pageSize, hasMore, organ
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
       active: 'default',
       inactive: 'secondary',
-      suspended: 'destructive'
+      suspended: 'destructive',
     }
-    
-    return (
-      <Badge variant={variants[status] || 'secondary'}>
-        {status}
-      </Badge>
-    )
+
+    return <Badge variant={variants[status] || 'secondary'}>{status}</Badge>
   }
 
   const getTierBadge = (customer: CustomerWithStats) => {
     if (!customer.tier_name) return null
-    
+
     return (
-      <Badge 
+      <Badge
         variant="outline"
-        style={{ 
+        style={{
           borderColor: customer.tier_color,
-          color: customer.tier_color 
+          color: customer.tier_color,
         }}
       >
         {customer.tier_name}
@@ -123,15 +133,19 @@ export function CustomerTable({ customers, currentPage, pageSize, hasMore, organ
           <TableBody>
             {customers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  No customers found. Try adjusting your filters or add a new customer.
+                <TableCell
+                  colSpan={7}
+                  className="text-center text-muted-foreground py-8"
+                >
+                  No customers found. Try adjusting your filters or add a new
+                  customer.
                 </TableCell>
               </TableRow>
             ) : (
               customers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell>
-                    <Link 
+                    <Link
                       href={`/customers/${customer.id}`}
                       className="flex items-center gap-3 hover:opacity-80"
                     >
@@ -146,32 +160,25 @@ export function CustomerTable({ customers, currentPage, pageSize, hasMore, organ
                         </div>
                         {customer.primary_contact && (
                           <div className="text-sm text-muted-foreground">
-                            {customer.contact_count} contact{customer.contact_count !== 1 ? 's' : ''}
+                            {customer.contact_count} contact
+                            {customer.contact_count !== 1 ? 's' : ''}
                           </div>
                         )}
                       </div>
                     </Link>
                   </TableCell>
-                  <TableCell>
-                    {getStatusBadge(customer.status)}
-                  </TableCell>
-                  <TableCell>
-                    {getTierBadge(customer)}
-                  </TableCell>
+                  <TableCell>{getStatusBadge(customer.status)}</TableCell>
+                  <TableCell>{getTierBadge(customer)}</TableCell>
                   <TableCell>
                     {formatCurrency(customer.credit_limit, customer.currency)}
                   </TableCell>
-                  <TableCell>
-                    {customer.total_orders}
-                  </TableCell>
-                  <TableCell>
-                    {customer.account_age_days} days
-                  </TableCell>
+                  <TableCell>{customer.total_orders}</TableCell>
+                  <TableCell>{customer.account_age_days} days</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           className="h-8 w-8 p-0"
                           disabled={deletingId === customer.id}
                         >
@@ -214,7 +221,7 @@ export function CustomerTable({ customers, currentPage, pageSize, hasMore, organ
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => handleDelete(customer.id)}
                           disabled={deletingId === customer.id}
@@ -236,8 +243,12 @@ export function CustomerTable({ customers, currentPage, pageSize, hasMore, organ
       {(currentPage > 1 || hasMore) && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {((currentPage - 1) * pageSize) + 1} to{' '}
-            {Math.min(currentPage * pageSize, ((currentPage - 1) * pageSize) + customers.length)} customers
+            Showing {(currentPage - 1) * pageSize + 1} to{' '}
+            {Math.min(
+              currentPage * pageSize,
+              (currentPage - 1) * pageSize + customers.length
+            )}{' '}
+            customers
           </p>
           <div className="flex gap-2">
             <Button
