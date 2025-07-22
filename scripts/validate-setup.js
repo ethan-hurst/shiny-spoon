@@ -20,12 +20,30 @@ const colors = {
 async function runCommand(command, description) {
   console.log(`${colors.blue}Running: ${description}${colors.reset}`)
   try {
-    const { stdout, stderr } = await execAsync(command)
-    if (stderr && !stderr.includes('warning')) {
-      throw new Error(stderr)
+    const { stdout, stderr } = await execAsync(command, {
+      timeout: 5 * 60 * 1000 // 5 minutes timeout
+    })
+    
+    // Handle warnings separately - log them but don't fail
+    if (stderr) {
+      const isWarning = stderr.toLowerCase().includes('warning') || 
+                       stderr.toLowerCase().includes('warn') ||
+                       stderr.toLowerCase().includes('deprecated')
+      
+      if (isWarning) {
+        console.warn(`${colors.yellow}Warning during ${description}:${colors.reset}`)
+        console.warn(stderr)
+      } else {
+        // Non-warning stderr should cause failure
+        throw new Error(stderr)
+      }
     }
+    
     return { success: true, output: stdout }
   } catch (error) {
+    if (error.killed && error.signal === 'SIGTERM') {
+      return { success: false, error: 'Command timed out after 5 minutes' }
+    }
     return { success: false, error: error.message }
   }
 }

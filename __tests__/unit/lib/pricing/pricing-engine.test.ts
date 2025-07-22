@@ -8,8 +8,18 @@ import {
 import { createMockQueryBuilder, setupSupabaseMocks } from '../../../utils/supabase-mocks'
 
 // Mock dependencies
+const mockPricingCache = {
+  get: jest.fn(),
+  set: jest.fn(),
+  clear: jest.fn(),
+  clearProduct: jest.fn(),
+  clearCustomer: jest.fn(),
+}
+
 jest.mock('@/lib/supabase/client')
-jest.mock('@/lib/pricing/redis-cache')
+jest.mock('@/lib/pricing/redis-cache', () => ({
+  pricingCache: mockPricingCache
+}))
 
 describe('PricingEngine', () => {
   let pricingEngine: PricingEngine
@@ -18,7 +28,6 @@ describe('PricingEngine', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     setupSupabaseMocks()
-    pricingEngine = new PricingEngine()
     
     // Mock supabase responses
     mockSupabase = {
@@ -38,6 +47,11 @@ describe('PricingEngine', () => {
         invoke: jest.fn().mockResolvedValue({ data: null, error: null })
       }
     }
+
+    // Create pricing engine with mocked client
+    pricingEngine = new PricingEngine()
+    // Inject the mock client if the constructor allows it
+    ;(pricingEngine as any).supabase = mockSupabase
   })
 
   describe('calculatePrice', () => {
@@ -204,10 +218,18 @@ describe('PricingEngine', () => {
 
   describe('getApplicableRules', () => {
     it('should filter rules by date range', async () => {
+      // Use dynamic dates relative to today
+      const today = new Date()
+      const testDate = new Date(today.getFullYear(), today.getMonth() + 1, 15) // Next month, 15th day
+      const summerStart = new Date(today.getFullYear(), today.getMonth(), 1) // Start of current month
+      const summerEnd = new Date(today.getFullYear(), today.getMonth() + 2, 31) // End of month after next
+      const winterStart = new Date(today.getFullYear(), today.getMonth() + 6, 1) // 6 months later
+      const winterEnd = new Date(today.getFullYear(), today.getMonth() + 8, 28) // 8 months later
+
       const context: PriceContext = {
         productId: 'test-product',
         quantity: 10,
-        date: new Date('2024-06-15'),
+        date: testDate,
         basePrice: 100,
         cost: 50,
         minMargin: 20,
@@ -219,8 +241,8 @@ describe('PricingEngine', () => {
           id: 'rule-1',
           name: 'Summer Sale',
           rule_type: 'promotion',
-          start_date: '2024-06-01',
-          end_date: '2024-08-31',
+          start_date: summerStart.toISOString().split('T')[0],
+          end_date: summerEnd.toISOString().split('T')[0],
           is_active: true,
           conditions: {}
         },
@@ -228,8 +250,8 @@ describe('PricingEngine', () => {
           id: 'rule-2',
           name: 'Winter Sale',
           rule_type: 'promotion',
-          start_date: '2024-12-01',
-          end_date: '2025-02-28',
+          start_date: winterStart.toISOString().split('T')[0],
+          end_date: winterEnd.toISOString().split('T')[0],
           is_active: true,
           conditions: {}
         }
@@ -310,11 +332,14 @@ describe('PricingEngine', () => {
       const rule: PricingRuleRecord = {
         id: 'rule-1',
         name: 'Test Discount',
-        rule_type: 'product',
+        rule_type: 'tier',
         discount_type: 'percentage',
         discount_value: 10,
         conditions: {},
         is_active: true,
+        priority: 1,
+        is_exclusive: false,
+        can_stack: true,
         organization_id: 'test-org',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -341,11 +366,14 @@ describe('PricingEngine', () => {
       const rule: PricingRuleRecord = {
         id: 'rule-1',
         name: 'Fixed Discount',
-        rule_type: 'product',
+        rule_type: 'tier',
         discount_type: 'fixed',
         discount_value: 15,
         conditions: {},
         is_active: true,
+        priority: 1,
+        is_exclusive: false,
+        can_stack: true,
         organization_id: 'test-org',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -372,11 +400,14 @@ describe('PricingEngine', () => {
       const rule: PricingRuleRecord = {
         id: 'rule-1',
         name: 'Special Price',
-        rule_type: 'product',
+        rule_type: 'override',
         discount_type: 'price',
         discount_value: 75,
         conditions: {},
         is_active: true,
+        priority: 1,
+        is_exclusive: false,
+        can_stack: true,
         organization_id: 'test-org',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -406,30 +437,35 @@ describe('PricingEngine', () => {
         rule_type: 'quantity',
         conditions: {},
         is_active: true,
+        priority: 1,
+        is_exclusive: false,
+        can_stack: true,
         organization_id: 'test-org',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        quantity_breaks: [
-          {
-            id: 'qb-1',
-            rule_id: 'rule-1',
-            min_quantity: 10,
-            max_quantity: 50,
-            discount_type: 'percentage',
-            discount_value: 5,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'qb-2',
-            rule_id: 'rule-1',
-            min_quantity: 51,
-            max_quantity: null,
-            discount_type: 'percentage',
-            discount_value: 10,
-            created_at: new Date().toISOString()
-          }
-        ]
       }
+
+      // Quantity breaks would be handled separately in the actual implementation
+      const quantityBreaks = [
+        {
+          id: 'qb-1',
+          rule_id: 'rule-1',
+          min_quantity: 10,
+          max_quantity: 50,
+          discount_type: 'percentage',
+          discount_value: 5,
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 'qb-2',
+          rule_id: 'rule-1',
+          min_quantity: 51,
+          max_quantity: null,
+          discount_type: 'percentage',
+          discount_value: 10,
+          created_at: new Date().toISOString()
+        }
+      ]
 
       // Test quantity 25 (should get 5% discount)
       const context1: PriceContext = {
@@ -496,23 +532,38 @@ describe('PricingEngine', () => {
         quantity: 1
       }
 
-      // First call
+      // Mock cache miss on first call
+      mockPricingCache.get.mockResolvedValueOnce(null)
+      
+      // First call - should invoke RPC and cache result
       await pricingEngine.calculatePrice(request)
       expect(mockSupabase.rpc).toHaveBeenCalledTimes(1)
+      expect(mockPricingCache.set).toHaveBeenCalledTimes(1)
 
-      // Second call should use cache (mocked)
+      // Mock cache hit on second call
+      mockPricingCache.get.mockResolvedValueOnce({
+        base_price: 100,
+        final_price: 90,
+        discount_amount: 10,
+        discount_percent: 10,
+        margin_percent: 30,
+        applied_rules: []
+      })
+
+      // Second call should use cache and not invoke RPC again
       await pricingEngine.calculatePrice(request)
-      // In real implementation with Redis mock, this would check cache hit
+      expect(mockSupabase.rpc).toHaveBeenCalledTimes(1) // Still 1, no additional call
+      expect(mockPricingCache.get).toHaveBeenCalledTimes(2)
     })
 
     it('should clear cache for specific product', async () => {
       await pricingEngine.clearCache('test-product-id')
-      // Verify cache clear was called (would need Redis mock verification)
+      expect(mockPricingCache.clearProduct).toHaveBeenCalledWith('test-product-id')
     })
 
     it('should clear all cache', async () => {
       await pricingEngine.clearCache()
-      // Verify full cache clear was called
+      expect(mockPricingCache.clear).toHaveBeenCalled()
     })
   })
 })

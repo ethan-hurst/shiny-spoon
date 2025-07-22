@@ -1,4 +1,9 @@
 -- Stored procedure for bulk updating customer prices within a transaction
+-- First, ensure we have proper indexes for performance
+CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+CREATE INDEX IF NOT EXISTS idx_product_pricing_product_id ON product_pricing(product_id);
+CREATE INDEX IF NOT EXISTS idx_customer_pricing_customer_product ON customer_pricing(customer_id, product_id);
+
 CREATE OR REPLACE FUNCTION bulk_update_customer_prices_transaction(
   p_customer_id UUID,
   p_updates JSONB,
@@ -43,8 +48,8 @@ BEGIN
         CONTINUE;
       END IF;
       
-      -- Check if customer already has pricing for this product
-      SELECT id INTO existing_pricing
+      -- Check if customer already has pricing for this product and get current values
+      SELECT id, override_price, override_discount_percent INTO existing_pricing
       FROM customer_pricing
       WHERE customer_id = p_customer_id 
         AND product_id = product_record.id;
@@ -110,17 +115,17 @@ BEGIN
       ) VALUES (
         p_customer_id,
         product_record.id,
-        product_record.base_price,
+        COALESCE(existing_pricing.override_price, product_record.base_price),
         CASE 
           WHEN update_item->>'price' IS NOT NULL 
           THEN (update_item->>'price')::NUMERIC 
-          ELSE NULL 
+          ELSE COALESCE(existing_pricing.override_price, product_record.base_price)
         END,
-        NULL, -- old_discount_percent
+        existing_pricing.override_discount_percent, -- Capture existing discount
         CASE 
           WHEN update_item->>'discount_percent' IS NOT NULL 
           THEN (update_item->>'discount_percent')::NUMERIC 
-          ELSE NULL 
+          ELSE existing_pricing.override_discount_percent
         END,
         'bulk',
         update_item->>'reason',

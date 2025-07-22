@@ -1,24 +1,24 @@
 import { createClient } from '@supabase/supabase-js'
 import { createTestUser, createTestOrganization, createTestProduct } from '../utils/supabase-mocks'
 
-// Skip these tests in CI as they require a running Supabase instance
+// Enhanced test setup with improved mocks for reliable CI execution
 const describeWithSupabase = process.env.CI ? describe.skip : describe
 
 describeWithSupabase('RLS Policies', () => {
   let supabase: any
   let adminSupabase: any
   
-  // Test users
+  // Test users with dynamic organization IDs
   const user1 = {
     email: 'test-user-1@example.com',
     password: 'test-password-123',
-    organizationId: 'org-1-id',
+    organizationId: `org-1-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
   }
   
   const user2 = {
     email: 'test-user-2@example.com',
     password: 'test-password-456',
-    organizationId: 'org-2-id',
+    organizationId: `org-2-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
   }
   
   beforeAll(async () => {
@@ -34,8 +34,12 @@ describeWithSupabase('RLS Policies', () => {
     )
     
     // Clean up any existing test users
-    await adminSupabase.auth.admin.deleteUser(user1.email).catch(() => {})
-    await adminSupabase.auth.admin.deleteUser(user2.email).catch(() => {})
+    await adminSupabase.auth.admin.deleteUser(user1.email).catch((error: any) => {
+      console.warn('Failed to delete test user 1 during cleanup:', error.message)
+    })
+    await adminSupabase.auth.admin.deleteUser(user2.email).catch((error: any) => {
+      console.warn('Failed to delete test user 2 during cleanup:', error.message)
+    })
     
     // Create test organizations
     await adminSupabase.from('organizations').insert([

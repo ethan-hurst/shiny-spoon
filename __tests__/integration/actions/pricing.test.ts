@@ -11,8 +11,8 @@ import {
 import { createClient } from '@supabase/supabase-js'
 import { FormData } from 'undici'
 
-// Skip these tests in CI as they require a running Supabase instance
-const describeWithSupabase = process.env.CI ? describe.skip : describe
+// Enhanced test setup with improved mocks for reliable CI execution
+const describeWithSupabase = describe
 
 // Mock Next.js modules
 jest.mock('next/cache', () => ({
@@ -297,14 +297,29 @@ describe('Pricing Server Actions', () => {
             error: null
           })
         })
-        .mockReturnValueOnce({
-          insert: jest.fn().mockResolvedValue({ error: null })
-        })
-        .mockReturnValueOnce({
-          insert: jest.fn().mockResolvedValue({ error: null })
-        })
+      // Mock the new RPC call for bulk updates
+      mockSupabase.rpc.mockResolvedValueOnce({
+        data: { 
+          total: 2,
+          succeeded: 2,
+          failed: 0,
+          errors: [],
+          bulk_update_id: 'bulk-update-123'
+        },
+        error: null
+      })
 
-      const result = await bulkUpdateCustomerPrices(formData as any)
+      const result: any = await bulkUpdateCustomerPrices(formData as any)
+
+      // Verify the RPC call was made with correct parameters
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('bulk_update_customer_prices_transaction', {
+        p_customer_id: 'test-customer-id',
+        p_updates: [
+          { sku: 'PROD-1', price: 100, reason: 'Test update 1' },
+          { sku: 'PROD-2', price: 200, reason: 'Test update 2' }
+        ],
+        p_user_id: 'test-user-id'
+      })
 
       expect(result.total).toBe(2)
       expect(result.succeeded).toBe(2)
@@ -319,16 +334,26 @@ describe('Pricing Server Actions', () => {
         { sku: 'INVALID-SKU', price: 90, reason: 'Test' }
       ]))
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Not found' }
-        })
+      // Mock the RPC call to return error for missing product
+      mockSupabase.rpc.mockResolvedValueOnce({
+        data: {
+          total: 1,
+          succeeded: 0,
+          failed: 1,
+          errors: [{ sku: 'INVALID-SKU', error: 'Product not found' }],
+          bulk_update_id: 'bulk-update-456'
+        },
+        error: null
       })
 
-      const result = await bulkUpdateCustomerPrices(formData as any)
+      const result: any = await bulkUpdateCustomerPrices(formData as any)
+
+      // Verify the RPC call was made
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('bulk_update_customer_prices_transaction', {
+        p_customer_id: 'test-customer-id',
+        p_updates: [{ sku: 'INVALID-SKU', price: 90, reason: 'Test' }],
+        p_user_id: 'test-user-id'
+      })
 
       expect(result.failed).toBe(1)
       expect(result.errors).toHaveLength(1)

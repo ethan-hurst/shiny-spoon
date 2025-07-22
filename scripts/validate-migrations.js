@@ -63,8 +63,9 @@ async function checkRLSEnabled(supabase, tableName) {
     })
     
     if (error) {
-      // If function doesn't exist, create it
-      if (error.message.includes('function check_table_rls_enabled')) {
+      // Check for specific PostgreSQL error code for missing function (42883)
+      // or check the error code property instead of message text
+      if (error.code === '42883' || error.details?.includes('function') || error.message.includes('does not exist')) {
         await createRLSCheckFunction(supabase)
         // Retry
         const { data: retryData, error: retryError } = await supabase.rpc('check_table_rls_enabled', {
@@ -89,12 +90,26 @@ async function checkRLSEnabled(supabase, tableName) {
 
 // Create RLS check function if it doesn't exist
 async function createRLSCheckFunction(supabase) {
-  const sql = `
+  // Instead of exec_sql, we should pre-create this function in a migration
+  // For now, we'll skip the creation and assume it exists or log an error
+  console.error('RLS check function does not exist. Please create it via migration.')
+  console.log('Migration needed:')
+  console.log(`
     CREATE OR REPLACE FUNCTION check_table_rls_enabled(table_name text)
     RETURNS boolean AS $$
     DECLARE
       rls_enabled boolean;
     BEGIN
+      -- Input validation to prevent SQL injection
+      IF table_name IS NULL OR table_name = '' THEN
+        RAISE EXCEPTION 'Table name cannot be null or empty';
+      END IF;
+      
+      -- Only allow alphanumeric characters and underscores
+      IF table_name !~ '^[a-zA-Z_][a-zA-Z0-9_]*$' THEN
+        RAISE EXCEPTION 'Invalid table name format';
+      END IF;
+      
       SELECT relrowsecurity INTO rls_enabled
       FROM pg_class
       WHERE relname = table_name
@@ -102,13 +117,10 @@ async function createRLSCheckFunction(supabase) {
       
       RETURN COALESCE(rls_enabled, false);
     END;
-    $$ LANGUAGE plpgsql SECURITY DEFINER;
-  `
+    $$ LANGUAGE plpgsql STABLE;
+  `)
   
-  const { error } = await supabase.rpc('exec_sql', { sql })
-  if (error && !error.message.includes('already exists')) {
-    throw error
-  }
+  throw new Error('RLS check function must be created via migration')
 }
 
 // Check if migrations directory exists

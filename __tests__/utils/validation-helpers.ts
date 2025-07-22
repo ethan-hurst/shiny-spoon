@@ -106,9 +106,13 @@ export async function runAllValidations() {
 export async function checkRLSEnabled(supabase: any): Promise<boolean> {
   try {
     const { data, error } = await supabase.rpc('check_rls_enabled')
-    if (error) throw error
+    if (error) {
+      console.error('RLS check error:', error.message)
+      throw error
+    }
     return data.every((table: any) => table.rls_enabled)
-  } catch {
+  } catch (error: any) {
+    console.error('RLS check failed:', error.message)
     return false
   }
 }
@@ -120,8 +124,12 @@ export async function validateMigrations(supabase: any): Promise<boolean> {
   for (const table of tables) {
     try {
       const { error } = await supabase.from(table).select('id').limit(1)
-      if (error) return false
-    } catch {
+      if (error) {
+        console.error(`Migration validation failed for table ${table}:`, error.message)
+        return false
+      }
+    } catch (error: any) {
+      console.error(`Migration validation error for table ${table}:`, error.message)
       return false
     }
   }
