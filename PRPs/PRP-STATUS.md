@@ -1,6 +1,6 @@
 # PRP Implementation Status Tracker
 
-Last Updated: 2025-07-22
+Last Updated: 2025-07-22 (Supabase Auth Migration & Dashboard Layout Complete)
 
 ## Overview
 
@@ -12,17 +12,18 @@ This document tracks the status of all Project Requirement Plans (PRPs) in the T
 
 ## Status Summary
 
-| Phase     | Total PRPs | Documented | Partial | Implemented |
-| --------- | ---------- | ---------- | ------- | ----------- |
-| Phase 1   | 4          | 4          | 0       | 4           |
-| Phase 2   | 4          | 4          | 0       | 4           |
-| Phase 3   | 3          | 3          | 0       | 1           |
-| Phase 4   | 3          | 3          | 0       | 0           |
-| Phase 5   | 6          | 4          | 1       | 0           |
-| Phase 6   | 2          | 1          | 0       | 0           |
-| Phase 7   | 3          | 0          | 0       | 0           |
-| Phase 8   | 3          | 0          | 0       | 0           |
-| **Total** | **28**     | **19**     | **0**   | **9**       |
+| Phase       | Total PRPs | Documented | Partial | Implemented |
+| ----------- | ---------- | ---------- | ------- | ----------- |
+| Phase 1     | 4          | 4          | 0       | 4           |
+| Phase 1.5   | 4          | 4          | 0       | 0           |
+| Phase 2     | 4          | 4          | 0       | 4           |
+| Phase 3     | 3          | 3          | 0       | 1           |
+| Phase 4     | 3          | 3          | 0       | 0           |
+| Phase 5     | 6          | 4          | 1       | 0           |
+| Phase 6     | 2          | 1          | 0       | 0           |
+| Phase 7     | 3          | 0          | 0       | 0           |
+| Phase 8     | 3          | 0          | 0       | 0           |
+| **Total**   | **32**     | **23**     | **0**   | **9**       |
 
 ## Detailed Status
 
@@ -32,8 +33,17 @@ This document tracks the status of all Project Requirement Plans (PRPs) in the T
 | ------- | ---------------------- | -------------- | ---------------------------- | -------------- | -------------------------------------------- |
 | PRP-001 | Project Setup          | ✅ Implemented | [View](Phase%201/PRP-001.md) | Complete       | Next.js, TypeScript, Tailwind CSS, shadcn/ui |
 | PRP-002 | Supabase Configuration | ✅ Implemented | [View](Phase%201/PRP-002.md) | Complete       | Database, Auth, RLS policies                 |
-| PRP-003 | Authentication Flow    | ✅ Implemented | [View](Phase%201/PRP-003.md) | Complete       | Login, Signup, Password Reset                |
-| PRP-004 | Dashboard Layout       | ✅ Implemented | [View](Phase%201/PRP-004.md) | Complete       | Sidebar, Navigation, Responsive              |
+| PRP-003 | Authentication Flow    | ✅ Implemented | [View](Phase%201/PRP-003.md) | Complete       | Supabase Auth (migrated from Clerk)          |
+| PRP-004 | Dashboard Layout       | ✅ Implemented | [View](Phase%201/PRP-004.md) | Complete       | New layout with collapsible sidebar          |
+
+### Phase 1.5: Public-Facing Front-End 📄
+
+| PRP      | Title                           | Status        | Documentation                  | Implementation | Notes                                |
+| -------- | ------------------------------- | ------------- | ------------------------------ | -------------- | ------------------------------------ |
+| PRP-001A | Public Website Foundation       | 📄 Documented | [View](Phase%201.5/PRP-001A.md) | Not Started    | Landing, pricing, about pages        |
+| PRP-001B | Content Management System       | 📄 Documented | [View](Phase%201.5/PRP-001B.md) | Not Started    | MDX blog, docs, help center          |
+| PRP-001C | Customer Portal & Self-Service  | 📄 Documented | [View](Phase%201.5/PRP-001C.md) | Not Started    | Billing, usage, API keys             |
+| PRP-001D | Developer Portal & API Docs     | 📄 Documented | [View](Phase%201.5/PRP-001D.md) | Not Started    | Interactive docs, SDKs, webhooks     |
 
 ### Phase 2: Core Features ✅
 
@@ -121,9 +131,12 @@ This document tracks the status of all Project Requirement Plans (PRPs) in the T
 
 **PRP-004 (Dashboard Layout)**
 
-- `/app/(dashboard)/layout.tsx` - Dashboard layout
-- `/components/layouts/dashboard-sidebar.tsx` - Sidebar
-- `/components/layouts/dashboard-header.tsx` - Header
+- `/app/(dashboard)/layout.tsx` - New dashboard layout with Supabase auth
+- `/components/layouts/dashboard-sidebar.tsx` - Collapsible sidebar navigation
+- `/components/layouts/dashboard-header.tsx` - Header with breadcrumbs
+- `/components/layouts/dashboard-breadcrumb.tsx` - Dynamic breadcrumb navigation
+- `/hooks/use-sidebar.tsx` - Sidebar state management hook
+- `/lib/constants/navigation.ts` - Navigation configuration
 
 **PRP-005 (Products Management)**
 
@@ -183,13 +196,37 @@ This document tracks the status of all Project Requirement Plans (PRPs) in the T
 - `/lib/csv/templates.ts` - CSV templates (implemented)
 - Missing: Streaming processor, progress tracking, rollback
 
+## Recent Updates (2025-07-22)
+
+### Authentication Migration
+- Successfully migrated from Clerk to Supabase authentication
+- Updated all components to use Supabase auth client
+- Removed all Clerk dependencies and references
+- Simplified middleware to use only Supabase auth
+
+### Dashboard Layout Implementation
+- Implemented new dashboard layout with collapsible sidebar
+- Added breadcrumb navigation
+- Integrated user profile dropdown with Supabase auth
+- Added mobile-responsive navigation with sheet component
+- Implemented persistent sidebar state using zustand
+
+### New Phase 1.5 PRPs
+- Added 4 new PRPs for public-facing front-end implementation
+- Documented requirements for public website, CMS, customer portal, and developer portal
+- These PRPs address the gap in public-facing features
+
 ## Next Steps
 
-1. **Priority 1**: Complete Phase 3 (Business Logic)
+1. **Priority 1**: Complete Phase 1.5 (Public-Facing Front-End)
+   - PRP-001A: Public Website Foundation (landing pages, marketing)
+   - PRP-001C: Customer Portal & Self-Service (critical for SaaS)
+
+2. **Priority 2**: Complete Phase 3 (Business Logic)
    - PRP-009: Customer Management
    - PRP-011: Sync Status Dashboard
 
-2. **Priority 2**: Complete Phase 4 (Integration Layer)
+3. **Priority 3**: Complete Phase 4 (Integration Layer)
    - PRP-012: Integration Framework (foundation for all integrations)
    - PRP-013: NetSuite Connector
    - PRP-014: Shopify B2B Integration

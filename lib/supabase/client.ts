@@ -28,3 +28,6 @@ export function createClient() {
 
 // Export a default client instance for convenience
 export const supabase = createClient()
+
+// Export with the expected name for compatibility
+export { createClient as createBrowserClient }

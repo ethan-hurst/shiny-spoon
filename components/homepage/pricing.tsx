@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs'
 import { loadStripe } from '@stripe/stripe-js'
+import type { User } from '@supabase/supabase-js'
 import axios from 'axios'
 import { CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -17,10 +17,12 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { createBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { TITLE_TAILWIND_CLASS } from '@/utils/constants'
 
 type PricingSwitchProps = {
+  // eslint-disable-next-line no-unused-vars
   onSwitch: (value: string) => void
 }
 
@@ -158,7 +160,7 @@ const PricingCard = ({
                 action: {
                   label: 'Sign Up',
                   onClick: () => {
-                    router.push('/sign-up')
+                    router.push('/signup')
                   },
                 },
               })
@@ -184,14 +186,29 @@ const CheckItem = ({ text }: { text: string }) => (
 
 export default function Pricing() {
   const [isYearly, setIsYearly] = useState<boolean>(false)
+  const [user, setUser] = useState<User | null>(null)
   const togglePricingPeriod = (value: string) =>
     setIsYearly(parseInt(value) === 1)
-  const { user } = useUser()
   const [stripePromise, setStripePromise] = useState<Promise<any> | null>(null)
+  const supabase = createBrowserClient()
 
   useEffect(() => {
     setStripePromise(loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!))
-  }, [])
+
+    // Get initial user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
 
   const handleCheckout = async (priceId: string, subscription: boolean) => {
     try {
@@ -199,7 +216,7 @@ export default function Pricing() {
         `/api/payments/create-checkout-session`,
         {
           userId: user?.id,
-          email: user?.emailAddresses?.[0]?.emailAddress,
+          email: user?.email,
           priceId,
           subscription,
         }
