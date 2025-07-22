@@ -111,11 +111,14 @@
     "autoprefixer": "latest",
     "eslint": "9.1.0",
     "eslint-config-next": "15.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.3",
     "husky": "^8.0.0",
     "jest": "^30.0.4",
     "jest-environment-jsdom": "^30.0.4",
     "lint-staged": "^16.1.2",
     "postcss": "latest",
+    "supabase": "^2.31.8",
     "tailwindcss": "^3.3.5",
     "typescript": "latest"
   }
