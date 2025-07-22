@@ -485,13 +485,136 @@ pnpm supabase migration new <name>
 pnpm supabase functions serve
 ```
 
+## 💰 Pricing Rules Engine (PRP-010)
+
+### Overview
+The pricing engine supports dynamic B2B pricing with multiple rule types, quantity breaks, and customer-specific overrides. It includes Redis caching for performance and inventory integration for availability-based pricing.
+
+### Key Features
+- **Rule Types**: Customer, product, category, promotion, quantity-based
+- **Discounts**: Percentage, fixed amount, or special price
+- **Quantity Breaks**: Tiered pricing based on order quantity
+- **Customer Overrides**: Custom pricing per customer/product
+- **Caching**: Redis-backed with fallback to in-memory
+- **Inventory Integration**: Dynamic pricing based on stock levels
+
+### Server Actions
+```typescript
+// app/actions/pricing.ts
+import { 
+  createProductPricing,
+  updateProductPricing,
+  deleteProductPricing,
+  createPricingRule,
+  updatePricingRule,
+  deletePricingRule,
+  createCustomerPricing,
+  updateCustomerPricing,
+  bulkUpdateCustomerPrices,
+  calculatePrice
+} from '@/app/actions/pricing'
+```
+
+### Common Patterns
+
+#### Calculate Price for Display
+```typescript
+import { calculatePrice } from '@/lib/pricing/calculate-price'
+
+const result = await calculatePrice({
+  product_id: 'xxx',
+  customer_id: 'yyy',
+  quantity: 10,
+  requested_date: '2024-01-01'
+})
+
+console.log(result.final_price) // Final calculated price
+console.log(result.applied_rules) // Rules that were applied
+```
+
+#### Clear Pricing Cache
+```typescript
+import { clearPricingCache, clearCustomerPricingCache } from '@/lib/pricing/calculate-price'
+
+// Clear all pricing cache
+await clearPricingCache()
+
+// Clear cache for specific product
+await clearPricingCache('product-id')
+
+// Clear cache for specific customer
+await clearCustomerPricingCache('customer-id')
+```
+
+#### Custom Pricing Conditions
+The pricing engine supports custom conditions in rules:
+- `min_order_value`: Minimum order value required
+- `day_of_week`: Specific days (0-6, Sunday-Saturday)
+- `hour_of_day`: Time range (e.g., { min: 9, max: 17 })
+- `quantity_multiple`: Order quantity must be multiple of value
+- `inventory_level`: Based on stock levels (critical/low/medium/high/excess)
+- `min_available_inventory`: Minimum available stock required
+- `warehouse_specific`: Specific warehouse ID
+
+### Database Schema
+```sql
+-- Main pricing tables
+product_pricing        -- Base product prices
+pricing_rules         -- Dynamic pricing rules
+quantity_breaks       -- Quantity-based discounts
+customer_pricing      -- Customer-specific overrides
+customer_price_history -- Price change audit trail
+price_calculations    -- Price calculation log
+
+-- Key functions
+calculate_product_price() -- Database function for price calculation
+```
+
+### UI Components
+```tsx
+// Pricing rule management
+import { PricingRulesList } from '@/components/features/pricing/pricing-rules-list'
+import { PricingRuleForm } from '@/components/features/pricing/pricing-rule-form'
+
+// Customer pricing
+import { CustomerPriceList } from '@/components/features/pricing/customer-price-list'
+import { PriceHistoryViewer } from '@/components/features/pricing/price-history-viewer'
+import { BulkPriceUpdateDialog } from '@/components/features/pricing/bulk-price-update-dialog'
+
+// Tools
+import { PriceCalculator } from '@/components/features/pricing/price-calculator'
+import { PromotionCalendar } from '@/components/features/pricing/promotion-calendar'
+import { MarginAlerts } from '@/components/features/pricing/margin-alerts'
+```
+
+### Testing Pricing Rules
+```bash
+# Use the price calculator UI at /pricing/calculator
+# Or via Edge Function:
+curl -X POST https://your-project.supabase.co/functions/v1/calculate-price \
+  -H "Authorization: Bearer YOUR_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "product_id": "xxx",
+    "customer_id": "yyy", 
+    "quantity": 10
+  }'
+```
+
+### Environment Variables
+```env
+# For Redis caching (optional - falls back to in-memory)
+UPSTASH_REDIS_REST_URL=your_redis_url
+UPSTASH_REDIS_REST_TOKEN=your_redis_token
+```
+
 ## 🛠️ Development Commands
 
 Always run these before committing to catch errors early:
 
 ```bash
 # Check TypeScript errors
-npm run typecheck
+npm run type-check
 
 # Check ESLint errors  
 npm run lint
@@ -500,7 +623,7 @@ npm run lint
 npm run lint:fix
 
 # Run all checks in parallel (recommended)
-npm run typecheck && npm run lint
+npm run type-check && npm run lint
 ```
 
 For continuous feedback during development:

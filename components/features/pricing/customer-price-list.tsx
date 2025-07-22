@@ -44,6 +44,7 @@ import { toast } from 'sonner'
 import { CustomerPriceWithProduct, CustomerPriceFilters } from '@/types/customer-pricing.types'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { useDebounce } from '@/hooks/use-debounce'
+import { createCustomerPricing, updateCustomerPricing } from '@/app/actions/pricing'
 
 interface CustomerPriceListProps {
   customerId: string
@@ -281,17 +282,42 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
         throw new Error('Invalid price')
       }
 
-      // TODO: Call server action to update price
-      toast.info('Price update functionality will be implemented with server actions')
+      // Find the product to get its current pricing info
+      const product = products.find(p => p.product_id === productId)
+      if (!product) {
+        throw new Error('Product not found')
+      }
+
+      const formData = new FormData()
+      
+      // Check if this customer already has a pricing override
+      if (product.id) {
+        // Update existing customer pricing
+        formData.append('id', product.id)
+        formData.append('product_id', productId)
+        formData.append('override_price', newPrice.toString())
+        
+        await updateCustomerPricing(formData)
+        toast.success('Price updated successfully')
+      } else {
+        // Create new customer pricing override
+        formData.append('customer_id', customerId)
+        formData.append('product_id', productId)
+        formData.append('override_price', newPrice.toString())
+        
+        await createCustomerPricing(formData)
+        toast.success('Custom price created successfully')
+      }
       
       setEditingId(null)
       router.refresh()
     } catch (error) {
-      toast.error('Failed to update price')
+      console.error('Price update error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to update price')
     } finally {
       setSaving(false)
     }
-  }, [editValue, router])
+  }, [editValue, products, customerId, router])
 
   const handleCancel = useCallback(() => {
     setEditingId(null)

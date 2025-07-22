@@ -19,10 +19,9 @@
       "Bash(npx supabase db push)",
       "Bash(npx supabase db reset)",
       "Bash(npx supabase gen types)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(find:*)"
     ],
-    "deny": [
-
-    ]
+    "deny": []
   }
 }

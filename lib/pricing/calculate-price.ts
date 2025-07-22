@@ -188,7 +188,15 @@ export function validatePriceMargin(
 /**
  * Clear pricing cache
  */
-export function clearPricingCache(productId?: string): void {
+export async function clearPricingCache(productId?: string): Promise<void> {
   const engine = getPricingEngine()
-  engine.clearCache(productId)
+  await engine.clearCache(productId)
+}
+
+/**
+ * Clear pricing cache for a customer
+ */
+export async function clearCustomerPricingCache(customerId: string): Promise<void> {
+  const engine = getPricingEngine()
+  await engine.clearCustomerCache(customerId)
 }

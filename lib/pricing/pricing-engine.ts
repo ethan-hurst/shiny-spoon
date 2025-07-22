@@ -8,19 +8,24 @@ import {
   PriceCalculationRequest,
 } from '@/types/pricing.types'
 import { createClient } from '@/lib/supabase/client'
+import { cache, generateCacheKey } from './redis-cache'
 
 export class PricingEngine {
-  private cache: Map<string, CachedPrice> = new Map()
-  private cacheTTL: number = 300000 // 5 minutes in milliseconds
+  private cacheTTL: number = 300 // 5 minutes in seconds
 
   /**
    * Calculate the final price for a product
    */
   async calculatePrice(request: PriceCalculationRequest): Promise<PriceCalculationResult> {
-    const cacheKey = this.getCacheKey(request)
+    const cacheKey = generateCacheKey(
+      request.product_id,
+      request.customer_id,
+      request.quantity,
+      request.requested_date
+    )
     
     // Check cache first
-    const cached = this.getFromCache(cacheKey)
+    const cached = await cache.get<PriceCalculationResult>(cacheKey)
     if (cached) {
       return cached
     }
@@ -29,7 +34,7 @@ export class PricingEngine {
     const result = await this.performCalculation(request)
     
     // Cache the result
-    this.setCache(cacheKey, result)
+    await cache.set(cacheKey, result, this.cacheTTL)
     
     // Log the calculation for audit
     await this.logCalculation(request, result)
@@ -172,8 +177,129 @@ export class PricingEngine {
    * Evaluate custom conditions (extensible for future use)
    */
   private evaluateCustomConditions(custom: Record<string, any>, context: PriceContext): boolean {
-    // TODO: Implement custom condition logic here
-    // This is a placeholder - custom condition evaluation is not implemented yet
+    // Evaluate each custom condition
+    for (const [key, value] of Object.entries(custom)) {
+      switch (key) {
+        // Order total conditions
+        case 'min_order_value':
+          if (context.quantity * context.basePrice < value) {
+            return false
+          }
+          break
+          
+        // Time-based conditions
+        case 'day_of_week':
+          const dayOfWeek = context.date.getDay()
+          if (Array.isArray(value) && !value.includes(dayOfWeek)) {
+            return false
+          }
+          break
+          
+        case 'hour_of_day':
+          const hour = context.date.getHours()
+          if (value.min !== undefined && hour < value.min) return false
+          if (value.max !== undefined && hour > value.max) return false
+          break
+          
+        // Quantity conditions
+        case 'exact_quantity':
+          if (context.quantity !== value) {
+            return false
+          }
+          break
+          
+        case 'quantity_multiple':
+          if (context.quantity % value !== 0) {
+            return false
+          }
+          break
+          
+        // Customer conditions
+        case 'customer_age_days':
+          // This would require customer creation date - skip for now
+          break
+          
+        case 'customer_order_count':
+          // This would require order history - skip for now
+          break
+          
+        // Product conditions
+        case 'product_age_days':
+          // This would require product creation date - skip for now
+          break
+          
+        // Margin conditions
+        case 'min_margin_override':
+          // Allow rule only if resulting margin meets custom threshold
+          if (typeof value === 'number') {
+            context.minMargin = Math.max(context.minMargin, value)
+          }
+          break
+          
+        // Inventory conditions
+        case 'min_available_inventory':
+          if (!context.inventory || context.inventory.availableQuantity < value) {
+            return false
+          }
+          break
+          
+        case 'max_available_inventory':
+          if (!context.inventory || context.inventory.availableQuantity > value) {
+            return false
+          }
+          break
+          
+        case 'inventory_level':
+          if (!context.inventory) return false
+          const inventoryPercent = (context.inventory.availableQuantity / context.inventory.totalQuantity) * 100
+          
+          switch (value) {
+            case 'critical': // < 10%
+              if (inventoryPercent >= 10) return false
+              break
+            case 'low': // 10-25%
+              if (inventoryPercent < 10 || inventoryPercent >= 25) return false
+              break
+            case 'medium': // 25-50%
+              if (inventoryPercent < 25 || inventoryPercent >= 50) return false
+              break
+            case 'high': // 50-75%
+              if (inventoryPercent < 50 || inventoryPercent >= 75) return false
+              break
+            case 'excess': // > 75%
+              if (inventoryPercent <= 75) return false
+              break
+          }
+          break
+          
+        case 'warehouse_specific':
+          if (!context.inventory || context.inventory.warehouseId !== value) {
+            return false
+          }
+          break
+          
+        // Geographic conditions
+        case 'customer_region':
+        case 'customer_country':
+        case 'customer_state':
+          // These would require customer location data - skip for now
+          break
+          
+        // Custom field conditions (extensible)
+        default:
+          // For unknown conditions, check if context has matching custom data
+          if (key.startsWith('custom_') && context.hasOwnProperty(key)) {
+            const contextValue = (context as any)[key]
+            if (Array.isArray(value)) {
+              if (!value.includes(contextValue)) return false
+            } else if (contextValue !== value) {
+              return false
+            }
+          }
+          break
+      }
+    }
+    
     return true
   }
 
@@ -244,52 +370,21 @@ export class PricingEngine {
   }
 
   /**
-   * Generate cache key for a price request
-   */
-  private getCacheKey(request: PriceCalculationRequest): string {
-    return `price:${request.product_id}:${request.customer_id || 'none'}:${request.quantity}:${request.requested_date || 'today'}`
-  }
-
-  /**
-   * Get from cache
-   */
-  private getFromCache(key: string): PriceCalculationResult | null {
-    const cached = this.cache.get(key)
-    if (!cached) return null
-    
-    if (Date.now() > cached.expiresAt) {
-      this.cache.delete(key)
-      return null
-    }
-    
-    return cached.response
-  }
-
-  /**
-   * Set cache
-   */
-  private setCache(key: string, result: PriceCalculationResult): void {
-    this.cache.set(key, {
-      response: result,
-      expiresAt: Date.now() + this.cacheTTL,
-    })
-  }
-
-  /**
    * Clear cache for a specific product or all cache
    */
-  clearCache(productId?: string): void {
+  async clearCache(productId?: string): Promise<void> {
     if (productId) {
-      // Clear cache entries for specific product
-      for (const [key] of this.cache) {
-        if (key.includes(productId)) {
-          this.cache.delete(key)
-        }
-      }
+      await cache.clearProduct(productId)
     } else {
-      // Clear all cache
-      this.cache.clear()
+      await cache.clearAll()
     }
+  }
+
+  /**
+   * Clear cache for a specific customer
+   */
+  async clearCustomerCache(customerId: string): Promise<void> {
+    await cache.clearCustomer(customerId)
   }
 
   /**

@@ -227,6 +227,14 @@ export interface PriceContext {
   basePrice: number
   cost: number
   minMargin: number
+  organizationId: string
+  // Inventory context (optional)
+  inventory?: {
+    totalQuantity: number
+    availableQuantity: number
+    reservedQuantity: number
+    warehouseId?: string
+  }
 }
 
 // Import/Export types

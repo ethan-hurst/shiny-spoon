@@ -8,6 +8,8 @@ Implement a feature using using the PRP file.
 
 1. **Load PRP**
    - Read the specified PRP file
+   - Read the Implementation-Standard.md file found at PRPs/IMPLEMENTATION-STANDARD.md
+   - Read the Complete implementation guide found at the projects root COMPELTE-IMPLEMENTATION-GUIDE.md
    - Understand all context and requirements
    - Follow all instructions in the PRP and extend the research if needed
    - Ensure you have all needed context to implement the PRP fully
@@ -36,5 +38,8 @@ Implement a feature using using the PRP file.
 
 6. **Reference the PRP**
    - You can always reference the PRP again if needed
+
+7. **Update the PRP-STATUS file**
+   - Found within the PRPs folder. Update the PRP-STATUS.md document.
 
 Note: If validation fails, use error patterns in PRP to fix and retry.

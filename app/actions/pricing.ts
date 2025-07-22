@@ -13,7 +13,7 @@ import {
   updateCustomerPricingSchema,
   priceCalculationRequestSchema,
 } from '@/lib/pricing/validations'
-import { clearPricingCache } from '@/lib/pricing/calculate-price'
+import { clearPricingCache, clearCustomerPricingCache } from '@/lib/pricing/calculate-price'
 
 // Product Pricing Actions
 export async function createProductPricing(formData: FormData) {
@@ -82,7 +82,7 @@ export async function updateProductPricing(formData: FormData) {
   if (error) throw error
 
   // Clear pricing cache for this product
-  clearPricingCache(productId)
+  await clearPricingCache(productId)
   
   revalidatePath('/pricing')
   revalidatePath(`/products/${productId}`)
@@ -125,7 +125,7 @@ export async function createPricingRule(data: z.infer<typeof createPricingRuleSc
   }
 
   // Clear all pricing cache since rules affect pricing
-  clearPricingCache()
+  await clearPricingCache()
   
   revalidatePath('/pricing')
   return rule
@@ -167,7 +167,7 @@ export async function updatePricingRule(data: z.infer<typeof updatePricingRuleSc
   }
 
   // Clear all pricing cache since rules affect pricing
-  clearPricingCache()
+  await clearPricingCache()
   
   revalidatePath('/pricing')
   revalidatePath(`/pricing/rules/${id}`)
@@ -187,7 +187,7 @@ export async function deletePricingRule(ruleId: string) {
   if (error) throw error
 
   // Clear all pricing cache since rules affect pricing
-  clearPricingCache()
+  await clearPricingCache()
   
   revalidatePath('/pricing')
 }
@@ -255,7 +255,7 @@ export async function updateCustomerPricing(formData: FormData) {
   if (error) throw error
 
   // Clear pricing cache for this product
-  clearPricingCache(productId)
+  await clearPricingCache(productId)
   
   revalidatePath('/pricing')
 }
@@ -277,6 +277,132 @@ export async function approveCustomerPricing(pricingId: string) {
   if (error) throw error
 
   revalidatePath('/pricing')
+}
+
+// Bulk update customer prices
+export async function bulkUpdateCustomerPrices(formData: FormData) {
+  const supabase = createClient()
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const customerId = formData.get('customer_id') as string
+  const updatesJson = formData.get('updates') as string
+  const applyToAllWarehouses = formData.get('apply_to_all_warehouses') === 'true'
+
+  if (!customerId || !updatesJson) {
+    throw new Error('Missing required fields')
+  }
+
+  let updates: Array<{ sku: string; price?: number; discount_percent?: number; reason: string }>
+  try {
+    updates = JSON.parse(updatesJson)
+  } catch (error) {
+    throw new Error('Invalid updates format')
+  }
+
+  // Create a bulk update ID for tracking
+  const bulkUpdateId = crypto.randomUUID()
+  const errors: Array<{ sku: string; error: string }> = []
+  let succeeded = 0
+  let pendingApproval = 0
+
+  // Process each update
+  for (const update of updates) {
+    try {
+      // Find product by SKU
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('id, product_pricing(base_price, cost)')
+        .eq('sku', update.sku)
+        .single()
+
+      if (productError || !product) {
+        errors.push({ sku: update.sku, error: 'Product not found' })
+        continue
+      }
+
+      // Check if customer already has pricing for this product
+      const { data: existingPricing } = await supabase
+        .from('customer_pricing')
+        .select('id')
+        .eq('customer_id', customerId)
+        .eq('product_id', product.id)
+        .single()
+
+      const pricingData = {
+        customer_id: customerId,
+        product_id: product.id,
+        override_price: update.price,
+        override_discount_percent: update.discount_percent,
+        bulk_update_id: bulkUpdateId,
+        import_notes: update.reason,
+        created_by: user.id,
+      }
+
+      if (existingPricing) {
+        // Update existing pricing
+        const { error: updateError } = await supabase
+          .from('customer_pricing')
+          .update(pricingData)
+          .eq('id', existingPricing.id)
+
+        if (updateError) {
+          errors.push({ sku: update.sku, error: updateError.message })
+          continue
+        }
+      } else {
+        // Create new pricing
+        const { error: createError } = await supabase
+          .from('customer_pricing')
+          .insert(pricingData)
+
+        if (createError) {
+          errors.push({ sku: update.sku, error: createError.message })
+          continue
+        }
+      }
+
+      // Add to history
+      const { error: historyError } = await supabase
+        .from('customer_price_history')
+        .insert({
+          customer_id: customerId,
+          product_id: product.id,
+          old_price: product.product_pricing?.base_price || null,
+          new_price: update.price || null,
+          old_discount_percent: null,
+          new_discount_percent: update.discount_percent || null,
+          change_type: 'bulk',
+          change_reason: update.reason,
+          created_by: user.id,
+        })
+
+      if (historyError) {
+        console.error('Failed to create history entry:', historyError)
+      }
+
+      succeeded++
+    } catch (error) {
+      errors.push({ 
+        sku: update.sku, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      })
+    }
+  }
+
+  // Clear pricing cache
+  await clearPricingCache()
+  revalidatePath('/pricing')
+
+  return {
+    total: updates.length,
+    succeeded,
+    failed: errors.length,
+    pending_approval: pendingApproval,
+    errors,
+    bulk_update_id: bulkUpdateId,
+  }
 }
 
 // Price Calculation Actions
