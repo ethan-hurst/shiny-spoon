@@ -562,7 +562,7 @@ export function UsageBreakdown({ metrics, tier }: {
 // app/portal/api-keys/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Copy, Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -571,11 +571,42 @@ import { CreateApiKeyDialog } from '@/components/portal/create-api-key-dialog'
 import { DeleteApiKeyDialog } from '@/components/portal/delete-api-key-dialog'
 import { toast } from 'sonner'
 
+interface ApiKey {
+  id: string
+  name: string
+  key: string
+  created_at: string
+  last_used_at: string | null
+  permissions: string[]
+}
+
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [showKey, setShowKey] = useState<string | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteKey, setDeleteKey] = useState<ApiKey | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Fetch existing API keys on component mount
+  useEffect(() => {
+    const fetchApiKeys = async () => {
+      try {
+        const response = await fetch('/api/portal/api-keys')
+        if (!response.ok) {
+          throw new Error('Failed to fetch API keys')
+        }
+        const data = await response.json()
+        setKeys(data.keys || [])
+      } catch (error) {
+        console.error('Error fetching API keys:', error)
+        toast.error('Failed to load API keys')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchApiKeys()
+  }, [])
 
   const handleCopy = (key: string) => {
     navigator.clipboard.writeText(key)
