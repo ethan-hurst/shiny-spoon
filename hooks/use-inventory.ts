@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { useToast } from '@/components/ui/use-toast'
-import type { InventoryWithRelations } from '@/types/inventory.types'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import { useToast } from '@/components/ui/use-toast'
+import { createClient } from '@/lib/supabase/client'
+import type { InventoryWithRelations } from '@/types/inventory.types'
 
 interface UseInventoryOptions {
   organizationId: string
@@ -131,7 +131,10 @@ export function useInventoryRealtime({
 
   // Function to subscribe to a specific inventory item
   const subscribeToItem = useCallback(
-    (inventoryId: string, callback: (payload: RealtimePostgresChangesPayload<any>) => void) => {
+    (
+      inventoryId: string,
+      callback: (payload: RealtimePostgresChangesPayload<any>) => void
+    ) => {
       const channel = supabase
         .channel(`inventory-item-${inventoryId}`)
         .on(
@@ -192,10 +195,10 @@ export function useOptimisticInventory(
           description: 'Failed to update inventory. Please try again.',
           variant: 'destructive',
         })
-        
+
         // Revert optimistic update
         router.refresh()
-        
+
         if (onError) onError(error as Error)
       }
     },

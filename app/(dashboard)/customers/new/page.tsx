@@ -1,12 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { CustomerForm } from '@/components/features/customers/customer-form'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function NewCustomerPage() {
   const supabase = createClient()
-  
+
   // Get user's organization for tier options
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -34,14 +36,12 @@ export default async function NewCustomerPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Add New Customer</h1>
           <p className="text-muted-foreground">
-            Create a new customer profile and optionally add their primary contact
+            Create a new customer profile and optionally add their primary
+            contact
           </p>
         </div>
 
-        <CustomerForm 
-          tiers={tiers || []}
-          mode="create"
-        />
+        <CustomerForm tiers={tiers || []} mode="create" />
       </div>
     </div>
   )

@@ -57,10 +57,13 @@ export default function InventoryLoading() {
               </div>
               <Skeleton className="h-4 w-16" />
             </div>
-            
+
             {/* Table Rows */}
             {[...Array(10)].map((_, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b">
+              <div
+                key={i}
+                className="flex items-center justify-between py-2 border-b"
+              >
                 <div className="flex gap-4 flex-1">
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 w-32" />

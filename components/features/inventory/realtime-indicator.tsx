@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Wifi, WifiOff, AlertCircle, Activity } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Activity, AlertCircle, Wifi, WifiOff } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -10,7 +9,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
-import { ConnectionStatus, ConnectionQuality } from '@/lib/realtime/types'
+import { ConnectionQuality, ConnectionStatus } from '@/lib/realtime/types'
+import { cn } from '@/lib/utils'
 
 export function RealtimeIndicator() {
   const [status, setStatus] = useState<ConnectionStatus>({
@@ -18,13 +18,13 @@ export function RealtimeIndicator() {
     latency: 0,
     lastConnected: null,
     reconnectAttempts: 0,
-    quality: 'poor'
+    quality: 'poor',
   })
   const [isReceivingUpdates, setIsReceivingUpdates] = useState(false)
 
   useEffect(() => {
     const manager = RealtimeConnectionManager.getInstance()
-    
+
     // Subscribe to connection status updates
     const unsubscribe = manager.subscribe('realtime-indicator', (newStatus) => {
       setStatus(newStatus)
@@ -87,11 +87,11 @@ export function RealtimeIndicator() {
 
   const getStatusText = () => {
     if (status.state !== 'connected') {
-      return status.state === 'connecting' 
-        ? 'Connecting...' 
+      return status.state === 'connecting'
+        ? 'Connecting...'
         : status.state === 'error'
-        ? 'Connection Error'
-        : 'Offline'
+          ? 'Connection Error'
+          : 'Offline'
     }
 
     return `${status.quality.charAt(0).toUpperCase() + status.quality.slice(1)} Connection`
@@ -106,7 +106,7 @@ export function RealtimeIndicator() {
     return (
       <div className="space-y-2 text-sm">
         <div className="font-semibold">{getStatusText()}</div>
-        
+
         {status.state === 'connected' && (
           <>
             <div className="space-y-1">
@@ -133,9 +133,7 @@ export function RealtimeIndicator() {
         )}
 
         {status.error && (
-          <div className="text-red-500 text-xs">
-            {status.error}
-          </div>
+          <div className="text-red-500 text-xs">{status.error}</div>
         )}
 
         {recommendations.length > 0 && (
@@ -151,7 +149,8 @@ export function RealtimeIndicator() {
 
         {status.lastConnected && (
           <div className="text-xs text-muted-foreground border-t pt-2">
-            Last connected: {new Date(status.lastConnected).toLocaleTimeString()}
+            Last connected:{' '}
+            {new Date(status.lastConnected).toLocaleTimeString()}
           </div>
         )}
       </div>
@@ -164,10 +163,10 @@ export function RealtimeIndicator() {
         <TooltipTrigger asChild>
           <button
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-200",
-              "hover:bg-accent hover:text-accent-foreground",
+              'flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-200',
+              'hover:bg-accent hover:text-accent-foreground',
               getStatusColor(),
-              isReceivingUpdates && "animate-pulse"
+              isReceivingUpdates && 'animate-pulse'
             )}
           >
             {getStatusIcon()}

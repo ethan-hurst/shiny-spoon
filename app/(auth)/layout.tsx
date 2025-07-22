@@ -23,9 +23,7 @@ export default function AuthLayout({
       </div>
 
       {/* Auth form container */}
-      <div className="w-full max-w-md">
-        {children}
-      </div>
+      <div className="w-full max-w-md">{children}</div>
 
       {/* Footer links */}
       <div className="mt-8 text-center text-sm text-gray-600">

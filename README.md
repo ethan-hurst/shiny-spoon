@@ -225,12 +225,14 @@ pnpm validate:migrations # Validate PRP-002 (database migrations)
 ### Test Coverage
 
 We maintain high test coverage standards:
+
 - Unit tests for all utilities and business logic
 - Integration tests for server actions and API routes
 - E2E tests for critical user workflows
 - Performance benchmarks for the pricing engine
 
 Current coverage targets:
+
 - Statements: 80%
 - Branches: 70%
 - Functions: 80%

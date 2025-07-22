@@ -1,7 +1,11 @@
 'use client'
 
+import { useCallback, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Search, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -9,11 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Button } from '@/components/ui/button'
-import { Search, X } from 'lucide-react'
-import { useCallback, useTransition } from 'react'
 import type { InventoryFilters as IInventoryFilters } from '@/types/inventory.types'
 
 interface Warehouse {
@@ -27,27 +27,33 @@ interface InventoryFiltersProps {
   currentFilters: IInventoryFilters
 }
 
-export function InventoryFilters({ warehouses, currentFilters }: InventoryFiltersProps) {
+export function InventoryFilters({
+  warehouses,
+  currentFilters,
+}: InventoryFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
 
-  const updateFilters = useCallback((updates: Partial<IInventoryFilters>) => {
-    const params = new URLSearchParams(searchParams.toString())
-    
-    // Update or remove parameters
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === undefined || value === '' || value === false) {
-        params.delete(key)
-      } else {
-        params.set(key, String(value))
-      }
-    })
+  const updateFilters = useCallback(
+    (updates: Partial<IInventoryFilters>) => {
+      const params = new URLSearchParams(searchParams.toString())
 
-    startTransition(() => {
-      router.push(`/inventory?${params.toString()}`)
-    })
-  }, [router, searchParams])
+      // Update or remove parameters
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === undefined || value === '' || value === false) {
+          params.delete(key)
+        } else {
+          params.set(key, String(value))
+        }
+      })
+
+      startTransition(() => {
+        router.push(`/inventory?${params.toString()}`)
+      })
+    },
+    [router, searchParams]
+  )
 
   const clearFilters = useCallback(() => {
     startTransition(() => {
@@ -55,7 +61,10 @@ export function InventoryFilters({ warehouses, currentFilters }: InventoryFilter
     })
   }, [router])
 
-  const hasActiveFilters = currentFilters.warehouse_id || currentFilters.search || currentFilters.low_stock_only
+  const hasActiveFilters =
+    currentFilters.warehouse_id ||
+    currentFilters.search ||
+    currentFilters.low_stock_only
 
   return (
     <div className="flex flex-wrap gap-4 items-end">
@@ -82,7 +91,7 @@ export function InventoryFilters({ warehouses, currentFilters }: InventoryFilter
         </Label>
         <Select
           value={currentFilters.warehouse_id || 'all'}
-          onValueChange={(value) => 
+          onValueChange={(value) =>
             updateFilters({ warehouse_id: value === 'all' ? undefined : value })
           }
           disabled={isPending}
@@ -105,13 +114,13 @@ export function InventoryFilters({ warehouses, currentFilters }: InventoryFilter
         <Switch
           id="low-stock"
           checked={currentFilters.low_stock_only || false}
-          onCheckedChange={(checked) => 
+          onCheckedChange={(checked) =>
             updateFilters({ low_stock_only: checked || undefined })
           }
           disabled={isPending}
         />
-        <Label 
-          htmlFor="low-stock" 
+        <Label
+          htmlFor="low-stock"
           className="text-sm font-medium cursor-pointer"
         >
           Low stock only

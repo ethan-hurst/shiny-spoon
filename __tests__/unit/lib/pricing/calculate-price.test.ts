@@ -1,22 +1,22 @@
 import {
-  calculatePrice,
   calculateBatchPrices,
-  getQuickPrice,
+  calculatePrice,
   calculatePriceWithExplanation,
   comparePrices,
   getQuantityBreakPrices,
-  validatePriceMargin
+  getQuickPrice,
+  validatePriceMargin,
 } from '@/lib/pricing/calculate-price'
-import { PriceCalculationRequest } from '@/types/pricing.types'
 import { PricingEngine } from '@/lib/pricing/pricing-engine'
+import { PriceCalculationRequest } from '@/types/pricing.types'
 
 // Mock the pricing engine
 jest.mock('@/lib/pricing/pricing-engine', () => ({
   getPricingEngine: jest.fn(() => ({
     calculatePrice: jest.fn(),
-    calculateBatchPrices: jest.fn()
+    calculateBatchPrices: jest.fn(),
   })),
-  PricingEngine: jest.fn()
+  PricingEngine: jest.fn(),
 }))
 
 describe('Price Calculation Utilities', () => {
@@ -26,7 +26,7 @@ describe('Price Calculation Utilities', () => {
     jest.clearAllMocks()
     mockEngine = {
       calculatePrice: jest.fn(),
-      calculateBatchPrices: jest.fn()
+      calculateBatchPrices: jest.fn(),
     }
     const { getPricingEngine } = require('@/lib/pricing/pricing-engine')
     getPricingEngine.mockReturnValue(mockEngine)
@@ -36,7 +36,7 @@ describe('Price Calculation Utilities', () => {
     it('should calculate a single price', async () => {
       const request: PriceCalculationRequest = {
         product_id: 'test-product',
-        quantity: 10
+        quantity: 10,
       }
 
       const expectedResult = {
@@ -45,7 +45,7 @@ describe('Price Calculation Utilities', () => {
         discount_amount: 10,
         discount_percent: 10,
         margin_percent: 40,
-        applied_rules: []
+        applied_rules: [],
       }
 
       mockEngine.calculatePrice.mockResolvedValue(expectedResult)
@@ -61,26 +61,32 @@ describe('Price Calculation Utilities', () => {
     it('should calculate prices for multiple products', async () => {
       const requests: PriceCalculationRequest[] = [
         { product_id: 'product-1', quantity: 5 },
-        { product_id: 'product-2', quantity: 10 }
+        { product_id: 'product-2', quantity: 10 },
       ]
 
       const expectedMap = new Map([
-        ['product-1', {
-          base_price: 50,
-          final_price: 45,
-          discount_amount: 5,
-          discount_percent: 10,
-          margin_percent: 35,
-          applied_rules: []
-        }],
-        ['product-2', {
-          base_price: 100,
-          final_price: 85,
-          discount_amount: 15,
-          discount_percent: 15,
-          margin_percent: 40,
-          applied_rules: []
-        }]
+        [
+          'product-1',
+          {
+            base_price: 50,
+            final_price: 45,
+            discount_amount: 5,
+            discount_percent: 10,
+            margin_percent: 35,
+            applied_rules: [],
+          },
+        ],
+        [
+          'product-2',
+          {
+            base_price: 100,
+            final_price: 85,
+            discount_amount: 15,
+            discount_percent: 15,
+            margin_percent: 40,
+            applied_rules: [],
+          },
+        ],
       ])
 
       mockEngine.calculateBatchPrices.mockResolvedValue(expectedMap)
@@ -100,7 +106,7 @@ describe('Price Calculation Utilities', () => {
         discount_amount: 15,
         discount_percent: 15,
         margin_percent: 40,
-        applied_rules: []
+        applied_rules: [],
       })
 
       const price = await getQuickPrice('test-product', 'test-customer', 10)
@@ -109,7 +115,7 @@ describe('Price Calculation Utilities', () => {
       expect(mockEngine.calculatePrice).toHaveBeenCalledWith({
         product_id: 'test-product',
         customer_id: 'test-customer',
-        quantity: 10
+        quantity: 10,
       })
     })
 
@@ -128,7 +134,7 @@ describe('Price Calculation Utilities', () => {
         discount_amount: 0,
         discount_percent: 0,
         margin_percent: 50,
-        applied_rules: []
+        applied_rules: [],
       })
 
       await getQuickPrice('test-product')
@@ -136,7 +142,7 @@ describe('Price Calculation Utilities', () => {
       expect(mockEngine.calculatePrice).toHaveBeenCalledWith({
         product_id: 'test-product',
         customer_id: undefined,
-        quantity: 1
+        quantity: 1,
       })
     })
   })
@@ -146,7 +152,7 @@ describe('Price Calculation Utilities', () => {
       const request: PriceCalculationRequest = {
         product_id: 'test-product',
         customer_id: 'test-customer',
-        quantity: 50
+        quantity: 50,
       }
 
       mockEngine.calculatePrice.mockResolvedValue({
@@ -162,7 +168,7 @@ describe('Price Calculation Utilities', () => {
             name: 'Bulk Discount',
             discount_type: 'percentage',
             discount_value: 15,
-            discount_amount: 15
+            discount_amount: 15,
           },
           {
             rule_id: 'rule-2',
@@ -170,12 +176,13 @@ describe('Price Calculation Utilities', () => {
             name: 'VIP Customer',
             discount_type: 'percentage',
             discount_value: 10,
-            discount_amount: 10
-          }
-        ]
+            discount_amount: 10,
+          },
+        ],
       })
 
-      const { result, explanation } = await calculatePriceWithExplanation(request)
+      const { result, explanation } =
+        await calculatePriceWithExplanation(request)
 
       expect(result.final_price).toBe(75)
       expect(explanation).toContain('Base price: $100.00')
@@ -194,12 +201,12 @@ describe('Price Calculation Utilities', () => {
         discount_amount: 0,
         discount_percent: 0,
         margin_percent: 50,
-        applied_rules: []
+        applied_rules: [],
       })
 
       const { explanation } = await calculatePriceWithExplanation({
         product_id: 'test-product',
-        quantity: 1
+        quantity: 1,
       })
 
       expect(explanation).toContain('Base price: $100.00')
@@ -214,7 +221,7 @@ describe('Price Calculation Utilities', () => {
       const scenarios = [
         { customerId: undefined, quantity: 1, label: 'Regular Price' },
         { customerId: 'vip-customer', quantity: 1, label: 'VIP Price' },
-        { customerId: undefined, quantity: 100, label: 'Bulk Price' }
+        { customerId: undefined, quantity: 100, label: 'Bulk Price' },
       ]
 
       mockEngine.calculatePrice
@@ -224,7 +231,7 @@ describe('Price Calculation Utilities', () => {
           discount_amount: 0,
           discount_percent: 0,
           margin_percent: 50,
-          applied_rules: []
+          applied_rules: [],
         })
         .mockResolvedValueOnce({
           base_price: 100,
@@ -232,7 +239,7 @@ describe('Price Calculation Utilities', () => {
           discount_amount: 15,
           discount_percent: 15,
           margin_percent: 42,
-          applied_rules: []
+          applied_rules: [],
         })
         .mockResolvedValueOnce({
           base_price: 100,
@@ -240,7 +247,7 @@ describe('Price Calculation Utilities', () => {
           discount_amount: 20,
           discount_percent: 20,
           margin_percent: 40,
-          applied_rules: []
+          applied_rules: [],
         })
 
       const results = await comparePrices(productId, scenarios)
@@ -265,7 +272,7 @@ describe('Price Calculation Utilities', () => {
           discount_amount: 0,
           discount_percent: 0,
           margin_percent: 50,
-          applied_rules: []
+          applied_rules: [],
         })
         .mockResolvedValueOnce({
           base_price: 100,
@@ -273,7 +280,7 @@ describe('Price Calculation Utilities', () => {
           discount_amount: 50,
           discount_percent: 5,
           margin_percent: 47,
-          applied_rules: []
+          applied_rules: [],
         })
         .mockResolvedValueOnce({
           base_price: 100,
@@ -281,7 +288,7 @@ describe('Price Calculation Utilities', () => {
           discount_amount: 500,
           discount_percent: 10,
           margin_percent: 45,
-          applied_rules: []
+          applied_rules: [],
         })
         .mockResolvedValueOnce({
           base_price: 100,
@@ -289,10 +296,14 @@ describe('Price Calculation Utilities', () => {
           discount_amount: 1500,
           discount_percent: 15,
           margin_percent: 42,
-          applied_rules: []
+          applied_rules: [],
         })
 
-      const results = await getQuantityBreakPrices(productId, undefined, quantities)
+      const results = await getQuantityBreakPrices(
+        productId,
+        undefined,
+        quantities
+      )
 
       expect(results).toHaveLength(4)
       expect(results[0].unitPrice).toBe(100)
@@ -309,7 +320,7 @@ describe('Price Calculation Utilities', () => {
         discount_amount: 0,
         discount_percent: 0,
         margin_percent: 50,
-        applied_rules: []
+        applied_rules: [],
       })
 
       await getQuantityBreakPrices('test-product')

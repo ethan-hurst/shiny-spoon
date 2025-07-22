@@ -1,22 +1,26 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/server'
 import { customerTierSchema } from '@/types/customer.types'
 
 // Helper function to safely parse JSON fields
 function parseTierFormData(formData: FormData) {
   let benefits = {}
   let requirements = {}
-  
+
   try {
-    benefits = formData.get('benefits') ? JSON.parse(formData.get('benefits') as string) : {}
+    benefits = formData.get('benefits')
+      ? JSON.parse(formData.get('benefits') as string)
+      : {}
   } catch {
     benefits = {}
   }
-  
+
   try {
-    requirements = formData.get('requirements') ? JSON.parse(formData.get('requirements') as string) : {}
+    requirements = formData.get('requirements')
+      ? JSON.parse(formData.get('requirements') as string)
+      : {}
   } catch {
     requirements = {}
   }
@@ -24,7 +28,9 @@ function parseTierFormData(formData: FormData) {
   return customerTierSchema.safeParse({
     name: formData.get('name'),
     level: parseInt(formData.get('level') as string),
-    discount_percentage: parseFloat(formData.get('discount_percentage') as string),
+    discount_percentage: parseFloat(
+      formData.get('discount_percentage') as string
+    ),
     color: formData.get('color'),
     benefits,
     requirements,
@@ -33,7 +39,7 @@ function parseTierFormData(formData: FormData) {
 
 export async function createTier(formData: FormData) {
   const supabase = createClient()
-  
+
   const parsed = parseTierFormData(formData)
 
   if (!parsed.success) {
@@ -44,8 +50,10 @@ export async function createTier(formData: FormData) {
   if (!organizationId) {
     return { error: 'Organization ID is required' }
   }
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -82,13 +90,15 @@ export async function createTier(formData: FormData) {
 
 export async function updateTier(formData: FormData) {
   const supabase = createClient()
-  
+
   const id = formData.get('id') as string
   if (!id) {
     return { error: 'Tier ID is required' }
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -99,8 +109,12 @@ export async function updateTier(formData: FormData) {
     level: Number(formData.get('level')),
     discount_percentage: Number(formData.get('discount_percentage')),
     color: formData.get('color'),
-    benefits: formData.get('benefits') ? JSON.parse(formData.get('benefits') as string) : {},
-    requirements: formData.get('requirements') ? JSON.parse(formData.get('requirements') as string) : {},
+    benefits: formData.get('benefits')
+      ? JSON.parse(formData.get('benefits') as string)
+      : {},
+    requirements: formData.get('requirements')
+      ? JSON.parse(formData.get('requirements') as string)
+      : {},
   })
 
   if (!parsed.success) {
@@ -140,8 +154,10 @@ export async function updateTier(formData: FormData) {
 
 export async function deleteTier(id: string) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -156,10 +172,7 @@ export async function deleteTier(id: string) {
     return { error: `Cannot delete tier with ${count} assigned customers` }
   }
 
-  const { error } = await supabase
-    .from('customer_tiers')
-    .delete()
-    .eq('id', id)
+  const { error } = await supabase.from('customer_tiers').delete().eq('id', id)
 
   if (error) {
     return { error: error.message }

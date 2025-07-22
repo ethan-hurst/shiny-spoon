@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { ProductForm } from '@/components/features/products/product-form'
+import { createClient } from '@/lib/supabase/server'
 
 interface EditProductPageProps {
   params: {
@@ -8,11 +8,15 @@ interface EditProductPageProps {
   }
 }
 
-export default async function EditProductPage({ params }: EditProductPageProps) {
+export default async function EditProductPage({
+  params,
+}: EditProductPageProps) {
   const supabase = createClient()
-  
+
   // Get current user and organization
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -44,9 +48,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-3xl font-bold">Edit Product</h1>
-        <p className="text-muted-foreground">
-          Update product information
-        </p>
+        <p className="text-muted-foreground">Update product information</p>
       </div>
 
       <div className="max-w-2xl">

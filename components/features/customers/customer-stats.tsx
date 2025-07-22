@@ -1,7 +1,7 @@
 'use client'
 
+import { UserCheck, UserMinus, Users, UserX } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, UserCheck, UserX, UserMinus } from 'lucide-react'
 
 interface CustomerStatsProps {
   stats: {
@@ -38,7 +38,7 @@ export function CustomerStats({ stats }: CustomerStatsProps) {
           )}
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Active</CardTitle>
@@ -47,10 +47,9 @@ export function CustomerStats({ stats }: CustomerStatsProps) {
         <CardContent>
           <div className="text-2xl font-bold">{stats.active_customers}</div>
           <p className="text-xs text-muted-foreground">
-            {stats.total_customers > 0 
+            {stats.total_customers > 0
               ? `${Math.round((stats.active_customers / stats.total_customers) * 100)}% of total`
-              : '0% of total'
-            }
+              : '0% of total'}
           </p>
         </CardContent>
       </Card>
@@ -63,10 +62,9 @@ export function CustomerStats({ stats }: CustomerStatsProps) {
         <CardContent>
           <div className="text-2xl font-bold">{stats.inactive_customers}</div>
           <p className="text-xs text-muted-foreground">
-            {stats.total_customers > 0 
+            {stats.total_customers > 0
               ? `${Math.round((stats.inactive_customers / stats.total_customers) * 100)}% of total`
-              : '0% of total'
-            }
+              : '0% of total'}
           </p>
         </CardContent>
       </Card>
@@ -79,10 +77,9 @@ export function CustomerStats({ stats }: CustomerStatsProps) {
         <CardContent>
           <div className="text-2xl font-bold">{stats.suspended_customers}</div>
           <p className="text-xs text-muted-foreground">
-            {stats.total_customers > 0 
+            {stats.total_customers > 0
               ? `${Math.round((stats.suspended_customers / stats.total_customers) * 100)}% of total`
-              : '0% of total'
-            }
+              : '0% of total'}
           </p>
         </CardContent>
       </Card>

@@ -1,13 +1,25 @@
-import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { format } from 'date-fns'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowLeft, Calendar, FileText, Package, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Package, User, Calendar, FileText } from 'lucide-react'
-import Link from 'next/link'
-import { ADJUSTMENT_REASON_LABELS, ADJUSTMENT_REASON_COLORS } from '@/types/inventory.types'
-import type { InventoryAdjustment, AdjustmentReason } from '@/types/inventory.types'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/server'
+import {
+  ADJUSTMENT_REASON_COLORS,
+  ADJUSTMENT_REASON_LABELS,
+} from '@/types/inventory.types'
+import type {
+  AdjustmentReason,
+  InventoryAdjustment,
+} from '@/types/inventory.types'
 
 // Interface for raw adjustment data from database
 interface RawAdjustmentData {
@@ -33,7 +45,9 @@ export default async function InventoryHistoryPage({
   const supabase = createClient()
 
   // Check authentication
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -52,11 +66,13 @@ export default async function InventoryHistoryPage({
   // Fetch inventory item details
   const { data: inventory, error: inventoryError } = await supabase
     .from('inventory')
-    .select(`
+    .select(
+      `
       *,
       product:products!inner(*),
       warehouse:warehouses!inner(*)
-    `)
+    `
+    )
     .eq('id', params.id)
     .eq('organization_id', profile.organization_id)
     .single()
@@ -77,20 +93,22 @@ export default async function InventoryHistoryPage({
     console.error('Error fetching adjustments:', adjustmentsError)
   }
 
-  const adjustmentHistory: InventoryAdjustment[] = (adjustments || []).map((adj: any) => ({
-    id: adj.id,
-    inventory_id: adj.inventory_id,
-    organization_id: adj.organization_id,
-    previous_quantity: adj.previous_quantity,
-    new_quantity: adj.new_quantity,
-    adjustment: adj.adjustment,
-    reason: adj.reason as AdjustmentReason,
-    notes: adj.notes,
-    created_at: adj.created_at,
-    created_by: adj.created_by,
-    user_full_name: adj.user_full_name || undefined,
-    user_email: adj.user_email,
-  }))
+  const adjustmentHistory: InventoryAdjustment[] = (adjustments || []).map(
+    (adj: any) => ({
+      id: adj.id,
+      inventory_id: adj.inventory_id,
+      organization_id: adj.organization_id,
+      previous_quantity: adj.previous_quantity,
+      new_quantity: adj.new_quantity,
+      adjustment: adj.adjustment,
+      reason: adj.reason as AdjustmentReason,
+      notes: adj.notes,
+      created_at: adj.created_at,
+      created_by: adj.created_by,
+      user_full_name: adj.user_full_name || undefined,
+      user_email: adj.user_email,
+    })
+  )
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -160,19 +178,23 @@ export default async function InventoryHistoryPage({
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <Badge 
+                        <Badge
                           variant="outline"
-                          className={ADJUSTMENT_REASON_COLORS[adjustment.reason]}
+                          className={
+                            ADJUSTMENT_REASON_COLORS[adjustment.reason]
+                          }
                         >
                           {ADJUSTMENT_REASON_LABELS[adjustment.reason]}
                         </Badge>
-                        <span className={`font-medium ${
-                          adjustment.adjustment > 0 
-                            ? 'text-green-600' 
-                            : adjustment.adjustment < 0 
-                            ? 'text-red-600' 
-                            : 'text-gray-600'
-                        }`}>
+                        <span
+                          className={`font-medium ${
+                            adjustment.adjustment > 0
+                              ? 'text-green-600'
+                              : adjustment.adjustment < 0
+                                ? 'text-red-600'
+                                : 'text-gray-600'
+                          }`}
+                        >
                           {adjustment.adjustment > 0 ? '+' : ''}
                           {adjustment.adjustment} units
                         </span>
@@ -184,14 +206,20 @@ export default async function InventoryHistoryPage({
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {format(new Date(adjustment.created_at), 'MMM d, yyyy h:mm a')}
+                          {format(
+                            new Date(adjustment.created_at),
+                            'MMM d, yyyy h:mm a'
+                          )}
                         </span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Quantity Change</p>
+                      <p className="text-sm text-muted-foreground">
+                        Quantity Change
+                      </p>
                       <p className="font-medium">
-                        {adjustment.previous_quantity} → {adjustment.new_quantity}
+                        {adjustment.previous_quantity} →{' '}
+                        {adjustment.new_quantity}
                       </p>
                     </div>
                   </div>

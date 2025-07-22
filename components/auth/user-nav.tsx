@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signOut } from '@/app/actions/auth'
+import { Building, LogOut, Settings, User } from 'lucide-react'
+import { toast } from 'sonner'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { User, Settings, LogOut, Building } from 'lucide-react'
-import { toast } from 'sonner'
+import { signOut } from '@/app/actions/auth'
 
 interface UserNavProps {
   user: {
@@ -66,7 +66,9 @@ export function UserNav({ user, organization }: UserNavProps) {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name || 'User'}</p>
+            <p className="text-sm font-medium leading-none">
+              {user.name || 'User'}
+            </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>

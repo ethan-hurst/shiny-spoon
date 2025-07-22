@@ -23,8 +23,8 @@ export const supabaseAdmin = createClient<Database>(
   {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
+      persistSession: false,
+    },
   }
 )
 
@@ -49,8 +49,8 @@ export async function createUserWithOrganization(
     email_confirm: true, // Auto-confirm email
     user_metadata: {
       organization_id: organizationId,
-      ...metadata
-    }
+      ...metadata,
+    },
   })
 
   if (error) throw error
@@ -64,7 +64,7 @@ export async function createUserWithOrganization(
 export async function deleteUserCompletely(userId: string) {
   // User profile will be cascade deleted due to foreign key
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-  
+
   if (error) throw error
   return { success: true }
 }
@@ -96,9 +96,9 @@ export async function adminQuery<T = any>(
   options?: any
 ): Promise<T> {
   const query = supabaseAdmin.from(table)[operation](options)
-  
+
   const { data, error } = await query
-  
+
   if (error) throw error
   return data as T
 }

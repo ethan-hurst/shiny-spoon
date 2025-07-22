@@ -1,33 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import {
   AlertCircle,
   CheckCircle,
@@ -37,10 +11,36 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import { formatCurrency, formatPercent } from '@/lib/utils'
 import { toast } from 'sonner'
-import { bulkUpdateCustomerPrices } from '@/app/actions/pricing'
 import { z } from 'zod'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
+import { formatCurrency, formatPercent } from '@/lib/utils'
+import { bulkUpdateCustomerPrices } from '@/app/actions/pricing'
 
 interface BulkPriceUpdateDialogProps {
   customerId: string
@@ -68,13 +68,13 @@ export function BulkPriceUpdateDialog({
   customerId,
   selectedProducts = [],
   onComplete,
-  children
+  children,
 }: BulkPriceUpdateDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
-  
+
   // Form state
   const [updateType, setUpdateType] = useState<UpdateType>('percentage')
   const [changeType, setChangeType] = useState<PriceChangeType>('override')
@@ -84,16 +84,18 @@ export function BulkPriceUpdateDialog({
   const [requiresApproval, setRequiresApproval] = useState(false)
   const [csvData, setCsvData] = useState<CSVRow[]>([])
   const [csvError, setCsvError] = useState<string | null>(null)
-  
+
   // Preview state
   const [showPreview, setShowPreview] = useState(false)
-  const [previewData, setPreviewData] = useState<Array<{
-    sku: string
-    name: string
-    currentPrice: number
-    newPrice: number
-    changePercent: number
-  }>>([])
+  const [previewData, setPreviewData] = useState<
+    Array<{
+      sku: string
+      name: string
+      currentPrice: number
+      newPrice: number
+      changePercent: number
+    }>
+  >([])
 
   // Helper function to parse CSV with proper handling of quoted fields
   const parseCSVLine = (line: string): string[] => {
@@ -133,28 +135,31 @@ export function BulkPriceUpdateDialog({
   }
 
   // Calculate new price based on update type
-    const calculateNewPrice = useCallback((currentPrice: number, basePrice: number) => {
-    if (updateType === 'percentage') {
-      const percent = parseFloat(percentageValue) / 100
-      if (changeType === 'increase') {
-        return currentPrice * (1 + percent)
-      } else if (changeType === 'decrease') {
-        return currentPrice * (1 - percent)
-      } else {
-        return basePrice * (1 - percent) // Override with discount using base price
+  const calculateNewPrice = useCallback(
+    (currentPrice: number, basePrice: number) => {
+      if (updateType === 'percentage') {
+        const percent = parseFloat(percentageValue) / 100
+        if (changeType === 'increase') {
+          return currentPrice * (1 + percent)
+        } else if (changeType === 'decrease') {
+          return currentPrice * (1 - percent)
+        } else {
+          return basePrice * (1 - percent) // Override with discount using base price
+        }
+      } else if (updateType === 'fixed') {
+        const fixed = parseFloat(fixedValue)
+        if (changeType === 'increase') {
+          return currentPrice + fixed
+        } else if (changeType === 'decrease') {
+          return currentPrice - fixed
+        } else {
+          return fixed // Override with fixed price
+        }
       }
-    } else if (updateType === 'fixed') {
-      const fixed = parseFloat(fixedValue)
-      if (changeType === 'increase') {
-        return currentPrice + fixed
-      } else if (changeType === 'decrease') {
-        return currentPrice - fixed
-      } else {
-        return fixed // Override with fixed price
-      }
-    }
-    return currentPrice
-  }, [updateType, changeType, percentageValue, fixedValue])
+      return currentPrice
+    },
+    [updateType, changeType, percentageValue, fixedValue]
+  )
 
   // Generate preview
   const generatePreview = useCallback(() => {
@@ -163,11 +168,11 @@ export function BulkPriceUpdateDialog({
       return
     }
 
-    const preview = selectedProducts.map(product => {
+    const preview = selectedProducts.map((product) => {
       let newPrice = product.currentPrice
 
       if (updateType === 'csv') {
-        const csvRow = csvData.find(row => row.sku === product.sku)
+        const csvRow = csvData.find((row) => row.sku === product.sku)
         if (csvRow) {
           if (csvRow.price !== undefined) {
             newPrice = csvRow.price
@@ -179,14 +184,15 @@ export function BulkPriceUpdateDialog({
         newPrice = calculateNewPrice(product.currentPrice, product.basePrice)
       }
 
-      const changePercent = ((newPrice - product.currentPrice) / product.currentPrice) * 100
+      const changePercent =
+        ((newPrice - product.currentPrice) / product.currentPrice) * 100
 
       return {
         sku: product.sku,
         name: product.name,
         currentPrice: product.currentPrice,
         newPrice,
-        changePercent
+        changePercent,
       }
     })
 
@@ -195,56 +201,69 @@ export function BulkPriceUpdateDialog({
   }, [selectedProducts, updateType, csvData, calculateNewPrice, reason])
 
   // Handle CSV file upload
-  const handleCSVUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleCSVUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string
-        const lines = text.split('\n').filter(line => line.trim()) // Filter empty lines
-        
-        if (lines.length === 0) {
-          throw new Error('CSV file is empty')
-        }
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        try {
+          const text = event.target?.result as string
+          const lines = text.split('\n').filter((line) => line.trim()) // Filter empty lines
 
-        const headers = parseCSVLine(lines[0]).map((h: string) => h.toLowerCase().trim())
-        
-        if (!headers.includes('sku')) {
-          throw new Error('CSV must have a "sku" column')
-        }
-
-        const data: CSVRow[] = []
-        for (let i = 1; i < lines.length; i++) {
-          const values = parseCSVLine(lines[i])
-          const row: CSVRow = { sku: '' }
-          
-          headers.forEach((header, index) => {
-            if (header === 'sku') {
-              row.sku = values[index]
-            } else if (header === 'price') {
-              row.price = parseFloat(values[index])
-            } else if (header === 'discount_percent' || header === 'discount') {
-              row.discount_percent = parseFloat(values[index])
-            }
-          })
-
-          if (row.sku && (row.price !== undefined || row.discount_percent !== undefined)) {
-            data.push(row)
+          if (lines.length === 0) {
+            throw new Error('CSV file is empty')
           }
-        }
 
-        setCsvData(data)
-        setCsvError(null)
-        toast.success(`Loaded ${data.length} price updates from CSV`)
-      } catch (error) {
-        setCsvError(error instanceof Error ? error.message : 'Failed to parse CSV')
-        toast.error('Failed to parse CSV file')
+          const headers = parseCSVLine(lines[0]).map((h: string) =>
+            h.toLowerCase().trim()
+          )
+
+          if (!headers.includes('sku')) {
+            throw new Error('CSV must have a "sku" column')
+          }
+
+          const data: CSVRow[] = []
+          for (let i = 1; i < lines.length; i++) {
+            const values = parseCSVLine(lines[i])
+            const row: CSVRow = { sku: '' }
+
+            headers.forEach((header, index) => {
+              if (header === 'sku') {
+                row.sku = values[index]
+              } else if (header === 'price') {
+                row.price = parseFloat(values[index])
+              } else if (
+                header === 'discount_percent' ||
+                header === 'discount'
+              ) {
+                row.discount_percent = parseFloat(values[index])
+              }
+            })
+
+            if (
+              row.sku &&
+              (row.price !== undefined || row.discount_percent !== undefined)
+            ) {
+              data.push(row)
+            }
+          }
+
+          setCsvData(data)
+          setCsvError(null)
+          toast.success(`Loaded ${data.length} price updates from CSV`)
+        } catch (error) {
+          setCsvError(
+            error instanceof Error ? error.message : 'Failed to parse CSV'
+          )
+          toast.error('Failed to parse CSV file')
+        }
       }
-    }
-    reader.readAsText(file)
-  }, [])
+      reader.readAsText(file)
+    },
+    []
+  )
 
   // Apply bulk update
   const handleApply = useCallback(async () => {
@@ -261,7 +280,7 @@ export function BulkPriceUpdateDialog({
         return {
           sku: item.sku,
           price: item.newPrice,
-          reason: reason.trim()
+          reason: reason.trim(),
         }
       })
 
@@ -274,17 +293,21 @@ export function BulkPriceUpdateDialog({
       setProgress(50)
 
       await bulkUpdateCustomerPrices(formData)
-      
+
       // Set progress to 100% when successful
       setProgress(100)
-      
-      toast.success(`Successfully updated prices for ${updates.length} products`)
+
+      toast.success(
+        `Successfully updated prices for ${updates.length} products`
+      )
       setOpen(false)
       router.refresh()
       onComplete?.()
     } catch (error) {
       console.error('Bulk update error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to update prices')
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update prices'
+      )
     } finally {
       setLoading(false)
       setProgress(0)
@@ -306,10 +329,13 @@ export function BulkPriceUpdateDialog({
   }, [])
 
   return (
-    <Dialog open={open} onOpenChange={(open) => {
-      setOpen(open)
-      if (!open) resetForm()
-    }}>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        setOpen(open)
+        if (!open) resetForm()
+      }}
+    >
       <DialogTrigger asChild>
         {children || (
           <Button variant="outline">
@@ -331,23 +357,35 @@ export function BulkPriceUpdateDialog({
             {/* Update type selection */}
             <div className="space-y-4">
               <Label>Update Method</Label>
-              <RadioGroup value={updateType} onValueChange={(v) => setUpdateType(v as UpdateType)}>
+              <RadioGroup
+                value={updateType}
+                onValueChange={(v) => setUpdateType(v as UpdateType)}
+              >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="percentage" id="percentage" />
-                  <Label htmlFor="percentage" className="flex items-center cursor-pointer">
+                  <Label
+                    htmlFor="percentage"
+                    className="flex items-center cursor-pointer"
+                  >
                     <Percent className="h-4 w-4 mr-2" />
                     Percentage Change
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="fixed" id="fixed" />
-                  <Label htmlFor="fixed" className="flex items-center cursor-pointer">
+                  <Label
+                    htmlFor="fixed"
+                    className="flex items-center cursor-pointer"
+                  >
                     Fixed Amount
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="csv" id="csv" />
-                  <Label htmlFor="csv" className="flex items-center cursor-pointer">
+                  <Label
+                    htmlFor="csv"
+                    className="flex items-center cursor-pointer"
+                  >
                     <FileText className="h-4 w-4 mr-2" />
                     Upload CSV
                   </Label>
@@ -361,13 +399,20 @@ export function BulkPriceUpdateDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Change Type</Label>
-                    <Select value={changeType} onValueChange={(v) => setChangeType(v as PriceChangeType)}>
+                    <Select
+                      value={changeType}
+                      onValueChange={(v) => setChangeType(v as PriceChangeType)}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="increase">Increase Prices</SelectItem>
-                        <SelectItem value="decrease">Decrease Prices</SelectItem>
+                        <SelectItem value="increase">
+                          Increase Prices
+                        </SelectItem>
+                        <SelectItem value="decrease">
+                          Decrease Prices
+                        </SelectItem>
                         <SelectItem value="override">Set Discount %</SelectItem>
                       </SelectContent>
                     </Select>
@@ -399,14 +444,23 @@ export function BulkPriceUpdateDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Change Type</Label>
-                    <Select value={changeType} onValueChange={(v) => setChangeType(v as PriceChangeType)}>
+                    <Select
+                      value={changeType}
+                      onValueChange={(v) => setChangeType(v as PriceChangeType)}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="increase">Increase by Amount</SelectItem>
-                        <SelectItem value="decrease">Decrease by Amount</SelectItem>
-                        <SelectItem value="override">Set Fixed Price</SelectItem>
+                        <SelectItem value="increase">
+                          Increase by Amount
+                        </SelectItem>
+                        <SelectItem value="decrease">
+                          Decrease by Amount
+                        </SelectItem>
+                        <SelectItem value="override">
+                          Set Fixed Price
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -490,7 +544,9 @@ export function BulkPriceUpdateDialog({
               <Checkbox
                 id="approval"
                 checked={requiresApproval}
-                onCheckedChange={(checked) => setRequiresApproval(checked as boolean)}
+                onCheckedChange={(checked) =>
+                  setRequiresApproval(checked as boolean)
+                }
               />
               <Label htmlFor="approval" className="cursor-pointer">
                 Require approval for prices below margin threshold
@@ -530,10 +586,18 @@ export function BulkPriceUpdateDialog({
                 <table className="w-full">
                   <thead className="bg-muted sticky top-0">
                     <tr>
-                      <th className="text-left p-2 text-sm font-medium">Product</th>
-                      <th className="text-right p-2 text-sm font-medium">Current</th>
-                      <th className="text-right p-2 text-sm font-medium">New</th>
-                      <th className="text-right p-2 text-sm font-medium">Change</th>
+                      <th className="text-left p-2 text-sm font-medium">
+                        Product
+                      </th>
+                      <th className="text-right p-2 text-sm font-medium">
+                        Current
+                      </th>
+                      <th className="text-right p-2 text-sm font-medium">
+                        New
+                      </th>
+                      <th className="text-right p-2 text-sm font-medium">
+                        Change
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -542,7 +606,9 @@ export function BulkPriceUpdateDialog({
                         <td className="p-2">
                           <div>
                             <p className="font-medium text-sm">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">{item.sku}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.sku}
+                            </p>
                           </div>
                         </td>
                         <td className="text-right p-2 text-sm">
@@ -553,10 +619,13 @@ export function BulkPriceUpdateDialog({
                         </td>
                         <td className="text-right p-2">
                           <Badge
-                            variant={item.changePercent > 0 ? 'destructive' : 'default'}
+                            variant={
+                              item.changePercent > 0 ? 'destructive' : 'default'
+                            }
                             className={`text-xs ${item.changePercent <= 0 ? 'bg-green-100 text-green-800' : ''}`}
                           >
-                            {item.changePercent > 0 ? '+' : ''}{formatPercent(item.changePercent)}
+                            {item.changePercent > 0 ? '+' : ''}
+                            {formatPercent(item.changePercent)}
                           </Badge>
                         </td>
                       </tr>
@@ -576,13 +645,13 @@ export function BulkPriceUpdateDialog({
                 <div>
                   <p className="text-muted-foreground">Price Increases</p>
                   <p className="font-semibold text-red-600">
-                    {previewData.filter(p => p.changePercent > 0).length}
+                    {previewData.filter((p) => p.changePercent > 0).length}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Price Decreases</p>
                   <p className="font-semibold text-green-600">
-                    {previewData.filter(p => p.changePercent < 0).length}
+                    {previewData.filter((p) => p.changePercent < 0).length}
                   </p>
                 </div>
               </div>
@@ -600,7 +669,11 @@ export function BulkPriceUpdateDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+          <Button
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={loading}
+          >
             Cancel
           </Button>
           {!showPreview ? (
@@ -609,8 +682,14 @@ export function BulkPriceUpdateDialog({
               disabled={
                 loading ||
                 !reason.trim() ||
-                (updateType === 'percentage' && (!percentageValue || isNaN(parseFloat(percentageValue)) || parseFloat(percentageValue) <= 0)) ||
-                (updateType === 'fixed' && (!fixedValue || isNaN(parseFloat(fixedValue)) || parseFloat(fixedValue) <= 0)) ||
+                (updateType === 'percentage' &&
+                  (!percentageValue ||
+                    isNaN(parseFloat(percentageValue)) ||
+                    parseFloat(percentageValue) <= 0)) ||
+                (updateType === 'fixed' &&
+                  (!fixedValue ||
+                    isNaN(parseFloat(fixedValue)) ||
+                    parseFloat(fixedValue) <= 0)) ||
                 (updateType === 'csv' && csvData.length === 0)
               }
             >

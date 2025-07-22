@@ -1,25 +1,24 @@
-"use server";
+'use server'
 
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@/lib/supabase/server";
+import { auth } from '@clerk/nextjs/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function actionTemplate() {
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
-    return "You must be signed in";
+    return 'You must be signed in'
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient()
 
   try {
-    let { data: user, error } = await supabase.from("user").select("*");
+    let { data: user, error } = await supabase.from('user').select('*')
 
-    if (user) return user;
+    if (user) return user
 
-    if (error) return error;
+    if (error) return error
   } catch (error: any) {
-    throw new Error(error.message);
+    throw new Error(error.message)
   }
-
 }

@@ -3,29 +3,29 @@ import { vi } from '@jest/globals'
 // Mock Supabase client
 export const mockSupabaseClient = {
   auth: {
-    getUser: vi.fn(() => 
-      Promise.resolve({ 
-        data: { 
-          user: { 
+    getUser: vi.fn(() =>
+      Promise.resolve({
+        data: {
+          user: {
             id: 'test-user-id',
-            email: 'test@example.com'
-          } 
-        }, 
-        error: null 
+            email: 'test@example.com',
+          },
+        },
+        error: null,
       })
     ),
-    getSession: vi.fn(() => 
-      Promise.resolve({ 
-        data: { 
-          session: { 
+    getSession: vi.fn(() =>
+      Promise.resolve({
+        data: {
+          session: {
             access_token: 'test-token',
-            user: { 
+            user: {
               id: 'test-user-id',
-              email: 'test@example.com'
-            }
-          } 
-        }, 
-        error: null 
+              email: 'test@example.com',
+            },
+          },
+        },
+        error: null,
       })
     ),
     signInWithPassword: vi.fn(),

@@ -13,7 +13,8 @@ export class RealtimePerformanceMonitor {
   private metrics: PerformanceMetrics
   private events: MetricEvent[] = []
   private maxEvents = 1000 // Keep last 1000 events
-  private listeners: Map<string, (metrics: PerformanceMetrics) => void> = new Map()
+  private listeners: Map<string, (metrics: PerformanceMetrics) => void> =
+    new Map()
 
   private constructor() {
     this.metrics = {
@@ -22,9 +23,9 @@ export class RealtimePerformanceMonitor {
       messageDropRate: 0,
       subscriptionCount: 0,
       avgLatency: 0,
-      healthScore: 100
+      healthScore: 100,
     }
-    
+
     // Start periodic metric calculation
     setInterval(() => this.calculateMetrics(), 5000)
   }
@@ -38,7 +39,7 @@ export class RealtimePerformanceMonitor {
 
   recordEvent(event: MetricEvent): void {
     this.events.push(event)
-    
+
     // Keep only recent events
     if (this.events.length > this.maxEvents) {
       this.events = this.events.slice(-this.maxEvents)
@@ -62,7 +63,7 @@ export class RealtimePerformanceMonitor {
       type: 'message',
       timestamp: Date.now(),
       duration: latency,
-      success: true
+      success: true,
     })
   }
 
@@ -70,13 +71,16 @@ export class RealtimePerformanceMonitor {
     if (subscribed) {
       this.metrics.subscriptionCount++
     } else {
-      this.metrics.subscriptionCount = Math.max(0, this.metrics.subscriptionCount - 1)
+      this.metrics.subscriptionCount = Math.max(
+        0,
+        this.metrics.subscriptionCount - 1
+      )
     }
-    
+
     this.recordEvent({
       type: 'subscription',
       timestamp: Date.now(),
-      success: subscribed
+      success: subscribed,
     })
   }
 
@@ -84,7 +88,7 @@ export class RealtimePerformanceMonitor {
     this.recordEvent({
       type: 'reconnection',
       timestamp: Date.now(),
-      success: true
+      success: true,
     })
   }
 
@@ -93,7 +97,7 @@ export class RealtimePerformanceMonitor {
       type: 'error',
       timestamp: Date.now(),
       success: false,
-      metadata: { error }
+      metadata: { error },
     })
   }
 
@@ -101,17 +105,20 @@ export class RealtimePerformanceMonitor {
     // Calculate average latency
     if (this.metrics.messageLatency.length > 0) {
       const sum = this.metrics.messageLatency.reduce((a, b) => a + b, 0)
-      this.metrics.avgLatency = Math.round(sum / this.metrics.messageLatency.length)
+      this.metrics.avgLatency = Math.round(
+        sum / this.metrics.messageLatency.length
+      )
     }
 
     // Calculate message drop rate (last 5 minutes)
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000
-    const recentEvents = this.events.filter(e => e.timestamp > fiveMinutesAgo)
-    const messageEvents = recentEvents.filter(e => e.type === 'message')
-    const failedMessages = messageEvents.filter(e => !e.success).length
-    
+    const recentEvents = this.events.filter((e) => e.timestamp > fiveMinutesAgo)
+    const messageEvents = recentEvents.filter((e) => e.type === 'message')
+    const failedMessages = messageEvents.filter((e) => !e.success).length
+
     if (messageEvents.length > 0) {
-      this.metrics.messageDropRate = (failedMessages / messageEvents.length) * 100
+      this.metrics.messageDropRate =
+        (failedMessages / messageEvents.length) * 100
     }
 
     // Calculate health score
@@ -150,7 +157,7 @@ export class RealtimePerformanceMonitor {
   private getRecentReconnections(timeWindow: number): number {
     const since = Date.now() - timeWindow
     return this.events.filter(
-      e => e.type === 'reconnection' && e.timestamp > since
+      (e) => e.type === 'reconnection' && e.timestamp > since
     ).length
   }
 
@@ -166,24 +173,34 @@ export class RealtimePerformanceMonitor {
     const recommendations: string[] = []
 
     if (this.metrics.avgLatency > 500) {
-      recommendations.push('High message latency detected. Consider optimizing message size or frequency.')
+      recommendations.push(
+        'High message latency detected. Consider optimizing message size or frequency.'
+      )
     }
 
     if (this.metrics.messageDropRate > 2) {
-      recommendations.push('Message drops detected. Check network stability and error logs.')
+      recommendations.push(
+        'Message drops detected. Check network stability and error logs.'
+      )
     }
 
     const recentReconnections = this.getRecentReconnections(5 * 60 * 1000)
     if (recentReconnections > 2) {
-      recommendations.push('Frequent reconnections detected. Check server health and network stability.')
+      recommendations.push(
+        'Frequent reconnections detected. Check server health and network stability.'
+      )
     }
 
     if (this.metrics.subscriptionCount > 10) {
-      recommendations.push('Many active subscriptions. Consider consolidating channels for better performance.')
+      recommendations.push(
+        'Many active subscriptions. Consider consolidating channels for better performance.'
+      )
     }
 
     if (this.metrics.healthScore < 70) {
-      recommendations.push('Overall health is degraded. Review all performance metrics and take action.')
+      recommendations.push(
+        'Overall health is degraded. Review all performance metrics and take action.'
+      )
     }
 
     return recommendations
@@ -198,15 +215,15 @@ export class RealtimePerformanceMonitor {
     // Create timeline of events per minute
     const timeline: { [key: string]: number } = {}
     const now = Date.now()
-    
+
     // Group events by minute for the last hour
     for (let i = 0; i < 60; i++) {
       const minuteStart = now - (i + 1) * 60 * 1000
       const minuteEnd = now - i * 60 * 1000
       const key = new Date(minuteEnd).toISOString().slice(0, 16) // YYYY-MM-DDTHH:mm
-      
+
       timeline[key] = this.events.filter(
-        e => e.timestamp >= minuteStart && e.timestamp < minuteEnd
+        (e) => e.timestamp >= minuteStart && e.timestamp < minuteEnd
       ).length
     }
 
@@ -214,21 +231,24 @@ export class RealtimePerformanceMonitor {
       summary: this.getMetrics(),
       events: this.events.slice(-100), // Last 100 events
       recommendations: this.getRecommendations(),
-      timeline
+      timeline,
     }
   }
 
-  subscribe(id: string, callback: (metrics: PerformanceMetrics) => void): () => void {
+  subscribe(
+    id: string,
+    callback: (metrics: PerformanceMetrics) => void
+  ): () => void {
     this.listeners.set(id, callback)
     callback(this.metrics) // Initial metrics
-    
+
     return () => {
       this.listeners.delete(id)
     }
   }
 
   private notifyListeners(): void {
-    this.listeners.forEach(callback => callback({ ...this.metrics }))
+    this.listeners.forEach((callback) => callback({ ...this.metrics }))
   }
 
   reset(): void {
@@ -239,7 +259,7 @@ export class RealtimePerformanceMonitor {
       messageDropRate: 0,
       subscriptionCount: 0,
       avgLatency: 0,
-      healthScore: 100
+      healthScore: 100,
     }
     this.notifyListeners()
   }

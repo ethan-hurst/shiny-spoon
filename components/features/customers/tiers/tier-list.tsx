@@ -1,13 +1,33 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { TierDialog } from './tier-dialog'
-import { deleteTier } from '@/app/actions/tiers'
-import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import {
+  Award,
+  Edit,
+  MoreHorizontal,
+  Percent,
+  Plus,
+  Trash2,
+  Users,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Table,
   TableBody,
@@ -16,22 +36,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { 
-  MoreHorizontal, 
-  Edit, 
-  Trash2, 
-  Users,
-  Plus,
-  Percent,
-  Award
-} from 'lucide-react'
+import { deleteTier } from '@/app/actions/tiers'
+import { TierDialog } from './tier-dialog'
 
 interface Tier {
   id: string
@@ -97,7 +103,8 @@ export function TierList({ tiers, organizationId }: TierListProps) {
         <CardHeader>
           <CardTitle>No Tiers Configured</CardTitle>
           <CardDescription>
-            Create your first customer tier to offer different pricing and benefits
+            Create your first customer tier to offer different pricing and
+            benefits
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -124,7 +131,8 @@ export function TierList({ tiers, organizationId }: TierListProps) {
             <div>
               <CardTitle>Customer Tiers</CardTitle>
               <CardDescription>
-                Configure pricing tiers and benefits for different customer segments
+                Configure pricing tiers and benefits for different customer
+                segments
               </CardDescription>
             </div>
             <Button onClick={() => setIsDialogOpen(true)}>
@@ -150,8 +158,8 @@ export function TierList({ tiers, organizationId }: TierListProps) {
                 <TableRow key={tier.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <div 
-                        className="w-4 h-4 rounded-full" 
+                      <div
+                        className="w-4 h-4 rounded-full"
                         style={{ backgroundColor: tier.color }}
                       />
                       <span className="font-medium">{tier.name}</span>
@@ -175,11 +183,13 @@ export function TierList({ tiers, organizationId }: TierListProps) {
                   <TableCell>
                     {tier.benefits && Object.keys(tier.benefits).length > 0 ? (
                       <div className="text-sm">
-                        {Object.entries(tier.benefits).slice(0, 2).map(([key, value]) => (
-                          <div key={key} className="text-muted-foreground">
-                            {key.replace(/_/g, ' ')}: {String(value)}
-                          </div>
-                        ))}
+                        {Object.entries(tier.benefits)
+                          .slice(0, 2)
+                          .map(([key, value]) => (
+                            <div key={key} className="text-muted-foreground">
+                              {key.replace(/_/g, ' ')}: {String(value)}
+                            </div>
+                          ))}
                         {Object.keys(tier.benefits).length > 2 && (
                           <span className="text-muted-foreground text-xs">
                             +{Object.keys(tier.benefits).length - 2} more
@@ -187,14 +197,16 @@ export function TierList({ tiers, organizationId }: TierListProps) {
                         )}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground text-sm">No benefits configured</span>
+                      <span className="text-muted-foreground text-sm">
+                        No benefits configured
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           className="h-8 w-8 p-0"
                           disabled={deletingId === tier.id}
                         >
@@ -208,9 +220,11 @@ export function TierList({ tiers, organizationId }: TierListProps) {
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-destructive"
-                          onClick={() => handleDelete(tier.id, tier.customer_count)}
+                          onClick={() =>
+                            handleDelete(tier.id, tier.customer_count)
+                          }
                           disabled={tier.customer_count > 0}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -231,7 +245,9 @@ export function TierList({ tiers, organizationId }: TierListProps) {
         organizationId={organizationId}
         open={isDialogOpen}
         onOpenChange={handleDialogClose}
-        existingLevels={tiers.map(t => t.level).filter(l => l !== editingTier?.level)}
+        existingLevels={tiers
+          .map((t) => t.level)
+          .filter((l) => l !== editingTier?.level)}
       />
     </>
   )

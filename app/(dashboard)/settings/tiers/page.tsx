@@ -1,14 +1,16 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { Plus } from 'lucide-react'
 import { TierList } from '@/components/features/customers/tiers/tier-list'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function TiersPage() {
   const supabase = createClient()
-  
+
   // Get user's organization
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -46,10 +48,11 @@ export default async function TiersPage() {
   })
 
   // Add usage counts to tiers
-  const tiersWithUsage = tiers?.map((tier: any) => ({
-    ...tier,
-    customer_count: tierUsageMap.get(tier.id) || 0
-  })) || []
+  const tiersWithUsage =
+    tiers?.map((tier: any) => ({
+      ...tier,
+      customer_count: tierUsageMap.get(tier.id) || 0,
+    })) || []
 
   return (
     <div className="container mx-auto py-6">
@@ -63,7 +66,7 @@ export default async function TiersPage() {
           </div>
         </div>
 
-        <TierList 
+        <TierList
           tiers={tiersWithUsage}
           organizationId={profile.organization_id}
         />

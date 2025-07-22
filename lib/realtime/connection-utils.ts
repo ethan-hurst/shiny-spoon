@@ -1,4 +1,4 @@
-import { ConnectionStatus, ConnectionState, ConnectionQuality } from './types'
+import { ConnectionQuality, ConnectionState, ConnectionStatus } from './types'
 
 /**
  * Check if the browser is online
@@ -15,7 +15,7 @@ export function formatConnectionStatus(status: ConnectionStatus): string {
     case 'connected':
       return `Connected (${status.quality})`
     case 'connecting':
-      return status.reconnectAttempts > 0 
+      return status.reconnectAttempts > 0
         ? `Reconnecting (attempt ${status.reconnectAttempts})...`
         : 'Connecting...'
     case 'disconnected':
@@ -58,7 +58,10 @@ export function formatLatency(latency: number): string {
 /**
  * Calculate connection quality from metrics
  */
-export function calculateConnectionQuality(latency: number, stability: number): ConnectionQuality {
+export function calculateConnectionQuality(
+  latency: number,
+  stability: number
+): ConnectionQuality {
   if (latency < 100 && stability > 95) return 'excellent'
   if (latency < 300 && stability > 85) return 'good'
   if (latency < 1000 && stability > 70) return 'fair'
@@ -246,11 +249,13 @@ export class ExponentialBackoff {
   private readonly maxDelay: number
   private readonly factor: number
 
-  constructor(options: {
-    baseDelay?: number
-    maxDelay?: number
-    factor?: number
-  } = {}) {
+  constructor(
+    options: {
+      baseDelay?: number
+      maxDelay?: number
+      factor?: number
+    } = {}
+  ) {
     this.baseDelay = options.baseDelay ?? 1000
     this.maxDelay = options.maxDelay ?? 30000
     this.factor = options.factor ?? 2

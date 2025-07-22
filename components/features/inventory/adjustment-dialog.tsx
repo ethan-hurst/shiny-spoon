@@ -1,9 +1,13 @@
 'use client'
 
 import * as React from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { AlertTriangle, Loader2, Package } from 'lucide-react'
+import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -28,20 +33,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  adjustmentSchema, 
-  ADJUSTMENT_REASON_LABELS,
-  type InventoryWithRelations,
-  calculateAvailableQuantity
-} from '@/types/inventory.types'
-import { adjustInventory } from '@/app/actions/inventory'
-import { Loader2, Package, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { adjustInventory } from '@/app/actions/inventory'
+import {
+  ADJUSTMENT_REASON_LABELS,
+  adjustmentSchema,
+  calculateAvailableQuantity,
+  type InventoryWithRelations,
+} from '@/types/inventory.types'
 
 interface AdjustmentDialogProps {
   inventory: InventoryWithRelations
@@ -56,7 +56,7 @@ export function AdjustmentDialog({
   inventory,
   open,
   onOpenChange,
-  onSuccess
+  onSuccess,
 }: AdjustmentDialogProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -91,7 +91,7 @@ export function AdjustmentDialog({
 
   async function onSubmit(data: AdjustmentFormData) {
     setIsSubmitting(true)
-    
+
     try {
       const formData = new FormData()
       formData.append('inventory_id', data.inventory_id)
@@ -106,9 +106,10 @@ export function AdjustmentDialog({
       if (result?.error) {
         toast({
           title: 'Error',
-          description: typeof result.error === 'string' 
-            ? result.error 
-            : 'Failed to adjust inventory',
+          description:
+            typeof result.error === 'string'
+              ? result.error
+              : 'Failed to adjust inventory',
           variant: 'destructive',
         })
       } else {
@@ -152,17 +153,23 @@ export function AdjustmentDialog({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Current Quantity</span>
-              <span className="font-medium">{currentQuantity.toLocaleString()}</span>
+              <span className="font-medium">
+                {currentQuantity.toLocaleString()}
+              </span>
             </div>
             {reservedQuantity > 0 && (
               <>
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span className="text-sm">Reserved</span>
-                  <span className="text-sm">{reservedQuantity.toLocaleString()}</span>
+                  <span className="text-sm">
+                    {reservedQuantity.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Available</span>
-                  <span className="font-medium">{availableQuantity.toLocaleString()}</span>
+                  <span className="font-medium">
+                    {availableQuantity.toLocaleString()}
+                  </span>
                 </div>
               </>
             )}
@@ -182,7 +189,9 @@ export function AdjustmentDialog({
                         type="number"
                         min="0"
                         max="999999"
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
                       />
                     </FormControl>
                     <FormDescription>
@@ -198,7 +207,8 @@ export function AdjustmentDialog({
                 <Alert>
                   <Package className="h-4 w-4" />
                   <AlertDescription>
-                    Adjustment: {adjustment > 0 ? '+' : ''}{adjustment.toLocaleString()} units
+                    Adjustment: {adjustment > 0 ? '+' : ''}
+                    {adjustment.toLocaleString()} units
                   </AlertDescription>
                 </Alert>
               )}
@@ -208,7 +218,8 @@ export function AdjustmentDialog({
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Warning: New quantity is below reserved quantity ({reservedQuantity.toLocaleString()})
+                    Warning: New quantity is below reserved quantity (
+                    {reservedQuantity.toLocaleString()})
                   </AlertDescription>
                 </Alert>
               )}
@@ -219,23 +230,26 @@ export function AdjustmentDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Reason for Adjustment</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a reason" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(ADJUSTMENT_REASON_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
+                        {Object.entries(ADJUSTMENT_REASON_LABELS).map(
+                          ([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          )
+                        )}
                       </SelectContent>
                     </Select>
-                    <FormDescription>
-                      Required for audit trail
-                    </FormDescription>
+                    <FormDescription>Required for audit trail</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

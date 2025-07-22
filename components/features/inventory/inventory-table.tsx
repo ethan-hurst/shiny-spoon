@@ -1,20 +1,39 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ColumnDef,
   ColumnFiltersState,
-  SortingState,
-  VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  SortingState,
   useReactTable,
+  VisibilityState,
 } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import {
+  AlertTriangle,
+  ArrowUpDown,
+  Download,
+  History,
+  MoreHorizontal,
+  Package,
+  Upload,
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -24,74 +43,60 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { 
-  ArrowUpDown, 
-  MoreHorizontal, 
-  Package, 
-  AlertTriangle,
-  Download,
-  Upload,
-  History
-} from 'lucide-react'
-import { 
-  InventoryWithRelations, 
-  calculateAvailableQuantity, 
-  isLowStock, 
-  isOutOfStock 
+import { cn } from '@/lib/utils'
+import { useInventoryRealtime } from '@/hooks/use-inventory'
+import {
+  calculateAvailableQuantity,
+  InventoryWithRelations,
+  isLowStock,
+  isOutOfStock,
 } from '@/types/inventory.types'
 import { AdjustmentDialog } from './adjustment-dialog'
 import { BulkUploadDialog } from './bulk-upload-dialog'
 import { ExportButton } from './export-button'
-import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { useInventoryRealtime } from '@/hooks/use-inventory'
 
 interface InventoryTableProps {
   initialData: InventoryWithRelations[]
   organizationId: string
 }
 
-export const InventoryTable = React.memo(function InventoryTable({ 
-  initialData, 
-  organizationId 
+export const InventoryTable = React.memo(function InventoryTable({
+  initialData,
+  organizationId,
 }: InventoryTableProps) {
   const router = useRouter()
   const [data, setData] = React.useState(initialData)
   const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  )
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
   const [adjustmentOpen, setAdjustmentOpen] = React.useState(false)
   const [bulkUploadOpen, setBulkUploadOpen] = React.useState(false)
-  const [selectedInventory, setSelectedInventory] = React.useState<InventoryWithRelations | null>(null)
+  const [selectedInventory, setSelectedInventory] =
+    React.useState<InventoryWithRelations | null>(null)
 
   // Memoize callback functions for real-time updates
   const handleUpdate = React.useCallback((payload: any) => {
-    setData(prevData => 
-      prevData.map(item => 
-        item.id === payload.new.id 
-          ? { ...item, ...payload.new }
-          : item
+    setData((prevData) =>
+      prevData.map((item) =>
+        item.id === payload.new.id ? { ...item, ...payload.new } : item
       )
     )
   }, [])
 
-  const handleInsert = React.useCallback((payload: any) => {
-    // Refresh to get the full data with relations
-    router.refresh()
-  }, [router])
+  const handleInsert = React.useCallback(
+    (payload: any) => {
+      // Refresh to get the full data with relations
+      router.refresh()
+    },
+    [router]
+  )
 
   const handleDelete = React.useCallback((payload: any) => {
-    setData(prevData => prevData.filter(item => item.id !== payload.old.id))
+    setData((prevData) => prevData.filter((item) => item.id !== payload.old.id))
   }, [])
 
   // Set up real-time subscriptions
@@ -108,179 +113,199 @@ export const InventoryTable = React.memo(function InventoryTable({
   }, [initialData])
 
   // Memoize columns definition to prevent unnecessary re-renders
-  const columns: ColumnDef<InventoryWithRelations>[] = React.useMemo(() => [
-    {
-      accessorKey: 'product.sku',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            SKU
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
+  const columns: ColumnDef<InventoryWithRelations>[] = React.useMemo(
+    () => [
+      {
+        accessorKey: 'product.sku',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+            >
+              SKU
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          )
+        },
+        cell: ({ row }) => (
+          <div className="font-medium">{row.original.product.sku}</div>
+        ),
       },
-      cell: ({ row }) => (
-        <div className="font-medium">{row.original.product.sku}</div>
-      ),
-    },
-    {
-      accessorKey: 'product.name',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Product Name
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
-      },
-      cell: ({ row }) => (
-        <div className="max-w-[300px] truncate">{row.original.product.name}</div>
-      ),
-    },
-    {
-      accessorKey: 'warehouse.name',
-      header: 'Warehouse',
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.original.warehouse.name}</Badge>
-      ),
-    },
-    {
-      accessorKey: 'quantity',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            On Hand
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
-      },
-      cell: ({ row }) => {
-        const quantity = row.original.quantity || 0
-        const outOfStock = isOutOfStock(row.original)
-        return (
-          <div className={cn(
-            'font-medium',
-            outOfStock && 'text-red-600'
-          )}>
-            {quantity.toLocaleString()}
+      {
+        accessorKey: 'product.name',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+            >
+              Product Name
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          )
+        },
+        cell: ({ row }) => (
+          <div className="max-w-[300px] truncate">
+            {row.original.product.name}
           </div>
-        )
+        ),
       },
-    },
-    {
-      accessorKey: 'reserved_quantity',
-      header: 'Reserved',
-      cell: ({ row }) => {
-        const reserved = row.original.reserved_quantity || 0
-        return reserved > 0 ? (
-          <div className="text-muted-foreground">{reserved.toLocaleString()}</div>
-        ) : (
-          <div className="text-muted-foreground">-</div>
-        )
+      {
+        accessorKey: 'warehouse.name',
+        header: 'Warehouse',
+        cell: ({ row }) => (
+          <Badge variant="outline">{row.original.warehouse.name}</Badge>
+        ),
       },
-    },
-    {
-      id: 'available',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Available
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
+      {
+        accessorKey: 'quantity',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+            >
+              On Hand
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          )
+        },
+        cell: ({ row }) => {
+          const quantity = row.original.quantity || 0
+          const outOfStock = isOutOfStock(row.original)
+          return (
+            <div className={cn('font-medium', outOfStock && 'text-red-600')}>
+              {quantity.toLocaleString()}
+            </div>
+          )
+        },
       },
-      accessorFn: (row) => calculateAvailableQuantity(row),
-      cell: ({ row }) => {
-        const available = calculateAvailableQuantity(row.original)
-        const lowStock = isLowStock(row.original)
-        const outOfStock = isOutOfStock(row.original)
-        
-        return (
-          <div className="flex items-center gap-2">
-            <span className={cn(
-              'font-medium',
-              outOfStock && 'text-red-600',
-              !outOfStock && lowStock && 'text-yellow-600'
-            )}>
-              {available.toLocaleString()}
-            </span>
-            {(lowStock || outOfStock) && (
-              <AlertTriangle className={cn(
-                'h-4 w-4',
-                outOfStock ? 'text-red-600' : 'text-yellow-600'
-              )} />
-            )}
-          </div>
-        )
+      {
+        accessorKey: 'reserved_quantity',
+        header: 'Reserved',
+        cell: ({ row }) => {
+          const reserved = row.original.reserved_quantity || 0
+          return reserved > 0 ? (
+            <div className="text-muted-foreground">
+              {reserved.toLocaleString()}
+            </div>
+          ) : (
+            <div className="text-muted-foreground">-</div>
+          )
+        },
       },
-    },
-    {
-      accessorKey: 'reorder_point',
-      header: 'Reorder Point',
-      cell: ({ row }) => {
-        const reorderPoint = row.original.reorder_point || 0
-        return reorderPoint > 0 ? (
-          <div>{reorderPoint.toLocaleString()}</div>
-        ) : (
-          <div className="text-muted-foreground">-</div>
-        )
-      },
-    },
-    {
-      id: 'actions',
-      enableHiding: false,
-      cell: ({ row }) => {
-        const inventory = row.original
+      {
+        id: 'available',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant="ghost"
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+            >
+              Available
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          )
+        },
+        accessorFn: (row) => calculateAvailableQuantity(row),
+        cell: ({ row }) => {
+          const available = calculateAvailableQuantity(row.original)
+          const lowStock = isLowStock(row.original)
+          const outOfStock = isOutOfStock(row.original)
 
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => {
-                  setSelectedInventory(inventory)
-                  setAdjustmentOpen(true)
-                }}
+          return (
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  'font-medium',
+                  outOfStock && 'text-red-600',
+                  !outOfStock && lowStock && 'text-yellow-600'
+                )}
               >
-                <Package className="mr-2 h-4 w-4" />
-                Adjust Quantity
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => router.push(`/inventory/${inventory.id}/history`)}
-              >
-                <History className="mr-2 h-4 w-4" />
-                View History
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(inventory.product.sku)}
-              >
-                Copy SKU
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
+                {available.toLocaleString()}
+              </span>
+              {(lowStock || outOfStock) && (
+                <AlertTriangle
+                  className={cn(
+                    'h-4 w-4',
+                    outOfStock ? 'text-red-600' : 'text-yellow-600'
+                  )}
+                />
+              )}
+            </div>
+          )
+        },
       },
-    },
-  ], [setSelectedInventory, setAdjustmentOpen]) // Dependencies for memoization
+      {
+        accessorKey: 'reorder_point',
+        header: 'Reorder Point',
+        cell: ({ row }) => {
+          const reorderPoint = row.original.reorder_point || 0
+          return reorderPoint > 0 ? (
+            <div>{reorderPoint.toLocaleString()}</div>
+          ) : (
+            <div className="text-muted-foreground">-</div>
+          )
+        },
+      },
+      {
+        id: 'actions',
+        enableHiding: false,
+        cell: ({ row }) => {
+          const inventory = row.original
+
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedInventory(inventory)
+                    setAdjustmentOpen(true)
+                  }}
+                >
+                  <Package className="mr-2 h-4 w-4" />
+                  Adjust Quantity
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    router.push(`/inventory/${inventory.id}/history`)
+                  }
+                >
+                  <History className="mr-2 h-4 w-4" />
+                  View History
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() =>
+                    navigator.clipboard.writeText(inventory.product.sku)
+                  }
+                >
+                  Copy SKU
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        },
+      },
+    ],
+    [setSelectedInventory, setAdjustmentOpen]
+  ) // Dependencies for memoization
 
   // Memoize table configuration
   const table = useReactTable({
@@ -305,7 +330,7 @@ export const InventoryTable = React.memo(function InventoryTable({
   // Virtual scrolling setup
   const tableContainerRef = React.useRef<HTMLDivElement>(null)
   const { rows } = table.getRowModel()
-  
+
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
@@ -328,7 +353,9 @@ export const InventoryTable = React.memo(function InventoryTable({
         <div className="flex items-center gap-2">
           <Input
             placeholder="Search by SKU or product name..."
-            value={(table.getColumn('product.sku')?.getFilterValue() as string) ?? ''}
+            value={
+              (table.getColumn('product.sku')?.getFilterValue() as string) ?? ''
+            }
             onChange={(event) =>
               table.getColumn('product.sku')?.setFilterValue(event.target.value)
             }
@@ -336,7 +363,7 @@ export const InventoryTable = React.memo(function InventoryTable({
           />
         </div>
         <div className="flex items-center gap-2">
-          <ExportButton 
+          <ExportButton
             filters={columnFilters}
             organizationId={organizationId}
           />
@@ -351,7 +378,7 @@ export const InventoryTable = React.memo(function InventoryTable({
         </div>
       </div>
 
-      <div 
+      <div
         ref={tableContainerRef}
         className="rounded-md border h-[600px] overflow-auto"
       >

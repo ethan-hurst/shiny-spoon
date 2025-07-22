@@ -27,9 +27,9 @@ export interface InventoryAdjustment {
   user_email?: string
 }
 
-export type AdjustmentReason = 
+export type AdjustmentReason =
   | 'sale'
-  | 'return' 
+  | 'return'
   | 'damage'
   | 'theft'
   | 'found'
@@ -48,32 +48,39 @@ export const adjustmentReasonSchema = z.enum([
   'transfer_in',
   'transfer_out',
   'cycle_count',
-  'other'
+  'other',
 ])
 
 export const adjustmentSchema = z.object({
   inventory_id: z.string().uuid('Invalid inventory ID'),
-  new_quantity: z.number()
+  new_quantity: z
+    .number()
     .int('Quantity must be a whole number')
     .min(0, 'Quantity cannot be negative')
     .max(999999, 'Quantity cannot exceed 999,999'),
   reason: adjustmentReasonSchema,
-  notes: z.string().max(500, 'Notes cannot exceed 500 characters').optional().nullable(),
+  notes: z
+    .string()
+    .max(500, 'Notes cannot exceed 500 characters')
+    .optional()
+    .nullable(),
 })
 
 export const bulkUpdateItemSchema = z.object({
   sku: z.string().min(1, 'SKU is required'),
   warehouse_code: z.string().min(1, 'Warehouse code is required'),
-  quantity: z.number()
+  quantity: z
+    .number()
     .int('Quantity must be a whole number')
     .min(0, 'Quantity cannot be negative'),
   reason: z.enum(['cycle_count', 'other'] as const),
 })
 
 export const bulkUpdateSchema = z.object({
-  updates: z.array(bulkUpdateItemSchema)
+  updates: z
+    .array(bulkUpdateItemSchema)
     .min(1, 'At least one update is required')
-    .max(10000, 'Cannot process more than 10,000 items at once')
+    .max(10000, 'Cannot process more than 10,000 items at once'),
 })
 
 // Filter types
@@ -117,16 +124,22 @@ export interface InventoryImportRow {
 }
 
 // Helper functions
-export function calculateAvailableQuantity(inventory: Pick<Inventory, 'quantity' | 'reserved_quantity'>): number {
+export function calculateAvailableQuantity(
+  inventory: Pick<Inventory, 'quantity' | 'reserved_quantity'>
+): number {
   return (inventory.quantity || 0) - (inventory.reserved_quantity || 0)
 }
 
-export function isLowStock(inventory: Pick<Inventory, 'quantity' | 'reserved_quantity' | 'reorder_point'>): boolean {
+export function isLowStock(
+  inventory: Pick<Inventory, 'quantity' | 'reserved_quantity' | 'reorder_point'>
+): boolean {
   const available = calculateAvailableQuantity(inventory)
   return available <= (inventory.reorder_point || 0)
 }
 
-export function isOutOfStock(inventory: Pick<Inventory, 'quantity' | 'reserved_quantity'>): boolean {
+export function isOutOfStock(
+  inventory: Pick<Inventory, 'quantity' | 'reserved_quantity'>
+): boolean {
   return calculateAvailableQuantity(inventory) <= 0
 }
 
@@ -140,7 +153,7 @@ export const ADJUSTMENT_REASON_LABELS: Record<AdjustmentReason, string> = {
   transfer_in: 'Transfer In',
   transfer_out: 'Transfer Out',
   cycle_count: 'Cycle Count',
-  other: 'Other'
+  other: 'Other',
 }
 
 // Reason colors for UI badges
@@ -153,5 +166,5 @@ export const ADJUSTMENT_REASON_COLORS: Record<AdjustmentReason, string> = {
   transfer_in: 'bg-indigo-100 text-indigo-800',
   transfer_out: 'bg-purple-100 text-purple-800',
   cycle_count: 'bg-gray-100 text-gray-800',
-  other: 'bg-gray-100 text-gray-800'
+  other: 'bg-gray-100 text-gray-800',
 }

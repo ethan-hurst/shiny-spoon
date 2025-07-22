@@ -1,9 +1,14 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { loginSchema, signupSchema, resetPasswordSchema, updatePasswordSchema } from '@/types/auth.types'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import {
+  loginSchema,
+  resetPasswordSchema,
+  signupSchema,
+  updatePasswordSchema,
+} from '@/types/auth.types'
 
 export async function signIn(formData: FormData) {
   // Parse and validate input
@@ -11,22 +16,22 @@ export async function signIn(formData: FormData) {
     email: formData.get('email'),
     password: formData.get('password'),
   })
-  
+
   if (!parsed.success) {
-    return { 
+    return {
       error: 'Invalid input',
-      fieldErrors: parsed.error.flatten().fieldErrors 
+      fieldErrors: parsed.error.flatten().fieldErrors,
     }
   }
-  
+
   const supabase = createClient()
-  
+
   // Attempt to sign in
   const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   })
-  
+
   if (error) {
     return { error: error.message }
   }
@@ -43,7 +48,7 @@ export async function signIn(formData: FormData) {
     await supabase.auth.signOut()
     return { error: 'Account setup incomplete. Please contact support.' }
   }
-  
+
   // Success - revalidate and redirect
   revalidatePath('/', 'layout')
   redirect('/dashboard')
@@ -58,16 +63,16 @@ export async function signUp(formData: FormData) {
     fullName: formData.get('fullName'),
     organizationName: formData.get('organizationName'),
   })
-  
+
   if (!parsed.success) {
-    return { 
+    return {
       error: 'Invalid input',
-      fieldErrors: parsed.error.flatten().fieldErrors 
+      fieldErrors: parsed.error.flatten().fieldErrors,
     }
   }
-  
+
   const supabase = createClient()
-  
+
   // Sign up with metadata for trigger function
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -78,43 +83,43 @@ export async function signUp(formData: FormData) {
         organization_name: parsed.data.organizationName,
       },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-    }
+    },
   })
-  
+
   if (authError) {
     return { error: authError.message }
   }
 
   // Check if email needs confirmation
   if (authData.user && !authData.user.confirmed_at) {
-    return { 
+    return {
       success: true,
       message: 'Check your email to confirm your account',
-      requiresEmailConfirmation: true
+      requiresEmailConfirmation: true,
     }
   }
-  
+
   // If auto-confirmed (dev mode), redirect to dashboard
   if (authData.user?.confirmed_at) {
     revalidatePath('/', 'layout')
     redirect('/dashboard')
   }
-  
-  return { 
+
+  return {
     success: true,
-    message: 'Account created successfully'
+    message: 'Account created successfully',
   }
 }
 
 export async function signOut() {
   const supabase = createClient()
-  
+
   const { error } = await supabase.auth.signOut()
-  
+
   if (error) {
     return { error: error.message }
   }
-  
+
   revalidatePath('/', 'layout')
   redirect('/')
 }
@@ -124,30 +129,30 @@ export async function resetPassword(formData: FormData) {
   const parsed = resetPasswordSchema.safeParse({
     email: formData.get('email'),
   })
-  
+
   if (!parsed.success) {
-    return { 
+    return {
       error: 'Invalid email address',
-      fieldErrors: parsed.error.flatten().fieldErrors 
+      fieldErrors: parsed.error.flatten().fieldErrors,
     }
   }
-  
+
   const supabase = createClient()
-  
+
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
     {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/update-password`,
     }
   )
-  
+
   if (error) {
     return { error: error.message }
   }
-  
-  return { 
+
+  return {
     success: true,
-    message: 'Check your email for a password reset link'
+    message: 'Check your email for a password reset link',
   }
 }
 
@@ -157,24 +162,24 @@ export async function updatePassword(formData: FormData) {
     password: formData.get('password'),
     confirmPassword: formData.get('confirmPassword'),
   })
-  
+
   if (!parsed.success) {
-    return { 
+    return {
       error: 'Invalid input',
-      fieldErrors: parsed.error.flatten().fieldErrors 
+      fieldErrors: parsed.error.flatten().fieldErrors,
     }
   }
 
   const supabase = createClient()
-  
+
   const { error } = await supabase.auth.updateUser({
-    password: parsed.data.password
+    password: parsed.data.password,
   })
-  
+
   if (error) {
     return { error: error.message }
   }
-  
+
   revalidatePath('/', 'layout')
   redirect('/dashboard')
 }

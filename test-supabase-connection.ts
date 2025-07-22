@@ -2,10 +2,10 @@
 // Run with: npx tsx test-supabase-connection.ts
 
 import { createClient } from '@supabase/supabase-js'
-import { Database } from './types/database.types'
-
 // Load environment variables
 import dotenv from 'dotenv'
+import { Database } from './types/database.types'
+
 dotenv.config({ path: '.env.local' })
 
 async function testConnection() {
@@ -46,7 +46,7 @@ async function testConnection() {
     // Test 2: Test auth system
     console.log('🔐 Test 2: Testing auth system...')
     const { data: authData, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !authData.user) {
       console.log('ℹ️  No authenticated user (expected for anon key)\n')
     } else {
@@ -55,8 +55,14 @@ async function testConnection() {
 
     // Test 3: Check table structure
     console.log('🏗️  Test 3: Checking table structure...')
-    const tables = ['organizations', 'user_profiles', 'products', 'warehouses', 'inventory']
-    
+    const tables = [
+      'organizations',
+      'user_profiles',
+      'products',
+      'warehouses',
+      'inventory',
+    ]
+
     for (const table of tables) {
       const { error } = await supabase.from(table).select('*').limit(0)
       if (error) {
@@ -72,7 +78,6 @@ async function testConnection() {
     console.log('2. Run the migration file in the SQL editor')
     console.log('3. Update .env.local with your project credentials')
     console.log('4. Run the seed.sql file to populate test data')
-
   } catch (error) {
     console.error('❌ Unexpected error:', error)
   }

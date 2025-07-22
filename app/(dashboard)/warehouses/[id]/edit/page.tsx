@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { WarehouseForm } from '@/components/features/warehouses/warehouse-form'
+import { createClient } from '@/lib/supabase/server'
 
 interface EditWarehousePageProps {
   params: {
@@ -8,17 +8,22 @@ interface EditWarehousePageProps {
   }
 }
 
-export default async function EditWarehousePage({ params }: EditWarehousePageProps) {
+export default async function EditWarehousePage({
+  params,
+}: EditWarehousePageProps) {
   const supabase = createClient()
-  
+
   // Validate UUID format
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
   if (!uuidRegex.test(params.id)) {
     notFound()
   }
-  
+
   // Get current user and organization
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -54,7 +59,7 @@ export default async function EditWarehousePage({ params }: EditWarehousePagePro
           Update warehouse information and settings
         </p>
       </div>
-      
+
       <WarehouseForm warehouse={warehouse} />
     </div>
   )

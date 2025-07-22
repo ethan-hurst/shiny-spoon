@@ -1,6 +1,6 @@
 # Contributing to TruthSource
 
-First off, thank you for considering contributing to TruthSource! 🎉 
+First off, thank you for considering contributing to TruthSource! 🎉
 
 We're building a platform that helps B2B companies eliminate costly order errors, and every contribution helps us save businesses hundreds of thousands of dollars annually. Whether you're fixing a typo, adding a feature, or improving documentation, your help is valued.
 
@@ -30,6 +30,7 @@ We are committed to providing a welcoming and inspiring community for all. Pleas
 ### Prerequisites
 
 Before you begin, ensure you have:
+
 - Node.js 18+ and pnpm installed
 - A Supabase account (free tier is fine)
 - Git configured with your GitHub account
@@ -38,6 +39,7 @@ Before you begin, ensure you have:
 ### Understanding TruthSource
 
 Before diving into code:
+
 1. Read the [README.md](README.md) for project overview
 2. Review [ARCHITECTURE.md](ARCHITECTURE.md) for system design
 3. Check [CLAUDE.md](CLAUDE.md) for AI assistant context
@@ -151,7 +153,7 @@ export default async function ProductsPage() {
     .from('products')
     .select('*')
     .order('created_at', { ascending: false })
-    
+
   return <ProductList products={products} />
 }
 
@@ -178,21 +180,21 @@ const createProductSchema = z.object({
 
 export async function createProduct(formData: FormData) {
   const supabase = createServerClient()
-  
+
   // Validate input
   const parsed = createProductSchema.parse({
     sku: formData.get('sku'),
     name: formData.get('name'),
     price: Number(formData.get('price'))
   })
-  
+
   // Insert with RLS
   const { error } = await supabase
     .from('products')
     .insert(parsed)
-    
+
   if (error) throw error
-  
+
   revalidatePath('/products')
 }
 
@@ -209,8 +211,8 @@ const products = await supabase
 
 ```typescript
 // components/features/inventory/inventory-table.tsx
-import { Table } from '@/components/ui/table'
 import { Card } from '@/components/ui/card'
+import { Table } from '@/components/ui/table'
 import type { Inventory } from '@/types/database'
 
 interface InventoryTableProps {
@@ -242,13 +244,13 @@ export function InventoryTable({ data, warehouseId }: InventoryTableProps) {
 
 ```tsx
 // Always use React Hook Form + Zod
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 
 const formSchema = z.object({
   email: z.string().email(),
-  quantity: z.number().min(0).max(99999)
+  quantity: z.number().min(0).max(99999),
 })
 
 export function MyForm() {
@@ -256,8 +258,8 @@ export function MyForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
-      quantity: 0
-    }
+      quantity: 0,
+    },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -265,7 +267,7 @@ export function MyForm() {
     Object.entries(values).forEach(([key, value]) => {
       formData.append(key, value.toString())
     })
-    
+
     await serverAction(formData)
   }
 }
@@ -286,6 +288,7 @@ Closes #123
 ```
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -298,6 +301,7 @@ Types:
 ## 🧪 Testing Requirements
 
 ### Test Coverage Standards
+
 - Minimum 80% code coverage
 - 100% coverage for critical business logic
 - All user flows must have E2E tests
@@ -321,17 +325,17 @@ test.describe('Inventory Management', () => {
 
   test('should update inventory quantity', async ({ page }) => {
     await page.goto('/inventory')
-    
+
     // Find product row
     const row = page.locator('tr', { hasText: 'WIDGET-001' })
-    
+
     // Click edit button
     await row.locator('button[aria-label="Edit quantity"]').click()
-    
+
     // Update quantity
     await page.fill('[name="quantity"]', '150')
     await page.click('button[type="submit"]')
-    
+
     // Verify update
     await expect(row.locator('[data-testid="quantity"]')).toHaveText('150')
   })
@@ -352,9 +356,9 @@ describe('InventoryTable', () => {
         warehouse: 'Main'
       }
     ]
-    
+
     render(<InventoryTable data={mockData} />)
-    
+
     expect(screen.getByText('WIDGET-001')).toBeInTheDocument()
     expect(screen.getByText('100')).toBeInTheDocument()
   })
@@ -422,23 +426,28 @@ Your PR should include:
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Documentation update
 
 ## Testing
+
 - [ ] Unit tests pass
 - [ ] E2E tests pass
 - [ ] Manual testing completed
 
 ## Screenshots (if applicable)
+
 [Add screenshots for UI changes]
 
 ## Checklist
+
 - [ ] Code follows style guidelines
 - [ ] Self-review completed
 - [ ] Tests added/updated
@@ -460,6 +469,7 @@ pnpm supabase migration new add_customer_tiers
 ```
 
 Example migration:
+
 ```sql
 -- Add customer tiers table
 CREATE TABLE customer_tiers (
@@ -477,7 +487,7 @@ ALTER TABLE customer_tiers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Organization members can manage tiers" ON customer_tiers
   FOR ALL USING (
     organization_id IN (
-      SELECT organization_id FROM user_profiles 
+      SELECT organization_id FROM user_profiles
       WHERE user_id = auth.uid()
     )
   );
@@ -489,6 +499,7 @@ CREATE INDEX idx_customer_tiers_org ON customer_tiers(organization_id);
 ### RLS (Row Level Security) Rules
 
 Every table MUST have RLS enabled:
+
 ```sql
 ALTER TABLE your_table ENABLE ROW LEVEL SECURITY;
 
@@ -496,7 +507,7 @@ ALTER TABLE your_table ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "org_isolation" ON your_table
   FOR ALL USING (
     organization_id IN (
-      SELECT organization_id FROM user_profiles 
+      SELECT organization_id FROM user_profiles
       WHERE user_id = auth.uid()
     )
   );
@@ -510,13 +521,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 serve(async (req) => {
   const { items, destination } = await req.json()
-  
+
   // Function logic here
-  
-  return new Response(
-    JSON.stringify({ shipping: calculated }),
-    { headers: { 'Content-Type': 'application/json' } }
-  )
+
+  return new Response(JSON.stringify({ shipping: calculated }), {
+    headers: { 'Content-Type': 'application/json' },
+  })
 })
 ```
 
@@ -534,10 +544,10 @@ serve(async (req) => {
 ```tsx
 /**
  * Displays inventory data in a sortable, filterable table
- * 
+ *
  * @example
- * <InventoryTable 
- *   data={inventoryData} 
+ * <InventoryTable
+ *   data={inventoryData}
  *   warehouseId="wh-001"
  *   onUpdate={handleUpdate}
  * />

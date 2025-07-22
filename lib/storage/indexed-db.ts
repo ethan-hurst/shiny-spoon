@@ -40,15 +40,15 @@ export class IndexedDBWrapper {
         const db = (event.target as IDBOpenDBRequest).result
 
         // Create object stores
-        this.config.stores.forEach(storeConfig => {
+        this.config.stores.forEach((storeConfig) => {
           if (!db.objectStoreNames.contains(storeConfig.name)) {
             const store = db.createObjectStore(storeConfig.name, {
               keyPath: storeConfig.keyPath,
-              autoIncrement: true
+              autoIncrement: true,
             })
 
             // Create indexes
-            storeConfig.indexes?.forEach(index => {
+            storeConfig.indexes?.forEach((index) => {
               store.createIndex(index.name, index.keyPath, index.options)
             })
           }

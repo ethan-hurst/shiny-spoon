@@ -1,9 +1,9 @@
 // Supabase middleware for Next.js
 // Handles auth session refresh and protected routes
 
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/types/database.types'
 
 export async function updateSession(request: NextRequest) {
@@ -25,31 +25,30 @@ export async function updateSession(request: NextRequest) {
   })
 
   // Create Supabase client with cookie handling
-  const supabase = createServerClient<Database>(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
+  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
       },
-    }
-  )
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
+        )
+        supabaseResponse = NextResponse.next({
+          request,
+        })
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+        )
+      },
+    },
+  })
 
   // Refresh session if expired - handle potential errors
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
 
   // Handle authentication errors
   if (error) {
@@ -68,7 +67,7 @@ export async function updateSession(request: NextRequest) {
   ]
 
   // Check if current path is protected
-  const isProtectedPath = protectedPaths.some(path => 
+  const isProtectedPath = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )
 
@@ -82,7 +81,7 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect to dashboard if accessing auth pages while logged in
   const authPaths = ['/login', '/signup', '/reset-password']
-  const isAuthPath = authPaths.some(path => 
+  const isAuthPath = authPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )
 
@@ -115,8 +114,10 @@ export async function checkUserRole(
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) return false
 
   const { data: profile } = await supabase
@@ -129,7 +130,8 @@ export async function checkUserRole(
 
   // Role hierarchy: owner > admin > member
   const roleHierarchy = { owner: 3, admin: 2, member: 1 }
-  const userRoleLevel = roleHierarchy[profile.role as keyof typeof roleHierarchy] || 0
+  const userRoleLevel =
+    roleHierarchy[profile.role as keyof typeof roleHierarchy] || 0
   const requiredRoleLevel = roleHierarchy[requiredRole] || 0
 
   return userRoleLevel >= requiredRoleLevel

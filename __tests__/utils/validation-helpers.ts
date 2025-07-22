@@ -4,7 +4,9 @@ import { promisify } from 'util'
 const execAsync = promisify(exec)
 
 // Helper to run shell commands
-export async function runCommand(command: string): Promise<{ stdout: string; stderr: string }> {
+export async function runCommand(
+  command: string
+): Promise<{ stdout: string; stderr: string }> {
   try {
     const { stdout, stderr } = await execAsync(command)
     return { stdout, stderr }
@@ -77,16 +79,16 @@ export async function testShadcnComponent(): Promise<boolean> {
 // Helper to run all validation loops
 export async function runAllValidations() {
   console.log('🔍 Running all validation loops...\n')
-  
+
   const validations = [
     { name: 'TypeScript', fn: validateTypeScript },
     { name: 'Linting', fn: validateLinting },
     { name: 'Build', fn: validateBuild },
     { name: 'shadcn Components', fn: testShadcnComponent },
   ]
-  
+
   const results = []
-  
+
   for (const validation of validations) {
     console.log(`Running ${validation.name}...`)
     try {
@@ -98,7 +100,7 @@ export async function runAllValidations() {
       console.log(`❌ ${validation.name} failed\n`)
     }
   }
-  
+
   return results
 }
 
@@ -119,20 +121,32 @@ export async function checkRLSEnabled(supabase: any): Promise<boolean> {
 
 // Helper to validate migrations
 export async function validateMigrations(supabase: any): Promise<boolean> {
-  const tables = ['organizations', 'user_profiles', 'products', 'warehouses', 'inventory']
-  
+  const tables = [
+    'organizations',
+    'user_profiles',
+    'products',
+    'warehouses',
+    'inventory',
+  ]
+
   for (const table of tables) {
     try {
       const { error } = await supabase.from(table).select('id').limit(1)
       if (error) {
-        console.error(`Migration validation failed for table ${table}:`, error.message)
+        console.error(
+          `Migration validation failed for table ${table}:`,
+          error.message
+        )
         return false
       }
     } catch (error: any) {
-      console.error(`Migration validation error for table ${table}:`, error.message)
+      console.error(
+        `Migration validation error for table ${table}:`,
+        error.message
+      )
       return false
     }
   }
-  
+
   return true
 }

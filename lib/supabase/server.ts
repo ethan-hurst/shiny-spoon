@@ -1,8 +1,8 @@
 // Server client for Supabase
 // This client is for use in Server Components, Route Handlers, and Server Actions
 
-import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/types/database.types'
 
 export function createClient() {
@@ -35,8 +35,11 @@ export function createClient() {
 // Helper function to get the current user
 export async function getCurrentUser() {
   const supabase = createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
+
   if (error || !user) {
     return null
   }
@@ -47,7 +50,7 @@ export async function getCurrentUser() {
 // Helper function to require authentication
 export async function requireAuth() {
   const user = await getCurrentUser()
-  
+
   if (!user) {
     throw new Error('Unauthorized')
   }

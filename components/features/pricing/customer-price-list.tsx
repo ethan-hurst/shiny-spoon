@@ -1,24 +1,24 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import {
+  AlertCircle,
+  ArrowUpDown,
+  CheckCircle,
+  Clock,
+  Edit,
+  FileText,
+  Filter,
+  MoreHorizontal,
+  Search,
+  X,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -26,25 +26,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { 
-  AlertCircle, 
-  CheckCircle, 
-  Clock, 
-  Edit,
-  FileText,
-  Search,
-  X,
-  Filter,
-  ArrowUpDown,
-  MoreHorizontal
-} from 'lucide-react'
-import { formatCurrency, formatPercent } from '@/lib/utils'
-import { toast } from 'sonner'
-import { CustomerPriceWithProduct, CustomerPriceFilters } from '@/types/customer-pricing.types'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { formatCurrency, formatPercent } from '@/lib/utils'
+import {
+  createCustomerPricing,
+  updateCustomerPricing,
+} from '@/app/actions/pricing'
 import { useDebounce } from '@/hooks/use-debounce'
-import { createCustomerPricing, updateCustomerPricing } from '@/app/actions/pricing'
+import {
+  CustomerPriceFilters,
+  CustomerPriceWithProduct,
+} from '@/types/customer-pricing.types'
 
 interface CustomerPriceListProps {
   customerId: string
@@ -54,25 +60,29 @@ interface CustomerPriceListProps {
 type SortField = 'sku' | 'name' | 'base_price' | 'customer_price' | 'discount'
 type SortOrder = 'asc' | 'desc'
 
-export function CustomerPriceList({ customerId, initialData = [] }: CustomerPriceListProps) {
+export function CustomerPriceList({
+  customerId,
+  initialData = [],
+}: CustomerPriceListProps) {
   const router = useRouter()
   const supabase = createBrowserClient()
-  
+
   // State
-  const [products, setProducts] = useState<CustomerPriceWithProduct[]>(initialData)
+  const [products, setProducts] =
+    useState<CustomerPriceWithProduct[]>(initialData)
   const [loading, setLoading] = useState(!initialData.length)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  
+
   // Filters
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [priceSourceFilter, setPriceSourceFilter] = useState<string>('all')
   const [sortField, setSortField] = useState<SortField>('sku')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
-  
+
   const debouncedSearch = useDebounce(searchTerm, 300)
 
   // Fetch products with pricing
@@ -82,12 +92,14 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
       // Get all products with their pricing info for this customer
       const { data: products, error: productsError } = await supabase
         .from('products')
-        .select(`
+        .select(
+          `
           id,
           sku,
           name,
           category_id
-        `)
+        `
+        )
         .order('sku')
 
       if (productsError) throw productsError
@@ -96,62 +108,78 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
       const { data: pricing, error: pricingError } = await supabase
         .from('product_pricing')
         .select('*')
-        .in('product_id', products.map(p => p.id))
+        .in(
+          'product_id',
+          products.map((p) => p.id)
+        )
 
       if (pricingError) throw pricingError
 
       // Get customer pricing
-      const { data: customerPricing, error: customerPricingError } = await supabase
-        .from('customer_pricing')
-        .select('*')
-        .eq('customer_id', customerId)
-        .in('product_id', products.map(p => p.id))
+      const { data: customerPricing, error: customerPricingError } =
+        await supabase
+          .from('customer_pricing')
+          .select('*')
+          .eq('customer_id', customerId)
+          .in(
+            'product_id',
+            products.map((p) => p.id)
+          )
 
       if (customerPricingError) throw customerPricingError
 
       // Transform the data to match our type
-      const transformed: CustomerPriceWithProduct[] = products.map(product => {
-        const productPricing = pricing.find(p => p.product_id === product.id)
-        const custPricing = customerPricing.find(cp => cp.product_id === product.id)
-        
-        return {
-          id: custPricing?.id || `new-${product.id}`,
-          customer_id: customerId,
-          product_id: product.id,
-          organization_id: '', // Will be filled by RLS
-          override_price: custPricing?.override_price || null,
-          override_discount_percent: custPricing?.override_discount_percent || null,
-          contract_number: custPricing?.contract_number || null,
-          contract_start: custPricing?.contract_start || null,
-          contract_end: custPricing?.contract_end || null,
-          requires_approval: custPricing?.requires_approval || false,
-          approved_by: custPricing?.approved_by || null,
-          approved_at: custPricing?.approved_at || null,
-          notes: custPricing?.notes || null,
-          created_at: custPricing?.created_at || '',
-          updated_at: custPricing?.updated_at || '',
-          created_by: custPricing?.created_by || null,
-          approval_status: custPricing?.approval_status || 'approved',
-          approval_requested_at: custPricing?.approval_requested_at || null,
-          approval_requested_by: custPricing?.approval_requested_by || null,
-          rejection_reason: custPricing?.rejection_reason || null,
-          version: custPricing?.version || 1,
-          previous_price: custPricing?.previous_price || null,
-          bulk_update_id: custPricing?.bulk_update_id || null,
-          import_notes: custPricing?.import_notes || null,
-          products: {
-            id: product.id,
-            sku: product.sku,
-            name: product.name,
-            category_id: product.category_id
-          },
-          product_pricing: productPricing ? {
-            base_price: productPricing.base_price,
-            cost: productPricing.cost,
-            currency: productPricing.currency
-          } : undefined
+      const transformed: CustomerPriceWithProduct[] = products.map(
+        (product) => {
+          const productPricing = pricing.find(
+            (p) => p.product_id === product.id
+          )
+          const custPricing = customerPricing.find(
+            (cp) => cp.product_id === product.id
+          )
+
+          return {
+            id: custPricing?.id || `new-${product.id}`,
+            customer_id: customerId,
+            product_id: product.id,
+            organization_id: '', // Will be filled by RLS
+            override_price: custPricing?.override_price || null,
+            override_discount_percent:
+              custPricing?.override_discount_percent || null,
+            contract_number: custPricing?.contract_number || null,
+            contract_start: custPricing?.contract_start || null,
+            contract_end: custPricing?.contract_end || null,
+            requires_approval: custPricing?.requires_approval || false,
+            approved_by: custPricing?.approved_by || null,
+            approved_at: custPricing?.approved_at || null,
+            notes: custPricing?.notes || null,
+            created_at: custPricing?.created_at || '',
+            updated_at: custPricing?.updated_at || '',
+            created_by: custPricing?.created_by || null,
+            approval_status: custPricing?.approval_status || 'approved',
+            approval_requested_at: custPricing?.approval_requested_at || null,
+            approval_requested_by: custPricing?.approval_requested_by || null,
+            rejection_reason: custPricing?.rejection_reason || null,
+            version: custPricing?.version || 1,
+            previous_price: custPricing?.previous_price || null,
+            bulk_update_id: custPricing?.bulk_update_id || null,
+            import_notes: custPricing?.import_notes || null,
+            products: {
+              id: product.id,
+              sku: product.sku,
+              name: product.name,
+              category_id: product.category_id,
+            },
+            product_pricing: productPricing
+              ? {
+                  base_price: productPricing.base_price,
+                  cost: productPricing.cost,
+                  currency: productPricing.currency,
+                }
+              : undefined,
+          }
         }
-      })
+      )
 
       setProducts(transformed)
     } catch (error) {
@@ -175,33 +203,40 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
 
     // Search filter
     if (debouncedSearch) {
-      filtered = filtered.filter(p => 
-        p.products?.sku.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        p.products?.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+      filtered = filtered.filter(
+        (p) =>
+          p.products?.sku
+            .toLowerCase()
+            .includes(debouncedSearch.toLowerCase()) ||
+          p.products?.name.toLowerCase().includes(debouncedSearch.toLowerCase())
       )
     }
 
     // Category filter
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(p => p.products?.category_id === categoryFilter)
+      filtered = filtered.filter(
+        (p) => p.products?.category_id === categoryFilter
+      )
     }
 
     // Price source filter
     if (priceSourceFilter !== 'all') {
       switch (priceSourceFilter) {
         case 'custom':
-          filtered = filtered.filter(p => 
-            (p.override_price !== null || p.override_discount_percent !== null) && 
-            !p.contract_number
+          filtered = filtered.filter(
+            (p) =>
+              (p.override_price !== null ||
+                p.override_discount_percent !== null) &&
+              !p.contract_number
           )
           break
         case 'contract':
-          filtered = filtered.filter(p => p.contract_number !== null)
+          filtered = filtered.filter((p) => p.contract_number !== null)
           break
         case 'base':
-          filtered = filtered.filter(p => 
-            p.override_price === null && 
-            p.override_discount_percent === null
+          filtered = filtered.filter(
+            (p) =>
+              p.override_price === null && p.override_discount_percent === null
           )
           break
       }
@@ -242,7 +277,15 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
     })
 
     return filtered
-  }, [products, debouncedSearch, categoryFilter, priceSourceFilter, sortField, sortOrder, getDiscountPercent])
+  }, [
+    products,
+    debouncedSearch,
+    categoryFilter,
+    priceSourceFilter,
+    sortField,
+    sortOrder,
+    getDiscountPercent,
+  ])
 
   // Helper functions
   const getCustomerPrice = (product: CustomerPriceWithProduct): number => {
@@ -250,7 +293,10 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
       return product.override_price
     }
     if (product.override_discount_percent !== null && product.product_pricing) {
-      return product.product_pricing.base_price * (1 - product.override_discount_percent / 100)
+      return (
+        product.product_pricing.base_price *
+        (1 - product.override_discount_percent / 100)
+      )
     }
     return product.product_pricing?.base_price || 0
   }
@@ -264,7 +310,11 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
 
   const getPriceSource = (product: CustomerPriceWithProduct): string => {
     if (product.contract_number) return 'contract'
-    if (product.override_price !== null || product.override_discount_percent !== null) return 'custom'
+    if (
+      product.override_price !== null ||
+      product.override_discount_percent !== null
+    )
+      return 'custom'
     return 'base'
   }
 
@@ -274,50 +324,55 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
     setEditValue(currentPrice.toFixed(2))
   }, [])
 
-  const handleSave = useCallback(async (productId: string) => {
-    setSaving(true)
-    try {
-      const newPrice = parseFloat(editValue)
-      if (isNaN(newPrice) || newPrice < 0) {
-        throw new Error('Invalid price')
-      }
+  const handleSave = useCallback(
+    async (productId: string) => {
+      setSaving(true)
+      try {
+        const newPrice = parseFloat(editValue)
+        if (isNaN(newPrice) || newPrice < 0) {
+          throw new Error('Invalid price')
+        }
 
-      // Find the product to get its current pricing info
-      const product = products.find(p => p.product_id === productId)
-      if (!product) {
-        throw new Error('Product not found')
-      }
+        // Find the product to get its current pricing info
+        const product = products.find((p) => p.product_id === productId)
+        if (!product) {
+          throw new Error('Product not found')
+        }
 
-      const formData = new FormData()
-      
-      // Check if this customer already has a pricing override
-      if (product.id && !product.id.startsWith('new-')) {
-        // Update existing customer pricing
-        formData.append('id', product.id)
-        formData.append('product_id', productId)
-        formData.append('override_price', newPrice.toString())
-        
-        await updateCustomerPricing(formData)
-        toast.success('Price updated successfully')
-      } else {
-        // Create new customer pricing override
-        formData.append('customer_id', customerId)
-        formData.append('product_id', productId)
-        formData.append('override_price', newPrice.toString())
-        
-        await createCustomerPricing(formData)
-        toast.success('Custom price created successfully')
+        const formData = new FormData()
+
+        // Check if this customer already has a pricing override
+        if (product.id && !product.id.startsWith('new-')) {
+          // Update existing customer pricing
+          formData.append('id', product.id)
+          formData.append('product_id', productId)
+          formData.append('override_price', newPrice.toString())
+
+          await updateCustomerPricing(formData)
+          toast.success('Price updated successfully')
+        } else {
+          // Create new customer pricing override
+          formData.append('customer_id', customerId)
+          formData.append('product_id', productId)
+          formData.append('override_price', newPrice.toString())
+
+          await createCustomerPricing(formData)
+          toast.success('Custom price created successfully')
+        }
+
+        setEditingId(null)
+        router.refresh()
+      } catch (error) {
+        console.error('Price update error:', error)
+        toast.error(
+          error instanceof Error ? error.message : 'Failed to update price'
+        )
+      } finally {
+        setSaving(false)
       }
-      
-      setEditingId(null)
-      router.refresh()
-    } catch (error) {
-      console.error('Price update error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to update price')
-    } finally {
-      setSaving(false)
-    }
-  }, [editValue, products, customerId, router])
+    },
+    [editValue, products, customerId, router]
+  )
 
   const handleCancel = useCallback(() => {
     setEditingId(null)
@@ -335,7 +390,7 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(new Set(filteredProducts.map(p => p.product_id)))
+      setSelectedIds(new Set(filteredProducts.map((p) => p.product_id)))
     } else {
       setSelectedIds(new Set())
     }
@@ -397,11 +452,9 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
 
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">
-              {selectedIds.size} selected
-            </Badge>
-            <Button 
-              variant="outline" 
+            <Badge variant="secondary">{selectedIds.size} selected</Badge>
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => toast.info('Bulk operations will be implemented')}
             >
@@ -419,13 +472,13 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
               <TableHead className="w-[50px]">
                 <Checkbox
                   checked={
-                    filteredProducts.length > 0 && 
-                    filteredProducts.every(p => selectedIds.has(p.product_id))
+                    filteredProducts.length > 0 &&
+                    filteredProducts.every((p) => selectedIds.has(p.product_id))
                   }
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
-              <TableHead 
+              <TableHead
                 className="cursor-pointer"
                 onClick={() => handleSort('sku')}
               >
@@ -434,7 +487,7 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                   <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead 
+              <TableHead
                 className="cursor-pointer"
                 onClick={() => handleSort('name')}
               >
@@ -443,7 +496,7 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                   <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead 
+              <TableHead
                 className="text-right cursor-pointer"
                 onClick={() => handleSort('base_price')}
               >
@@ -452,7 +505,7 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                   <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead 
+              <TableHead
                 className="text-right cursor-pointer"
                 onClick={() => handleSort('customer_price')}
               >
@@ -461,7 +514,7 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                   <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead 
+              <TableHead
                 className="text-right cursor-pointer"
                 onClick={() => handleSort('discount')}
               >
@@ -494,12 +547,17 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.has(product.product_id)}
-                        onCheckedChange={(checked) => 
-                          handleSelectOne(product.product_id, checked as boolean)
+                        onCheckedChange={(checked) =>
+                          handleSelectOne(
+                            product.product_id,
+                            checked as boolean
+                          )
                         }
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{product.products?.sku}</TableCell>
+                    <TableCell className="font-medium">
+                      {product.products?.sku}
+                    </TableCell>
                     <TableCell>{product.products?.name}</TableCell>
                     <TableCell className="text-right">
                       {formatCurrency(product.product_pricing?.base_price || 0)}
@@ -542,7 +600,9 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleEdit(product.product_id, customerPrice)}
+                              onClick={() =>
+                                handleEdit(product.product_id, customerPrice)
+                              }
                             >
                               <Edit className="h-3 w-3" />
                             </Button>
@@ -552,7 +612,9 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                     </TableCell>
                     <TableCell className="text-right">
                       {discount > 0 && (
-                        <Badge variant={discount > 20 ? 'destructive' : 'secondary'}>
+                        <Badge
+                          variant={discount > 20 ? 'destructive' : 'secondary'}
+                        >
                           {formatPercent(discount)} off
                         </Badge>
                       )}
@@ -567,9 +629,7 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                                 Pending
                               </Badge>
                             </TooltipTrigger>
-                            <TooltipContent>
-                              Awaiting approval
-                            </TooltipContent>
+                            <TooltipContent>Awaiting approval</TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       ) : product.approval_status === 'rejected' ? (
@@ -606,10 +666,12 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
-                        onClick={() => toast.info('Actions menu will be implemented')}
+                        onClick={() =>
+                          toast.info('Actions menu will be implemented')
+                        }
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>

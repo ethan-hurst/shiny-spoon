@@ -1,17 +1,20 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { customerImportSchema, transformImportData } from '@/lib/customers/validations'
 import { z } from 'zod'
+import {
+  customerImportSchema,
+  transformImportData,
+} from '@/lib/customers/validations'
+import { createClient } from '@/lib/supabase/server'
 
 // Parse CSV string to array of objects
 function parseCSV(csvString: string): Record<string, string>[] {
   const lines = csvString.trim().split('\n')
   if (lines.length < 2) return []
-  
+
   // Parse headers
   const headers = parseCSVLine(lines[0])
-  
+
   // Parse data rows
   const data: Record<string, string>[] = []
   for (let i = 1; i < lines.length; i++) {
@@ -24,7 +27,7 @@ function parseCSV(csvString: string): Record<string, string>[] {
       data.push(row)
     }
   }
-  
+
   return data
 }
 
@@ -33,10 +36,10 @@ function parseCSVLine(line: string): string[] {
   const result: string[] = []
   let current = ''
   let inQuotes = false
-  
+
   for (let i = 0; i < line.length; i++) {
     const char = line[i]
-    
+
     if (char === '"') {
       if (inQuotes && line[i + 1] === '"') {
         // Escaped quote
@@ -54,36 +57,39 @@ function parseCSVLine(line: string): string[] {
       current += char
     }
   }
-  
+
   // Add last field
   result.push(current)
-  
+
   return result
 }
 
 // Convert objects to CSV string
 function objectsToCSV(data: any[]): string {
   if (data.length === 0) return ''
-  
+
   const headers = Object.keys(data[0])
   const csvLines: string[] = []
-  
+
   // Add headers
-  csvLines.push(headers.map(h => `"${h}"`).join(','))
-  
+  csvLines.push(headers.map((h) => `"${h}"`).join(','))
+
   // Add data rows
   for (const row of data) {
-    const values = headers.map(header => {
+    const values = headers.map((header) => {
       const value = row[header]
       if (value === null || value === undefined) return ''
-      if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+      if (
+        typeof value === 'string' &&
+        (value.includes(',') || value.includes('"') || value.includes('\n'))
+      ) {
         return `"${value.replace(/"/g, '""')}"`
       }
       return String(value)
     })
     csvLines.push(values.join(','))
   }
-  
+
   return csvLines.join('\n')
 }
 
@@ -92,35 +98,41 @@ export async function validateCustomerImport(csvData: string) {
     const rows = parseCSV(csvData)
     const errors: string[] = []
     let validCount = 0
-    
+
     rows.forEach((row, index) => {
       try {
         customerImportSchema.parse(row)
         validCount++
       } catch (error) {
         if (error instanceof z.ZodError) {
-          const rowErrors = error.errors.map(e => 
-            `Row ${index + 2}: ${e.path.join('.')} - ${e.message}`
+          const rowErrors = error.errors.map(
+            (e) => `Row ${index + 2}: ${e.path.join('.')} - ${e.message}`
           )
           errors.push(...rowErrors)
         }
       }
     })
-    
+
     return { validCount, totalCount: rows.length, errors }
   } catch (error) {
-    return { validCount: 0, totalCount: 0, errors: ['Failed to parse CSV data'] }
+    return {
+      validCount: 0,
+      totalCount: 0,
+      errors: ['Failed to parse CSV data'],
+    }
   }
 }
 
 export async function importCustomers(
-  organizationId: string, 
+  organizationId: string,
   csvData: string,
   onProgress?: (current: number, total: number) => void
 ) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -137,7 +149,9 @@ export async function importCustomers(
       .select('id, name')
       .eq('organization_id', organizationId)
 
-    const tierMap = new Map(tiers?.map(t => [t.name.toLowerCase(), t.id]) || [])
+    const tierMap = new Map(
+      tiers?.map((t) => [t.name.toLowerCase(), t.id]) || []
+    )
 
     // Get existing customers to check for duplicates
     const { data: existingCustomers } = await supabase
@@ -146,10 +160,10 @@ export async function importCustomers(
       .eq('organization_id', organizationId)
 
     const existingMap = new Set(
-      existingCustomers?.map(c => c.company_name.toLowerCase()) || []
+      existingCustomers?.map((c) => c.company_name.toLowerCase()) || []
     )
     const existingTaxIds = new Set(
-      existingCustomers?.filter(c => c.tax_id).map(c => c.tax_id) || []
+      existingCustomers?.filter((c) => c.tax_id).map((c) => c.tax_id) || []
     )
 
     let imported = 0
@@ -161,23 +175,23 @@ export async function importCustomers(
     // Validate and prepare data
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
-      
+
       try {
         // Validate row
         const parsed = customerImportSchema.parse(row)
         const { customer, contact, tier_name } = transformImportData(parsed)
-        
+
         // Check for duplicates
         if (existingMap.has(customer.company_name.toLowerCase())) {
           skipped++
           continue
         }
-        
+
         if (customer.tax_id && existingTaxIds.has(customer.tax_id)) {
           skipped++
           continue
         }
-        
+
         // Map tier name to ID
         if (tier_name) {
           const tierId = tierMap.get(tier_name.toLowerCase())
@@ -187,24 +201,26 @@ export async function importCustomers(
             errors.push(`Row ${i + 2}: Unknown tier "${tier_name}"`)
           }
         }
-        
+
         // Add organization and user info
         customer.organization_id = organizationId
         customer.created_by = user.id
         customer.updated_by = user.id
-        
+
         customersToImport.push({ customer, contact, index: i })
       } catch (error) {
         if (error instanceof z.ZodError) {
-          const rowErrors = error.errors.map(e => 
-            `Row ${i + 2}: ${e.path.join('.')} - ${e.message}`
+          const rowErrors = error.errors.map(
+            (e) => `Row ${i + 2}: ${e.path.join('.')} - ${e.message}`
           )
           errors.push(...rowErrors)
         } else {
-          errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          errors.push(
+            `Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`
+          )
         }
       }
-      
+
       if (onProgress) {
         onProgress(i + 1, rows.length)
       }
@@ -219,33 +235,35 @@ export async function importCustomers(
     const batchSize = 50
     for (let i = 0; i < customersToImport.length; i += batchSize) {
       const batch = customersToImport.slice(i, i + batchSize)
-      
+
       // Insert customers
       const { data: insertedCustomers, error: insertError } = await supabase
         .from('customers')
-        .insert(batch.map(item => item.customer))
+        .insert(batch.map((item) => item.customer))
         .select('id, company_name')
-      
+
       if (insertError) {
-        errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${insertError.message}`)
+        errors.push(
+          `Batch ${Math.floor(i / batchSize) + 1}: ${insertError.message}`
+        )
         continue
       }
-      
+
       if (insertedCustomers) {
         imported += insertedCustomers.length
-        
+
         // Prepare contacts for inserted customers
         for (let j = 0; j < insertedCustomers.length; j++) {
           const customer = insertedCustomers[j]
           const item = batch[j]
-          
+
           if (item.contact) {
             contactsToImport.push({
               ...item.contact,
-              customer_id: customer.id
+              customer_id: customer.id,
             })
           }
-          
+
           // Log activity
           await supabase.rpc('log_customer_activity', {
             p_customer_id: customer.id,
@@ -253,7 +271,7 @@ export async function importCustomers(
             p_type: 'settings_update',
             p_title: 'Customer imported',
             p_description: `Customer ${customer.company_name} was imported from CSV`,
-            p_created_by: user.id
+            p_created_by: user.id,
           })
         }
       }
@@ -263,31 +281,36 @@ export async function importCustomers(
     if (contactsToImport.length > 0) {
       for (let i = 0; i < contactsToImport.length; i += batchSize) {
         const batch = contactsToImport.slice(i, i + batchSize)
-        
+
         const { error: contactError } = await supabase
           .from('customer_contacts')
           .insert(batch)
-        
+
         if (contactError) {
-          errors.push(`Contact batch ${Math.floor(i / batchSize) + 1}: ${contactError.message}`)
+          errors.push(
+            `Contact batch ${Math.floor(i / batchSize) + 1}: ${contactError.message}`
+          )
         }
       }
     }
 
     return { imported, skipped, errors: errors.length > 0 ? errors : undefined }
   } catch (error) {
-    return { 
-      error: error instanceof Error ? error.message : 'Failed to import customers',
+    return {
+      error:
+        error instanceof Error ? error.message : 'Failed to import customers',
       imported: 0,
-      skipped: 0
+      skipped: 0,
     }
   }
 }
 
 export async function exportCustomers(organizationId: string) {
   const supabase = createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -296,7 +319,8 @@ export async function exportCustomers(organizationId: string) {
     // Fetch all customers with tiers and primary contacts
     const { data: customers, error } = await supabase
       .from('customers')
-      .select(`
+      .select(
+        `
         *,
         customer_tiers!customers_tier_id_fkey (
           name
@@ -309,7 +333,8 @@ export async function exportCustomers(organizationId: string) {
           mobile,
           is_primary
         )
-      `)
+      `
+      )
       .eq('organization_id', organizationId)
       .order('company_name')
 
@@ -323,9 +348,10 @@ export async function exportCustomers(organizationId: string) {
 
     // Transform data for CSV
     const csvData = customers.map((customer: any) => {
-      const primaryContact = customer.customer_contacts?.find((c: any) => c.is_primary) || 
-                           customer.customer_contacts?.[0]
-      
+      const primaryContact =
+        customer.customer_contacts?.find((c: any) => c.is_primary) ||
+        customer.customer_contacts?.[0]
+
       return {
         company_name: customer.company_name,
         display_name: customer.display_name || '',
@@ -355,16 +381,17 @@ export async function exportCustomers(organizationId: string) {
         contact_last_name: primaryContact?.last_name || '',
         contact_email: primaryContact?.email || '',
         contact_phone: primaryContact?.phone || '',
-        contact_mobile: primaryContact?.mobile || ''
+        contact_mobile: primaryContact?.mobile || '',
       }
     })
 
     const csv = objectsToCSV(csvData)
-    
+
     return { data: csv, count: customers.length }
   } catch (error) {
-    return { 
-      error: error instanceof Error ? error.message : 'Failed to export customers' 
+    return {
+      error:
+        error instanceof Error ? error.message : 'Failed to export customers',
     }
   }
 }

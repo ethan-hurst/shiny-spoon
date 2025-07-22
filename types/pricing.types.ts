@@ -1,14 +1,29 @@
 import { z } from 'zod'
 
 // Enums
-export const PricingUnitEnum = z.enum(['EACH', 'CASE', 'PALLET', 'BOX', 'POUND', 'KILOGRAM'])
-export const RuleTypeEnum = z.enum(['tier', 'quantity', 'promotion', 'override'])
+export const PricingUnitEnum = z.enum([
+  'EACH',
+  'CASE',
+  'PALLET',
+  'BOX',
+  'POUND',
+  'KILOGRAM',
+])
+export const RuleTypeEnum = z.enum([
+  'tier',
+  'quantity',
+  'promotion',
+  'override',
+])
 export const DiscountTypeEnum = z.enum(['percentage', 'fixed', 'price'])
 
 // Product Category Schema
 export const productCategorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
-  slug: z.string().min(1).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
+  slug: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens only'),
   parent_id: z.string().uuid().optional(),
   description: z.string().optional(),
   metadata: z.record(z.any()).optional(),
@@ -20,7 +35,11 @@ export const productPricingSchema = z.object({
   cost: z.number().min(0, 'Cost cannot be negative'),
   base_price: z.number().min(0, 'Base price cannot be negative'),
   min_margin_percent: z.number().min(0).max(100).default(20),
-  currency: z.string().length(3).regex(/^[A-Z]{3}$/, 'Currency must be 3 uppercase letters').default('USD'),
+  currency: z
+    .string()
+    .length(3)
+    .regex(/^[A-Z]{3}$/, 'Currency must be 3 uppercase letters')
+    .default('USD'),
   pricing_unit: PricingUnitEnum.default('EACH'),
   unit_quantity: z.number().int().positive().default(1),
   effective_date: z.string().optional(),
@@ -37,82 +56,88 @@ export const pricingConditionsSchema = z.object({
 })
 
 // Pricing Rule Schema
-export const pricingRuleSchema = z.object({
-  name: z.string().min(1, 'Rule name is required'),
-  description: z.string().optional(),
-  rule_type: RuleTypeEnum,
-  priority: z.number().int().min(0).default(100),
-  conditions: pricingConditionsSchema.default({}),
-  discount_type: DiscountTypeEnum.optional(),
-  discount_value: z.number().min(0).optional(),
-  product_id: z.string().uuid().optional(),
-  category_id: z.string().uuid().optional(),
-  customer_id: z.string().uuid().optional(),
-  customer_tier_id: z.string().uuid().optional(),
-  is_exclusive: z.boolean().default(false),
-  can_stack: z.boolean().default(true),
-  is_active: z.boolean().default(true),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
-}).refine(
-  (data) => {
-    // If discount_type is set, discount_value must be set
-    if (data.discount_type && !data.discount_value) {
-      return false
+export const pricingRuleSchema = z
+  .object({
+    name: z.string().min(1, 'Rule name is required'),
+    description: z.string().optional(),
+    rule_type: RuleTypeEnum,
+    priority: z.number().int().min(0).default(100),
+    conditions: pricingConditionsSchema.default({}),
+    discount_type: DiscountTypeEnum.optional(),
+    discount_value: z.number().min(0).optional(),
+    product_id: z.string().uuid().optional(),
+    category_id: z.string().uuid().optional(),
+    customer_id: z.string().uuid().optional(),
+    customer_tier_id: z.string().uuid().optional(),
+    is_exclusive: z.boolean().default(false),
+    can_stack: z.boolean().default(true),
+    is_active: z.boolean().default(true),
+    start_date: z.string().optional(),
+    end_date: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // If discount_type is set, discount_value must be set
+      if (data.discount_type && !data.discount_value) {
+        return false
+      }
+      // If discount_value is set, discount_type must be set
+      if (data.discount_value && !data.discount_type) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Both discount type and value must be provided together',
     }
-    // If discount_value is set, discount_type must be set
-    if (data.discount_value && !data.discount_type) {
-      return false
-    }
-    return true
-  },
-  {
-    message: 'Both discount type and value must be provided together',
-  }
-)
+  )
 
 // Quantity Break Schema
-export const quantityBreakSchema = z.object({
-  min_quantity: z.number().int().min(0),
-  max_quantity: z.number().int().positive().optional(),
-  discount_type: DiscountTypeEnum,
-  discount_value: z.number().min(0),
-  sort_order: z.number().int().default(0),
-}).refine(
-  (data) => {
-    if (data.max_quantity && data.max_quantity <= data.min_quantity) {
-      return false
+export const quantityBreakSchema = z
+  .object({
+    min_quantity: z.number().int().min(0),
+    max_quantity: z.number().int().positive().optional(),
+    discount_type: DiscountTypeEnum,
+    discount_value: z.number().min(0),
+    sort_order: z.number().int().default(0),
+  })
+  .refine(
+    (data) => {
+      if (data.max_quantity && data.max_quantity <= data.min_quantity) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Max quantity must be greater than min quantity',
     }
-    return true
-  },
-  {
-    message: 'Max quantity must be greater than min quantity',
-  }
-)
+  )
 
 // Customer Pricing Schema
-export const customerPricingSchema = z.object({
-  customer_id: z.string().uuid(),
-  product_id: z.string().uuid(),
-  override_price: z.number().min(0).optional(),
-  override_discount_percent: z.number().min(0).max(100).optional(),
-  contract_number: z.string().optional(),
-  contract_start: z.string().optional(),
-  contract_end: z.string().optional(),
-  requires_approval: z.boolean().default(false),
-  notes: z.string().optional(),
-}).refine(
-  (data) => {
-    // Can't have both price and discount
-    if (data.override_price && data.override_discount_percent) {
-      return false
+export const customerPricingSchema = z
+  .object({
+    customer_id: z.string().uuid(),
+    product_id: z.string().uuid(),
+    override_price: z.number().min(0).optional(),
+    override_discount_percent: z.number().min(0).max(100).optional(),
+    contract_number: z.string().optional(),
+    contract_start: z.string().optional(),
+    contract_end: z.string().optional(),
+    requires_approval: z.boolean().default(false),
+    notes: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      // Can't have both price and discount
+      if (data.override_price && data.override_discount_percent) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Cannot set both override price and discount percent',
     }
-    return true
-  },
-  {
-    message: 'Cannot set both override price and discount percent',
-  }
-)
+  )
 
 // Price Calculation Request Schema
 export const priceCalculationRequestSchema = z.object({
@@ -129,7 +154,9 @@ export type PricingConditions = z.infer<typeof pricingConditionsSchema>
 export type PricingRule = z.infer<typeof pricingRuleSchema>
 export type QuantityBreak = z.infer<typeof quantityBreakSchema>
 export type CustomerPricing = z.infer<typeof customerPricingSchema>
-export type PriceCalculationRequest = z.infer<typeof priceCalculationRequestSchema>
+export type PriceCalculationRequest = z.infer<
+  typeof priceCalculationRequestSchema
+>
 
 // Database types (including system fields)
 export interface ProductCategoryRecord extends ProductCategory {
@@ -299,13 +326,13 @@ export function formatPricingUnit(unit: string, quantity: number): string {
     POUND: 'lb',
     KILOGRAM: 'kg',
   }
-  
+
   const label = unitLabels[unit] || unit.toLowerCase()
-  
+
   if (quantity === 1) {
     return `per ${label}`
   }
-  
+
   return `per ${quantity} ${label}${quantity > 1 && !['lb', 'kg'].includes(label) ? 's' : ''}`
 }
 
@@ -347,18 +374,24 @@ export function calculateMargin(price: number, cost: number): number {
   return ((price - cost) / price) * 100
 }
 
-export function calculatePriceWithMargin(cost: number, marginPercent: number): number {
-  return cost / (1 - (marginPercent / 100))
+export function calculatePriceWithMargin(
+  cost: number,
+  marginPercent: number
+): number {
+  return cost / (1 - marginPercent / 100)
 }
 
-export function isRuleActive(rule: PricingRuleRecord, date: Date = new Date()): boolean {
+export function isRuleActive(
+  rule: PricingRuleRecord,
+  date: Date = new Date()
+): boolean {
   if (!rule.is_active) return false
-  
+
   const ruleStart = rule.start_date ? new Date(rule.start_date) : null
   const ruleEnd = rule.end_date ? new Date(rule.end_date) : null
-  
+
   if (ruleStart && date < ruleStart) return false
   if (ruleEnd && date > ruleEnd) return false
-  
+
   return true
 }

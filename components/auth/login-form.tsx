@@ -1,16 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { loginSchema, type LoginFormData } from '@/types/auth.types'
-import { signIn } from '@/app/actions/auth'
 import Link from 'next/link'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { toast } from 'sonner'
+import { signIn } from '@/app/actions/auth'
+import { loginSchema, type LoginFormData } from '@/types/auth.types'
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -36,7 +43,7 @@ export function LoginForm() {
       if (result?.error) {
         toast.error(result.error)
       }
-      
+
       // If successful, the server action will redirect
     } catch (error) {
       toast.error('An unexpected error occurred')
@@ -94,11 +101,7 @@ export function LoginForm() {
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? 'Signing in...' : 'Sign in'}
         </Button>
       </form>

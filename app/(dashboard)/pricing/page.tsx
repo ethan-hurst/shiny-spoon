@@ -1,17 +1,32 @@
-import { createClient } from '@/lib/supabase/server'
 import { Metadata } from 'next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { AlertCircle, AlertTriangle, Calculator, FileDown, FileUp, Plus, TrendingDown, TrendingUp } from 'lucide-react'
-import { PricingRulesList } from '@/components/features/pricing/pricing-rules-list'
-import { PriceCalculator } from '@/components/features/pricing/price-calculator'
+import Link from 'next/link'
+import {
+  AlertCircle,
+  AlertTriangle,
+  Calculator,
+  FileDown,
+  FileUp,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
 import { MarginAlerts } from '@/components/features/pricing/margin-alerts'
+import { PriceCalculator } from '@/components/features/pricing/price-calculator'
+import { PricingImportExport } from '@/components/features/pricing/pricing-import-export'
+import { PricingRulesList } from '@/components/features/pricing/pricing-rules-list'
 import { PricingStats } from '@/components/features/pricing/pricing-stats'
 import { PromotionCalendar } from '@/components/features/pricing/promotion-calendar'
-import { PricingImportExport } from '@/components/features/pricing/pricing-import-export'
-import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { createClient } from '@/lib/supabase/server'
 import { formatCurrency } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -37,7 +52,10 @@ export default async function PricingPage() {
       supabase
         .from('price_calculations')
         .select('discount_percent, margin_percent')
-        .gte('requested_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .gte(
+          'requested_at',
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        )
         .order('requested_at', { ascending: false })
         .limit(100),
 
@@ -46,23 +64,36 @@ export default async function PricingPage() {
         .from('price_calculations')
         .select('*, products!inner(name, sku)')
         .lt('margin_percent', 15)
-        .gte('requested_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .gte(
+          'requested_at',
+          new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        )
         .order('margin_percent', { ascending: true })
         .limit(5),
     ])
 
     // Process stats
-    const rulesByType = rulesResult.data?.reduce((acc, rule) => {
-      acc[rule.rule_type] = (acc[rule.rule_type] || 0) + 1
-      return acc
-    }, {} as Record<string, number>) || {}
+    const rulesByType =
+      rulesResult.data?.reduce(
+        (acc, rule) => {
+          acc[rule.rule_type] = (acc[rule.rule_type] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>
+      ) || {}
 
     const avgDiscount = calculationsResult.data?.length
-      ? calculationsResult.data.reduce((sum, calc) => sum + (calc.discount_percent || 0), 0) / calculationsResult.data.length
+      ? calculationsResult.data.reduce(
+          (sum, calc) => sum + (calc.discount_percent || 0),
+          0
+        ) / calculationsResult.data.length
       : 0
 
     const avgMargin = calculationsResult.data?.length
-      ? calculationsResult.data.reduce((sum, calc) => sum + (calc.margin_percent || 0), 0) / calculationsResult.data.length
+      ? calculationsResult.data.reduce(
+          (sum, calc) => sum + (calc.margin_percent || 0),
+          0
+        ) / calculationsResult.data.length
       : 0
 
     return (
@@ -89,14 +120,20 @@ export default async function PricingPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Rules</CardTitle>
-              <Badge variant="secondary">{Object.values(rulesByType).reduce((a, b) => a + b, 0)}</Badge>
+              <CardTitle className="text-sm font-medium">
+                Active Rules
+              </CardTitle>
+              <Badge variant="secondary">
+                {Object.values(rulesByType).reduce((a, b) => a + b, 0)}
+              </Badge>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
                 {Object.entries(rulesByType).map(([type, count]) => (
                   <div key={type} className="flex justify-between text-xs">
-                    <span className="text-muted-foreground capitalize">{type}</span>
+                    <span className="text-muted-foreground capitalize">
+                      {type}
+                    </span>
                     <span>{count}</span>
                   </div>
                 ))}
@@ -106,14 +143,16 @@ export default async function PricingPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Discount</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Avg Discount
+              </CardTitle>
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{avgDiscount.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">
-                Last 7 days
-              </p>
+              <div className="text-2xl font-bold">
+                {avgDiscount.toFixed(1)}%
+              </div>
+              <p className="text-xs text-muted-foreground">Last 7 days</p>
             </CardContent>
           </Card>
 
@@ -124,22 +163,22 @@ export default async function PricingPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{avgMargin.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">
-                Last 7 days
-              </p>
+              <p className="text-xs text-muted-foreground">Last 7 days</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Low Margin Alerts</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Low Margin Alerts
+              </CardTitle>
               <AlertTriangle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{alertsResult.data?.length || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                Below 15% margin
-              </p>
+              <div className="text-2xl font-bold">
+                {alertsResult.data?.length || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">Below 15% margin</p>
             </CardContent>
           </Card>
         </div>
@@ -212,11 +251,10 @@ export default async function PricingPage() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              We encountered an error while loading the pricing data. Please try again later.
+              We encountered an error while loading the pricing data. Please try
+              again later.
             </p>
-            <Button onClick={() => window.location.reload()}>
-              Retry
-            </Button>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
           </CardContent>
         </Card>
       </div>

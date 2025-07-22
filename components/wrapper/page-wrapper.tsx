@@ -1,7 +1,11 @@
 import Footer from './footer'
 import NavBar from './navbar'
 
-export default function PageWrapper({ children }: { children: React.ReactNode }) {
+export default function PageWrapper({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <>
       <NavBar />

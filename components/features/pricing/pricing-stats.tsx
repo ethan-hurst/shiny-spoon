@@ -1,26 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useEffect, useState } from 'react'
+import { endOfDay, format, startOfDay, subDays } from 'date-fns'
 import {
-  BarChart,
   Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
-import { format, subDays, startOfDay, endOfDay } from 'date-fns'
 
 const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444']
 
@@ -44,10 +50,12 @@ export function PricingStats() {
       // Fetch price calculations for analytics
       const { data: calculations, error } = await supabase
         .from('price_calculations')
-        .select(`
+        .select(
+          `
           *,
           products!inner(name, sku)
-        `)
+        `
+        )
         .gte('requested_at', last30Days.toISOString())
         .order('requested_at', { ascending: true })
 
@@ -60,8 +68,9 @@ export function PricingStats() {
           acc[day] = { day, totalDiscount: 0, avgDiscount: 0, count: 0 }
         }
         acc[day].totalDiscount += calc.total_discount || 0
-        acc[day].avgDiscount = 
-          (acc[day].avgDiscount * acc[day].count + (calc.discount_percent || 0)) / 
+        acc[day].avgDiscount =
+          (acc[day].avgDiscount * acc[day].count +
+            (calc.discount_percent || 0)) /
           (acc[day].count + 1)
         acc[day].count++
         return acc
@@ -80,7 +89,9 @@ export function PricingStats() {
 
       calculations?.forEach((calc) => {
         const margin = calc.margin_percent || 0
-        const range = marginRanges.find(r => margin >= r.min && margin < r.max)
+        const range = marginRanges.find(
+          (r) => margin >= r.min && margin < r.max
+        )
         if (range) range.count++
       })
 
@@ -123,9 +134,10 @@ export function PricingStats() {
           }
         }
         productStats[productId].totalDiscount += calc.total_discount || 0
-        productStats[productId].avgDiscount = 
-          (productStats[productId].avgDiscount * productStats[productId].count + 
-           (calc.discount_percent || 0)) / (productStats[productId].count + 1)
+        productStats[productId].avgDiscount =
+          (productStats[productId].avgDiscount * productStats[productId].count +
+            (calc.discount_percent || 0)) /
+          (productStats[productId].count + 1)
         productStats[productId].count++
       })
 
@@ -151,7 +163,9 @@ export function PricingStats() {
       <Card>
         <CardHeader>
           <CardTitle>Discount Trends</CardTitle>
-          <CardDescription>Average discount percentage over the last 30 days</CardDescription>
+          <CardDescription>
+            Average discount percentage over the last 30 days
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -193,7 +207,10 @@ export function PricingStats() {
                   dataKey="count"
                 >
                   {marginDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -227,7 +244,9 @@ export function PricingStats() {
       <Card>
         <CardHeader>
           <CardTitle>Top Discounted Products</CardTitle>
-          <CardDescription>Products with the highest total discounts</CardDescription>
+          <CardDescription>
+            Products with the highest total discounts
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -238,12 +257,17 @@ export function PricingStats() {
               >
                 <div>
                   <div className="font-medium">{product.name}</div>
-                  <div className="text-sm text-muted-foreground">SKU: {product.sku}</div>
+                  <div className="text-sm text-muted-foreground">
+                    SKU: {product.sku}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">{formatCurrency(product.totalDiscount)}</div>
+                  <div className="font-medium">
+                    {formatCurrency(product.totalDiscount)}
+                  </div>
                   <div className="text-sm text-muted-foreground">
-                    Avg: {product.avgDiscount.toFixed(1)}% ({product.count} orders)
+                    Avg: {product.avgDiscount.toFixed(1)}% ({product.count}{' '}
+                    orders)
                   </div>
                 </div>
               </div>

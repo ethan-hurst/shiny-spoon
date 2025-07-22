@@ -21,10 +21,7 @@ export function createClient() {
     throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set')
   }
 
-  client = createBrowserClient<Database>(
-    supabaseUrl,
-    supabaseAnonKey
-  )
+  client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
 
   return client
 }

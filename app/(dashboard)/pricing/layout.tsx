@@ -1,6 +1,9 @@
 'use client'
 
-import { usePricingRealtime, usePriceCalculationNotifications } from '@/hooks/use-pricing-realtime'
+import {
+  usePriceCalculationNotifications,
+  usePricingRealtime,
+} from '@/hooks/use-pricing-realtime'
 
 export default function PricingLayout({
   children,

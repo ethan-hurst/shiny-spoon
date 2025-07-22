@@ -1,31 +1,33 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { warehouseSchema } from '@/lib/validations/warehouse'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { warehouseSchema } from '@/lib/validations/warehouse'
 
 // Helper function for authentication and organization fetching
 async function getAuthenticatedOrgId() {
   const supabase = createClient()
-  
+
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
-  
+
   // Get user's organization - Using explicit query building to bypass strict typing
   const result = await supabase
     .from('user_profiles')
     .select('organization_id')
     .eq('user_id', user.id)
     .single()
-  
+
   if (result.error || !result.data) throw new Error('User profile not found')
-  
+
   return {
     supabase,
     organizationId: (result.data as any).organization_id as string,
-    userId: user.id
+    userId: user.id,
   }
 }
 
@@ -58,11 +60,11 @@ export async function createWarehouse(formData: FormData) {
     is_default: formData.get('is_default') === 'true',
     active: formData.get('active') !== 'false',
   })
-  
+
   if (!parsed.success) {
     return { error: parsed.error.flatten() }
   }
-  
+
   // Check code uniqueness
   const existingResult = await supabase
     .from('warehouses')
@@ -70,12 +72,12 @@ export async function createWarehouse(formData: FormData) {
     .eq('organization_id', organizationId)
     .eq('code', parsed.data.code)
     .limit(1)
-  
+
   if (existingResult.data && existingResult.data.length > 0) {
     return { error: 'Warehouse code already exists' }
   }
-  
-  // If setting as default, unset current default first  
+
+  // If setting as default, unset current default first
   if (parsed.data.is_default) {
     await supabase
       .from('warehouses')
@@ -83,7 +85,7 @@ export async function createWarehouse(formData: FormData) {
       .eq('organization_id', organizationId)
       .eq('is_default', true)
   }
-  
+
   // Insert warehouse
   const insertResult = await supabase
     .from('warehouses')
@@ -98,11 +100,11 @@ export async function createWarehouse(formData: FormData) {
     })
     .select()
     .single()
-  
+
   if (insertResult.error) {
     return { error: insertResult.error.message }
   }
-  
+
   revalidatePath('/dashboard/warehouses')
   redirect('/dashboard/warehouses')
 }
@@ -116,13 +118,16 @@ export async function updateWarehouse(id: string, formData: FormData) {
     .select('organization_id, is_default')
     .eq('id', id)
     .single()
-    
+
   if (warehouseResult.error || !warehouseResult.data) {
     throw new Error('Warehouse not found')
   }
 
-  const warehouse = warehouseResult.data as { organization_id: string; is_default: boolean }
-  
+  const warehouse = warehouseResult.data as {
+    organization_id: string
+    is_default: boolean
+  }
+
   if (warehouse.organization_id !== organizationId) {
     throw new Error('Warehouse not found')
   }
@@ -144,16 +149,16 @@ export async function updateWarehouse(id: string, formData: FormData) {
     is_default: formData.get('is_default') === 'true',
     active: formData.get('active') !== 'false',
   })
-  
+
   if (!parsed.success) {
     return { error: parsed.error.flatten() }
   }
-  
+
   // Prevent deactivating default warehouse
   if (warehouse.is_default && !parsed.data.active) {
     return { error: 'Cannot deactivate the default warehouse' }
   }
-  
+
   // If setting as default, unset current default first
   if (parsed.data.is_default && !warehouse.is_default) {
     await supabase
@@ -162,7 +167,7 @@ export async function updateWarehouse(id: string, formData: FormData) {
       .eq('organization_id', organizationId)
       .eq('is_default', true)
   }
-  
+
   // Update warehouse
   const updateResult = await supabase
     .from('warehouses')
@@ -175,11 +180,11 @@ export async function updateWarehouse(id: string, formData: FormData) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
-  
+
   if (updateResult.error) {
     return { error: updateResult.error.message }
   }
-  
+
   revalidatePath('/dashboard/warehouses')
   redirect('/dashboard/warehouses')
 }
@@ -193,132 +198,142 @@ export async function deleteWarehouse(id: string) {
     .select('organization_id, is_default')
     .eq('id', id)
     .single()
-    
+
   if (warehouseResult.error || !warehouseResult.data) {
     return { error: 'Warehouse not found' }
   }
 
-  const warehouse = warehouseResult.data as { organization_id: string; is_default: boolean }
-  
+  const warehouse = warehouseResult.data as {
+    organization_id: string
+    is_default: boolean
+  }
+
   if (warehouse.organization_id !== organizationId) {
     return { error: 'Warehouse not found' }
   }
-  
+
   if (warehouse.is_default) {
     return { error: 'Cannot delete the default warehouse' }
   }
-  
+
   // Check for inventory
   const inventoryResult = await supabase
     .from('inventory')
     .select('id')
     .eq('warehouse_id', id)
     .limit(1)
-  
+
   if (inventoryResult.data && inventoryResult.data.length > 0) {
     return { error: 'Cannot delete warehouse with inventory' }
   }
-  
+
   // Soft delete
   const deleteResult = await supabase
     .from('warehouses')
-    .update({ 
+    .update({
       active: false,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
-  
+
   if (deleteResult.error) {
     return { error: deleteResult.error.message }
   }
-  
+
   revalidatePath('/dashboard/warehouses')
   return { success: true }
 }
 
 export async function setDefaultWarehouse(id: string) {
   const { supabase, organizationId } = await getAuthenticatedOrgId()
-  
+
   // Check warehouse is active and belongs to org
   const warehouseResult = await supabase
     .from('warehouses')
     .select('active, organization_id')
     .eq('id', id)
     .single()
-    
+
   if (warehouseResult.error || !warehouseResult.data) {
     return { error: 'Warehouse not found' }
   }
 
-  const warehouse = warehouseResult.data as { active: boolean; organization_id: string }
-  
+  const warehouse = warehouseResult.data as {
+    active: boolean
+    organization_id: string
+  }
+
   if (warehouse.organization_id !== organizationId) {
     return { error: 'Warehouse not found' }
   }
-  
+
   if (!warehouse.active) {
     return { error: 'Cannot set inactive warehouse as default' }
   }
-  
+
   // Unset current default first
   await supabase
     .from('warehouses')
     .update({ is_default: false })
     .eq('organization_id', organizationId)
     .eq('is_default', true)
-  
+
   // Set new default
   const updateResult = await supabase
     .from('warehouses')
     .update({ is_default: true })
     .eq('id', id)
-  
+
   if (updateResult.error) {
     return { error: updateResult.error.message }
   }
-  
+
   revalidatePath('/dashboard/warehouses')
   return { success: true }
 }
 
 export async function toggleWarehouseStatus(id: string) {
   const { supabase, organizationId } = await getAuthenticatedOrgId()
-  
+
   // Check warehouse
   const warehouseResult = await supabase
     .from('warehouses')
     .select('active, is_default, organization_id')
     .eq('id', id)
     .single()
-    
+
   if (warehouseResult.error || !warehouseResult.data) {
     return { error: 'Warehouse not found' }
   }
 
-  const warehouse = warehouseResult.data as { active: boolean; is_default: boolean; organization_id: string }
-  
+  const warehouse = warehouseResult.data as {
+    active: boolean
+    is_default: boolean
+    organization_id: string
+  }
+
   if (warehouse.organization_id !== organizationId) {
     return { error: 'Warehouse not found' }
   }
-  
+
   // Prevent deactivating default warehouse
   if (warehouse.is_default && warehouse.active) {
     return { error: 'Cannot deactivate the default warehouse' }
   }
-  
+
   // Toggle status
   const toggleResult = await supabase
     .from('warehouses')
-    .update({ 
+    .update({
       active: !warehouse.active,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
-  
+
   if (toggleResult.error) {
     return { error: toggleResult.error.message }
   }
-  
+
   revalidatePath('/dashboard/warehouses')
   return { success: true }
 }
@@ -335,11 +350,11 @@ export async function createWarehouseTyped(data: {
   const { supabase, organizationId } = await getAuthenticatedOrgId()
 
   const parsed = warehouseSchema.safeParse(data)
-  
+
   if (!parsed.success) {
     return { error: parsed.error.flatten() }
   }
-  
+
   // Check code uniqueness
   const existingResult = await supabase
     .from('warehouses')
@@ -347,12 +362,12 @@ export async function createWarehouseTyped(data: {
     .eq('organization_id', organizationId)
     .eq('code', parsed.data.code)
     .limit(1)
-  
+
   if (existingResult.data && existingResult.data.length > 0) {
     return { error: 'Warehouse code already exists' }
   }
-  
-  // If setting as default, unset current default first  
+
+  // If setting as default, unset current default first
   if (parsed.data.is_default) {
     await supabase
       .from('warehouses')
@@ -360,7 +375,7 @@ export async function createWarehouseTyped(data: {
       .eq('organization_id', organizationId)
       .eq('is_default', true)
   }
-  
+
   // Insert warehouse
   const insertResult = await supabase
     .from('warehouses')
@@ -375,22 +390,25 @@ export async function createWarehouseTyped(data: {
     })
     .select()
     .single()
-  
+
   if (insertResult.error) {
     return { error: insertResult.error.message }
   }
-  
+
   revalidatePath('/dashboard/warehouses')
   redirect('/dashboard/warehouses')
 }
 
-export async function updateWarehouseTyped(id: string, data: {
-  name: string
-  address: any
-  contacts: any[]
-  is_default: boolean
-  active: boolean
-}) {
+export async function updateWarehouseTyped(
+  id: string,
+  data: {
+    name: string
+    address: any
+    contacts: any[]
+    is_default: boolean
+    active: boolean
+  }
+) {
   const { supabase, organizationId } = await getAuthenticatedOrgId()
 
   // Check warehouse ownership
@@ -399,29 +417,32 @@ export async function updateWarehouseTyped(id: string, data: {
     .select('organization_id, is_default')
     .eq('id', id)
     .single()
-    
+
   if (warehouseResult.error || !warehouseResult.data) {
     throw new Error('Warehouse not found')
   }
 
-  const warehouse = warehouseResult.data as { organization_id: string; is_default: boolean }
-  
+  const warehouse = warehouseResult.data as {
+    organization_id: string
+    is_default: boolean
+  }
+
   if (warehouse.organization_id !== organizationId) {
     throw new Error('Warehouse not found')
   }
 
   // Parse and validate (exclude code since it can't be changed)
   const parsed = warehouseSchema.omit({ code: true }).safeParse(data)
-  
+
   if (!parsed.success) {
     return { error: parsed.error.flatten() }
   }
-  
+
   // Prevent deactivating default warehouse
   if (warehouse.is_default && !parsed.data.active) {
     return { error: 'Cannot deactivate the default warehouse' }
   }
-  
+
   // If setting as default, unset current default first
   if (parsed.data.is_default && !warehouse.is_default) {
     await supabase
@@ -430,7 +451,7 @@ export async function updateWarehouseTyped(id: string, data: {
       .eq('organization_id', organizationId)
       .eq('is_default', true)
   }
-  
+
   // Update warehouse
   const updateResult = await supabase
     .from('warehouses')
@@ -443,11 +464,11 @@ export async function updateWarehouseTyped(id: string, data: {
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
-  
+
   if (updateResult.error) {
     return { error: updateResult.error.message }
   }
-  
+
   revalidatePath('/dashboard/warehouses')
   redirect('/dashboard/warehouses')
 }

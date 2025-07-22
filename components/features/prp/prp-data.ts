@@ -31,8 +31,8 @@ export const prpData: Phase[] = [
           'app/',
           'components/ui/',
           'tailwind.config.ts',
-          'tsconfig.json'
-        ]
+          'tsconfig.json',
+        ],
       },
       {
         id: 'PRP-002',
@@ -44,8 +44,8 @@ export const prpData: Phase[] = [
           'supabase/migrations/*.sql',
           'lib/supabase/client.ts',
           'lib/supabase/server.ts',
-          'lib/supabase/middleware.ts'
-        ]
+          'lib/supabase/middleware.ts',
+        ],
       },
       {
         id: 'PRP-003',
@@ -57,8 +57,8 @@ export const prpData: Phase[] = [
           'app/(auth)/login/page.tsx',
           'app/(auth)/signup/page.tsx',
           'app/(auth)/reset-password/page.tsx',
-          'components/features/auth/*'
-        ]
+          'components/features/auth/*',
+        ],
       },
       {
         id: 'PRP-004',
@@ -69,10 +69,10 @@ export const prpData: Phase[] = [
         implementedFiles: [
           'app/(dashboard)/layout.tsx',
           'components/layouts/dashboard-sidebar.tsx',
-          'components/layouts/dashboard-header.tsx'
-        ]
-      }
-    ]
+          'components/layouts/dashboard-header.tsx',
+        ],
+      },
+    ],
   },
   {
     id: 'phase-2',
@@ -89,8 +89,8 @@ export const prpData: Phase[] = [
           'app/(dashboard)/products/page.tsx',
           'components/features/products/*',
           'app/actions/products.ts',
-          'lib/products/*'
-        ]
+          'lib/products/*',
+        ],
       },
       {
         id: 'PRP-006',
@@ -101,8 +101,8 @@ export const prpData: Phase[] = [
         implementedFiles: [
           'app/(dashboard)/warehouses/page.tsx',
           'components/features/warehouses/*',
-          'app/actions/warehouses.ts'
-        ]
+          'app/actions/warehouses.ts',
+        ],
       },
       {
         id: 'PRP-007',
@@ -113,8 +113,8 @@ export const prpData: Phase[] = [
         implementedFiles: [
           'app/(dashboard)/inventory/page.tsx',
           'components/features/inventory/*',
-          'app/actions/inventory.ts'
-        ]
+          'app/actions/inventory.ts',
+        ],
       },
       {
         id: 'PRP-008',
@@ -125,10 +125,10 @@ export const prpData: Phase[] = [
         implementedFiles: [
           'lib/realtime/*',
           'components/features/inventory/performance-widget.tsx',
-          'lib/offline/queue.ts'
-        ]
-      }
-    ]
+          'lib/offline/queue.ts',
+        ],
+      },
+    ],
   },
   {
     id: 'phase-3',
@@ -140,23 +140,23 @@ export const prpData: Phase[] = [
         title: 'Customer Management',
         description: 'Customers, Contacts, Credit',
         status: 'documented',
-        documentPath: 'Phase 3/PRP-009.md'
+        documentPath: 'Phase 3/PRP-009.md',
       },
       {
         id: 'PRP-010',
         title: 'Pricing Rules Engine',
         description: 'Rules, Tiers, Promotions',
         status: 'documented',
-        documentPath: 'Phase 3/PRP-010.md'
+        documentPath: 'Phase 3/PRP-010.md',
       },
       {
         id: 'PRP-011',
         title: 'Sync Status Dashboard',
         description: 'Status, Logs, Health',
         status: 'documented',
-        documentPath: 'Phase 3/PRP-011.md'
-      }
-    ]
+        documentPath: 'Phase 3/PRP-011.md',
+      },
+    ],
   },
   {
     id: 'phase-4',
@@ -168,23 +168,23 @@ export const prpData: Phase[] = [
         title: 'Integration Framework',
         description: 'Base classes, Queues',
         status: 'documented',
-        documentPath: 'Phase 4/PRP-012.md'
+        documentPath: 'Phase 4/PRP-012.md',
       },
       {
         id: 'PRP-013',
         title: 'NetSuite Connector',
         description: 'REST, SOAP, SuiteQL',
         status: 'documented',
-        documentPath: 'Phase 4/PRP-013.md'
+        documentPath: 'Phase 4/PRP-013.md',
       },
       {
         id: 'PRP-014',
         title: 'Shopify B2B Integration',
         description: 'GraphQL, Webhooks',
         status: 'documented',
-        documentPath: 'Phase 4/PRP-014.md'
-      }
-    ]
+        documentPath: 'Phase 4/PRP-014.md',
+      },
+    ],
   },
   {
     id: 'phase-5',
@@ -196,14 +196,14 @@ export const prpData: Phase[] = [
         title: 'Sync Engine Core',
         description: 'Orchestration, Scheduling',
         status: 'documented',
-        documentPath: 'Phase 5/PRP-015.md'
+        documentPath: 'Phase 5/PRP-015.md',
       },
       {
         id: 'PRP-016',
         title: 'Data Accuracy Monitor',
         description: 'Validation, Anomalies',
         status: 'documented',
-        documentPath: 'Phase 5/PRP-016.md'
+        documentPath: 'Phase 5/PRP-016.md',
       },
       {
         id: 'PRP-017',
@@ -214,35 +214,35 @@ export const prpData: Phase[] = [
         implementedFiles: [
           'lib/csv/parser.ts',
           'components/features/inventory/bulk-upload-dialog.tsx',
-          'lib/csv/templates.ts'
+          'lib/csv/templates.ts',
         ],
         missingFeatures: [
           'Streaming processor for large files',
           'Progress tracking with SSE',
-          'Rollback functionality'
-        ]
+          'Rollback functionality',
+        ],
       },
       {
         id: 'PRP-019',
         title: 'Custom Reports Builder',
         description: 'Drag-drop, Templates',
         status: 'documented',
-        documentPath: 'Phase 5/PRP-019.md'
+        documentPath: 'Phase 5/PRP-019.md',
       },
       {
         id: 'PRP-020',
         title: 'Audit Trail & Compliance',
         description: 'Logging, GDPR',
-        status: 'documented'
+        status: 'documented',
       },
       {
         id: 'PRP-021',
         title: 'AI-Powered Insights',
         description: 'Forecasting, Anomalies',
         status: 'documented',
-        documentPath: 'Phase 5/PRP-021.md'
-      }
-    ]
+        documentPath: 'Phase 5/PRP-021.md',
+      },
+    ],
   },
   {
     id: 'phase-6',
@@ -254,15 +254,15 @@ export const prpData: Phase[] = [
         title: 'Analytics Dashboard',
         description: 'Charts, Metrics, Export',
         status: 'documented',
-        documentPath: 'Phase 6/PRP-018.md'
+        documentPath: 'Phase 6/PRP-018.md',
       },
       {
         id: 'PRP-022',
         title: 'Export & Scheduling',
         description: 'Scheduled reports',
-        status: 'planned'
-      }
-    ]
+        status: 'planned',
+      },
+    ],
   },
   {
     id: 'phase-7',
@@ -273,21 +273,21 @@ export const prpData: Phase[] = [
         id: 'PRP-023',
         title: 'Performance Optimization',
         description: 'Caching, CDN',
-        status: 'planned'
+        status: 'planned',
       },
       {
         id: 'PRP-024',
         title: 'Horizontal Scaling',
         description: 'Multi-tenant',
-        status: 'planned'
+        status: 'planned',
       },
       {
         id: 'PRP-025',
         title: 'Load Testing',
         description: 'Stress tests',
-        status: 'planned'
-      }
-    ]
+        status: 'planned',
+      },
+    ],
   },
   {
     id: 'phase-8',
@@ -298,20 +298,20 @@ export const prpData: Phase[] = [
         id: 'PRP-026',
         title: 'Multi-ERP Support',
         description: 'SAP, Oracle',
-        status: 'planned'
+        status: 'planned',
       },
       {
         id: 'PRP-027',
         title: 'API Gateway',
         description: 'Public API',
-        status: 'planned'
+        status: 'planned',
       },
       {
         id: 'PRP-028',
         title: 'Mobile Applications',
         description: 'iOS, Android',
-        status: 'planned'
-      }
-    ]
-  }
+        status: 'planned',
+      },
+    ],
+  },
 ]

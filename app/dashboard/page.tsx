@@ -1,16 +1,20 @@
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
+import { ArrowUpRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { BarChartComponent } from './_components/bar-chart'
 import { BarChartBetter } from './_components/bar-chart-better'
 
 export default async function Dashboard() {
-
-
   return (
-    <div className='flex flex-col justify-center items-start flex-wrap px-4 pt-4 gap-4'>
-      <Card className='w-[20rem]'>
+    <div className="flex flex-col justify-center items-start flex-wrap px-4 pt-4 gap-4">
+      <Card className="w-[20rem]">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Welcome to Nextjs Starter Kit
@@ -35,11 +39,11 @@ export default async function Dashboard() {
           </p>
         </CardContent>
       </Card>
-      <div className='flex flex-wrap gap-2'>
+      <div className="flex flex-wrap gap-2">
         <BarChartComponent />
         <BarChartBetter />
       </div>
-      <div className='grid md:grid-cols-2 sm:grid-cols-1 w-full gap-3'>
+      <div className="grid md:grid-cols-2 sm:grid-cols-1 w-full gap-3">
         <Card className="">
           <CardHeader className="flex flex-row items-center">
             <div className="grid gap-2">
@@ -56,7 +60,9 @@ export default async function Dashboard() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div style={{ maxHeight: '320px', overflowY: 'auto' }}> {/* Adjust maxHeight according to your design */}
+            <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+              {' '}
+              {/* Adjust maxHeight according to your design */}
               <main className="flex flex-col gap-2 lg:gap-2 h-[300px] w-full">
                 <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm">
                   <div className="flex flex-col items-center text-center">

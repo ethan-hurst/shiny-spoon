@@ -1,4 +1,7 @@
-import type { InventoryImportRow, InventoryExportRow } from '@/types/inventory.types'
+import type {
+  InventoryExportRow,
+  InventoryImportRow,
+} from '@/types/inventory.types'
 
 // CSV Templates for different use cases
 export const CSV_TEMPLATES = {
@@ -45,10 +48,22 @@ export const EXPORT_COLUMNS = {
     { key: 'product_name' as keyof InventoryExportRow, header: 'Product Name' },
     { key: 'warehouse' as keyof InventoryExportRow, header: 'Warehouse' },
     { key: 'quantity' as keyof InventoryExportRow, header: 'Quantity' },
-    { key: 'reserved_quantity' as keyof InventoryExportRow, header: 'Reserved' },
-    { key: 'available_quantity' as keyof InventoryExportRow, header: 'Available' },
-    { key: 'reorder_point' as keyof InventoryExportRow, header: 'Reorder Point' },
-    { key: 'reorder_quantity' as keyof InventoryExportRow, header: 'Reorder Quantity' },
+    {
+      key: 'reserved_quantity' as keyof InventoryExportRow,
+      header: 'Reserved',
+    },
+    {
+      key: 'available_quantity' as keyof InventoryExportRow,
+      header: 'Available',
+    },
+    {
+      key: 'reorder_point' as keyof InventoryExportRow,
+      header: 'Reorder Point',
+    },
+    {
+      key: 'reorder_quantity' as keyof InventoryExportRow,
+      header: 'Reorder Quantity',
+    },
     { key: 'last_updated' as keyof InventoryExportRow, header: 'Last Updated' },
   ],
 }
@@ -57,7 +72,8 @@ export const EXPORT_COLUMNS = {
 export const TEMPLATE_DESCRIPTIONS = {
   inventoryUpdate: {
     name: 'Basic Inventory Update',
-    description: 'Standard template for updating inventory quantities with reasons',
+    description:
+      'Standard template for updating inventory quantities with reasons',
     useCase: 'Regular inventory counts and adjustments',
   },
   inventoryAdjustment: {
@@ -78,20 +94,26 @@ export const TEMPLATE_DESCRIPTIONS = {
 }
 
 // Helper function to download a template
-export function downloadTemplate(templateKey: keyof typeof CSV_TEMPLATES, filename?: string) {
+export function downloadTemplate(
+  templateKey: keyof typeof CSV_TEMPLATES,
+  filename?: string
+) {
   const template = CSV_TEMPLATES[templateKey]
   const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
-  
+
   link.setAttribute('href', url)
-  link.setAttribute('download', filename || `inventory_${templateKey}_template.csv`)
+  link.setAttribute(
+    'download',
+    filename || `inventory_${templateKey}_template.csv`
+  )
   link.style.display = 'none'
-  
+
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-  
+
   // Clean up immediately to prevent memory leaks
   URL.revokeObjectURL(url)
 }
@@ -102,13 +124,21 @@ export function generateCustomTemplate(
   warehouses: { code: string; name: string }[],
   includeAllCombinations: boolean = false
 ): string {
-  const headers = ['SKU', 'Product Name', 'Warehouse Code', 'Warehouse Name', 'Quantity', 'Reason', 'Notes']
+  const headers = [
+    'SKU',
+    'Product Name',
+    'Warehouse Code',
+    'Warehouse Name',
+    'Quantity',
+    'Reason',
+    'Notes',
+  ]
   const rows: string[][] = [headers]
 
   if (includeAllCombinations) {
     // Generate all product-warehouse combinations
-    products.forEach(product => {
-      warehouses.forEach(warehouse => {
+    products.forEach((product) => {
+      warehouses.forEach((warehouse) => {
         rows.push([
           product.sku,
           product.name,
@@ -116,13 +146,13 @@ export function generateCustomTemplate(
           warehouse.name,
           '0', // Default quantity
           'cycle_count',
-          ''
+          '',
         ])
       })
     })
   } else {
     // Just list products with first warehouse
-    products.forEach(product => {
+    products.forEach((product) => {
       const warehouse = warehouses[0] || { code: '', name: '' }
       rows.push([
         product.sku,
@@ -131,19 +161,25 @@ export function generateCustomTemplate(
         warehouse.name,
         '0',
         'cycle_count',
-        ''
+        '',
       ])
     })
   }
 
   // Convert to CSV format
-  return rows.map(row => 
-    row.map(cell => {
-      // Escape quotes and wrap in quotes if contains comma or quote
-      const escaped = cell.replace(/"/g, '""')
-      return cell.includes(',') || cell.includes('"') ? `"${escaped}"` : escaped
-    }).join(',')
-  ).join('\n')
+  return rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          // Escape quotes and wrap in quotes if contains comma or quote
+          const escaped = cell.replace(/"/g, '""')
+          return cell.includes(',') || cell.includes('"')
+            ? `"${escaped}"`
+            : escaped
+        })
+        .join(',')
+    )
+    .join('\n')
 }
 
 // Validation rules for import
@@ -159,7 +195,7 @@ export const IMPORT_RULES = {
     'transfer_in',
     'transfer_out',
     'cycle_count',
-    'other'
+    'other',
   ] as const,
   requiredColumns: ['sku', 'warehouse_code', 'quantity'],
   optionalColumns: ['reason', 'notes'],

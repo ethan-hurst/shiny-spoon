@@ -41,11 +41,13 @@ TruthSource uses a comprehensive testing strategy to ensure code quality and rel
 ## Running Tests
 
 ### All Tests
+
 ```bash
 npm run test:all
 ```
 
 ### Unit Tests
+
 ```bash
 # Run all unit tests
 npm run test:unit
@@ -58,11 +60,13 @@ npm run test:watch
 ```
 
 ### Integration Tests
+
 ```bash
 npm run test:integration
 ```
 
 ### E2E Tests
+
 ```bash
 # Run E2E tests
 npm run test:e2e
@@ -75,12 +79,14 @@ npm run test:e2e:headed
 ```
 
 ### Performance Tests
+
 ```bash
 # Run performance benchmarks
 npm run test:perf
 ```
 
 ### Validation Scripts
+
 ```bash
 # Validate PRP-001 (setup)
 npm run validate:setup
@@ -121,9 +127,9 @@ describe('Pricing Server Actions', () => {
     const formData = new FormData()
     formData.append('product_id', 'test-product')
     formData.append('base_price', '100.00')
-    
+
     await createProductPricing(formData)
-    
+
     expect(mockSupabase.from).toHaveBeenCalledWith('product_pricing')
   })
 })
@@ -145,7 +151,7 @@ describe('Button', () => {
   it('handles click events', async () => {
     const handleClick = jest.fn()
     render(<Button onClick={handleClick}>Click me</Button>)
-    
+
     await userEvent.click(screen.getByText('Click me'))
     expect(handleClick).toHaveBeenCalledTimes(1)
   })
@@ -156,7 +162,7 @@ describe('Button', () => {
 
 ```typescript
 // __tests__/e2e/inventory-update.spec.ts
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test('update inventory quantity', async ({ page }) => {
   // Login
@@ -172,13 +178,16 @@ test('update inventory quantity', async ({ page }) => {
   await page.click('button[type="submit"]')
 
   // Verify
-  await expect(page.locator('[data-testid="quantity-display"]')).toHaveText('150')
+  await expect(page.locator('[data-testid="quantity-display"]')).toHaveText(
+    '150'
+  )
 })
 ```
 
 ## Test Organization
 
 ### Directory Structure
+
 ```
 __tests__/
 ├── unit/
@@ -220,6 +229,7 @@ npm run test:perf
 ### Performance Benchmarks
 
 The pricing engine performance tests check:
+
 - Single price calculation speed
 - Batch calculation efficiency
 - Concurrent request handling
@@ -270,6 +280,7 @@ npm run test:unit
 ### Common Issues
 
 #### 1. Supabase Connection Errors
+
 ```bash
 # Ensure environment variables are set
 NEXT_PUBLIC_SUPABASE_URL=your_url
@@ -278,18 +289,21 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_key
 ```
 
 #### 2. Jest Configuration Issues
+
 ```bash
 # Clear Jest cache
 jest --clearCache
 ```
 
 #### 3. Playwright Browser Issues
+
 ```bash
 # Install required browsers
 npx playwright install
 ```
 
 #### 4. Type Errors in Tests
+
 ```bash
 # Regenerate types
 npm run supabase gen types typescript --local > supabase/types/database.ts
@@ -298,6 +312,7 @@ npm run supabase gen types typescript --local > supabase/types/database.ts
 ### Debugging Tests
 
 #### Debug Jest Tests
+
 ```bash
 # Run with Node debugger
 node --inspect-brk ./node_modules/.bin/jest --runInBand
@@ -306,6 +321,7 @@ node --inspect-brk ./node_modules/.bin/jest --runInBand
 ```
 
 #### Debug Playwright Tests
+
 ```bash
 # Run with debug mode
 PWDEBUG=1 npm run test:e2e
@@ -317,12 +333,14 @@ npm run test:e2e:ui
 ### Test Coverage
 
 View test coverage report:
+
 ```bash
 npm run test:coverage
 open coverage/lcov-report/index.html
 ```
 
 Coverage thresholds are configured in `jest.config.js`:
+
 - Statements: 80%
 - Branches: 70%
 - Functions: 80%

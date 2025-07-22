@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils'
 
 export default function OrbitingCircles({
   className,
@@ -9,13 +9,13 @@ export default function OrbitingCircles({
   radius = 50,
   path = true,
 }: {
-  className?: string;
-  children?: React.ReactNode;
-  reverse?: boolean;
-  duration?: number;
-  delay?: number;
-  radius?: number;
-  path?: boolean;
+  className?: string
+  children?: React.ReactNode
+  reverse?: boolean
+  duration?: number
+  delay?: number
+  radius?: number
+  path?: boolean
 }) {
   return (
     <>
@@ -31,7 +31,7 @@ export default function OrbitingCircles({
             cy="50%"
             r={radius}
             fill="none"
-            strokeDasharray={"4 4"}
+            strokeDasharray={'4 4'}
           />
         </svg>
       )}
@@ -39,20 +39,20 @@ export default function OrbitingCircles({
       <div
         style={
           {
-            "--duration": duration,
-            "--radius": radius,
-            "--delay": -delay,
+            '--duration': duration,
+            '--radius': radius,
+            '--delay': -delay,
           } as React.CSSProperties
         }
         className={cn(
           `absolute flex h-full w-full transform-gpu animate-orbit items-center justify-center rounded-full border
            [animation-delay:calc(var(--delay)*1000ms)] `,
-          { "[animation-direction:reverse]": reverse },
-          className,
+          { '[animation-direction:reverse]': reverse },
+          className
         )}
       >
         {children}
       </div>
     </>
-  );
+  )
 }

@@ -9,6 +9,7 @@ You are working on **TruthSource**, a B2B e-commerce data accuracy platform buil
 ## 📋 Critical Context
 
 ### Tech Stack
+
 - **Frontend**: Next.js 14+ (App Router), TypeScript, Tailwind CSS, shadcn/ui
 - **Backend**: Supabase (PostgreSQL + Auth + Realtime + Edge Functions)
 - **Deployment**: Vercel (frontend) + Supabase (backend)
@@ -18,6 +19,7 @@ You are working on **TruthSource**, a B2B e-commerce data accuracy platform buil
 - **Caching**: Redis (Upstash) with in-memory fallback
 
 ### Architecture Principles
+
 1. **Server Components by Default** - Use Client Components only when needed
 2. **Data Accuracy First** - Show loading states rather than stale data
 3. **RLS Everything** - All tables must have Row Level Security policies
@@ -77,14 +79,15 @@ supabase/
 ## 💻 Code Patterns
 
 ### Server Component Pattern
+
 ```tsx
 // app/(dashboard)/inventory/page.tsx
-import { createServerClient } from '@/lib/supabase/server'
 import { InventoryTable } from '@/components/features/inventory/inventory-table'
+import { createServerClient } from '@/lib/supabase/server'
 
 export default async function InventoryPage() {
   const supabase = createServerClient()
-  
+
   // Fetch data on server
   const { data: inventory, error } = await supabase
     .from('inventory')
@@ -107,6 +110,7 @@ export default async function InventoryPage() {
 ```
 
 ### Client Component with Real-time
+
 ```tsx
 'use client'
 
@@ -124,9 +128,9 @@ export function InventoryTable({ initialData }: { initialData: Inventory[] }) {
       .channel('inventory-changes')
       .on(
         'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
+        {
+          event: '*',
+          schema: 'public',
           table: 'inventory',
           filter: `organization_id=eq.${user.organizationId}`
         },
@@ -149,26 +153,29 @@ export function InventoryTable({ initialData }: { initialData: Inventory[] }) {
 ```
 
 ### Server Action Pattern
+
 ```typescript
 // app/actions/inventory.ts
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { createServerClient } from '@/lib/supabase/server'
 
 const updateInventorySchema = z.object({
   id: z.string().uuid(),
   quantity: z.number().min(0),
   warehouseId: z.string().uuid(),
-  reason: z.enum(['sale', 'return', 'adjustment', 'transfer'])
+  reason: z.enum(['sale', 'return', 'adjustment', 'transfer']),
 })
 
 export async function updateInventory(formData: FormData) {
   const supabase = createServerClient()
-  
+
   // Get session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   // Validate input
@@ -176,16 +183,16 @@ export async function updateInventory(formData: FormData) {
     id: formData.get('id'),
     quantity: Number(formData.get('quantity')),
     warehouseId: formData.get('warehouseId'),
-    reason: formData.get('reason')
+    reason: formData.get('reason'),
   })
 
   // Update with RLS
   const { error } = await supabase
     .from('inventory')
-    .update({ 
+    .update({
       quantity: parsed.quantity,
       warehouse_id: parsed.warehouseId,
-      updated_by: user.id
+      updated_by: user.id,
     })
     .eq('id', parsed.id)
 
@@ -193,7 +200,7 @@ export async function updateInventory(formData: FormData) {
 
   // Trigger sync to external systems
   await supabase.functions.invoke('sync-inventory', {
-    body: { inventoryId: parsed.id }
+    body: { inventoryId: parsed.id },
   })
 
   // Revalidate cache
@@ -202,11 +209,12 @@ export async function updateInventory(formData: FormData) {
 ```
 
 ### API Route for Webhooks
+
 ```typescript
 // app/api/webhooks/shopify/route.ts
+import crypto from 'crypto'
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
-import crypto from 'crypto'
 
 export async function POST(request: Request) {
   const body = await request.text()
@@ -227,15 +235,13 @@ export async function POST(request: Request) {
 
   // Process inventory update
   if (data.topic === 'inventory_levels/update') {
-    await supabase
-      .from('inventory')
-      .upsert({
-        external_id: data.inventory_item_id,
-        quantity: data.available,
-        location_id: data.location_id,
-        platform: 'shopify',
-        last_sync: new Date().toISOString()
-      })
+    await supabase.from('inventory').upsert({
+      external_id: data.inventory_item_id,
+      quantity: data.available,
+      location_id: data.location_id,
+      platform: 'shopify',
+      last_sync: new Date().toISOString(),
+    })
   }
 
   return new Response('OK', { status: 200 })
@@ -243,6 +249,7 @@ export async function POST(request: Request) {
 ```
 
 ### Database Schema with RLS
+
 ```sql
 -- Inventory table with multi-tenancy
 CREATE TABLE inventory (
@@ -268,7 +275,7 @@ ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own organization inventory" ON inventory
   FOR SELECT USING (
     organization_id = (
-      SELECT organization_id FROM user_profiles 
+      SELECT organization_id FROM user_profiles
       WHERE user_id = auth.uid()
     )
   );
@@ -277,7 +284,7 @@ CREATE POLICY "Users can view own organization inventory" ON inventory
 CREATE POLICY "Users can update own organization inventory" ON inventory
   FOR UPDATE USING (
     organization_id = (
-      SELECT organization_id FROM user_profiles 
+      SELECT organization_id FROM user_profiles
       WHERE user_id = auth.uid()
     )
   );
@@ -288,9 +295,10 @@ CREATE INDEX idx_inventory_sync_status ON inventory(sync_status) WHERE sync_stat
 ```
 
 ### Custom Hook Pattern
+
 ```typescript
 // hooks/use-inventory.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createBrowserClient } from '@/lib/supabase/client'
 
 export function useInventory(warehouseId?: string) {
@@ -303,7 +311,7 @@ export function useInventory(warehouseId?: string) {
       let query = supabase
         .from('inventory')
         .select('*, products(*), warehouses(*)')
-        
+
       if (warehouseId) {
         query = query.eq('warehouse_id', warehouseId)
       }
@@ -311,7 +319,7 @@ export function useInventory(warehouseId?: string) {
       const { data, error } = await query
       if (error) throw error
       return data
-    }
+    },
   })
 
   const updateMutation = useMutation({
@@ -320,19 +328,19 @@ export function useInventory(warehouseId?: string) {
         .from('inventory')
         .update(update)
         .eq('id', update.id)
-      
+
       if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
-    }
+    },
   })
 
   return {
     inventory: query.data,
     isLoading: query.isLoading,
     error: query.error,
-    updateInventory: updateMutation.mutate
+    updateInventory: updateMutation.mutate,
   }
 }
 ```
@@ -340,6 +348,7 @@ export function useInventory(warehouseId?: string) {
 ## 🚨 Critical Rules
 
 ### Supabase Specific
+
 1. **ALWAYS use RLS** - Every table needs Row Level Security policies
 2. **Organization isolation** - Filter by organization_id in all queries
 3. **Type safety** - Generate types with `supabase gen types`
@@ -347,6 +356,7 @@ export function useInventory(warehouseId?: string) {
 5. **Handle auth states** - Check user session before mutations
 
 ### Next.js Specific
+
 1. **Server Components default** - Only use 'use client' when needed
 2. **No sensitive data in client** - API keys only in server components/actions
 3. **Revalidate after mutations** - Use revalidatePath or revalidateTag
@@ -354,6 +364,7 @@ export function useInventory(warehouseId?: string) {
 5. **Loading states** - Always show loading.tsx for async operations
 
 ### General Rules
+
 1. **Never trust user input** - Validate with Zod
 2. **Never log sensitive data** - No passwords, API keys, tokens
 3. **Always handle errors** - Show user-friendly messages
@@ -361,6 +372,7 @@ export function useInventory(warehouseId?: string) {
 5. **Document complex logic** - Future you will thank you
 
 ### 🚫 NO MOCK IMPLEMENTATIONS
+
 1. **NO setTimeout for fake progress** - Use real progress tracking
 2. **NO placeholder data** - Connect to real database/APIs
 3. **NO console.log simulations** - Implement actual functionality
@@ -371,6 +383,7 @@ export function useInventory(warehouseId?: string) {
 8. **NO placeholder UI** - Build actual components
 
 #### Examples of What NOT to Do:
+
 ```typescript
 // ❌ BAD - Simulated progress
 setTimeout(() => setProgress((index + 1) / total * 100), index * 100)
@@ -444,19 +457,20 @@ try {
 ## 📝 Common Patterns to Follow
 
 ### Form Handling
+
 ```tsx
 // Always use React Hook Form + Zod
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 
 const formSchema = z.object({
   quantity: z.number().min(0).max(999999),
-  reason: z.string().min(1)
+  reason: z.string().min(1),
 })
 
 export function UpdateInventoryForm() {
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema)
+    resolver: zodResolver(formSchema),
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -464,13 +478,14 @@ export function UpdateInventoryForm() {
     Object.entries(values).forEach(([key, value]) => {
       formData.append(key, value.toString())
     })
-    
+
     await updateInventory(formData)
   }
 }
 ```
 
 ### Error Handling
+
 ```tsx
 // Global error boundary
 export function ErrorBoundary({
@@ -491,6 +506,7 @@ export function ErrorBoundary({
 ```
 
 ### Data Fetching
+
 ```tsx
 // Parallel data fetching in Server Components
 export default async function DashboardPage() {
@@ -500,11 +516,11 @@ export default async function DashboardPage() {
   const [inventoryResult, ordersResult, alertsResult] = await Promise.all([
     supabase.from('inventory').select('*').limit(10),
     supabase.from('orders').select('*').limit(10),
-    supabase.from('alerts').select('*').eq('status', 'active')
+    supabase.from('alerts').select('*').eq('status', 'active'),
   ])
 
   return (
-    <Dashboard 
+    <Dashboard
       inventory={inventoryResult.data}
       orders={ordersResult.data}
       alerts={alertsResult.data}
@@ -516,8 +532,9 @@ export default async function DashboardPage() {
 ## 🧪 Testing Approach
 
 ### E2E Tests with Playwright
+
 ```typescript
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test('update inventory quantity', async ({ page }) => {
   // Login
@@ -536,7 +553,9 @@ test('update inventory quantity', async ({ page }) => {
   await page.click('button[type="submit"]')
 
   // Verify update
-  await expect(page.locator('[data-testid="quantity-display"]')).toHaveText('150')
+  await expect(page.locator('[data-testid="quantity-display"]')).toHaveText(
+    '150'
+  )
 })
 ```
 
@@ -545,7 +564,9 @@ test('update inventory quantity', async ({ page }) => {
 ### Common Errors & Solutions
 
 #### 1. RLS Policy Violations
+
 **Error**: `new row violates row-level security policy`
+
 ```typescript
 // Problem: User's organization_id doesn't match
 // Solution: Ensure proper organization_id in insert/update
@@ -554,16 +575,16 @@ const { data: profile } = await supabase
   .select('organization_id')
   .single()
 
-await supabase
-  .from('inventory')
-  .insert({ 
-    ...data, 
-    organization_id: profile.organization_id 
-  })
+await supabase.from('inventory').insert({
+  ...data,
+  organization_id: profile.organization_id,
+})
 ```
 
 #### 2. Hydration Mismatches
+
 **Error**: `Text content does not match server-rendered HTML`
+
 ```tsx
 // Problem: Date/time rendering differently on server/client
 // Solution: Use consistent formatting
@@ -577,26 +598,32 @@ import { format } from 'date-fns'
 ```
 
 #### 3. Supabase Auth Token Errors
+
 **Error**: `Invalid Refresh Token`
+
 ```typescript
 // Problem: Stale auth session
 // Solution: Refresh session in middleware
 export async function middleware(request: NextRequest) {
   const supabase = createMiddlewareClient(request)
-  
+
   // Refresh session
-  const { data: { session } } = await supabase.auth.getSession()
-  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
   if (!session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
-  
+
   return NextResponse.next()
 }
 ```
 
 #### 4. Type Errors After Schema Changes
+
 **Error**: `Property does not exist on type`
+
 ```bash
 # Solution: Regenerate types
 pnpm supabase gen types typescript --local > supabase/types/database.ts
@@ -606,21 +633,24 @@ pnpm supabase gen types typescript --local > supabase/types/database.ts
 ```
 
 #### 5. CORS Errors with Edge Functions
+
 **Error**: `CORS policy: No 'Access-Control-Allow-Origin'`
+
 ```typescript
 // Solution: Add CORS headers in Edge Function
 export async function handler(req: Request) {
   // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
+    return new Response('ok', {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      } 
+        'Access-Control-Allow-Headers':
+          'authorization, x-client-info, apikey, content-type',
+      },
     })
   }
-  
+
   // Your function logic...
 }
 ```
@@ -628,6 +658,7 @@ export async function handler(req: Request) {
 ## ⚡ Performance Optimization
 
 ### 1. Database Query Optimization
+
 ```typescript
 // Bad: N+1 queries
 const products = await supabase.from('products').select('*')
@@ -639,17 +670,16 @@ for (const product of products.data) {
 }
 
 // Good: Single query with join
-const products = await supabase
-  .from('products')
-  .select('*, inventory(*)')
+const products = await supabase.from('products').select('*, inventory(*)')
 ```
 
 ### 2. Image Optimization
+
 ```tsx
 // Use Next.js Image component
 import Image from 'next/image'
 
-<Image
+;<Image
   src={product.image_url}
   alt={product.name}
   width={300}
@@ -661,20 +691,22 @@ import Image from 'next/image'
 ```
 
 ### 3. Component Code Splitting
+
 ```tsx
 // Lazy load heavy components
 import dynamic from 'next/dynamic'
 
 const HeavyChart = dynamic(
   () => import('@/components/features/analytics/heavy-chart'),
-  { 
+  {
     loading: () => <Skeleton className="h-96" />,
-    ssr: false 
+    ssr: false,
   }
 )
 ```
 
 ### 4. Caching Strategy
+
 ```typescript
 // Server-side caching with revalidation
 export const revalidate = 3600 // 1 hour
@@ -704,16 +736,17 @@ const query = useQuery({
 - [ ] **File Uploads** - Validated file types and sizes
 
 ### Security Headers (middleware.ts)
+
 ```typescript
 export function middleware(request: NextRequest) {
   const response = NextResponse.next()
-  
+
   // Security headers
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  
+
   return response
 }
 ```
@@ -723,6 +756,7 @@ export function middleware(request: NextRequest) {
 ### Pre-Deployment Steps
 
 1. **Environment Variables**
+
    ```bash
    # Verify all required env vars
    NEXT_PUBLIC_SUPABASE_URL=
@@ -734,27 +768,30 @@ export function middleware(request: NextRequest) {
    ```
 
 2. **Database Migrations**
+
    ```bash
    # Apply all pending migrations
    pnpm supabase db push
-   
+
    # Verify RLS policies
    pnpm supabase db lint
    ```
 
 3. **Build Verification**
+
    ```bash
    # Local build test
    pnpm build
-   
+
    # Type check
    pnpm type-check
-   
+
    # Lint check
    pnpm lint
    ```
 
 4. **Edge Functions Deployment**
+
    ```bash
    # Deploy all Edge Functions
    pnpm supabase functions deploy
@@ -769,6 +806,7 @@ export function middleware(request: NextRequest) {
 ## 👀 Code Review Guidelines
 
 ### PR Checklist
+
 - [ ] **No `any` types** - All TypeScript properly typed
 - [ ] **Error handling** - All async operations have try/catch
 - [ ] **Loading states** - UI shows loading feedback
@@ -781,6 +819,7 @@ export function middleware(request: NextRequest) {
 - [ ] **Code style** - Follows project conventions
 
 ### Review Focus Areas
+
 1. **Data Flow** - Server vs Client Components used appropriately
 2. **State Management** - No prop drilling, proper state location
 3. **Database Queries** - Efficient queries, proper indexes
@@ -790,6 +829,7 @@ export function middleware(request: NextRequest) {
 ## 🔄 Migration Guide
 
 ### Adding New Tables
+
 1. Create migration file
 2. Add RLS policies
 3. Generate TypeScript types
@@ -798,6 +838,7 @@ export function middleware(request: NextRequest) {
 6. Add tests
 
 ### Example Migration Flow
+
 ```bash
 # 1. Create migration
 pnpm supabase migration new add_customer_groups
@@ -821,9 +862,11 @@ pnpm supabase gen types typescript --local > supabase/types/database.ts
 ## 💰 Pricing Rules Engine (PRP-010)
 
 ### Overview
+
 The pricing engine supports dynamic B2B pricing with multiple rule types, quantity breaks, and customer-specific overrides. It includes Redis caching for performance and inventory integration for availability-based pricing.
 
 ### Key Features
+
 - **Rule Types**: Customer, product, category, promotion, quantity-based
 - **Discounts**: Percentage, fixed amount, or special price
 - **Quantity Breaks**: Tiered pricing based on order quantity
@@ -832,25 +875,27 @@ The pricing engine supports dynamic B2B pricing with multiple rule types, quanti
 - **Inventory Integration**: Dynamic pricing based on stock levels
 
 ### Server Actions
+
 ```typescript
 // app/actions/pricing.ts
-import { 
-  createProductPricing,
-  updateProductPricing,
-  deleteProductPricing,
-  createPricingRule,
-  updatePricingRule,
-  deletePricingRule,
-  createCustomerPricing,
-  updateCustomerPricing,
+import {
   bulkUpdateCustomerPrices,
-  calculatePrice
+  calculatePrice,
+  createCustomerPricing,
+  createPricingRule,
+  createProductPricing,
+  deletePricingRule,
+  deleteProductPricing,
+  updateCustomerPricing,
+  updatePricingRule,
+  updateProductPricing,
 } from '@/app/actions/pricing'
 ```
 
 ### Common Patterns
 
 #### Calculate Price for Display
+
 ```typescript
 import { calculatePrice } from '@/lib/pricing/calculate-price'
 
@@ -858,7 +903,7 @@ const result = await calculatePrice({
   product_id: 'xxx',
   customer_id: 'yyy',
   quantity: 10,
-  requested_date: '2024-01-01'
+  requested_date: '2024-01-01',
 })
 
 console.log(result.final_price) // Final calculated price
@@ -866,8 +911,12 @@ console.log(result.applied_rules) // Rules that were applied
 ```
 
 #### Clear Pricing Cache
+
 ```typescript
-import { clearPricingCache, clearCustomerPricingCache } from '@/lib/pricing/calculate-price'
+import {
+  clearCustomerPricingCache,
+  clearPricingCache,
+} from '@/lib/pricing/calculate-price'
 
 // Clear all pricing cache
 await clearPricingCache()
@@ -880,7 +929,9 @@ await clearCustomerPricingCache('customer-id')
 ```
 
 #### Custom Pricing Conditions
+
 The pricing engine supports custom conditions in rules:
+
 - `min_order_value`: Minimum order value required
 - `day_of_week`: Specific days (0-6, Sunday-Saturday)
 - `hour_of_day`: Time range (e.g., { min: 9, max: 17 })
@@ -890,6 +941,7 @@ The pricing engine supports custom conditions in rules:
 - `warehouse_specific`: Specific warehouse ID
 
 ### Database Schema
+
 ```sql
 -- Main pricing tables
 product_pricing        -- Base product prices
@@ -904,23 +956,23 @@ calculate_product_price() -- Database function for price calculation
 ```
 
 ### UI Components
+
 ```tsx
 // Pricing rule management
-import { PricingRulesList } from '@/components/features/pricing/pricing-rules-list'
-import { PricingRuleForm } from '@/components/features/pricing/pricing-rule-form'
-
+import { BulkPriceUpdateDialog } from '@/components/features/pricing/bulk-price-update-dialog'
 // Customer pricing
 import { CustomerPriceList } from '@/components/features/pricing/customer-price-list'
-import { PriceHistoryViewer } from '@/components/features/pricing/price-history-viewer'
-import { BulkPriceUpdateDialog } from '@/components/features/pricing/bulk-price-update-dialog'
-
+import { MarginAlerts } from '@/components/features/pricing/margin-alerts'
 // Tools
 import { PriceCalculator } from '@/components/features/pricing/price-calculator'
+import { PriceHistoryViewer } from '@/components/features/pricing/price-history-viewer'
+import { PricingRuleForm } from '@/components/features/pricing/pricing-rule-form'
+import { PricingRulesList } from '@/components/features/pricing/pricing-rules-list'
 import { PromotionCalendar } from '@/components/features/pricing/promotion-calendar'
-import { MarginAlerts } from '@/components/features/pricing/margin-alerts'
 ```
 
 ### Testing Pricing Rules
+
 ```bash
 # Use the price calculator UI at /pricing/calculator
 # Or via Edge Function:
@@ -929,12 +981,13 @@ curl -X POST https://your-project.supabase.co/functions/v1/calculate-price \
   -H "Content-Type: application/json" \
   -d '{
     "product_id": "xxx",
-    "customer_id": "yyy", 
+    "customer_id": "yyy",
     "quantity": 10
   }'
 ```
 
 ### Environment Variables
+
 ```env
 # For Redis caching (optional - falls back to in-memory)
 UPSTASH_REDIS_REST_URL=your_redis_url
@@ -949,7 +1002,7 @@ Always run these before committing to catch errors early:
 # Check TypeScript errors
 npm run type-check
 
-# Check ESLint errors  
+# Check ESLint errors
 npm run lint
 
 # Auto-fix linting issues
@@ -960,6 +1013,7 @@ npm run type-check && npm run lint
 ```
 
 For continuous feedback during development:
+
 ```bash
 # Watch for TypeScript errors in real-time
 npx tsc --noEmit --watch
@@ -968,6 +1022,7 @@ npx tsc --noEmit --watch
 ## 📚 Useful Commands Reference
 
 ### Supabase Commands
+
 ```bash
 # Generate TypeScript types from database
 pnpm supabase gen types typescript --local > supabase/types/database.ts
@@ -995,6 +1050,7 @@ pnpm supabase functions serve
 ```
 
 ### Development Commands
+
 ```bash
 # Start development server
 pnpm dev
@@ -1028,6 +1084,7 @@ pnpm outdated
 ```
 
 ### Git Workflow Commands
+
 ```bash
 # Create feature branch
 git checkout -b feature/your-feature-name
@@ -1052,6 +1109,7 @@ gh pr create --title "feat: add new pricing calculator" --body "Description..."
 Before marking any implementation as complete:
 
 ### Data Operations
+
 - [ ] All database operations use real Supabase queries
 - [ ] Progress tracking reflects actual operation status
 - [ ] Error handling includes retry logic where appropriate
@@ -1059,6 +1117,7 @@ Before marking any implementation as complete:
 - [ ] Optimistic updates have proper rollback
 
 ### API Integration
+
 - [ ] All external API calls are implemented
 - [ ] Webhook handlers process real data
 - [ ] Rate limiting is respected
@@ -1066,6 +1125,7 @@ Before marking any implementation as complete:
 - [ ] Response data is validated
 
 ### User Interface
+
 - [ ] Forms submit real data to server actions
 - [ ] Tables display actual database records
 - [ ] Filters/search work with real queries
@@ -1073,6 +1133,7 @@ Before marking any implementation as complete:
 - [ ] Real-time updates via Supabase subscriptions
 
 ### State Management
+
 - [ ] No hardcoded test data in production code
 - [ ] State reflects actual server responses
 - [ ] Cache invalidation triggers real refetches
@@ -1080,6 +1141,7 @@ Before marking any implementation as complete:
 - [ ] Error states show actual error messages
 
 ### Testing & Validation
+
 - [ ] Can create/read/update/delete real records
 - [ ] Business logic matches requirements
 - [ ] Edge cases are handled

@@ -1,17 +1,17 @@
-import { ReactNode } from 'react';
-import { ClerkProvider } from '@clerk/nextjs';
-import config from '@/config';
+import { ReactNode } from 'react'
+import { ClerkProvider } from '@clerk/nextjs'
+import config from '@/config'
 
 interface AuthWrapperProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 const AuthWrapper = ({ children }: AuthWrapperProps) => {
   if (!config.auth.enabled) {
-    return <>{children}</>;
+    return <>{children}</>
   }
 
-  return <ClerkProvider dynamic>{children}</ClerkProvider>;
-};
+  return <ClerkProvider dynamic>{children}</ClerkProvider>
+}
 
-export default AuthWrapper;
+export default AuthWrapper

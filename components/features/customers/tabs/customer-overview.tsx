@@ -1,19 +1,25 @@
 'use client'
 
-import { CustomerWithStats, formatAddress } from '@/types/customer.types'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { 
-  Building2, 
-  MapPin, 
-  CreditCard, 
-  Globe, 
-  Hash,
+import {
+  Building2,
   Calendar,
+  CreditCard,
   FileText,
-  Shield
+  Globe,
+  Hash,
+  MapPin,
+  Shield,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { CustomerWithStats, formatAddress } from '@/types/customer.types'
 
 interface CustomerOverviewProps {
   customer: CustomerWithStats
@@ -32,30 +38,39 @@ export function CustomerOverview({ customer }: CustomerOverviewProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Legal Name</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Legal Name
+            </p>
             <p className="text-sm">{customer.company_name}</p>
           </div>
-          
-          {customer.display_name && customer.display_name !== customer.company_name && (
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Display Name</p>
-              <p className="text-sm">{customer.display_name}</p>
-            </div>
-          )}
-          
+
+          {customer.display_name &&
+            customer.display_name !== customer.company_name && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Display Name
+                </p>
+                <p className="text-sm">{customer.display_name}</p>
+              </div>
+            )}
+
           {customer.tax_id && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Tax ID</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Tax ID
+              </p>
               <p className="text-sm font-mono">{customer.tax_id}</p>
             </div>
           )}
-          
+
           {customer.website && (
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Website</p>
-              <a 
-                href={customer.website} 
-                target="_blank" 
+              <p className="text-sm font-medium text-muted-foreground">
+                Website
+              </p>
+              <a
+                href={customer.website}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline flex items-center gap-1"
               >
@@ -64,13 +79,14 @@ export function CustomerOverview({ customer }: CustomerOverviewProps) {
               </a>
             </div>
           )}
-          
+
           <Separator />
-          
+
           <div>
             <p className="text-sm font-medium text-muted-foreground">Created</p>
             <p className="text-sm">
-              {new Date(customer.created_at).toLocaleDateString()} ({customer.account_age_days} days ago)
+              {new Date(customer.created_at).toLocaleDateString()} (
+              {customer.account_age_days} days ago)
             </p>
           </div>
         </CardContent>
@@ -86,36 +102,44 @@ export function CustomerOverview({ customer }: CustomerOverviewProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Credit Limit</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Credit Limit
+            </p>
             <p className="text-2xl font-bold">
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
-                currency: customer.currency
+                currency: customer.currency,
               }).format(customer.credit_limit)}
             </p>
           </div>
-          
+
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Payment Terms</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Payment Terms
+            </p>
             <p className="text-sm">Net {customer.payment_terms} days</p>
           </div>
-          
+
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Currency</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Currency
+            </p>
             <p className="text-sm">{customer.currency}</p>
           </div>
-          
+
           {customer.tier_name && (
             <>
               <Separator />
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Pricing Tier</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pricing Tier
+                </p>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge 
+                  <Badge
                     variant="outline"
-                    style={{ 
+                    style={{
                       borderColor: customer.tier_color,
-                      color: customer.tier_color 
+                      color: customer.tier_color,
                     }}
                   >
                     {customer.tier_name}
@@ -154,10 +178,13 @@ export function CustomerOverview({ customer }: CustomerOverviewProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm whitespace-pre-line">
-            {customer.shipping_address 
-              ? formatAddress(customer.shipping_address)
-              : <span className="text-muted-foreground">Same as billing address</span>
-            }
+            {customer.shipping_address ? (
+              formatAddress(customer.shipping_address)
+            ) : (
+              <span className="text-muted-foreground">
+                Same as billing address
+              </span>
+            )}
           </p>
         </CardContent>
       </Card>
@@ -174,7 +201,9 @@ export function CustomerOverview({ customer }: CustomerOverviewProps) {
           <CardContent className="space-y-4">
             {customer.tags && customer.tags.length > 0 && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Tags</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Tags
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {customer.tags.map((tag) => (
                     <Badge key={tag} variant="secondary">
@@ -184,14 +213,16 @@ export function CustomerOverview({ customer }: CustomerOverviewProps) {
                 </div>
               </div>
             )}
-            
+
             {customer.notes && (
               <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">Customer Notes</p>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Customer Notes
+                </p>
                 <p className="text-sm whitespace-pre-wrap">{customer.notes}</p>
               </div>
             )}
-            
+
             {customer.internal_notes && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1 flex items-center gap-1">
@@ -221,7 +252,8 @@ export function CustomerOverview({ customer }: CustomerOverviewProps) {
               <Badge variant="default">Portal Enabled</Badge>
               {customer.portal_subdomain && (
                 <p className="text-sm">
-                  Subdomain: <code className="font-mono">{customer.portal_subdomain}</code>
+                  Subdomain:{' '}
+                  <code className="font-mono">{customer.portal_subdomain}</code>
                 </p>
               )}
             </div>

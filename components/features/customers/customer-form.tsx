@@ -2,23 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { createCustomerSchema } from '@/lib/customers/validations'
-import { createCustomer, updateCustomer } from '@/app/actions/customers'
-import { CustomerRecord } from '@/types/customer.types'
+import { Building2, CreditCard, FileText, MapPin, User } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   Card,
   CardContent,
@@ -26,10 +15,21 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { toast } from 'sonner'
-import { Building2, MapPin, CreditCard, FileText, User } from 'lucide-react'
-import { z } from 'zod'
+import { Textarea } from '@/components/ui/textarea'
+import { createCustomerSchema } from '@/lib/customers/validations'
+import { createCustomer, updateCustomer } from '@/app/actions/customers'
+import { CustomerRecord } from '@/types/customer.types'
 
 interface CustomerFormProps {
   customer?: CustomerRecord
@@ -49,8 +49,9 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [useBillingForShipping, setUseBillingForShipping] = useState(
-    !customer?.shipping_address || 
-    JSON.stringify(customer.billing_address) === JSON.stringify(customer.shipping_address)
+    !customer?.shipping_address ||
+      JSON.stringify(customer.billing_address) ===
+        JSON.stringify(customer.shipping_address)
   )
 
   const form = useForm<FormData>({
@@ -83,16 +84,19 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true)
-    
+
     try {
       const formData = new FormData()
-      
+
       // Add all fields to FormData
       Object.entries(data).forEach(([key, value]) => {
         if (key === 'billing_address' || key === 'shipping_address') {
           if (value) {
             Object.entries(value).forEach(([addressKey, addressValue]) => {
-              formData.append(`${key === 'billing_address' ? 'billing' : 'shipping'}_${addressKey}`, addressValue as string)
+              formData.append(
+                `${key === 'billing_address' ? 'billing' : 'shipping'}_${addressKey}`,
+                addressValue as string
+              )
             })
           }
         } else if (key === 'tags' && Array.isArray(value)) {
@@ -103,16 +107,20 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
       })
 
       // Add shipping flag
-      formData.append('use_billing_for_shipping', useBillingForShipping.toString())
+      formData.append(
+        'use_billing_for_shipping',
+        useBillingForShipping.toString()
+      )
 
       // Add customer ID for updates
       if (mode === 'edit' && customer) {
         formData.append('id', customer.id)
       }
 
-      const result = mode === 'create' 
-        ? await createCustomer(formData)
-        : await updateCustomer(formData)
+      const result =
+        mode === 'create'
+          ? await createCustomer(formData)
+          : await updateCustomer(formData)
 
       if (result.error) {
         if (typeof result.error === 'string') {
@@ -124,11 +132,11 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
       }
 
       toast.success(
-        mode === 'create' 
-          ? 'Customer created successfully' 
+        mode === 'create'
+          ? 'Customer created successfully'
           : 'Customer updated successfully'
       )
-      
+
       router.push(`/customers/${result.data?.id}`)
     } catch (error) {
       toast.error('An unexpected error occurred')
@@ -221,9 +229,7 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
           <Card>
             <CardHeader>
               <CardTitle>Classification</CardTitle>
-              <CardDescription>
-                Customer status, tier, and type
-              </CardDescription>
+              <CardDescription>Customer status, tier, and type</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
@@ -231,7 +237,12 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
                   <Label htmlFor="status">Status</Label>
                   <Select
                     value={form.watch('status')}
-                    onValueChange={(value) => form.setValue('status', value as 'active' | 'inactive' | 'suspended')}
+                    onValueChange={(value) =>
+                      form.setValue(
+                        'status',
+                        value as 'active' | 'inactive' | 'suspended'
+                      )
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -248,7 +259,12 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
                   <Label htmlFor="customer_type">Customer Type</Label>
                   <Select
                     value={form.watch('customer_type')}
-                    onValueChange={(value) => form.setValue('customer_type', value as 'standard' | 'vip' | 'partner')}
+                    onValueChange={(value) =>
+                      form.setValue(
+                        'customer_type',
+                        value as 'standard' | 'vip' | 'partner'
+                      )
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -265,7 +281,9 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
                   <Label htmlFor="tier_id">Customer Tier</Label>
                   <Select
                     value={form.watch('tier_id') || ''}
-                    onValueChange={(value) => form.setValue('tier_id', value || undefined)}
+                    onValueChange={(value) =>
+                      form.setValue('tier_id', value || undefined)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select tier" />
@@ -275,8 +293,8 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
                       {tiers.map((tier) => (
                         <SelectItem key={tier.id} value={tier.id}>
                           <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
+                            <div
+                              className="w-3 h-3 rounded-full"
                               style={{ backgroundColor: tier.color }}
                             />
                             {tier.name} ({tier.discount_percentage}% discount)
@@ -361,7 +379,10 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
                   />
                   {form.formState.errors.billing_address?.postal_code && (
                     <p className="text-sm text-destructive">
-                      {form.formState.errors.billing_address.postal_code.message}
+                      {
+                        form.formState.errors.billing_address.postal_code
+                          .message
+                      }
                     </p>
                   )}
                 </div>
@@ -387,16 +408,16 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
           <Card>
             <CardHeader>
               <CardTitle>Shipping Address</CardTitle>
-              <CardDescription>
-                Delivery address for orders
-              </CardDescription>
+              <CardDescription>Delivery address for orders</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="use_billing"
                   checked={useBillingForShipping}
-                  onCheckedChange={(checked) => setUseBillingForShipping(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setUseBillingForShipping(checked as boolean)
+                  }
                 />
                 <Label htmlFor="use_billing" className="cursor-pointer">
                   Same as billing address
@@ -518,7 +539,9 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
                       <SelectItem value="EUR">EUR - Euro</SelectItem>
                       <SelectItem value="GBP">GBP - British Pound</SelectItem>
                       <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
-                      <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                      <SelectItem value="AUD">
+                        AUD - Australian Dollar
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -589,8 +612,8 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
       </Tabs>
 
       <div className="flex justify-end gap-4 mt-6">
-        <Button 
-          type="button" 
+        <Button
+          type="button"
           variant="outline"
           onClick={() => router.back()}
           disabled={isSubmitting}
@@ -598,12 +621,11 @@ export function CustomerForm({ customer, tiers, mode }: CustomerFormProps) {
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting 
-            ? 'Saving...' 
-            : mode === 'create' 
-              ? 'Create Customer' 
-              : 'Update Customer'
-          }
+          {isSubmitting
+            ? 'Saving...'
+            : mode === 'create'
+              ? 'Create Customer'
+              : 'Update Customer'}
         </Button>
       </div>
     </form>

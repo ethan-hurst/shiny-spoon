@@ -1,29 +1,35 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import {
+  Activity,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  TrendingDown,
+  TrendingUp,
+  Zap,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { Progress } from '@/components/ui/progress'
 import { RealtimePerformanceMonitor } from '@/lib/realtime/performance-monitor'
 import { PerformanceMetrics } from '@/lib/realtime/types'
-import { 
-  Activity, 
-  AlertTriangle, 
-  ChevronDown, 
-  ChevronUp, 
-  Zap,
-  TrendingDown,
-  TrendingUp,
-  RefreshCw
-} from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
 
 export function PerformanceWidget() {
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null)
@@ -32,11 +38,14 @@ export function PerformanceWidget() {
 
   useEffect(() => {
     const monitor = RealtimePerformanceMonitor.getInstance()
-    
-    const unsubscribe = monitor.subscribe('performance-widget', (newMetrics) => {
-      setMetrics(newMetrics)
-      setRecommendations(monitor.getRecommendations())
-    })
+
+    const unsubscribe = monitor.subscribe(
+      'performance-widget',
+      (newMetrics) => {
+        setMetrics(newMetrics)
+        setRecommendations(monitor.getRecommendations())
+      }
+    )
 
     return unsubscribe
   }, [])
@@ -69,9 +78,7 @@ export function PerformanceWidget() {
                 <CardTitle className="text-lg">Real-time Performance</CardTitle>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant={healthBadge.variant}>
-                  {healthBadge.text}
-                </Badge>
+                <Badge variant={healthBadge.variant}>{healthBadge.text}</Badge>
                 {isOpen ? (
                   <ChevronUp className="h-4 w-4" />
                 ) : (
@@ -81,14 +88,19 @@ export function PerformanceWidget() {
             </div>
           </CardHeader>
         </CollapsibleTrigger>
-        
+
         <CollapsibleContent>
           <CardContent className="space-y-4">
             {/* Health Score */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Health Score</span>
-                <span className={cn('font-medium', getHealthColor(metrics.healthScore))}>
+                <span
+                  className={cn(
+                    'font-medium',
+                    getHealthColor(metrics.healthScore)
+                  )}
+                >
                   {metrics.healthScore}%
                 </span>
               </div>
@@ -104,7 +116,9 @@ export function PerformanceWidget() {
                 </div>
                 <p className="text-2xl font-semibold">
                   {metrics.avgLatency}
-                  <span className="text-sm font-normal text-muted-foreground">ms</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ms
+                  </span>
                 </p>
               </div>
 
@@ -125,7 +139,9 @@ export function PerformanceWidget() {
                 </div>
                 <p className="text-2xl font-semibold">
                   {metrics.messageDropRate.toFixed(1)}
-                  <span className="text-sm font-normal text-muted-foreground">%</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    %
+                  </span>
                 </p>
               </div>
 
@@ -147,8 +163,13 @@ export function PerformanceWidget() {
                 <div className="flex items-end gap-1 h-16">
                   {metrics.messageLatency.slice(-20).map((latency, index) => {
                     const height = Math.min(100, (latency / 1000) * 100)
-                    const color = latency > 500 ? 'bg-red-500' : latency > 200 ? 'bg-yellow-500' : 'bg-green-500'
-                    
+                    const color =
+                      latency > 500
+                        ? 'bg-red-500'
+                        : latency > 200
+                          ? 'bg-yellow-500'
+                          : 'bg-green-500'
+
                     return (
                       <div
                         key={index}
@@ -175,7 +196,10 @@ export function PerformanceWidget() {
                 </div>
                 <ul className="space-y-1">
                   {recommendations.map((rec, index) => (
-                    <li key={index} className="text-xs text-muted-foreground flex items-start gap-1">
+                    <li
+                      key={index}
+                      className="text-xs text-muted-foreground flex items-start gap-1"
+                    >
                       <span>•</span>
                       <span>{rec}</span>
                     </li>

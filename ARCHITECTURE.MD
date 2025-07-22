@@ -60,6 +60,7 @@ This document provides a high-level overview of TruthSource's architecture using
 ## 🔧 Core Components
 
 ### 1. Next.js Application
+
 - **App Router**: Modern Next.js 14+ architecture
 - **Server Components**: Default for better performance
 - **Client Components**: For interactive features
@@ -67,6 +68,7 @@ This document provides a high-level overview of TruthSource's architecture using
 - **Server Actions**: Form submissions and mutations
 
 ### 2. Supabase Backend
+
 - **PostgreSQL Database**: With RLS policies
 - **Auth**: Built-in authentication with providers
 - **Realtime**: Live data synchronization
@@ -74,6 +76,7 @@ This document provides a high-level overview of TruthSource's architecture using
 - **Storage**: File uploads and documents
 
 ### 3. Integration Layer
+
 - **API Routes**: Handle external webhooks
 - **Background Jobs**: Vercel Cron for scheduled syncs
 - **Edge Functions**: Process-intensive operations
@@ -82,6 +85,7 @@ This document provides a high-level overview of TruthSource's architecture using
 ## 🔄 Data Flow
 
 ### Real-time Sync Flow
+
 ```
 1. External System → Webhook → API Route
 2. API Route → Validate → Supabase Insert/Update
@@ -91,6 +95,7 @@ This document provides a high-level overview of TruthSource's architecture using
 ```
 
 ### User Interaction Flow
+
 ```
 1. User Action → Client Component
 2. Client → Server Action (for mutations)
@@ -102,12 +107,14 @@ This document provides a high-level overview of TruthSource's architecture using
 ## 🛡 Security Architecture
 
 ### Authentication & Authorization
+
 - Supabase Auth with multiple providers
 - JWT tokens handled automatically
 - RLS policies for data isolation
 - Organization-based multi-tenancy
 
 ### Data Security
+
 - RLS (Row Level Security) at database level
 - Column-level encryption for sensitive data
 - SSL/TLS for all connections
@@ -116,6 +123,7 @@ This document provides a high-level overview of TruthSource's architecture using
 ## 📊 Key Architecture Decisions
 
 ### Why Next.js?
+
 - Full-stack framework with excellent DX
 - Server Components for performance
 - Built-in optimization and caching
@@ -123,6 +131,7 @@ This document provides a high-level overview of TruthSource's architecture using
 - Vercel deployment integration
 
 ### Why Supabase?
+
 - PostgreSQL with built-in APIs
 - Real-time subscriptions out of the box
 - Authentication without custom code
@@ -130,6 +139,7 @@ This document provides a high-level overview of TruthSource's architecture using
 - Automatic API generation
 
 ### Why This Stack for B2B SaaS?
+
 - Rapid development without sacrificing quality
 - Enterprise features (audit, RLS) built-in
 - Scales automatically with Vercel + Supabase
@@ -178,6 +188,7 @@ truthsource/
 ## 🔮 Technology Choices
 
 ### Frontend
+
 - **Next.js 14+**: App Router, Server Components
 - **TypeScript**: Type safety
 - **Tailwind CSS**: Utility-first styling
@@ -185,12 +196,14 @@ truthsource/
 - **React Query**: Client-side caching
 
 ### Backend
+
 - **Supabase**: PostgreSQL + Auth + Realtime
 - **Edge Functions**: Complex business logic
 - **Vercel Cron**: Scheduled jobs
 - **Zod**: Schema validation
 
 ### Development
+
 - **pnpm**: Fast package manager
 - **Prettier**: Code formatting
 - **ESLint**: Code quality
@@ -199,6 +212,7 @@ truthsource/
 ## 📈 Performance Optimizations
 
 ### Next.js Optimizations
+
 - Server Components by default
 - Dynamic imports for code splitting
 - Image optimization with next/image
@@ -206,12 +220,14 @@ truthsource/
 - Incremental Static Regeneration
 
 ### Database Optimizations
+
 - Proper indexes on foreign keys
 - Composite indexes for common queries
 - Materialized views for analytics
 - Connection pooling via Supabase
 
 ### Caching Strategy
+
 - Next.js Data Cache for server-side
 - React Query for client-side
 - Revalidation on mutations

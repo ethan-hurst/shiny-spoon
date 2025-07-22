@@ -1,34 +1,43 @@
 'use client'
 
 import { useState } from 'react'
+import { format } from 'date-fns'
+import { AlertTriangle, Calendar, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
-import { AlertTriangle, Calendar, User } from 'lucide-react'
-import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 
 export interface ConflictResolverProps {
   localValue: any
   serverValue: any
   fieldName?: string
-  onResolve: (resolution: 'local' | 'server' | 'merge', mergedValue?: any) => void
+  onResolve: (
+    resolution: 'local' | 'server' | 'merge',
+    mergedValue?: any
+  ) => void
 }
 
-export function ConflictResolver({ 
-  localValue, 
-  serverValue, 
+export function ConflictResolver({
+  localValue,
+  serverValue,
   fieldName = 'value',
-  onResolve 
+  onResolve,
 }: ConflictResolverProps) {
-  const [selectedResolution, setSelectedResolution] = useState<'local' | 'server' | 'merge'>('server')
+  const [selectedResolution, setSelectedResolution] = useState<
+    'local' | 'server' | 'merge'
+  >('server')
   const [mergedValue, setMergedValue] = useState<any>(serverValue)
 
-  const renderValue = (value: any, label: string, meta?: { timestamp?: string; user?: string }) => {
+  const renderValue = (
+    value: any,
+    label: string,
+    meta?: { timestamp?: string; user?: string }
+  ) => {
     const isObject = typeof value === 'object' && value !== null
-    
+
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -50,7 +59,7 @@ export function ConflictResolver({
             </div>
           )}
         </div>
-        
+
         <div className="rounded-md border p-3 bg-muted/30">
           {isObject ? (
             <pre className="text-sm overflow-auto max-h-40">
@@ -72,11 +81,13 @@ export function ConflictResolver({
     const changedFields: string[] = []
     const allKeys = new Set([
       ...Object.keys(localValue || {}),
-      ...Object.keys(serverValue || {})
+      ...Object.keys(serverValue || {}),
     ])
 
-    allKeys.forEach(key => {
-      if (JSON.stringify(localValue[key]) !== JSON.stringify(serverValue[key])) {
+    allKeys.forEach((key) => {
+      if (
+        JSON.stringify(localValue[key]) !== JSON.stringify(serverValue[key])
+      ) {
         changedFields.push(key)
       }
     })
@@ -100,17 +111,17 @@ export function ConflictResolver({
         <AlertTriangle className="h-5 w-5" />
         <h3 className="font-semibold">Conflict Detected</h3>
       </div>
-      
+
       <p className="text-sm text-muted-foreground">
-        The {fieldName} has been modified by another user while you were making changes. 
-        Please choose how to resolve this conflict.
+        The {fieldName} has been modified by another user while you were making
+        changes. Please choose how to resolve this conflict.
       </p>
 
       {changedFields.length > 1 && (
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Changed fields:</span>
           <div className="flex gap-1 flex-wrap">
-            {changedFields.map(field => (
+            {changedFields.map((field) => (
               <Badge key={field} variant="outline" className="text-xs">
                 {field}
               </Badge>
@@ -122,36 +133,33 @@ export function ConflictResolver({
       <Separator />
 
       <div className="grid grid-cols-2 gap-4">
-        {renderValue(
-          localValue,
-          'Your Changes',
-          { timestamp: new Date().toISOString(), user: 'You' }
-        )}
-        
-        {renderValue(
-          serverValue,
-          'Current Server Value',
-          { 
-            timestamp: serverValue?.updated_at || new Date().toISOString(),
-            user: serverValue?.updated_by || 'Another user'
-          }
-        )}
+        {renderValue(localValue, 'Your Changes', {
+          timestamp: new Date().toISOString(),
+          user: 'You',
+        })}
+
+        {renderValue(serverValue, 'Current Server Value', {
+          timestamp: serverValue?.updated_at || new Date().toISOString(),
+          user: serverValue?.updated_by || 'Another user',
+        })}
       </div>
 
       <Separator />
 
       <div className="space-y-4">
         <Label>Choose Resolution Strategy</Label>
-        
+
         <RadioGroup
           value={selectedResolution}
-          onValueChange={(value) => setSelectedResolution(value as 'local' | 'server' | 'merge')}
+          onValueChange={(value) =>
+            setSelectedResolution(value as 'local' | 'server' | 'merge')
+          }
         >
           <div className="space-y-2">
             <div className="flex items-center space-x-2 p-3 rounded-md hover:bg-muted/50">
               <RadioGroupItem value="local" id="local" />
-              <Label 
-                htmlFor="local" 
+              <Label
+                htmlFor="local"
                 className="flex-1 cursor-pointer font-normal"
               >
                 <div>
@@ -162,11 +170,11 @@ export function ConflictResolver({
                 </div>
               </Label>
             </div>
-            
+
             <div className="flex items-center space-x-2 p-3 rounded-md hover:bg-muted/50">
               <RadioGroupItem value="server" id="server" />
-              <Label 
-                htmlFor="server" 
+              <Label
+                htmlFor="server"
                 className="flex-1 cursor-pointer font-normal"
               >
                 <div>
@@ -177,23 +185,24 @@ export function ConflictResolver({
                 </div>
               </Label>
             </div>
-            
-            {typeof localValue === 'object' && typeof serverValue === 'object' && (
-              <div className="flex items-center space-x-2 p-3 rounded-md hover:bg-muted/50">
-                <RadioGroupItem value="merge" id="merge" />
-                <Label 
-                  htmlFor="merge" 
-                  className="flex-1 cursor-pointer font-normal"
-                >
-                  <div>
-                    <p className="font-medium">Manual Merge</p>
-                    <p className="text-sm text-muted-foreground">
-                      Manually combine changes from both versions
-                    </p>
-                  </div>
-                </Label>
-              </div>
-            )}
+
+            {typeof localValue === 'object' &&
+              typeof serverValue === 'object' && (
+                <div className="flex items-center space-x-2 p-3 rounded-md hover:bg-muted/50">
+                  <RadioGroupItem value="merge" id="merge" />
+                  <Label
+                    htmlFor="merge"
+                    className="flex-1 cursor-pointer font-normal"
+                  >
+                    <div>
+                      <p className="font-medium">Manual Merge</p>
+                      <p className="text-sm text-muted-foreground">
+                        Manually combine changes from both versions
+                      </p>
+                    </div>
+                  </Label>
+                </div>
+              )}
           </div>
         </RadioGroup>
       </div>
@@ -205,8 +214,8 @@ export function ConflictResolver({
             <Label>Merged Result (Editable)</Label>
             <textarea
               className={cn(
-                "w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2",
-                "text-sm font-mono resize-y"
+                'w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2',
+                'text-sm font-mono resize-y'
               )}
               value={JSON.stringify(mergedValue, null, 2)}
               onChange={(e) => {
@@ -222,10 +231,7 @@ export function ConflictResolver({
       )}
 
       <div className="flex justify-end gap-2 pt-4">
-        <Button
-          variant="outline"
-          onClick={() => onResolve('server')}
-        >
+        <Button variant="outline" onClick={() => onResolve('server')}>
           Cancel
         </Button>
         <Button

@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useCallback, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
 import { PricingRuleRecord } from '@/types/pricing.types'
 
 export function usePricingRealtime(enabled: boolean = true) {
@@ -20,7 +20,7 @@ export function usePricingRealtime(enabled: boolean = true) {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['pricing-rules'] })
       queryClient.invalidateQueries({ queryKey: ['price-calculations'] })
-      
+
       // Clear pricing cache when rules change
       if (typeof window !== 'undefined' && 'caches' in window) {
         caches.delete('pricing-cache')
@@ -66,7 +66,7 @@ export function usePricingRealtime(enabled: boolean = true) {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['product-pricing'] })
       queryClient.invalidateQueries({ queryKey: ['price-calculations'] })
-      
+
       // Clear pricing cache
       if (typeof window !== 'undefined' && 'caches' in window) {
         caches.delete('pricing-cache')
@@ -89,7 +89,7 @@ export function usePricingRealtime(enabled: boolean = true) {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['customer-pricing'] })
       queryClient.invalidateQueries({ queryKey: ['price-calculations'] })
-      
+
       // Clear pricing cache
       if (typeof window !== 'undefined' && 'caches' in window) {
         caches.delete('pricing-cache')
@@ -109,14 +109,16 @@ export function usePricingRealtime(enabled: boolean = true) {
     // Get current user's organization
     let organizationId: string | null = null
     const getOrganization = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (user) {
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('organization_id')
           .eq('user_id', user.id)
           .single()
-        
+
         organizationId = profile?.organization_id || null
       }
     }
@@ -132,7 +134,9 @@ export function usePricingRealtime(enabled: boolean = true) {
           event: '*',
           schema: 'public',
           table: 'pricing_rules',
-          filter: organizationId ? `organization_id=eq.${organizationId}` : undefined,
+          filter: organizationId
+            ? `organization_id=eq.${organizationId}`
+            : undefined,
         },
         handleRuleChange
       )
@@ -147,7 +151,9 @@ export function usePricingRealtime(enabled: boolean = true) {
           event: '*',
           schema: 'public',
           table: 'product_pricing',
-          filter: organizationId ? `organization_id=eq.${organizationId}` : undefined,
+          filter: organizationId
+            ? `organization_id=eq.${organizationId}`
+            : undefined,
         },
         handlePricingChange
       )
@@ -162,7 +168,9 @@ export function usePricingRealtime(enabled: boolean = true) {
           event: '*',
           schema: 'public',
           table: 'customer_pricing',
-          filter: organizationId ? `organization_id=eq.${organizationId}` : undefined,
+          filter: organizationId
+            ? `organization_id=eq.${organizationId}`
+            : undefined,
         },
         handleCustomerPricingChange
       )
@@ -174,11 +182,20 @@ export function usePricingRealtime(enabled: boolean = true) {
       supabase.removeChannel(pricingChannel)
       supabase.removeChannel(customerPricingChannel)
     }
-  }, [enabled, supabase, handleRuleChange, handlePricingChange, handleCustomerPricingChange])
+  }, [
+    enabled,
+    supabase,
+    handleRuleChange,
+    handlePricingChange,
+    handleCustomerPricingChange,
+  ])
 }
 
 // Hook to subscribe to specific product price changes
-export function useProductPriceRealtime(productId: string | undefined, enabled: boolean = true) {
+export function useProductPriceRealtime(
+  productId: string | undefined,
+  enabled: boolean = true
+) {
   const supabase = createClient()
   const queryClient = useQueryClient()
 
@@ -197,10 +214,10 @@ export function useProductPriceRealtime(productId: string | undefined, enabled: 
         },
         (payload) => {
           // Invalidate price queries for this product
-          queryClient.invalidateQueries({ 
-            queryKey: ['product-price', productId] 
+          queryClient.invalidateQueries({
+            queryKey: ['product-price', productId],
           })
-          
+
           // Show notification if price changed significantly
           const calculation = payload.new
           if (calculation && calculation.discount_percent > 20) {
@@ -236,7 +253,7 @@ export function usePriceCalculationNotifications(enabled: boolean = true) {
         },
         async (payload) => {
           const calculation = payload.new
-          
+
           // Check for low margin warnings
           if (calculation.margin_percent && calculation.margin_percent < 15) {
             // Fetch product details

@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Product } from '@/types/product.types'
+import { Copy, Edit, MoreHorizontal, Trash } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { MoreHorizontal, Edit, Copy, Trash } from 'lucide-react'
-import { toast } from 'sonner'
 import { deleteProduct } from '@/app/actions/products'
+import { Product } from '@/types/product.types'
 
 interface ProductActionsProps {
   product: Product
@@ -57,11 +57,7 @@ export function ProductActions({ product }: ProductActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-8 w-8 p-0"
-          disabled={isDeleting}
-        >
+        <Button variant="ghost" className="h-8 w-8 p-0" disabled={isDeleting}>
           <span className="sr-only">Open menu</span>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
@@ -78,10 +74,7 @@ export function ProductActions({ product }: ProductActionsProps) {
           Duplicate
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleDelete}
-          className="text-destructive"
-        >
+        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
           <Trash className="mr-2 h-4 w-4" />
           Delete
         </DropdownMenuItem>

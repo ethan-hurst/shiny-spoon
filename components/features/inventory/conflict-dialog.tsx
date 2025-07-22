@@ -23,7 +23,10 @@ export function ConflictDialog({
   description = 'Another user has made changes to this item. Please resolve the conflict to continue.',
   ...resolverProps
 }: ConflictDialogProps) {
-  const handleResolve = (resolution: 'local' | 'server' | 'merge', mergedValue?: any) => {
+  const handleResolve = (
+    resolution: 'local' | 'server' | 'merge',
+    mergedValue?: any
+  ) => {
     resolverProps.onResolve(resolution, mergedValue)
     onOpenChange(false)
   }
@@ -35,11 +38,8 @@ export function ConflictDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        
-        <ConflictResolver
-          {...resolverProps}
-          onResolve={handleResolve}
-        />
+
+        <ConflictResolver {...resolverProps} onResolve={handleResolve} />
       </DialogContent>
     </Dialog>
   )

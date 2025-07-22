@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { AlertCircle, Plus, Trash2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -18,17 +20,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Trash2, AlertCircle } from 'lucide-react'
-import { QuantityBreak } from '@/types/pricing.types'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { validateQuantityBreaks } from '@/lib/pricing/validations'
+import { QuantityBreak } from '@/types/pricing.types'
 
 interface QuantityBreaksEditorProps {
   breaks: QuantityBreak[]
   onChange: (breaks: QuantityBreak[]) => void
 }
 
-export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorProps) {
+export function QuantityBreaksEditor({
+  breaks,
+  onChange,
+}: QuantityBreaksEditorProps) {
   const [errors, setErrors] = useState<string[]>([])
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -43,7 +46,8 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
 
   const addBreak = () => {
     const newBreak: QuantityBreak = {
-      min_quantity: breaks.length > 0 ? breaks[breaks.length - 1].max_quantity || 0 : 0,
+      min_quantity:
+        breaks.length > 0 ? breaks[breaks.length - 1].max_quantity || 0 : 0,
       max_quantity: undefined,
       discount_type: 'percentage',
       discount_value: 0,
@@ -54,7 +58,11 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
     validateBreaks(updatedBreaks)
   }
 
-  const updateBreak = (index: number, field: keyof QuantityBreak, value: any) => {
+  const updateBreak = (
+    index: number,
+    field: keyof QuantityBreak,
+    value: any
+  ) => {
     const updatedBreaks = breaks.map((b, i) => {
       if (i === index) {
         return { ...b, [field]: value }
@@ -67,7 +75,10 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current)
     }
-    debounceTimeoutRef.current = setTimeout(() => validateBreaks(updatedBreaks), 300)
+    debounceTimeoutRef.current = setTimeout(
+      () => validateBreaks(updatedBreaks),
+      300
+    )
   }
 
   const removeBreak = (index: number) => {
@@ -123,8 +134,12 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
           <TableBody>
             {breaks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  No quantity breaks defined. Click &quot;Add Break&quot; to get started.
+                <TableCell
+                  colSpan={5}
+                  className="text-center py-8 text-muted-foreground"
+                >
+                  No quantity breaks defined. Click &quot;Add Break&quot; to get
+                  started.
                 </TableCell>
               </TableRow>
             ) : (
@@ -135,7 +150,11 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
                       type="number"
                       value={breakItem.min_quantity}
                       onChange={(e) =>
-                        updateBreak(index, 'min_quantity', parseInt(e.target.value) || 0)
+                        updateBreak(
+                          index,
+                          'min_quantity',
+                          parseInt(e.target.value) || 0
+                        )
                       }
                       min="0"
                       className="w-24"
@@ -160,7 +179,9 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
                   <TableCell>
                     <Select
                       value={breakItem.discount_type}
-                      onValueChange={(value) => updateBreak(index, 'discount_type', value)}
+                      onValueChange={(value) =>
+                        updateBreak(index, 'discount_type', value)
+                      }
                     >
                       <SelectTrigger className="w-32">
                         <SelectValue />
@@ -185,7 +206,11 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
                         step="0.01"
                         value={breakItem.discount_value}
                         onChange={(e) =>
-                          updateBreak(index, 'discount_value', parseFloat(e.target.value) || 0)
+                          updateBreak(
+                            index,
+                            'discount_value',
+                            parseFloat(e.target.value) || 0
+                          )
                         }
                         min="0"
                         className="w-24"
@@ -221,8 +246,14 @@ export function QuantityBreaksEditor({ breaks, onChange }: QuantityBreaksEditorP
             {breaks.map((breakItem, index) => (
               <li key={index}>
                 {breakItem.min_quantity}
-                {breakItem.max_quantity ? `-${breakItem.max_quantity}` : '+'} units:{' '}
-                {formatDiscountDisplay(breakItem.discount_type, breakItem.discount_value)}
+                {breakItem.max_quantity
+                  ? `-${breakItem.max_quantity}`
+                  : '+'}{' '}
+                units:{' '}
+                {formatDiscountDisplay(
+                  breakItem.discount_type,
+                  breakItem.discount_value
+                )}
                 {breakItem.discount_type === 'percentage' && ' off'}
                 {breakItem.discount_type === 'fixed' && ' off per unit'}
                 {breakItem.discount_type === 'price' && ' per unit'}

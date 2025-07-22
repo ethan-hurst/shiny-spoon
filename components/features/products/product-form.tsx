@@ -2,14 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { productSchema } from '@/lib/validations/product'
-import { Product } from '@/types/product.types'
-import { createProduct, updateProduct } from '@/app/actions/products'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Form,
   FormControl,
@@ -19,10 +16,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { productSchema } from '@/lib/validations/product'
+import { createProduct, updateProduct } from '@/app/actions/products'
+import { Product } from '@/types/product.types'
 import { CategorySelect } from './category-select'
 import { ImageUpload } from './image-upload'
-import { toast } from 'sonner'
-import { z } from 'zod'
 
 interface ProductFormProps {
   product?: Product
@@ -31,7 +31,7 @@ interface ProductFormProps {
 export function ProductForm({ product }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
-  
+
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -43,12 +43,12 @@ export function ProductForm({ product }: ProductFormProps) {
       cost: product?.cost?.toString() || '',
       weight: product?.weight?.toString() || '',
       image: product?.image_url || undefined,
-    }
+    },
   })
-  
+
   async function onSubmit(values: z.infer<typeof productSchema>) {
     setIsSubmitting(true)
-    
+
     try {
       const formData = new FormData()
       Object.entries(values).forEach(([key, value]) => {
@@ -60,7 +60,7 @@ export function ProductForm({ product }: ProductFormProps) {
           }
         }
       })
-      
+
       let result
       if (product) {
         formData.append('id', product.id)
@@ -68,7 +68,7 @@ export function ProductForm({ product }: ProductFormProps) {
       } else {
         result = await createProduct(formData)
       }
-      
+
       if (result?.error) {
         if (typeof result.error === 'string') {
           toast.error(result.error)
@@ -76,17 +76,26 @@ export function ProductForm({ product }: ProductFormProps) {
           // Handle validation errors more efficiently
           const fieldErrors = result.error.fieldErrors
           const errorMessages = Object.entries(fieldErrors)
-            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .map(
+              ([field, errors]) =>
+                `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`
+            )
             .join('; ')
           toast.error(`Validation errors: ${errorMessages}`)
         } else if (result.error?.message) {
           // Handle API errors with specific messages
           toast.error(result.error.message)
         } else {
-          toast.error('Failed to save product. Please check your input and try again.')
+          toast.error(
+            'Failed to save product. Please check your input and try again.'
+          )
         }
       } else {
-        toast.success(product ? 'Product updated successfully' : 'Product created successfully')
+        toast.success(
+          product
+            ? 'Product updated successfully'
+            : 'Product created successfully'
+        )
         router.push('/dashboard/products')
         router.refresh()
       }
@@ -96,7 +105,7 @@ export function ProductForm({ product }: ProductFormProps) {
       setIsSubmitting(false)
     }
   }
-  
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -108,8 +117,8 @@ export function ProductForm({ product }: ProductFormProps) {
               <FormItem>
                 <FormLabel>SKU</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
+                  <Input
+                    {...field}
                     disabled={!!product}
                     placeholder="WIDGET-001"
                   />
@@ -121,7 +130,7 @@ export function ProductForm({ product }: ProductFormProps) {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="name"
@@ -136,7 +145,7 @@ export function ProductForm({ product }: ProductFormProps) {
             )}
           />
         </div>
-        
+
         <FormField
           control={form.control}
           name="description"
@@ -144,8 +153,8 @@ export function ProductForm({ product }: ProductFormProps) {
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea 
-                  {...field} 
+                <Textarea
+                  {...field}
                   placeholder="Enter product description..."
                   className="resize-none"
                   rows={4}
@@ -155,7 +164,7 @@ export function ProductForm({ product }: ProductFormProps) {
             </FormItem>
           )}
         />
-        
+
         <div className="grid gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -173,7 +182,7 @@ export function ProductForm({ product }: ProductFormProps) {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="weight"
@@ -181,8 +190,8 @@ export function ProductForm({ product }: ProductFormProps) {
               <FormItem>
                 <FormLabel>Weight (lbs)</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
+                  <Input
+                    {...field}
                     type="number"
                     step="0.001"
                     placeholder="0.00"
@@ -193,7 +202,7 @@ export function ProductForm({ product }: ProductFormProps) {
             )}
           />
         </div>
-        
+
         <div className="grid gap-6 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -202,21 +211,19 @@ export function ProductForm({ product }: ProductFormProps) {
               <FormItem>
                 <FormLabel>Base Price ($)</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
+                  <Input
+                    {...field}
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                   />
                 </FormControl>
-                <FormDescription>
-                  Customer selling price
-                </FormDescription>
+                <FormDescription>Customer selling price</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="cost"
@@ -224,22 +231,20 @@ export function ProductForm({ product }: ProductFormProps) {
               <FormItem>
                 <FormLabel>Cost ($)</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
+                  <Input
+                    {...field}
                     type="number"
                     step="0.01"
                     placeholder="0.00"
                   />
                 </FormControl>
-                <FormDescription>
-                  Your cost to purchase/produce
-                </FormDescription>
+                <FormDescription>Your cost to purchase/produce</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        
+
         <FormField
           control={form.control}
           name="image"
@@ -257,13 +262,14 @@ export function ProductForm({ product }: ProductFormProps) {
             </FormItem>
           )}
         />
-        
+
         <div className="flex gap-4">
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Saving...' : product ? 'Update Product' : 'Create Product'}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? 'Saving...'
+              : product
+                ? 'Update Product'
+                : 'Create Product'}
           </Button>
           <Button
             type="button"

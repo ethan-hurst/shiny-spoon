@@ -1,11 +1,22 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { createClient } from '@/lib/supabase/client'
+import { format } from 'date-fns'
+import { CalendarIcon, Loader2 } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -16,8 +27,11 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -25,17 +39,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, Loader2 } from 'lucide-react'
-import { format } from 'date-fns'
+import { Textarea } from '@/components/ui/textarea'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-import { createPricingRuleSchema, PricingRule, PricingRuleRecord, QuantityBreak } from '@/types/pricing.types'
+import {
+  createPricingRuleSchema,
+  PricingRule,
+  PricingRuleRecord,
+  QuantityBreak,
+} from '@/types/pricing.types'
 import { QuantityBreaksEditor } from './quantity-breaks-editor'
-import { z } from 'zod'
 
 interface PricingRuleFormProps {
   initialData?: PricingRuleRecord & { quantity_breaks?: QuantityBreak[] }
@@ -78,12 +93,24 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
 
   async function loadReferenceData() {
     try {
-      const [productsResult, categoriesResult, customersResult, tiersResult] = await Promise.all([
-        supabase.from('products').select('id, name, sku').eq('is_active', true).order('name'),
-        supabase.from('product_categories').select('id, name').order('name'),
-        supabase.from('customers').select('id, name').eq('is_active', true).order('name'),
-        supabase.from('customer_tiers').select('id, name').order('sort_order'),
-      ])
+      const [productsResult, categoriesResult, customersResult, tiersResult] =
+        await Promise.all([
+          supabase
+            .from('products')
+            .select('id, name, sku')
+            .eq('is_active', true)
+            .order('name'),
+          supabase.from('product_categories').select('id, name').order('name'),
+          supabase
+            .from('customers')
+            .select('id, name')
+            .eq('is_active', true)
+            .order('name'),
+          supabase
+            .from('customer_tiers')
+            .select('id, name')
+            .order('sort_order'),
+        ])
 
       setProducts(productsResult.data || [])
       setCategories(categoriesResult.data || [])
@@ -102,7 +129,7 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
     try {
       // Prepare conditions based on rule type
       const conditions: any = {}
-      
+
       if (values.rule_type === 'quantity' && quantityBreaks.length > 0) {
         // For quantity rules, we'll handle breaks separately
       }
@@ -111,8 +138,10 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
         ...values,
         conditions,
         // Clear discount values if rule type is quantity (uses quantity breaks instead)
-        discount_type: values.rule_type === 'quantity' ? null : values.discount_type,
-        discount_value: values.rule_type === 'quantity' ? null : values.discount_value,
+        discount_type:
+          values.rule_type === 'quantity' ? null : values.discount_type,
+        discount_value:
+          values.rule_type === 'quantity' ? null : values.discount_value,
       }
 
       if (isEdit) {
@@ -181,7 +210,11 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
       router.refresh()
     } catch (error) {
       console.error('Error saving pricing rule:', error)
-      toast.error(isEdit ? 'Failed to update pricing rule' : 'Failed to create pricing rule')
+      toast.error(
+        isEdit
+          ? 'Failed to update pricing rule'
+          : 'Failed to create pricing rule'
+      )
     } finally {
       setLoading(false)
     }
@@ -246,16 +279,23 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Rule Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select rule type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="tier">Customer Tier Discount</SelectItem>
+                        <SelectItem value="tier">
+                          Customer Tier Discount
+                        </SelectItem>
                         <SelectItem value="quantity">Quantity Break</SelectItem>
-                        <SelectItem value="promotion">Promotional Discount</SelectItem>
+                        <SelectItem value="promotion">
+                          Promotional Discount
+                        </SelectItem>
                         <SelectItem value="override">Price Override</SelectItem>
                       </SelectContent>
                     </Select>
@@ -274,10 +314,14 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                       <Input
                         type="number"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
                       />
                     </FormControl>
-                    <FormDescription>Lower numbers have higher priority</FormDescription>
+                    <FormDescription>
+                      Lower numbers have higher priority
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -318,15 +362,22 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Discount Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select discount type" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="percentage">Percentage Off</SelectItem>
-                              <SelectItem value="fixed">Fixed Amount Off</SelectItem>
+                              <SelectItem value="percentage">
+                                Percentage Off
+                              </SelectItem>
+                              <SelectItem value="fixed">
+                                Fixed Amount Off
+                              </SelectItem>
                               <SelectItem value="price">Fixed Price</SelectItem>
                             </SelectContent>
                           </Select>
@@ -350,7 +401,9 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                               type="number"
                               step="0.01"
                               {...field}
-                              onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                field.onChange(parseFloat(e.target.value) || 0)
+                              }
                             />
                           </FormControl>
                           <FormMessage />
@@ -378,7 +431,10 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Specific Product</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value || ''}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="All products" />
@@ -404,7 +460,10 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Product Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="All categories" />
@@ -430,7 +489,10 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Specific Customer</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="All customers" />
@@ -456,7 +518,10 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Customer Tier</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="All tiers" />
@@ -516,8 +581,12 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={field.value ? new Date(field.value) : undefined}
-                            onSelect={(date) => field.onChange(date?.toISOString().split('T')[0])}
+                            selected={
+                              field.value ? new Date(field.value) : undefined
+                            }
+                            onSelect={(date) =>
+                              field.onChange(date?.toISOString().split('T')[0])
+                            }
                             initialFocus
                           />
                         </PopoverContent>
@@ -558,8 +627,12 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={field.value ? new Date(field.value) : undefined}
-                            onSelect={(date) => field.onChange(date?.toISOString().split('T')[0])}
+                            selected={
+                              field.value ? new Date(field.value) : undefined
+                            }
+                            onSelect={(date) =>
+                              field.onChange(date?.toISOString().split('T')[0])
+                            }
                             initialFocus
                           />
                         </PopoverContent>
@@ -590,9 +663,12 @@ export function PricingRuleForm({ initialData }: PricingRuleFormProps) {
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-base">Exclusive Rule</FormLabel>
+                        <FormLabel className="text-base">
+                          Exclusive Rule
+                        </FormLabel>
                         <FormDescription>
-                          When applied, no other rules will be processed after this one
+                          When applied, no other rules will be processed after
+                          this one
                         </FormDescription>
                       </div>
                       <FormControl>

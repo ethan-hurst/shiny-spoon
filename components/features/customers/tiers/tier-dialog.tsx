@@ -2,21 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { customerTierSchema } from '@/types/customer.types'
-import { createTier, updateTier } from '@/app/actions/tiers'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Plus, X } from 'lucide-react'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import {
@@ -25,7 +13,19 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { Plus, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { createTier, updateTier } from '@/app/actions/tiers'
+import { customerTierSchema } from '@/types/customer.types'
 
 interface TierDialogProps {
   tier?: any
@@ -39,18 +39,38 @@ type FormData = z.infer<typeof customerTierSchema>
 
 // Common benefits options
 const BENEFIT_SUGGESTIONS = [
-  { key: 'free_shipping_threshold', label: 'Free Shipping Threshold', type: 'number' },
+  {
+    key: 'free_shipping_threshold',
+    label: 'Free Shipping Threshold',
+    type: 'number',
+  },
   { key: 'priority_support', label: 'Priority Support', type: 'boolean' },
-  { key: 'dedicated_account_manager', label: 'Dedicated Account Manager', type: 'boolean' },
-  { key: 'extended_payment_terms', label: 'Extended Payment Terms', type: 'boolean' },
+  {
+    key: 'dedicated_account_manager',
+    label: 'Dedicated Account Manager',
+    type: 'boolean',
+  },
+  {
+    key: 'extended_payment_terms',
+    label: 'Extended Payment Terms',
+    type: 'boolean',
+  },
   { key: 'volume_pricing', label: 'Volume Pricing', type: 'boolean' },
-  { key: 'early_access', label: 'Early Access to New Products', type: 'boolean' },
+  {
+    key: 'early_access',
+    label: 'Early Access to New Products',
+    type: 'boolean',
+  },
 ]
 
 // Common requirements options
 const REQUIREMENT_SUGGESTIONS = [
   { key: 'min_annual_spend', label: 'Minimum Annual Spend', type: 'number' },
-  { key: 'min_monthly_orders', label: 'Minimum Monthly Orders', type: 'number' },
+  {
+    key: 'min_monthly_orders',
+    label: 'Minimum Monthly Orders',
+    type: 'number',
+  },
   { key: 'years_as_customer', label: 'Years as Customer', type: 'number' },
   { key: 'payment_history', label: 'Good Payment History', type: 'boolean' },
 ]
@@ -67,7 +87,13 @@ const TIER_COLORS = [
   { name: 'Red', color: '#EF4444' },
 ]
 
-export function TierDialog({ tier, organizationId, open, onOpenChange, existingLevels }: TierDialogProps) {
+export function TierDialog({
+  tier,
+  organizationId,
+  open,
+  onOpenChange,
+  existingLevels,
+}: TierDialogProps) {
   const router = useRouter()
   const isEditing = !!tier
   const [benefits, setBenefits] = useState<Record<string, any>>({})
@@ -118,7 +144,10 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
       formData.append('organization_id', organizationId)
       formData.append('name', data.name)
       formData.append('level', data.level.toString())
-      formData.append('discount_percentage', data.discount_percentage.toString())
+      formData.append(
+        'discount_percentage',
+        data.discount_percentage.toString()
+      )
       formData.append('color', data.color)
       formData.append('benefits', JSON.stringify(benefits))
       formData.append('requirements', JSON.stringify(requirements))
@@ -127,7 +156,7 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
         formData.append('id', tier.id)
       }
 
-      const result = isEditing 
+      const result = isEditing
         ? await updateTier(formData)
         : await createTier(formData)
 
@@ -137,11 +166,9 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
       }
 
       toast.success(
-        isEditing 
-          ? 'Tier updated successfully' 
-          : 'Tier created successfully'
+        isEditing ? 'Tier updated successfully' : 'Tier created successfully'
       )
-      
+
       onOpenChange(false)
       router.refresh()
     } catch (error) {
@@ -150,21 +177,21 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
   }
 
   const addBenefit = (key: string, type: string) => {
-    setBenefits(prev => ({
+    setBenefits((prev) => ({
       ...prev,
-      [key]: type === 'boolean' ? true : type === 'number' ? 0 : ''
+      [key]: type === 'boolean' ? true : type === 'number' ? 0 : '',
     }))
   }
 
   const updateBenefit = (key: string, value: any) => {
-    setBenefits(prev => ({
+    setBenefits((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }))
   }
 
   const removeBenefit = (key: string) => {
-    setBenefits(prev => {
+    setBenefits((prev) => {
       const updated = { ...prev }
       delete updated[key]
       return updated
@@ -172,21 +199,21 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
   }
 
   const addRequirement = (key: string, type: string) => {
-    setRequirements(prev => ({
+    setRequirements((prev) => ({
       ...prev,
-      [key]: type === 'boolean' ? true : type === 'number' ? 0 : ''
+      [key]: type === 'boolean' ? true : type === 'number' ? 0 : '',
     }))
   }
 
   const updateRequirement = (key: string, value: any) => {
-    setRequirements(prev => ({
+    setRequirements((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }))
   }
 
   const removeRequirement = (key: string) => {
-    setRequirements(prev => {
+    setRequirements((prev) => {
       const updated = { ...prev }
       delete updated[key]
       return updated
@@ -202,10 +229,9 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
               {isEditing ? 'Edit Tier' : 'Create New Tier'}
             </DialogTitle>
             <DialogDescription>
-              {isEditing 
-                ? 'Update the tier configuration below' 
-                : 'Configure a new customer tier with pricing and benefits'
-              }
+              {isEditing
+                ? 'Update the tier configuration below'
+                : 'Configure a new customer tier with pricing and benefits'}
             </DialogDescription>
           </DialogHeader>
 
@@ -256,7 +282,9 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
                     min="0"
                     max="100"
                     step="0.01"
-                    {...form.register('discount_percentage', { valueAsNumber: true })}
+                    {...form.register('discount_percentage', {
+                      valueAsNumber: true,
+                    })}
                   />
                   {form.formState.errors.discount_percentage && (
                     <p className="text-sm text-destructive">
@@ -309,7 +337,9 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => addBenefit(suggestion.key, suggestion.type)}
+                            onClick={() =>
+                              addBenefit(suggestion.key, suggestion.type)
+                            }
                             disabled={benefits.hasOwnProperty(suggestion.key)}
                           >
                             <Plus className="mr-1 h-3 w-3" />
@@ -321,9 +351,17 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
 
                     {/* Current Benefits */}
                     {Object.entries(benefits).map(([key, value]) => {
-                      const suggestion = BENEFIT_SUGGESTIONS.find(s => s.key === key)
-                      const type = suggestion?.type || (typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : 'text')
-                      
+                      const suggestion = BENEFIT_SUGGESTIONS.find(
+                        (s) => s.key === key
+                      )
+                      const type =
+                        suggestion?.type ||
+                        (typeof value === 'boolean'
+                          ? 'boolean'
+                          : typeof value === 'number'
+                            ? 'number'
+                            : 'text')
+
                       return (
                         <div key={key} className="flex gap-2 items-center">
                           <Input
@@ -336,14 +374,23 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
                             <input
                               type="checkbox"
                               checked={value}
-                              onChange={(e) => updateBenefit(key, e.target.checked)}
+                              onChange={(e) =>
+                                updateBenefit(key, e.target.checked)
+                              }
                               className="h-4 w-4"
                             />
                           ) : (
                             <Input
                               type={type}
                               value={value}
-                              onChange={(e) => updateBenefit(key, type === 'number' ? Number(e.target.value) : e.target.value)}
+                              onChange={(e) =>
+                                updateBenefit(
+                                  key,
+                                  type === 'number'
+                                    ? Number(e.target.value)
+                                    : e.target.value
+                                )
+                              }
                               className="w-32"
                               placeholder="Value"
                             />
@@ -366,7 +413,9 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const key = prompt('Enter benefit name (use underscore for spaces):')
+                        const key = prompt(
+                          'Enter benefit name (use underscore for spaces):'
+                        )
                         if (key && !benefits.hasOwnProperty(key)) {
                           addBenefit(key, 'text')
                         }
@@ -396,8 +445,12 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => addRequirement(suggestion.key, suggestion.type)}
-                            disabled={requirements.hasOwnProperty(suggestion.key)}
+                            onClick={() =>
+                              addRequirement(suggestion.key, suggestion.type)
+                            }
+                            disabled={requirements.hasOwnProperty(
+                              suggestion.key
+                            )}
                           >
                             <Plus className="mr-1 h-3 w-3" />
                             {suggestion.label}
@@ -408,9 +461,17 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
 
                     {/* Current Requirements */}
                     {Object.entries(requirements).map(([key, value]) => {
-                      const suggestion = REQUIREMENT_SUGGESTIONS.find(s => s.key === key)
-                      const type = suggestion?.type || (typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : 'text')
-                      
+                      const suggestion = REQUIREMENT_SUGGESTIONS.find(
+                        (s) => s.key === key
+                      )
+                      const type =
+                        suggestion?.type ||
+                        (typeof value === 'boolean'
+                          ? 'boolean'
+                          : typeof value === 'number'
+                            ? 'number'
+                            : 'text')
+
                       return (
                         <div key={key} className="flex gap-2 items-center">
                           <Input
@@ -423,14 +484,23 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
                             <input
                               type="checkbox"
                               checked={value}
-                              onChange={(e) => updateRequirement(key, e.target.checked)}
+                              onChange={(e) =>
+                                updateRequirement(key, e.target.checked)
+                              }
                               className="h-4 w-4"
                             />
                           ) : (
                             <Input
                               type={type}
                               value={value}
-                              onChange={(e) => updateRequirement(key, type === 'number' ? Number(e.target.value) : e.target.value)}
+                              onChange={(e) =>
+                                updateRequirement(
+                                  key,
+                                  type === 'number'
+                                    ? Number(e.target.value)
+                                    : e.target.value
+                                )
+                              }
                               className="w-32"
                               placeholder="Value"
                             />
@@ -453,7 +523,9 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const key = prompt('Enter requirement name (use underscore for spaces):')
+                        const key = prompt(
+                          'Enter requirement name (use underscore for spaces):'
+                        )
                         if (key && !requirements.hasOwnProperty(key)) {
                           addRequirement(key, 'text')
                         }
@@ -469,20 +541,19 @@ export function TierDialog({ tier, organizationId, open, onOpenChange, existingL
           </div>
 
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting 
-                ? 'Saving...' 
-                : isEditing 
-                  ? 'Update Tier' 
-                  : 'Create Tier'
-              }
+              {form.formState.isSubmitting
+                ? 'Saving...'
+                : isEditing
+                  ? 'Update Tier'
+                  : 'Create Tier'}
             </Button>
           </DialogFooter>
         </form>

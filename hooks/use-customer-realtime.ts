@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { createBrowserClient } from '@/lib/supabase/client'
-import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { createBrowserClient } from '@/lib/supabase/client'
 
 interface UseCustomerRealtimeOptions {
   customerId?: string
@@ -12,10 +12,10 @@ interface UseCustomerRealtimeOptions {
   enabled?: boolean
 }
 
-export function useCustomerRealtime({ 
-  customerId, 
-  organizationId, 
-  enabled = true 
+export function useCustomerRealtime({
+  customerId,
+  organizationId,
+  enabled = true,
 }: UseCustomerRealtimeOptions) {
   const supabase = createBrowserClient()
   const queryClient = useQueryClient()
@@ -25,37 +25,35 @@ export function useCustomerRealtime({
     if (!enabled || !organizationId) return
 
     // Subscribe to customer changes
-    const customerChannel = supabase
-      .channel(`customers-${organizationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'customers',
-          filter: customerId 
-            ? `id=eq.${customerId}` 
-            : `organization_id=eq.${organizationId}`
-        },
-        (payload) => {
-          const { eventType, new: newRecord, old: oldRecord } = payload
+    const customerChannel = supabase.channel(`customers-${organizationId}`).on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'customers',
+        filter: customerId
+          ? `id=eq.${customerId}`
+          : `organization_id=eq.${organizationId}`,
+      },
+      (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload
 
-          // Handle specific customer updates
-          if (customerId && payload.new?.id === customerId) {
-            queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
-            
-            if (eventType === 'UPDATE') {
-              toast.info('Customer information has been updated')
-            } else if (eventType === 'DELETE') {
-              toast.warning('This customer has been deleted')
-              router.push('/customers')
-            }
-          } else {
-            // Handle list updates
-            queryClient.invalidateQueries({ queryKey: ['customers'] })
+        // Handle specific customer updates
+        if (customerId && payload.new?.id === customerId) {
+          queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
+
+          if (eventType === 'UPDATE') {
+            toast.info('Customer information has been updated')
+          } else if (eventType === 'DELETE') {
+            toast.warning('This customer has been deleted')
+            router.push('/customers')
           }
+        } else {
+          // Handle list updates
+          queryClient.invalidateQueries({ queryKey: ['customers'] })
         }
-      )
+      }
+    )
 
     // Subscribe to contact changes
     const contactChannel = supabase
@@ -66,12 +64,14 @@ export function useCustomerRealtime({
           event: '*',
           schema: 'public',
           table: 'customer_contacts',
-          filter: customerId ? `customer_id=eq.${customerId}` : undefined
+          filter: customerId ? `customer_id=eq.${customerId}` : undefined,
         },
         (payload) => {
           if (customerId) {
-            queryClient.invalidateQueries({ queryKey: ['customer-contacts', customerId] })
-            
+            queryClient.invalidateQueries({
+              queryKey: ['customer-contacts', customerId],
+            })
+
             const { eventType } = payload
             if (eventType === 'INSERT') {
               toast.success('New contact added')
@@ -93,14 +93,16 @@ export function useCustomerRealtime({
           event: 'INSERT',
           schema: 'public',
           table: 'customer_activities',
-          filter: customerId 
-            ? `customer_id=eq.${customerId}` 
-            : `organization_id=eq.${organizationId}`
+          filter: customerId
+            ? `customer_id=eq.${customerId}`
+            : `organization_id=eq.${organizationId}`,
         },
         (payload) => {
           if (customerId) {
-            queryClient.invalidateQueries({ queryKey: ['customer-activities', customerId] })
-            
+            queryClient.invalidateQueries({
+              queryKey: ['customer-activities', customerId],
+            })
+
             // Don't show toast for every activity, too noisy
             // Only invalidate queries to update the UI
           }
@@ -108,29 +110,27 @@ export function useCustomerRealtime({
       )
 
     // Subscribe to tier changes
-    const tierChannel = supabase
-      .channel(`tiers-${organizationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'customer_tiers',
-          filter: `organization_id=eq.${organizationId}`
-        },
-        (payload) => {
-          queryClient.invalidateQueries({ queryKey: ['customer-tiers'] })
-          
-          const { eventType, new: newRecord } = payload
-          if (eventType === 'INSERT') {
-            toast.success(`New tier "${newRecord.name}" created`)
-          } else if (eventType === 'UPDATE') {
-            toast.info(`Tier "${newRecord.name}" updated`)
-          } else if (eventType === 'DELETE') {
-            toast.info('Tier deleted')
-          }
+    const tierChannel = supabase.channel(`tiers-${organizationId}`).on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'customer_tiers',
+        filter: `organization_id=eq.${organizationId}`,
+      },
+      (payload) => {
+        queryClient.invalidateQueries({ queryKey: ['customer-tiers'] })
+
+        const { eventType, new: newRecord } = payload
+        if (eventType === 'INSERT') {
+          toast.success(`New tier "${newRecord.name}" created`)
+        } else if (eventType === 'UPDATE') {
+          toast.info(`Tier "${newRecord.name}" updated`)
+        } else if (eventType === 'DELETE') {
+          toast.info('Tier deleted')
         }
-      )
+      }
+    )
 
     // Subscribe to all channels
     customerChannel.subscribe()
@@ -154,6 +154,9 @@ export function useCustomerListRealtime(organizationId: string) {
 }
 
 // Hook for specific customer real-time updates
-export function useCustomerDetailRealtime(customerId: string, organizationId: string) {
+export function useCustomerDetailRealtime(
+  customerId: string,
+  organizationId: string
+) {
   return useCustomerRealtime({ customerId, organizationId })
 }

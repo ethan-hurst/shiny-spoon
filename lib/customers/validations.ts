@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { customerSchema, contactSchema, addressSchema } from '@/types/customer.types'
+import {
+  addressSchema,
+  contactSchema,
+  customerSchema,
+} from '@/types/customer.types'
 
 // Customer creation schema (with required fields)
 export const createCustomerSchema = customerSchema.extend({
@@ -42,10 +46,13 @@ export const customerImportSchema = z.object({
   shipping_city: z.string().optional(),
   shipping_state: z.string().optional(),
   shipping_postal_code: z.string().optional(),
-  shipping_country: z.string().optional().refine(
-    (val) => !val || val.length === 2,
-    'Country code must be exactly 2 characters'
-  ),
+  shipping_country: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val.length === 2,
+      'Country code must be exactly 2 characters'
+    ),
   credit_limit: z.number().optional(),
   payment_terms: z.number().optional(),
   currency: z.string().length(3).optional(),
@@ -75,9 +82,18 @@ export const customerFiltersSchema = z.object({
 export const createActivitySchema = z.object({
   customer_id: z.string().uuid(),
   type: z.enum([
-    'order', 'payment', 'contact', 'note', 'email', 'phone', 
-    'meeting', 'tier_change', 'status_change', 'contact_added', 
-    'contact_removed', 'settings_update'
+    'order',
+    'payment',
+    'contact',
+    'note',
+    'email',
+    'phone',
+    'meeting',
+    'tier_change',
+    'status_change',
+    'contact_added',
+    'contact_removed',
+    'settings_update',
   ]),
   title: z.string().min(1),
   description: z.string().optional(),
@@ -103,11 +119,19 @@ export const updateCreditLimitSchema = z.object({
 export const updatePortalAccessSchema = z.object({
   customer_id: z.string().uuid(),
   portal_enabled: z.boolean(),
-  portal_subdomain: z.string().regex(/^[a-z0-9-]+$/, 'Subdomain can only contain lowercase letters, numbers, and hyphens').optional(),
+  portal_subdomain: z
+    .string()
+    .regex(
+      /^[a-z0-9-]+$/,
+      'Subdomain can only contain lowercase letters, numbers, and hyphens'
+    )
+    .optional(),
 })
 
 // Helper to transform import data to customer data
-export function transformImportData(data: z.infer<typeof customerImportSchema>) {
+export function transformImportData(
+  data: z.infer<typeof customerImportSchema>
+) {
   const customer: any = {
     company_name: data.company_name,
     display_name: data.display_name,
@@ -119,7 +143,12 @@ export function transformImportData(data: z.infer<typeof customerImportSchema>) 
     payment_terms: data.payment_terms || 30,
     currency: data.currency || 'USD',
     notes: data.notes,
-    tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+    tags: data.tags
+      ? data.tags
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [],
     billing_address: {
       line1: data.billing_line1,
       line2: data.billing_line2,
@@ -131,8 +160,13 @@ export function transformImportData(data: z.infer<typeof customerImportSchema>) 
   }
 
   // Add shipping address if provided and complete
-  if (data.shipping_line1 && data.shipping_city && data.shipping_state && 
-      data.shipping_postal_code && data.shipping_country) {
+  if (
+    data.shipping_line1 &&
+    data.shipping_city &&
+    data.shipping_state &&
+    data.shipping_postal_code &&
+    data.shipping_country
+  ) {
     customer.shipping_address = {
       line1: data.shipping_line1,
       line2: data.shipping_line2,

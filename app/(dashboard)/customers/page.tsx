@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
-import { CustomerTable } from '@/components/features/customers/customer-table'
-import { CustomerStats } from '@/components/features/customers/customer-stats'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import { CustomerFilters } from '@/components/features/customers/customer-filters'
 import { CustomerImportExport } from '@/components/features/customers/customer-import-export'
+import { CustomerStats } from '@/components/features/customers/customer-stats'
+import { CustomerTable } from '@/components/features/customers/customer-table'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
-import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import { CustomerWithStats } from '@/types/customer.types'
 
 interface PageProps {
@@ -20,9 +20,11 @@ interface PageProps {
 
 export default async function CustomersPage({ searchParams }: PageProps) {
   const supabase = createClient()
-  
+
   // Get user's organization
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -40,7 +42,8 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   // Build query with filters
   let query = supabase
     .from('customers')
-    .select(`
+    .select(
+      `
       *,
       customer_tiers!customers_tier_id_fkey (
         name,
@@ -48,13 +51,16 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         discount_percentage,
         color
       )
-    `)
+    `
+    )
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
 
   // Apply search filter
   if (searchParams.search) {
-    query = query.or(`company_name.ilike.%${searchParams.search}%,display_name.ilike.%${searchParams.search}%`)
+    query = query.or(
+      `company_name.ilike.%${searchParams.search}%,display_name.ilike.%${searchParams.search}%`
+    )
   }
 
   // Apply status filter
@@ -102,10 +108,12 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   })
 
   // Get customer stats
-  const { data: stats, error: statsError } = await supabase
-    .rpc('get_organization_customer_stats', {
-      p_organization_id: profile.organization_id
-    })
+  const { data: stats, error: statsError } = await supabase.rpc(
+    'get_organization_customer_stats',
+    {
+      p_organization_id: profile.organization_id,
+    }
+  )
 
   if (statsError) {
     console.error('Error fetching customer stats:', statsError)
@@ -119,19 +127,24 @@ export default async function CustomersPage({ searchParams }: PageProps) {
     .order('level', { ascending: true })
 
   // Transform data to include computed fields
-  const customersWithStats: CustomerWithStats[] = (customers || []).map((customer: any) => ({
-    ...customer,
-    tier_name: customer.customer_tiers?.name,
-    tier_level: customer.customer_tiers?.level,
-    tier_discount: customer.customer_tiers?.discount_percentage,
-    tier_color: customer.customer_tiers?.color,
-    contact_count: contactCountMap.get(customer.id) || 0,
-    // TODO: Replace with actual order data once orders table is implemented
-    total_orders: 0,
-    total_revenue: 0,
-    last_order_date: null,
-    account_age_days: Math.floor((Date.now() - new Date(customer.created_at).getTime()) / (1000 * 60 * 60 * 24))
-  }))
+  const customersWithStats: CustomerWithStats[] = (customers || []).map(
+    (customer: any) => ({
+      ...customer,
+      tier_name: customer.customer_tiers?.name,
+      tier_level: customer.customer_tiers?.level,
+      tier_discount: customer.customer_tiers?.discount_percentage,
+      tier_color: customer.customer_tiers?.color,
+      contact_count: contactCountMap.get(customer.id) || 0,
+      // TODO: Replace with actual order data once orders table is implemented
+      total_orders: 0,
+      total_revenue: 0,
+      last_order_date: null,
+      account_age_days: Math.floor(
+        (Date.now() - new Date(customer.created_at).getTime()) /
+          (1000 * 60 * 60 * 24)
+      ),
+    })
+  )
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -155,25 +168,34 @@ export default async function CustomersPage({ searchParams }: PageProps) {
       </div>
 
       {/* Stats */}
-      <CustomerStats stats={stats || {
-        total_customers: customers?.length || 0,
-        active_customers: customers?.filter((c: any) => c.status === 'active').length || 0,
-        inactive_customers: customers?.filter((c: any) => c.status === 'inactive').length || 0,
-        suspended_customers: customers?.filter((c: any) => c.status === 'suspended').length || 0,
-        by_tier: tiers?.map(tier => ({
-          tier_name: tier.name,
-          count: customers?.filter((c: any) => c.tier_id === tier.id).length || 0
-        })) || []
-      }} />
-
-      {/* Filters */}
-      <CustomerFilters 
-        tiers={tiers || []}
-        defaultValues={searchParams}
+      <CustomerStats
+        stats={
+          stats || {
+            total_customers: customers?.length || 0,
+            active_customers:
+              customers?.filter((c: any) => c.status === 'active').length || 0,
+            inactive_customers:
+              customers?.filter((c: any) => c.status === 'inactive').length ||
+              0,
+            suspended_customers:
+              customers?.filter((c: any) => c.status === 'suspended').length ||
+              0,
+            by_tier:
+              tiers?.map((tier) => ({
+                tier_name: tier.name,
+                count:
+                  customers?.filter((c: any) => c.tier_id === tier.id).length ||
+                  0,
+              })) || [],
+          }
+        }
       />
 
+      {/* Filters */}
+      <CustomerFilters tiers={tiers || []} defaultValues={searchParams} />
+
       {/* Table */}
-      <CustomerTable 
+      <CustomerTable
         customers={customersWithStats}
         currentPage={page}
         pageSize={pageSize}

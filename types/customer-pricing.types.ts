@@ -140,9 +140,11 @@ export const ContractStatus = {
   CANCELLED: 'cancelled',
 } as const
 
-export type ApprovalStatus = typeof ApprovalStatus[keyof typeof ApprovalStatus]
-export type ChangeType = typeof ChangeType[keyof typeof ChangeType]
-export type ContractStatus = typeof ContractStatus[keyof typeof ContractStatus]
+export type ApprovalStatus =
+  (typeof ApprovalStatus)[keyof typeof ApprovalStatus]
+export type ChangeType = (typeof ChangeType)[keyof typeof ChangeType]
+export type ContractStatus =
+  (typeof ContractStatus)[keyof typeof ContractStatus]
 
 // Validation schemas
 export const customerPriceSchema = z.object({
@@ -154,17 +156,23 @@ export const customerPriceSchema = z.object({
   contract_start: z.string().optional().nullable(),
   contract_end: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
-  approval_status: z.enum(['draft', 'pending', 'approved', 'rejected']).default('approved'),
+  approval_status: z
+    .enum(['draft', 'pending', 'approved', 'rejected'])
+    .default('approved'),
 })
 
 export const bulkPriceUpdateSchema = z.object({
   customer_id: z.string().uuid(),
-  updates: z.array(z.object({
-    sku: z.string().min(1, 'SKU is required'),
-    price: z.number().min(0, 'Price must be positive').optional(),
-    discount_percent: z.number().min(0).max(100).optional(),
-    reason: z.string().min(1, 'Reason is required'),
-  })).min(1, 'At least one update is required'),
+  updates: z
+    .array(
+      z.object({
+        sku: z.string().min(1, 'SKU is required'),
+        price: z.number().min(0, 'Price must be positive').optional(),
+        discount_percent: z.number().min(0).max(100).optional(),
+        reason: z.string().min(1, 'Reason is required'),
+      })
+    )
+    .min(1, 'At least one update is required'),
   apply_to_all_warehouses: z.boolean().default(true),
 })
 
@@ -175,7 +183,11 @@ export const contractSchema = z.object({
   description: z.string().optional().nullable(),
   start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
   end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
-  signed_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  signed_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .nullable(),
   status: z.enum(['draft', 'active', 'expired', 'cancelled']).default('draft'),
   auto_renew: z.boolean().default(false),
   renewal_period_months: z.number().min(1).max(60).optional().nullable(),
@@ -236,13 +248,15 @@ export interface CustomerPriceWithProduct extends CustomerPricingRow {
 }
 
 export interface ContractWithItems extends CustomerContractRow {
-  contract_items?: Array<ContractItemRow & {
-    products?: {
-      id: string
-      sku: string
-      name: string
+  contract_items?: Array<
+    ContractItemRow & {
+      products?: {
+        id: string
+        sku: string
+        name: string
+      }
     }
-  }>
+  >
   customers?: {
     id: string
     company_name: string
@@ -388,7 +402,10 @@ export interface CustomerPriceImport {
 }
 
 // Utility functions
-export function calculateDiscount(basePrice: number, customerPrice: number): number {
+export function calculateDiscount(
+  basePrice: number,
+  customerPrice: number
+): number {
   if (basePrice <= 0) return 0
   return ((basePrice - customerPrice) / basePrice) * 100
 }
@@ -398,7 +415,10 @@ export function calculateMargin(price: number, cost: number): number {
   return ((price - cost) / price) * 100
 }
 
-export function formatPriceSource(source: string, contractNumber?: string): string {
+export function formatPriceSource(
+  source: string,
+  contractNumber?: string
+): string {
   switch (source) {
     case 'contract':
       return contractNumber ? `Contract ${contractNumber}` : 'Contract'
@@ -443,10 +463,15 @@ export function getContractStatusColor(status: ContractStatus): string {
   }
 }
 
-export function isContractExpiring(endDate: string, notificationDays: number = 30): boolean {
+export function isContractExpiring(
+  endDate: string,
+  notificationDays: number = 30
+): boolean {
   const end = new Date(endDate)
   const now = new Date()
-  const daysUntilExpiry = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  const daysUntilExpiry = Math.ceil(
+    (end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  )
   return daysUntilExpiry > 0 && daysUntilExpiry <= notificationDays
 }
 
@@ -474,7 +499,11 @@ export function validatePriceChange(
 ): { valid: boolean; reason?: string; requiresApproval: boolean } {
   // Basic validation
   if (newPrice < 0) {
-    return { valid: false, reason: 'Price cannot be negative', requiresApproval: false }
+    return {
+      valid: false,
+      reason: 'Price cannot be negative',
+      requiresApproval: false,
+    }
   }
 
   // Calculate metrics
@@ -483,28 +512,34 @@ export function validatePriceChange(
 
   // Check if below cost
   if (newPrice < cost) {
-    return { 
-      valid: true, 
-      reason: 'Price is below cost', 
-      requiresApproval: true 
+    return {
+      valid: true,
+      reason: 'Price is below cost',
+      requiresApproval: true,
     }
   }
 
   // Check approval rules
   if (rules) {
-    if (rules.discount_threshold_percent && discount >= rules.discount_threshold_percent) {
-      return { 
-        valid: true, 
-        reason: `Discount ${discount.toFixed(1)}% exceeds threshold`, 
-        requiresApproval: true 
+    if (
+      rules.discount_threshold_percent &&
+      discount >= rules.discount_threshold_percent
+    ) {
+      return {
+        valid: true,
+        reason: `Discount ${discount.toFixed(1)}% exceeds threshold`,
+        requiresApproval: true,
       }
     }
 
-    if (rules.margin_threshold_percent && margin <= rules.margin_threshold_percent) {
-      return { 
-        valid: true, 
-        reason: `Margin ${margin.toFixed(1)}% below threshold`, 
-        requiresApproval: true 
+    if (
+      rules.margin_threshold_percent &&
+      margin <= rules.margin_threshold_percent
+    ) {
+      return {
+        valid: true,
+        reason: `Margin ${margin.toFixed(1)}% below threshold`,
+        requiresApproval: true,
       }
     }
   }

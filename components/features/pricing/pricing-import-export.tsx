@@ -2,6 +2,17 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  CheckCircle,
+  Download,
+  FileDown,
+  FileUp,
+  Loader2,
+  Upload,
+  XCircle,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,21 +23,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { FileUp, FileDown, Download, Upload, Loader2, CheckCircle, XCircle } from 'lucide-react'
-import { toast } from 'sonner'
-import { importPricingRules, exportPricingRules } from '@/app/actions/pricing'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { exportPricingRules, importPricingRules } from '@/app/actions/pricing'
 
 interface ImportExportProps {
   variant?: 'outline' | 'default'
   size?: 'default' | 'sm' | 'lg' | 'icon'
 }
 
-export function PricingImportExport({ variant = 'outline', size = 'sm' }: ImportExportProps) {
+export function PricingImportExport({
+  variant = 'outline',
+  size = 'sm',
+}: ImportExportProps) {
   const [open, setOpen] = useState(false)
   const [importing, setImporting] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -35,7 +46,7 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
     successes: string[]
     errors: string[]
   } | null>(null)
-  
+
   const router = useRouter()
 
   async function handleImport() {
@@ -46,13 +57,15 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
 
     setImporting(true)
     setImportResults(null)
-    
+
     try {
       const results = await importPricingRules(importFile)
       setImportResults(results)
-      
+
       if (results.errors.length === 0) {
-        toast.success(`Successfully imported ${results.successes.length} pricing rules`)
+        toast.success(
+          `Successfully imported ${results.successes.length} pricing rules`
+        )
         router.refresh()
         setTimeout(() => {
           setOpen(false)
@@ -60,7 +73,9 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
           setImportResults(null)
         }, 2000)
       } else {
-        toast.warning(`Imported ${results.successes.length} rules with ${results.errors.length} errors`)
+        toast.warning(
+          `Imported ${results.successes.length} rules with ${results.errors.length} errors`
+        )
       }
     } catch (error) {
       console.error('Import error:', error)
@@ -72,10 +87,10 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
 
   async function handleExport() {
     setExporting(true)
-    
+
     try {
       const csvContent = await exportPricingRules()
-      
+
       // Create and download the file
       const blob = new Blob([csvContent], { type: 'text/csv' })
       const url = window.URL.createObjectURL(blob)
@@ -86,7 +101,7 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
-      
+
       toast.success('Pricing rules exported successfully')
     } catch (error) {
       console.error('Export error:', error)
@@ -142,7 +157,11 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
                 <AlertDescription>
                   <strong>CSV Format Requirements:</strong>
                   <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                    <li>Headers: name, description, rule_type, priority, discount_type, discount_value, is_active, start_date, end_date</li>
+                    <li>
+                      Headers: name, description, rule_type, priority,
+                      discount_type, discount_value, is_active, start_date,
+                      end_date
+                    </li>
                     <li>rule_type: tier, quantity, promotion, or override</li>
                     <li>discount_type: percentage, fixed, or price</li>
                     <li>is_active: true or false</li>
@@ -212,7 +231,8 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
             <div className="space-y-4">
               <Alert>
                 <AlertDescription>
-                  Export all pricing rules to a CSV file. The exported file can be:
+                  Export all pricing rules to a CSV file. The exported file can
+                  be:
                   <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
                     <li>Used as a backup of your pricing configuration</li>
                     <li>Modified in a spreadsheet application</li>
@@ -225,16 +245,14 @@ export function PricingImportExport({ variant = 'outline', size = 'sm' }: Import
               <div className="rounded-lg border p-6 text-center">
                 <FileDown className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  Click the button below to download all pricing rules as a CSV file
+                  Click the button below to download all pricing rules as a CSV
+                  file
                 </p>
               </div>
             </div>
 
             <DialogFooter>
-              <Button
-                onClick={handleExport}
-                disabled={exporting}
-              >
+              <Button onClick={handleExport} disabled={exporting}>
                 {exporting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

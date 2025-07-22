@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Download, Loader2 } from 'lucide-react'
-import { exportInventory } from '@/app/actions/inventory'
-import { useToast } from '@/components/ui/use-toast'
 import type { ColumnFiltersState } from '@tanstack/react-table'
+import { Download, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/use-toast'
+import { exportInventory } from '@/app/actions/inventory'
 
 interface ExportButtonProps {
   filters?: ColumnFiltersState
@@ -22,7 +22,7 @@ export function ExportButton({ filters, organizationId }: ExportButtonProps) {
     try {
       // Convert table filters to export filters
       const exportFilters = {
-        search: filters?.find(f => f.id === 'product.sku')?.value as string,
+        search: filters?.find((f) => f.id === 'product.sku')?.value as string,
         // Add other filter mappings as needed
       }
 
@@ -42,15 +42,15 @@ export function ExportButton({ filters, organizationId }: ExportButtonProps) {
         const blob = new Blob([result.csv], { type: 'text/csv;charset=utf-8;' })
         const link = document.createElement('a')
         const url = URL.createObjectURL(blob)
-        
+
         link.setAttribute('href', url)
         link.setAttribute('download', result.filename)
         link.style.display = 'none'
-        
+
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-        
+
         // Clean up
         setTimeout(() => URL.revokeObjectURL(url), 100)
 

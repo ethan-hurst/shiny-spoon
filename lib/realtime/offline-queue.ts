@@ -1,7 +1,7 @@
-import { IndexedDBWrapper, DBConfig } from '@/lib/storage/indexed-db'
-import { QueuedOperation, ProcessResult, ConnectionStatus } from './types'
+import { DBConfig, IndexedDBWrapper } from '@/lib/storage/indexed-db'
 import { createClient } from '@/lib/supabase/client'
 import { RealtimeConnectionManager } from './connection-manager'
+import { ConnectionStatus, ProcessResult, QueuedOperation } from './types'
 
 const DB_CONFIG: DBConfig = {
   name: 'truthsource-offline',
@@ -13,10 +13,10 @@ const DB_CONFIG: DBConfig = {
       indexes: [
         { name: 'timestamp', keyPath: 'timestamp' },
         { name: 'table', keyPath: 'table' },
-        { name: 'type', keyPath: 'type' }
-      ]
-    }
-  ]
+        { name: 'type', keyPath: 'type' },
+      ],
+    },
+  ],
 }
 
 export class OfflineQueue {
@@ -30,7 +30,7 @@ export class OfflineQueue {
   private constructor() {
     this.db = new IndexedDBWrapper(DB_CONFIG)
     this.connectionManager = RealtimeConnectionManager.getInstance()
-    
+
     // Listen for connection changes
     this.connectionManager.subscribe('offline-queue', (status) => {
       if (status.state === 'connected' && !this.processing) {
@@ -46,17 +46,19 @@ export class OfflineQueue {
     return OfflineQueue.instance
   }
 
-  async addToQueue(operation: Omit<QueuedOperation, 'id' | 'timestamp' | 'retries'>): Promise<void> {
+  async addToQueue(
+    operation: Omit<QueuedOperation, 'id' | 'timestamp' | 'retries'>
+  ): Promise<void> {
     const queuedOp: QueuedOperation = {
       ...operation,
       id: crypto.randomUUID(),
       timestamp: Date.now(),
-      retries: 0
+      retries: 0,
     }
 
     await this.db.add('operations', queuedOp)
     await this.notifyListeners()
-    
+
     // Try to process immediately if connected
     const status = this.connectionManager.getStatus()
     if (status.state === 'connected' && !this.processing) {
@@ -73,12 +75,12 @@ export class OfflineQueue {
     const result: ProcessResult = {
       successful: [],
       failed: [],
-      conflicts: []
+      conflicts: [],
     }
 
     try {
       const operations = await this.db.getAll<QueuedOperation>('operations')
-      
+
       // Sort by timestamp to maintain order
       operations.sort((a, b) => a.timestamp - b.timestamp)
 
@@ -88,21 +90,28 @@ export class OfflineQueue {
           result.successful.push(operation.id)
           await this.db.delete('operations', operation.id)
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-          
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error'
+
           // Check if it's a conflict
-          if (errorMessage.includes('conflict') || errorMessage.includes('version')) {
-            const serverValue = await this.fetchServerValue(operation.table, operation.data.id)
+          if (
+            errorMessage.includes('conflict') ||
+            errorMessage.includes('version')
+          ) {
+            const serverValue = await this.fetchServerValue(
+              operation.table,
+              operation.data.id
+            )
             result.conflicts.push({
               id: operation.id,
               localValue: operation.data,
-              serverValue
+              serverValue,
             })
           } else {
             // Regular error - retry logic
             operation.retries++
             operation.error = errorMessage
-            
+
             if (operation.retries >= 3) {
               result.failed.push({ id: operation.id, error: errorMessage })
               await this.db.delete('operations', operation.id)
@@ -129,7 +138,7 @@ export class OfflineQueue {
           .from(table)
           .update(data)
           .eq('id', data.id)
-        
+
         if (updateError) throw updateError
         break
 
@@ -137,7 +146,7 @@ export class OfflineQueue {
         const { error: insertError } = await this.supabase
           .from(table)
           .insert(data)
-        
+
         if (insertError) throw insertError
         break
 
@@ -146,7 +155,7 @@ export class OfflineQueue {
           .from(table)
           .delete()
           .eq('id', data.id)
-        
+
         if (deleteError) throw deleteError
         break
     }
@@ -183,10 +192,10 @@ export class OfflineQueue {
 
   subscribe(id: string, callback: (count: number) => void): () => void {
     this.listeners.set(id, callback)
-    
+
     // Send initial count
-    this.getQueueSize().then(count => callback(count))
-    
+    this.getQueueSize().then((count) => callback(count))
+
     return () => {
       this.listeners.delete(id)
     }
@@ -194,7 +203,7 @@ export class OfflineQueue {
 
   private async notifyListeners(): Promise<void> {
     const count = await this.getQueueSize()
-    this.listeners.forEach(callback => callback(count))
+    this.listeners.forEach((callback) => callback(count))
   }
 
   destroy(): void {
