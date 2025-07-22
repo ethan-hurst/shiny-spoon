@@ -27,10 +27,10 @@ type PricingSwitchProps = {
 }
 
 type PricingCardProps = {
-  user: any
-  handleCheckout: any
-  priceIdMonthly: any
-  priceIdYearly: any
+  user: User | null
+  handleCheckout: (priceId: string) => Promise<void>
+  priceIdMonthly: string
+  priceIdYearly: string
   isYearly?: boolean
   title: string
   monthlyPrice?: number

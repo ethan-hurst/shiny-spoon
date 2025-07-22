@@ -3,7 +3,15 @@
 import { motion } from 'framer-motion'
 import CountUp from 'react-countup'
 
-const stats = [
+interface Stat {
+  value: number
+  suffix: string
+  label: string
+  prefix?: string
+  decimals?: number
+}
+
+const stats: Stat[] = [
   { value: 500, suffix: '+', label: 'Companies Trust Us' },
   { value: 99.9, suffix: '%', label: 'Uptime SLA', decimals: 1 },
   { value: 2.5, prefix: '$', suffix: 'M+', label: 'Errors Prevented', decimals: 1 },

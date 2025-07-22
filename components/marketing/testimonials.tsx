@@ -46,15 +46,16 @@ export function Testimonials() {
 
         <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
           {testimonials.map((testimonial, index) => (
-            <motion.div
+            <motion.article
               key={testimonial.author}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
+              aria-label={`Testimonial from ${testimonial.author} at ${testimonial.company}`}
             >
               <Card className="h-full p-6 flex flex-col">
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-4" aria-label={`${testimonial.rating} out of 5 stars`}>
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                   ))}
@@ -64,10 +65,10 @@ export function Testimonials() {
                   <p className="text-gray-700 italic">"{testimonial.quote}"</p>
                 </blockquote>
 
-                <div className="border-t pt-4">
+                <footer className="border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold">{testimonial.author}</p>
+                      <cite className="font-semibold not-italic">{testimonial.author}</cite>
                       <p className="text-sm text-gray-600">{testimonial.role}</p>
                       <p className="text-sm text-gray-600">{testimonial.company}</p>
                     </div>
@@ -75,9 +76,9 @@ export function Testimonials() {
                       <p className="text-2xl font-bold text-primary">{testimonial.metric}</p>
                     </div>
                   </div>
-                </div>
+                </footer>
               </Card>
-            </motion.div>
+            </motion.article>
           ))}
         </div>
 

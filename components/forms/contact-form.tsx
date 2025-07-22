@@ -92,7 +92,7 @@ export function ContactForm({ form, onSubmit, loading }: ContactFormProps) {
         <Label htmlFor="subject">Subject *</Label>
         <Select
           value={subject}
-          onValueChange={(value) => setValue('subject', value as any)}
+          onValueChange={(value) => setValue('subject', value as ContactFormData['subject'])}
         >
           <SelectTrigger className={errors.subject ? 'border-red-500' : ''}>
             <SelectValue placeholder="Select a subject" />

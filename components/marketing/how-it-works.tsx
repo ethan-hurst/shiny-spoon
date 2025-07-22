@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Plug, Cog, Zap, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { memo } from 'react'
 
 const steps = [
   {
@@ -32,7 +33,7 @@ const steps = [
   },
 ]
 
-export function HowItWorks() {
+const HowItWorksComponent = memo(function HowItWorks() {
   return (
     <section className="py-20 lg:py-32 bg-gray-50">
       <div className="container mx-auto px-4">
@@ -45,9 +46,13 @@ export function HowItWorks() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+        <div 
+          className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 relative"
+          role="list"
+          aria-label="How it works steps"
+        >
           {/* Connection line for desktop */}
-          <div className="hidden lg:block absolute top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          <div className="hidden lg:block absolute top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent" aria-hidden="true" />
           
           {steps.map((step, index) => (
             <motion.div
@@ -57,13 +62,22 @@ export function HowItWorks() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
               className="relative"
+              role="listitem"
+              aria-label={`Step ${step.number}: ${step.title}`}
             >
               <div className="text-center">
                 <div className="relative inline-block mb-4">
-                  <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center relative z-10">
-                    <step.icon className="h-8 w-8 text-primary" />
+                  <div 
+                    className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center relative z-10"
+                    role="img"
+                    aria-label={`Step ${step.number} icon`}
+                  >
+                    <step.icon className="h-8 w-8 text-primary" aria-hidden="true" />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold">
+                  <div 
+                    className="absolute -top-2 -right-2 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold"
+                    aria-label={`Step number ${step.number}`}
+                  >
                     {step.number}
                   </div>
                 </div>
@@ -87,4 +101,6 @@ export function HowItWorks() {
       </div>
     </section>
   )
-}
+})
+
+export { HowItWorksComponent as HowItWorks }

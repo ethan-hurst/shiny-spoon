@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { PlayCircle } from 'lucide-react'
+import { useState } from 'react'
 
 interface FeatureHeroProps {
   title: string
@@ -13,6 +14,9 @@ interface FeatureHeroProps {
 }
 
 export function FeatureHero({ title, subtitle, videoUrl, imageUrl }: FeatureHeroProps) {
+  const [videoError, setVideoError] = useState(false)
+  const [imageError, setImageError] = useState(false)
+
   return (
     <section className="relative py-20 lg:py-32 bg-gradient-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4">
@@ -40,7 +44,7 @@ export function FeatureHero({ title, subtitle, videoUrl, imageUrl }: FeatureHero
             transition={{ duration: 0.5, delay: 0.2 }}
             className="relative"
           >
-            {videoUrl ? (
+            {videoUrl && !videoError ? (
               <div className="relative rounded-lg overflow-hidden shadow-2xl bg-gray-900">
                 <video
                   className="w-full h-auto"
@@ -48,6 +52,8 @@ export function FeatureHero({ title, subtitle, videoUrl, imageUrl }: FeatureHero
                   muted
                   loop
                   playsInline
+                  aria-label={`Video demonstration of ${title}`}
+                  onError={() => setVideoError(true)}
                 >
                   <source src={videoUrl} type="video/mp4" />
                   Your browser does not support the video tag.
@@ -56,15 +62,18 @@ export function FeatureHero({ title, subtitle, videoUrl, imageUrl }: FeatureHero
                   <PlayCircle className="h-16 w-16 text-white" />
                 </div>
               </div>
-            ) : imageUrl ? (
+            ) : imageUrl && !imageError ? (
               <img
                 src={imageUrl}
-                alt={title}
+                alt={`Detailed view of ${title} interface showing key features and functionality`}
                 className="rounded-lg shadow-2xl w-full"
                 loading="lazy"
+                onError={() => setImageError(true)}
               />
             ) : (
-              <div className="aspect-video bg-gray-200 rounded-lg shadow-2xl" />
+              <div className="aspect-video bg-gray-200 rounded-lg shadow-2xl flex items-center justify-center">
+                <p className="text-gray-500">Media content unavailable</p>
+              </div>
             )}
           </motion.div>
         </div>

@@ -5,6 +5,7 @@ import {
   getQuickPrice,
 } from '@/lib/pricing/calculate-price'
 import { PricingEngine } from '@/lib/pricing/pricing-engine'
+import { perfReporter, logPerformance, logComparison, logMemory } from '../utils/performance-reporter'
 
 // Skip performance tests in CI by default
 const describePerformance = process.env.RUN_PERF_TESTS
@@ -61,6 +62,11 @@ describePerformance('Pricing Engine Performance', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
     await clearPricingCache()
+    perfReporter.clear()
+  })
+
+  afterAll(() => {
+    perfReporter.printSummary()
   })
 
   describe('Single Price Calculations', () => {
@@ -83,7 +89,7 @@ describePerformance('Pricing Engine Performance', () => {
       const duration = performance.now() - start
       const avgTime = duration / 100
 
-      console.log(`Average time per calculation: ${avgTime.toFixed(2)}ms`)
+      logPerformance('Sequential calculations: Average per calculation', avgTime, { count: 100 })
       expect(avgTime).toBeLessThan(10) // Average should be under 10ms
     })
 
@@ -99,9 +105,7 @@ describePerformance('Pricing Engine Performance', () => {
 
       const duration = performance.now() - start
 
-      console.log(
-        `Total time for 100 concurrent calculations: ${duration.toFixed(2)}ms`
-      )
+      logPerformance('Concurrent calculations: Total time', duration, { count: 100 })
       expect(duration).toBeLessThan(200) // Should complete within 200ms
     })
   })
@@ -120,7 +124,7 @@ describePerformance('Pricing Engine Performance', () => {
 
       const duration = performance.now() - start
 
-      console.log(`Batch calculation for 50 products: ${duration.toFixed(2)}ms`)
+      logPerformance('Batch calculation', duration, { products: 50 })
       expect(duration).toBeLessThan(100)
       expect(results.size).toBe(50)
     })
@@ -146,11 +150,9 @@ describePerformance('Pricing Engine Performance', () => {
       )
       const batchDuration = performance.now() - batchStart
 
-      console.log(`Sequential: ${sequentialDuration.toFixed(2)}ms`)
-      console.log(`Batch: ${batchDuration.toFixed(2)}ms`)
-      console.log(
-        `Improvement: ${(((sequentialDuration - batchDuration) / sequentialDuration) * 100).toFixed(1)}%`
-      )
+      logPerformance('Sequential processing', sequentialDuration, { products: 20 })
+      logPerformance('Batch processing', batchDuration, { products: 20 })
+      logComparison('Batch vs Sequential', sequentialDuration, batchDuration)
 
       expect(batchDuration).toBeLessThan(sequentialDuration * 0.5) // Batch should be at least 50% faster
     })
@@ -171,10 +173,9 @@ describePerformance('Pricing Engine Performance', () => {
       await getQuickPrice(productId, customerId, 10)
       const secondDuration = performance.now() - secondStart
 
-      console.log(`First call (cache miss): ${firstDuration.toFixed(2)}ms`)
-      console.log(
-        `Second call (potential cache hit): ${secondDuration.toFixed(2)}ms`
-      )
+      logPerformance('Cache miss (first call)', firstDuration)
+      logPerformance('Cache hit (second call)', secondDuration)
+      logComparison('Cache performance', firstDuration, secondDuration)
 
       // Note: This would only show improvement if cache is actually implemented
       // For now, we just ensure both complete quickly
@@ -199,9 +200,7 @@ describePerformance('Pricing Engine Performance', () => {
       const finalMemory = process.memoryUsage().heapUsed
       const memoryIncrease = (finalMemory - initialMemory) / 1024 / 1024 // MB
 
-      console.log(
-        `Memory increase for 1000 products: ${memoryIncrease.toFixed(2)}MB`
-      )
+      logMemory('Batch processing (1000 products)', finalMemory - initialMemory)
 
       // Should use less than 50MB for 1000 products
       expect(memoryIncrease).toBeLessThan(50)
@@ -226,10 +225,10 @@ describePerformance('Pricing Engine Performance', () => {
       const actualDuration = performance.now() - start
       const requestsPerSecond = (requestCount / actualDuration) * 1000
 
-      console.log(
-        `Completed ${requestCount} requests in ${actualDuration.toFixed(0)}ms`
-      )
-      console.log(`Rate: ${requestsPerSecond.toFixed(0)} requests/second`)
+      logPerformance('High-frequency test', actualDuration, { 
+        requests: requestCount,
+        rate: `${requestsPerSecond.toFixed(0)} req/s`
+      })
 
       expect(requestsPerSecond).toBeGreaterThan(100) // Should handle at least 100 req/s
     })
@@ -264,11 +263,12 @@ describePerformance('Pricing Engine Performance', () => {
       const avgUserDuration =
         userDurations.reduce((a, b) => a + b, 0) / concurrentUsers
 
-      console.log(`Total duration: ${totalDuration.toFixed(0)}ms`)
-      console.log(
-        `Average user completion time: ${avgUserDuration.toFixed(0)}ms`
-      )
-      console.log(`Total requests: ${concurrentUsers * requestsPerUser}`)
+      logPerformance('Concurrent load test', totalDuration, {
+        users: concurrentUsers,
+        requestsPerUser,
+        totalRequests: concurrentUsers * requestsPerUser,
+        avgUserTime: avgUserDuration.toFixed(0)
+      })
 
       expect(totalDuration).toBeLessThan(5000) // Should complete within 5 seconds
       expect(avgUserDuration).toBeLessThan(3000) // Each user should complete within 3 seconds
@@ -279,7 +279,7 @@ describePerformance('Pricing Engine Performance', () => {
 // Performance report generator
 describePerformance('Performance Report', () => {
   it('should generate performance summary', async () => {
-    console.log('\n=== PRICING ENGINE PERFORMANCE SUMMARY ===\n')
+    // Performance metrics will be collected and reported by perfReporter
 
     const metrics = {
       singleCalculation: 0,
@@ -311,25 +311,31 @@ describePerformance('Performance Report', () => {
     )
     metrics.concurrentRequests = (performance.now() - concurrentStart) / 20
 
-    console.table({
-      'Single Price Calculation': `${metrics.singleCalculation.toFixed(2)}ms`,
-      'Batch Calculation (per item)': `${metrics.batchCalculation.toFixed(2)}ms`,
-      'Concurrent Requests (avg)': `${metrics.concurrentRequests.toFixed(2)}ms`,
-    })
+    // Log summary metrics
+    logPerformance('Summary: Single calculation', metrics.singleCalculation)
+    logPerformance('Summary: Batch per item', metrics.batchCalculation)
+    logPerformance('Summary: Concurrent avg', metrics.concurrentRequests)
 
-    console.log('\nRecommendations:')
+    // Generate recommendations based on performance
+    const recommendations: string[] = []
+    
     if (metrics.singleCalculation > 20) {
-      console.log(
-        '- Consider optimizing database queries for single price lookups'
-      )
+      recommendations.push('Consider optimizing database queries for single price lookups')
     }
     if (metrics.batchCalculation > metrics.singleCalculation * 0.5) {
-      console.log('- Batch processing could be further optimized')
+      recommendations.push('Batch processing could be further optimized')
     }
-    console.log('- Implement Redis caching for frequently accessed prices')
-    console.log('- Use connection pooling for database connections')
-    console.log(
-      '- Consider implementing a price calculation queue for bulk operations'
+    recommendations.push(
+      'Implement Redis caching for frequently accessed prices',
+      'Use connection pooling for database connections',
+      'Consider implementing a price calculation queue for bulk operations'
     )
+
+    // Log recommendations if verbose reporting is enabled
+    if (process.env.PERF_REPORT === 'true') {
+      recommendations.forEach((rec, index) => {
+        logPerformance(`Recommendation ${index + 1}`, 0, { recommendation: rec })
+      })
+    }
   })
 })

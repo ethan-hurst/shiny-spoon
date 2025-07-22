@@ -17,6 +17,18 @@ export function LegalLayout({ title, lastUpdated, downloadUrl, children }: Legal
     window.print()
   }
 
+  // Validate download URL for security
+  const isValidDownloadUrl = (url: string) => {
+    try {
+      const urlObj = new URL(url, window.location.origin)
+      // Allow only same origin or trusted domains
+      const allowedDomains = [window.location.hostname, 'cdn.truthsource.io', 'docs.truthsource.io']
+      return allowedDomains.includes(urlObj.hostname) && urlObj.pathname.endsWith('.pdf')
+    } catch {
+      return false
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-4xl mx-auto">
@@ -32,7 +44,7 @@ export function LegalLayout({ title, lastUpdated, downloadUrl, children }: Legal
                 <Printer className="mr-2 h-4 w-4" />
                 Print
               </Button>
-              {downloadUrl && (
+              {downloadUrl && isValidDownloadUrl(downloadUrl) && (
                 <Link href={downloadUrl} download>
                   <Button variant="outline" size="sm">
                     <Download className="mr-2 h-4 w-4" />

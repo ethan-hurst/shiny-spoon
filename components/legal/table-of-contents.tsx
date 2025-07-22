@@ -21,11 +21,28 @@ export function TableOfContents({ content }: TableOfContentsProps) {
     // Extract headings from the page
     const headings = document.querySelectorAll('h2, h3')
     const sectionList: Section[] = []
+    const usedIds = new Set<string>()
 
     headings.forEach((heading) => {
-      const id = heading.id || heading.textContent?.toLowerCase().replace(/\s+/g, '-') || ''
+      let baseId = heading.id || heading.textContent?.toLowerCase().replace(/\s+/g, '-') || ''
+      let uniqueId = baseId
+      let counter = 1
+
+      // Ensure unique IDs by appending a counter if needed
+      while (usedIds.has(uniqueId)) {
+        uniqueId = `${baseId}-${counter}`
+        counter++
+      }
+
+      usedIds.add(uniqueId)
+      
+      // Set the ID on the heading element if it doesn't already have one
+      if (!heading.id) {
+        heading.id = uniqueId
+      }
+
       sectionList.push({
-        id,
+        id: uniqueId,
         title: heading.textContent || '',
         level: parseInt(heading.tagName.charAt(1)),
       })

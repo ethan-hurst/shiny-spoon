@@ -352,6 +352,28 @@ function MobileNav({ navigation, user, onItemClick }: {
       </div>
 
       <div className="border-t pt-4">
+        <h3 className="font-semibold mb-2">Solutions</h3>
+        {navigation.solutions.map((item) => (
+          <Link key={item.title} href={item.href} onClick={onItemClick}>
+            <Button variant="ghost" className="w-full justify-start text-sm">
+              {item.title}
+            </Button>
+          </Link>
+        ))}
+      </div>
+
+      <div className="border-t pt-4">
+        <h3 className="font-semibold mb-2">Resources</h3>
+        {navigation.resources.map((item) => (
+          <Link key={item.title} href={item.href} onClick={onItemClick}>
+            <Button variant="ghost" className="w-full justify-start text-sm">
+              {item.title}
+            </Button>
+          </Link>
+        ))}
+      </div>
+
+      <div className="border-t pt-4">
         <h3 className="font-semibold mb-2">Company</h3>
         {navigation.company.map((item) => (
           <Link key={item.title} href={item.href} onClick={onItemClick}>

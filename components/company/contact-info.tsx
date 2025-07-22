@@ -11,8 +11,16 @@ export function ContactInfo() {
             <Mail className="h-5 w-5 text-primary mt-0.5" />
             <div>
               <p className="font-medium">Email</p>
-              <p className="text-sm text-gray-600">support@truthsource.io</p>
-              <p className="text-sm text-gray-600">sales@truthsource.io</p>
+              <p className="text-sm text-gray-600">
+                <a href="mailto:support@truthsource.io" className="hover:text-primary transition-colors">
+                  support@truthsource.io
+                </a>
+              </p>
+              <p className="text-sm text-gray-600">
+                <a href="mailto:sales@truthsource.io" className="hover:text-primary transition-colors">
+                  sales@truthsource.io
+                </a>
+              </p>
             </div>
           </div>
 

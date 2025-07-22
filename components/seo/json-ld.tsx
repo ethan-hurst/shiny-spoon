@@ -1,5 +1,83 @@
+interface PriceSpecification {
+  '@type': 'PriceSpecification'
+  price: string
+  priceCurrency: string
+  eligibleQuantity: {
+    '@type': 'QuantitativeValue'
+    value: string
+    unitText: string
+  }
+}
+
+interface Offer {
+  '@type': 'Offer'
+  price: string
+  priceCurrency: string
+  priceSpecification: PriceSpecification
+}
+
+interface AggregateRating {
+  '@type': 'AggregateRating'
+  ratingValue: string
+  reviewCount: string
+  bestRating: string
+  worstRating: string
+}
+
+interface Organization {
+  '@type': 'Organization'
+  name: string
+  url: string
+}
+
+interface SoftwareApplication {
+  '@context': 'https://schema.org'
+  '@type': 'SoftwareApplication'
+  name: string
+  applicationCategory: string
+  operatingSystem: string
+  description: string
+  offers: Offer
+  aggregateRating: AggregateRating
+  featureList: string[]
+  screenshot: string
+  softwareVersion: string
+  author: Organization
+}
+
+interface OrganizationSchema {
+  '@context': 'https://schema.org'
+  '@type': 'Organization'
+  name: string
+  url: string
+  logo: string
+  description?: string
+  foundingDate?: string
+  founders?: Array<{
+    '@type': 'Person'
+    name: string
+  }>
+  address: {
+    '@type': 'PostalAddress'
+    streetAddress: string
+    addressLocality: string
+    addressRegion: string
+    postalCode: string
+    addressCountry: string
+  }
+  contactPoint: {
+    '@type': 'ContactPoint'
+    telephone: string
+    contactType: string
+    email: string
+    areaServed?: string
+    availableLanguage?: string[]
+  }
+  sameAs: string[]
+}
+
 export function JsonLd() {
-  const structuredData = {
+  const structuredData: SoftwareApplication = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: 'TruthSource',
@@ -45,7 +123,7 @@ export function JsonLd() {
     }
   }
 
-  const organizationData = {
+  const organizationData: OrganizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'TruthSource',
@@ -60,6 +138,7 @@ export function JsonLd() {
       '@type': 'ContactPoint',
       telephone: '+1-415-555-0123',
       contactType: 'sales',
+      email: 'sales@truthsource.io',
       areaServed: 'US',
       availableLanguage: ['English']
     },

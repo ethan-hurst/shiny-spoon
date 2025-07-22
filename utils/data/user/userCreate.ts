@@ -39,12 +39,42 @@ export const userCreate = async ({
       ])
       .select()
 
-    console.log('data', data)
-    console.log('error', error)
-
-    if (error?.code) return error
+    if (error) {
+      // Log error details for monitoring without exposing sensitive data
+      const errorInfo = {
+        code: error.code,
+        message: error.message,
+        hint: error.hint,
+        details: error.details,
+        timestamp: new Date().toISOString(),
+        operation: 'userCreate',
+        user_email: email, // Only log email for troubleshooting
+      }
+      
+      // In production, this would be sent to a proper logging service
+      // For now, we'll use console.error with structured data
+      console.error('[User Creation Error]', JSON.stringify(errorInfo, null, 2))
+      
+      return error
+    }
+    
+    // Log success without exposing user data
+    if (data && data.length > 0) {
+      console.info('[User Creation Success]', {
+        user_id: data[0].user_id,
+        timestamp: new Date().toISOString(),
+      })
+    }
+    
     return data
   } catch (error: any) {
-    throw new Error(error.message)
+    // Log unexpected errors with context
+    console.error('[User Creation Exception]', {
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    })
+    
+    throw new Error(`Failed to create user: ${error.message}`)
   }
 }

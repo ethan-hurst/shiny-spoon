@@ -41,9 +41,9 @@ export function ComparisonTable() {
                     <td className="p-4 text-center">
                       {typeof row.truthSource === 'boolean' ? (
                         row.truthSource ? (
-                          <Check className="h-5 w-5 text-green-500 mx-auto" />
+                          <Check className="h-5 w-5 text-green-500 mx-auto" aria-label="True" />
                         ) : (
-                          <X className="h-5 w-5 text-red-500 mx-auto" />
+                          <X className="h-5 w-5 text-red-500 mx-auto" aria-label="False" />
                         )
                       ) : (
                         <span className="text-primary font-semibold">{row.truthSource}</span>
@@ -52,9 +52,9 @@ export function ComparisonTable() {
                     <td className="p-4 text-center">
                       {typeof row.manual === 'boolean' ? (
                         row.manual ? (
-                          <Check className="h-5 w-5 text-green-500 mx-auto" />
+                          <Check className="h-5 w-5 text-green-500 mx-auto" aria-label="True" />
                         ) : (
-                          <X className="h-5 w-5 text-red-500 mx-auto" />
+                          <X className="h-5 w-5 text-red-500 mx-auto" aria-label="False" />
                         )
                       ) : (
                         <span className="text-gray-600">{row.manual}</span>
@@ -63,9 +63,9 @@ export function ComparisonTable() {
                     <td className="p-4 text-center">
                       {typeof row.competitors === 'boolean' ? (
                         row.competitors ? (
-                          <Check className="h-5 w-5 text-green-500 mx-auto" />
+                          <Check className="h-5 w-5 text-green-500 mx-auto" aria-label="True" />
                         ) : (
-                          <X className="h-5 w-5 text-red-500 mx-auto" />
+                          <X className="h-5 w-5 text-red-500 mx-auto" aria-label="False" />
                         )
                       ) : (
                         <span className="text-gray-600">{row.competitors}</span>

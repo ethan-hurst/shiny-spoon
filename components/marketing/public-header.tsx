@@ -197,11 +197,20 @@ export function PublicHeader() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px]">
+            <SheetContent 
+              side="left" 
+              className="w-[300px]"
+              aria-describedby="mobile-menu-description"
+            >
               <SheetHeader>
-                <SheetTitle>TruthSource</SheetTitle>
+                <SheetTitle>Navigation Menu</SheetTitle>
+                <p id="mobile-menu-description" className="sr-only">
+                  Main navigation menu for TruthSource website
+                </p>
               </SheetHeader>
-              <MobileNav navigation={navigation} user={user} onItemClick={() => setMobileMenuOpen(false)} />
+              <div role="navigation" aria-label="Mobile navigation">
+                <MobileNav navigation={navigation} user={user} onItemClick={() => setMobileMenuOpen(false)} />
+              </div>
             </SheetContent>
           </Sheet>
         </div>
@@ -215,7 +224,7 @@ const ListItem = React.forwardRef<
   React.ComponentPropsWithoutRef<'a'>
 >(({ className, title, children, ...props }, ref) => {
   return (
-    <li>
+    <li role="menuitem">
       <NavigationMenuLink asChild>
         <a
           ref={ref}

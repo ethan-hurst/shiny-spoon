@@ -30,8 +30,16 @@ export default function ContactPage() {
       })
 
       if (!response.ok) {
-        const error = await response.text()
-        throw new Error(error || 'Failed to send message')
+        let errorMessage = 'Failed to send message'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.details || errorMessage
+        } catch {
+          // If JSON parsing fails, try to get text
+          const errorText = await response.text()
+          errorMessage = errorText || errorMessage
+        }
+        throw new Error(errorMessage)
       }
 
       toast.success('Message sent! We\'ll get back to you within 24 hours.')

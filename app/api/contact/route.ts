@@ -1,9 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { contactSchema } from '@/lib/schemas/contact'
 import { createServerClient } from '@/lib/supabase/server'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+import { queueEmail } from '@/lib/email/email-queue'
+
+// Rate limiting: 5 submissions per hour per IP
+const ratelimit = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN 
+  ? new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(5, '1 h'),
+      analytics: true,
+    })
+  : null
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting check
+    if (ratelimit) {
+      const forwarded = request.headers.get('x-forwarded-for')
+      const realIp = request.headers.get('x-real-ip')
+      const ip = forwarded?.split(',')[0]?.trim() || realIp || '127.0.0.1'
+      const { success, limit, reset, remaining } = await ratelimit.limit(ip)
+      
+      if (!success) {
+        return NextResponse.json(
+          { 
+            error: 'Too many requests. Please try again later.',
+            details: `Rate limit exceeded. Try again in ${Math.round((reset - Date.now()) / 1000 / 60)} minutes.`
+          },
+          { 
+            status: 429,
+            headers: {
+              'X-RateLimit-Limit': limit.toString(),
+              'X-RateLimit-Remaining': remaining.toString(),
+              'X-RateLimit-Reset': reset.toString(),
+            }
+          }
+        )
+      }
+    }
     const body = await request.json()
     
     // Validate the request body
@@ -23,29 +59,19 @@ export async function POST(request: NextRequest) {
         subject: validatedData.subject,
         message: validatedData.message,
         status: 'new',
-        created_at: new Date().toISOString(),
+        // Remove manual timestamp - let database handle created_at automatically
       })
     
     if (dbError) {
       console.error('Database error:', dbError)
-      // Don't expose database errors to client
+      return NextResponse.json(
+        { error: 'Failed to save your message. Please try again.' },
+        { status: 500 }
+      )
     }
     
-    // TODO: Send email notification using Resend or similar service
-    // For now, we'll just log the submission
-    console.log('Contact form submission:', validatedData)
-    
-    // In production, you would integrate with an email service like:
-    // - Resend (https://resend.com)
-    // - SendGrid
-    // - AWS SES
-    // - Postmark
-    
-    // Example with Resend (commented out):
-    /*
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    
-    await resend.emails.send({
+    // Queue email notification to sales team
+    const salesEmailResult = await queueEmail({
       from: 'TruthSource <noreply@truthsource.io>',
       to: ['sales@truthsource.io'],
       subject: `New ${validatedData.subject} inquiry from ${validatedData.name}`,
@@ -59,10 +85,15 @@ export async function POST(request: NextRequest) {
         <p><strong>Message:</strong></p>
         <p>${validatedData.message}</p>
       `,
+      text: `New Contact Form Submission\n\nName: ${validatedData.name}\nEmail: ${validatedData.email}\nCompany: ${validatedData.company}\nPhone: ${validatedData.phone || 'Not provided'}\nSubject: ${validatedData.subject}\n\nMessage:\n${validatedData.message}`,
     })
     
-    // Send auto-reply to user
-    await resend.emails.send({
+    if (!salesEmailResult.success) {
+      console.error('Failed to queue sales notification email:', salesEmailResult.error)
+    }
+    
+    // Queue auto-reply email to user
+    const autoReplyResult = await queueEmail({
       from: 'TruthSource <noreply@truthsource.io>',
       to: [validatedData.email],
       subject: 'Thank you for contacting TruthSource',
@@ -73,8 +104,12 @@ export async function POST(request: NextRequest) {
         <p>In the meantime, feel free to explore our <a href="https://truthsource.io/docs">documentation</a> or <a href="https://truthsource.io/blog">blog</a>.</p>
         <p>Best regards,<br>The TruthSource Team</p>
       `,
+      text: `Thank you for reaching out!\n\nHi ${validatedData.name},\n\nWe've received your message and will get back to you within 24 hours.\n\nIn the meantime, feel free to explore our documentation at https://truthsource.io/docs or blog at https://truthsource.io/blog.\n\nBest regards,\nThe TruthSource Team`,
     })
-    */
+    
+    if (!autoReplyResult.success) {
+      console.error('Failed to queue auto-reply email:', autoReplyResult.error)
+    }
     
     return NextResponse.json(
       { message: 'Message sent successfully' },

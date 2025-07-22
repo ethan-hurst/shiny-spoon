@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     })
   }
   
-  const supabase: any = createServerClient(
+  const supabase = createServerClient(
     supabaseUrl,
     supabaseServiceKey,
     {
@@ -59,7 +59,17 @@ async function handleSubscriptionEvent(
     })
   }
 
-  const subscriptionData: any = {
+  interface SubscriptionData {
+    subscription_id: string
+    stripe_user_id: string | Stripe.Customer | Stripe.DeletedCustomer
+    status: Stripe.Subscription.Status
+    start_date: string
+    plan_id: string
+    user_id: string
+    email: string
+  }
+
+  const subscriptionData: SubscriptionData = {
     subscription_id: subscription.id,
     stripe_user_id: subscription.customer,
     status: subscription.status,
