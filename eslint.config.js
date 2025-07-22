@@ -8,4 +8,5 @@ const compat = new FlatCompat({
 module.exports = [
   js.configs.recommended,
   ...compat.extends('next/core-web-vitals'),
+  ...compat.extends('plugin:prettier/recommended'),
 ]
