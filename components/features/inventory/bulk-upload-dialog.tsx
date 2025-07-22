@@ -261,7 +261,7 @@ export function BulkUploadDialog({
                   <li>SKU (or Product SKU, Item Code)</li>
                   <li>Warehouse Code (or Warehouse, Location)</li>
                   <li>Quantity (or Qty, Count, Stock)</li>
-                  <li>Reason (optional, defaults to "cycle_count")</li>
+                  <li>Reason (optional, defaults to &quot;cycle_count&quot;)</li>
                   <li>Notes (optional)</li>
                 </ul>
               </AlertDescription>

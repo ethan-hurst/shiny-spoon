@@ -95,8 +95,45 @@ export function BulkPriceUpdateDialog({
     changePercent: number
   }>>([])
 
+  // Helper function to parse CSV with proper handling of quoted fields
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+    let i = 0
+
+    while (i < line.length) {
+      const char = line[i]
+      const nextChar = line[i + 1]
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"'
+          i += 2
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes
+          i++
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Field separator
+        result.push(current.trim())
+        current = ''
+        i++
+      } else {
+        current += char
+        i++
+      }
+    }
+
+    // Add the last field
+    result.push(current.trim())
+    return result
+  }
+
   // Calculate new price based on update type
-  const calculateNewPrice = useCallback((currentPrice: number): number => {
+    const calculateNewPrice = useCallback((currentPrice: number, basePrice: number) => {
     if (updateType === 'percentage') {
       const percent = parseFloat(percentageValue) / 100
       if (changeType === 'increase') {
@@ -104,7 +141,7 @@ export function BulkPriceUpdateDialog({
       } else if (changeType === 'decrease') {
         return currentPrice * (1 - percent)
       } else {
-        return currentPrice * (1 - percent) // Override with discount
+        return basePrice * (1 - percent) // Override with discount using base price
       }
     } else if (updateType === 'fixed') {
       const fixed = parseFloat(fixedValue)
@@ -139,7 +176,7 @@ export function BulkPriceUpdateDialog({
           }
         }
       } else {
-        newPrice = calculateNewPrice(product.currentPrice)
+        newPrice = calculateNewPrice(product.currentPrice, product.basePrice)
       }
 
       const changePercent = ((newPrice - product.currentPrice) / product.currentPrice) * 100
@@ -166,8 +203,13 @@ export function BulkPriceUpdateDialog({
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string
-        const lines = text.split('\n').filter(line => line.trim())
-        const headers = lines[0].toLowerCase().split(',').map(h => h.trim())
+        const lines = text.split('\n').filter(line => line.trim()) // Filter empty lines
+        
+        if (lines.length === 0) {
+          throw new Error('CSV file is empty')
+        }
+
+        const headers = parseCSVLine(lines[0]).map((h: string) => h.toLowerCase().trim())
         
         if (!headers.includes('sku')) {
           throw new Error('CSV must have a "sku" column')
@@ -175,7 +217,7 @@ export function BulkPriceUpdateDialog({
 
         const data: CSVRow[] = []
         for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map(v => v.trim())
+          const values = parseCSVLine(lines[i])
           const row: CSVRow = { sku: '' }
           
           headers.forEach((header, index) => {
@@ -215,10 +257,7 @@ export function BulkPriceUpdateDialog({
     setProgress(0)
 
     try {
-      const updates = previewData.map((item, index) => {
-        // Simulate progress
-        setTimeout(() => setProgress((index + 1) / previewData.length * 100), index * 100)
-        
+      const updates = previewData.map((item) => {
         return {
           sku: item.sku,
           price: item.newPrice,
@@ -231,7 +270,13 @@ export function BulkPriceUpdateDialog({
       formData.append('updates', JSON.stringify(updates))
       formData.append('apply_to_all_warehouses', 'true')
 
+      // Set progress to 50% when starting the API call
+      setProgress(50)
+
       await bulkUpdateCustomerPrices(formData)
+      
+      // Set progress to 100% when successful
+      setProgress(100)
       
       toast.success(`Successfully updated prices for ${updates.length} products`)
       setOpen(false)
@@ -508,8 +553,8 @@ export function BulkPriceUpdateDialog({
                         </td>
                         <td className="text-right p-2">
                           <Badge
-                            variant={item.changePercent > 0 ? 'destructive' : 'success'}
-                            className="text-xs"
+                            variant={item.changePercent > 0 ? 'destructive' : 'default'}
+                            className={`text-xs ${item.changePercent <= 0 ? 'bg-green-100 text-green-800' : ''}`}
                           >
                             {item.changePercent > 0 ? '+' : ''}{formatPercent(item.changePercent)}
                           </Badge>
@@ -564,8 +609,8 @@ export function BulkPriceUpdateDialog({
               disabled={
                 loading ||
                 !reason.trim() ||
-                (updateType === 'percentage' && !percentageValue) ||
-                (updateType === 'fixed' && !fixedValue) ||
+                (updateType === 'percentage' && (!percentageValue || isNaN(parseFloat(percentageValue)) || parseFloat(percentageValue) <= 0)) ||
+                (updateType === 'fixed' && (!fixedValue || isNaN(parseFloat(fixedValue)) || parseFloat(fixedValue) <= 0)) ||
                 (updateType === 'csv' && csvData.length === 0)
               }
             >

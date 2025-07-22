@@ -291,7 +291,7 @@ export function CustomerPriceList({ customerId, initialData = [] }: CustomerPric
       const formData = new FormData()
       
       // Check if this customer already has a pricing override
-      if (product.id) {
+      if (product.id && !product.id.startsWith('new-')) {
         // Update existing customer pricing
         formData.append('id', product.id)
         formData.append('product_id', productId)

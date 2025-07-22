@@ -59,10 +59,10 @@ export function SignupForm() {
         <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold mb-2">Check your email</h3>
         <p className="text-gray-600">
-          We've sent a confirmation link to {form.getValues('email')}
+          We&apos;ve sent a confirmation link to {form.getValues('email')}
         </p>
         <p className="text-sm text-gray-500 mt-4">
-          Didn't receive the email? Check your spam folder or contact support.
+          Didn&apos;t receive the email? Check your spam folder or contact support.
         </p>
       </div>
     )

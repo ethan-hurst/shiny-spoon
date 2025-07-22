@@ -186,19 +186,55 @@ Key architectural decisions:
 
 ## 🧪 Testing
 
+TruthSource uses a comprehensive testing strategy to ensure reliability and maintainability. See [TESTING.md](TESTING.md) for detailed documentation.
+
+### Testing Stack
+
+- **Jest** - Unit and integration testing
+- **React Testing Library** - Component testing
+- **Playwright** - End-to-end testing
+- **Performance benchmarks** - Ensure optimal performance
+
+### Quick Test Commands
+
 ```bash
 # Run all tests
-pnpm test
+pnpm test:all
 
-# Run unit tests
-pnpm test:unit
+# Unit tests
+pnpm test:unit          # Run unit tests
+pnpm test:watch         # Watch mode for development
+pnpm test:coverage      # Generate coverage report
 
-# Run E2E tests
-pnpm test:e2e
+# Integration tests
+pnpm test:integration   # Run integration tests
 
-# Run E2E tests with UI
-pnpm test:e2e:ui
+# E2E tests
+pnpm test:e2e           # Run E2E tests
+pnpm test:e2e:ui        # Interactive UI mode
+pnpm test:e2e:headed    # See browser while testing
+
+# Performance tests
+pnpm test:perf          # Run performance benchmarks
+
+# Validation scripts
+pnpm validate:setup     # Validate PRP-001 (project setup)
+pnpm validate:migrations # Validate PRP-002 (database migrations)
 ```
+
+### Test Coverage
+
+We maintain high test coverage standards:
+- Unit tests for all utilities and business logic
+- Integration tests for server actions and API routes
+- E2E tests for critical user workflows
+- Performance benchmarks for the pricing engine
+
+Current coverage targets:
+- Statements: 80%
+- Branches: 70%
+- Functions: 80%
+- Lines: 80%
 
 ## 🚀 Deployment
 

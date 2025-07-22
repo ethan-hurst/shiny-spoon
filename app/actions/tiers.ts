@@ -50,22 +50,6 @@ export async function createTier(formData: FormData) {
     return { error: 'Unauthorized' }
   }
 
-  // Parse form data
-  const parsed = customerTierSchema.safeParse({
-    name: formData.get('name'),
-    level: Number(formData.get('level')),
-    discount_percentage: Number(formData.get('discount_percentage')),
-    color: formData.get('color'),
-    benefits: formData.get('benefits') ? JSON.parse(formData.get('benefits') as string) : {},
-    requirements: formData.get('requirements') ? JSON.parse(formData.get('requirements') as string) : {},
-  })
-
-  if (!parsed.success) {
-    return { error: parsed.error.flatten() }
-  }
-
-  const organizationId = formData.get('organization_id') as string
-
   // Check if level already exists
   const { data: existing } = await supabase
     .from('customer_tiers')

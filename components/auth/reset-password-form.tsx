@@ -49,10 +49,10 @@ export function ResetPasswordForm() {
         <Mail className="w-12 h-12 text-blue-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold mb-2">Check your email</h3>
         <p className="text-gray-600">
-          We've sent a password reset link to {form.getValues('email')}
+          We&apos;ve sent a password reset link to {form.getValues('email')}
         </p>
         <p className="text-sm text-gray-500 mt-4">
-          Didn't receive the email? Check your spam folder or try again.
+          Didn&apos;t receive the email? Check your spam folder or try again.
         </p>
         <Button
           variant="outline"

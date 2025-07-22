@@ -81,15 +81,15 @@ export function PriceHistoryViewer({
             sku,
             name
           ),
-          created_by_user:auth.users!customer_price_history_created_by_fkey (
+          created_by_user:user_profiles!customer_price_history_created_by_fkey (
             id,
-            email,
-            user_metadata
+            full_name,
+            email
           ),
-          approved_by_user:auth.users!customer_price_history_approved_by_fkey (
+          approved_by_user:user_profiles!customer_price_history_approved_by_fkey (
             id,
-            email,
-            user_metadata
+            full_name,
+            email
           )
         `)
         .order('created_at', { ascending: false })
@@ -131,6 +131,14 @@ export function PriceHistoryViewer({
     fetchHistory()
   }, [fetchHistory])
 
+  // Helper function to escape CSV fields
+  const escapeCsvField = (field: string): string => {
+    if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+      return `"${field.replace(/"/g, '""')}"`
+    }
+    return field
+  }
+
   // Export history
   const handleExport = useCallback(async () => {
     setExporting(true)
@@ -151,7 +159,7 @@ export function PriceHistoryViewer({
           entry.created_by_user?.email || '',
           entry.approval_status || 'approved'
         ])
-      ].map(row => row.join(',')).join('\n')
+      ].map(row => row.map(field => escapeCsvField(field.toString())).join(',')).join('\n')
 
       const blob = new Blob([csvContent], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)

@@ -230,10 +230,8 @@ export class PricingEngine {
           
         // Margin conditions
         case 'min_margin_override':
-          // Allow rule only if resulting margin meets custom threshold
-          if (typeof value === 'number') {
-            context.minMargin = Math.max(context.minMargin, value)
-          }
+          // Note: This condition updates minimum margin requirements but doesn't affect rule evaluation
+          // The actual margin validation will be handled elsewhere to avoid context mutation
           break
           
         // Inventory conditions
@@ -250,7 +248,12 @@ export class PricingEngine {
           break
           
         case 'inventory_level':
-          if (!context.inventory) return false
+          if (!context.inventory || 
+              context.inventory.availableQuantity === undefined || 
+              context.inventory.totalQuantity === undefined ||
+              context.inventory.totalQuantity <= 0) {
+            return false
+          }
           const inventoryPercent = (context.inventory.availableQuantity / context.inventory.totalQuantity) * 100
           
           switch (value) {

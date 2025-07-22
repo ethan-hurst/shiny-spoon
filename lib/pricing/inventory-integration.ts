@@ -128,8 +128,8 @@ export function calculateInventoryBasedPrice(
     excessLevelDiscount = 10, // 10% discount
   } = rules
   
-  if (inventoryData.totalQuantity === 0) {
-    return basePrice // No inventory data
+  if (inventoryData.totalQuantity <= 0) {
+    return basePrice // No valid inventory data
   }
   
   const inventoryPercent = (inventoryData.availableQuantity / inventoryData.totalQuantity) * 100
@@ -156,7 +156,7 @@ export function isQuantityAvailable(
   inventoryData: InventoryData | null
 ): boolean {
   if (!inventoryData) {
-    return true // Assume available if no inventory data
+    return false // Conservative approach - treat missing data as unavailable
   }
   
   return requestedQuantity <= inventoryData.availableQuantity
@@ -166,6 +166,13 @@ export function isQuantityAvailable(
  * Get inventory-based pricing rule conditions
  */
 export function getInventoryConditions(inventoryData: InventoryData): Record<string, any> {
+  if (inventoryData.totalQuantity <= 0) {
+    return {
+      inventory_level: 'unknown',
+      inventory_percent: 0
+    }
+  }
+  
   const inventoryPercent = (inventoryData.availableQuantity / inventoryData.totalQuantity) * 100
   
   let level: string

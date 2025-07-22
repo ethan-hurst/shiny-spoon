@@ -148,7 +148,7 @@ export function WarehouseActions({ warehouse }: WarehouseActionsProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the warehouse "{warehouse.name}". 
+              This will permanently delete the warehouse &quot;{warehouse.name}&quot;. 
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

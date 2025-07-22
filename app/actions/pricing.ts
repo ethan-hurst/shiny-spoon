@@ -303,105 +303,29 @@ export async function bulkUpdateCustomerPrices(formData: FormData) {
 
   // Create a bulk update ID for tracking
   const bulkUpdateId = crypto.randomUUID()
-  const errors: Array<{ sku: string; error: string }> = []
-  let succeeded = 0
-  let pendingApproval = 0
 
-  // Process each update
-  for (const update of updates) {
-    try {
-      // Find product by SKU
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .select('id, product_pricing(base_price, cost)')
-        .eq('sku', update.sku)
-        .single()
-
-      if (productError || !product) {
-        errors.push({ sku: update.sku, error: 'Product not found' })
-        continue
-      }
-
-      // Check if customer already has pricing for this product
-      const { data: existingPricing } = await supabase
-        .from('customer_pricing')
-        .select('id')
-        .eq('customer_id', customerId)
-        .eq('product_id', product.id)
-        .single()
-
-      const pricingData = {
-        customer_id: customerId,
-        product_id: product.id,
-        override_price: update.price,
-        override_discount_percent: update.discount_percent,
-        bulk_update_id: bulkUpdateId,
-        import_notes: update.reason,
-        created_by: user.id,
-      }
-
-      if (existingPricing) {
-        // Update existing pricing
-        const { error: updateError } = await supabase
-          .from('customer_pricing')
-          .update(pricingData)
-          .eq('id', existingPricing.id)
-
-        if (updateError) {
-          errors.push({ sku: update.sku, error: updateError.message })
-          continue
-        }
-      } else {
-        // Create new pricing
-        const { error: createError } = await supabase
-          .from('customer_pricing')
-          .insert(pricingData)
-
-        if (createError) {
-          errors.push({ sku: update.sku, error: createError.message })
-          continue
-        }
-      }
-
-      // Add to history
-      const { error: historyError } = await supabase
-        .from('customer_price_history')
-        .insert({
-          customer_id: customerId,
-          product_id: product.id,
-          old_price: product.product_pricing?.base_price || null,
-          new_price: update.price || null,
-          old_discount_percent: null,
-          new_discount_percent: update.discount_percent || null,
-          change_type: 'bulk',
-          change_reason: update.reason,
-          created_by: user.id,
-        })
-
-      if (historyError) {
-        console.error('Failed to create history entry:', historyError)
-      }
-
-      succeeded++
-    } catch (error) {
-      errors.push({ 
-        sku: update.sku, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+  try {
+    // Execute bulk update using stored procedure within a transaction
+    const { data: result, error } = await supabase
+      .rpc('bulk_update_customer_prices_transaction', {
+        p_customer_id: customerId,
+        p_updates: updates,
+        p_bulk_update_id: bulkUpdateId,
+        p_user_id: user.id
       })
+
+    if (error) {
+      throw error
     }
-  }
 
-  // Clear pricing cache
-  await clearPricingCache()
-  revalidatePath('/pricing')
+    // Clear pricing cache after successful transaction
+    await clearPricingCache()
+    revalidatePath('/pricing')
 
-  return {
-    total: updates.length,
-    succeeded,
-    failed: errors.length,
-    pending_approval: pendingApproval,
-    errors,
-    bulk_update_id: bulkUpdateId,
+    return result
+  } catch (error) {
+    // Re-throw transaction errors
+    throw error instanceof Error ? error : new Error('Transaction failed')
   }
 }
 

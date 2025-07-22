@@ -15,6 +15,7 @@ You are working on **TruthSource**, a B2B e-commerce data accuracy platform buil
 - **State Management**: Zustand + React Query (TanStack Query)
 - **Forms**: React Hook Form + Zod validation
 - **Testing**: Playwright (E2E), React Testing Library
+- **Caching**: Redis (Upstash) with in-memory fallback
 
 ### Architecture Principles
 1. **Server Components by Default** - Use Client Components only when needed
@@ -359,6 +360,87 @@ export function useInventory(warehouseId?: string) {
 4. **Test critical paths** - E2E tests for core workflows
 5. **Document complex logic** - Future you will thank you
 
+### 🚫 NO MOCK IMPLEMENTATIONS
+1. **NO setTimeout for fake progress** - Use real progress tracking
+2. **NO placeholder data** - Connect to real database/APIs
+3. **NO console.log simulations** - Implement actual functionality
+4. **NO hardcoded delays** - Use actual async operations
+5. **NO commented "TODO" in production code** - Complete all features
+6. **NO stub functions** - Implement complete logic
+7. **NO fake API responses** - Use real endpoints
+8. **NO placeholder UI** - Build actual components
+
+#### Examples of What NOT to Do:
+```typescript
+// ❌ BAD - Simulated progress
+setTimeout(() => setProgress((index + 1) / total * 100), index * 100)
+
+// ✅ GOOD - Real progress tracking
+const result = await updateItem(item)
+setProgress((index + 1) / total * 100)
+
+// ❌ BAD - Mock data
+const mockUsers = [{id: 1, name: 'Test User'}]
+const fakeProducts = generateMockProducts(10)
+const dummyResponse = { success: true, data: [] }
+
+// ✅ GOOD - Real data
+const { data: users } = await supabase.from('users').select('*')
+const { data: products } = await fetchProductsFromAPI()
+
+// ❌ BAD - Fake async/delays
+await new Promise(resolve => setTimeout(resolve, 1000))
+await sleep(2000) // artificial delay
+await delay(Math.random() * 1000)
+
+// ✅ GOOD - Real operations
+await supabase.from('products').update({ price: newPrice })
+await fetch('/api/process', { method: 'POST', body })
+
+// ❌ BAD - Stub functions
+async function processOrder(order) {
+  console.log('Processing order...', order)
+  return { success: true }
+}
+
+// ✅ GOOD - Complete implementation
+async function processOrder(order) {
+  const validated = validateOrder(order)
+  const { data, error } = await supabase
+    .from('orders')
+    .insert(validated)
+  if (error) throw error
+  await sendOrderConfirmation(data.id)
+  return data
+}
+
+// ❌ BAD - Placeholder UI
+<div>Loading animation here...</div>
+<Button onClick={() => alert('Not implemented')}>Submit</Button>
+
+// ✅ GOOD - Actual implementation
+<Skeleton className="h-4 w-full" />
+<Button onClick={handleSubmit} disabled={isSubmitting}>
+  {isSubmitting ? <Spinner /> : 'Submit'}
+</Button>
+
+// ❌ BAD - Fake error handling
+try {
+  // operation
+} catch (error) {
+  console.error('Error occurred')
+}
+
+// ✅ GOOD - Proper error handling
+try {
+  // operation
+} catch (error) {
+  toast.error(error.message)
+  await logError(error, { context: 'processOrder' })
+  throw error
+}
+```
+
 ## 📝 Common Patterns to Follow
 
 ### Form Handling
@@ -458,31 +540,282 @@ test('update inventory quantity', async ({ page }) => {
 })
 ```
 
-## 🔍 Debugging Tips
+## 🔍 Troubleshooting Guide
 
-### Common Issues
-1. **"RLS policy violation"** - Check user's organization_id matches
-2. **"Hydration mismatch"** - Ensure consistent server/client rendering
-3. **"Invalid auth token"** - Refresh session or check middleware
-4. **"CORS error"** - Check Supabase URL configuration
-5. **"Type error after schema change"** - Regenerate types
+### Common Errors & Solutions
 
-### Useful Commands
+#### 1. RLS Policy Violations
+**Error**: `new row violates row-level security policy`
+```typescript
+// Problem: User's organization_id doesn't match
+// Solution: Ensure proper organization_id in insert/update
+const { data: profile } = await supabase
+  .from('user_profiles')
+  .select('organization_id')
+  .single()
+
+await supabase
+  .from('inventory')
+  .insert({ 
+    ...data, 
+    organization_id: profile.organization_id 
+  })
+```
+
+#### 2. Hydration Mismatches
+**Error**: `Text content does not match server-rendered HTML`
+```tsx
+// Problem: Date/time rendering differently on server/client
+// Solution: Use consistent formatting
+import { format } from 'date-fns'
+
+// Bad
+<span>{new Date().toLocaleString()}</span>
+
+// Good
+<span>{format(new Date(), 'PPP')}</span>
+```
+
+#### 3. Supabase Auth Token Errors
+**Error**: `Invalid Refresh Token`
+```typescript
+// Problem: Stale auth session
+// Solution: Refresh session in middleware
+export async function middleware(request: NextRequest) {
+  const supabase = createMiddlewareClient(request)
+  
+  // Refresh session
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+  
+  return NextResponse.next()
+}
+```
+
+#### 4. Type Errors After Schema Changes
+**Error**: `Property does not exist on type`
 ```bash
-# Generate TypeScript types from Supabase
+# Solution: Regenerate types
 pnpm supabase gen types typescript --local > supabase/types/database.ts
 
-# Run local Supabase
-pnpm supabase start
+# Also restart TypeScript server in VS Code
+# Cmd/Ctrl + Shift + P → "TypeScript: Restart TS Server"
+```
 
-# Apply migrations
+#### 5. CORS Errors with Edge Functions
+**Error**: `CORS policy: No 'Access-Control-Allow-Origin'`
+```typescript
+// Solution: Add CORS headers in Edge Function
+export async function handler(req: Request) {
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { 
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      } 
+    })
+  }
+  
+  // Your function logic...
+}
+```
+
+## ⚡ Performance Optimization
+
+### 1. Database Query Optimization
+```typescript
+// Bad: N+1 queries
+const products = await supabase.from('products').select('*')
+for (const product of products.data) {
+  const inventory = await supabase
+    .from('inventory')
+    .select('*')
+    .eq('product_id', product.id)
+}
+
+// Good: Single query with join
+const products = await supabase
+  .from('products')
+  .select('*, inventory(*)')
+```
+
+### 2. Image Optimization
+```tsx
+// Use Next.js Image component
+import Image from 'next/image'
+
+<Image
+  src={product.image_url}
+  alt={product.name}
+  width={300}
+  height={300}
+  loading="lazy"
+  placeholder="blur"
+  blurDataURL={product.blur_data_url}
+/>
+```
+
+### 3. Component Code Splitting
+```tsx
+// Lazy load heavy components
+import dynamic from 'next/dynamic'
+
+const HeavyChart = dynamic(
+  () => import('@/components/features/analytics/heavy-chart'),
+  { 
+    loading: () => <Skeleton className="h-96" />,
+    ssr: false 
+  }
+)
+```
+
+### 4. Caching Strategy
+```typescript
+// Server-side caching with revalidation
+export const revalidate = 3600 // 1 hour
+
+// Or use React Query for client-side caching
+const query = useQuery({
+  queryKey: ['products'],
+  queryFn: fetchProducts,
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  cacheTime: 10 * 60 * 1000, // 10 minutes
+})
+```
+
+## 🔒 Security Checklist
+
+### Pre-Deployment Security Review
+
+- [ ] **RLS Policies** - All tables have appropriate RLS policies
+- [ ] **API Keys** - No hardcoded keys, all in environment variables
+- [ ] **Input Validation** - All forms use Zod validation
+- [ ] **SQL Injection** - Using parameterized queries only
+- [ ] **XSS Prevention** - No dangerouslySetInnerHTML without sanitization
+- [ ] **CSRF Protection** - Server actions use built-in CSRF protection
+- [ ] **Rate Limiting** - API routes have rate limiting
+- [ ] **Error Messages** - No sensitive data in error messages
+- [ ] **Logging** - No PII or sensitive data in logs
+- [ ] **File Uploads** - Validated file types and sizes
+
+### Security Headers (middleware.ts)
+```typescript
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next()
+  
+  // Security headers
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  
+  return response
+}
+```
+
+## 🚀 Deployment Checklist
+
+### Pre-Deployment Steps
+
+1. **Environment Variables**
+   ```bash
+   # Verify all required env vars
+   NEXT_PUBLIC_SUPABASE_URL=
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=
+   SUPABASE_SERVICE_ROLE_KEY=
+   DATABASE_URL=
+   UPSTASH_REDIS_REST_URL=
+   UPSTASH_REDIS_REST_TOKEN=
+   ```
+
+2. **Database Migrations**
+   ```bash
+   # Apply all pending migrations
+   pnpm supabase db push
+   
+   # Verify RLS policies
+   pnpm supabase db lint
+   ```
+
+3. **Build Verification**
+   ```bash
+   # Local build test
+   pnpm build
+   
+   # Type check
+   pnpm type-check
+   
+   # Lint check
+   pnpm lint
+   ```
+
+4. **Edge Functions Deployment**
+   ```bash
+   # Deploy all Edge Functions
+   pnpm supabase functions deploy
+   ```
+
+5. **Performance Audit**
+   ```bash
+   # Run Lighthouse CI
+   pnpm lighthouse
+   ```
+
+## 👀 Code Review Guidelines
+
+### PR Checklist
+- [ ] **No `any` types** - All TypeScript properly typed
+- [ ] **Error handling** - All async operations have try/catch
+- [ ] **Loading states** - UI shows loading feedback
+- [ ] **Mobile responsive** - Works on all screen sizes
+- [ ] **Accessibility** - ARIA labels, keyboard navigation
+- [ ] **Tests added** - New features have tests
+- [ ] **Documentation** - Complex logic is documented
+- [ ] **Performance** - No unnecessary re-renders
+- [ ] **Security** - Input validation, RLS policies
+- [ ] **Code style** - Follows project conventions
+
+### Review Focus Areas
+1. **Data Flow** - Server vs Client Components used appropriately
+2. **State Management** - No prop drilling, proper state location
+3. **Database Queries** - Efficient queries, proper indexes
+4. **Error Boundaries** - User-friendly error handling
+5. **Real-time Updates** - Subscriptions cleaned up properly
+
+## 🔄 Migration Guide
+
+### Adding New Tables
+1. Create migration file
+2. Add RLS policies
+3. Generate TypeScript types
+4. Create server actions
+5. Build UI components
+6. Add tests
+
+### Example Migration Flow
+```bash
+# 1. Create migration
+pnpm supabase migration new add_customer_groups
+
+# 2. Edit migration file
+# supabase/migrations/[timestamp]_add_customer_groups.sql
+
+# 3. Apply migration
 pnpm supabase db push
 
-# Create new migration
-pnpm supabase migration new <name>
+# 4. Generate types
+pnpm supabase gen types typescript --local > supabase/types/database.ts
 
-# Test Edge Functions locally
-pnpm supabase functions serve
+# 5. Create server actions
+# app/actions/customer-groups.ts
+
+# 6. Build components
+# components/features/customers/customer-groups.tsx
 ```
 
 ## 💰 Pricing Rules Engine (PRP-010)
@@ -632,6 +965,127 @@ For continuous feedback during development:
 npx tsc --noEmit --watch
 ```
 
+## 📚 Useful Commands Reference
+
+### Supabase Commands
+```bash
+# Generate TypeScript types from database
+pnpm supabase gen types typescript --local > supabase/types/database.ts
+
+# Start local Supabase
+pnpm supabase start
+
+# Stop local Supabase
+pnpm supabase stop
+
+# Apply migrations to local database
+pnpm supabase db push
+
+# Create new migration
+pnpm supabase migration new <migration_name>
+
+# Reset local database
+pnpm supabase db reset
+
+# Deploy Edge Functions
+pnpm supabase functions deploy
+
+# Test Edge Functions locally
+pnpm supabase functions serve
+```
+
+### Development Commands
+```bash
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+
+# Run type checking
+pnpm type-check
+
+# Run linting
+pnpm lint
+
+# Fix linting issues
+pnpm lint:fix
+
+# Run tests
+pnpm test
+
+# Run E2E tests
+pnpm test:e2e
+
+# Update dependencies
+pnpm update
+
+# Check for outdated packages
+pnpm outdated
+```
+
+### Git Workflow Commands
+```bash
+# Create feature branch
+git checkout -b feature/your-feature-name
+
+# Stage changes
+git add .
+
+# Commit with conventional commits
+git commit -m "feat: add new pricing calculator"
+git commit -m "fix: resolve inventory sync issue"
+git commit -m "docs: update README with setup instructions"
+
+# Push to remote
+git push -u origin feature/your-feature-name
+
+# Create pull request
+gh pr create --title "feat: add new pricing calculator" --body "Description..."
+```
+
+## 🏭 Production-Ready Checklist
+
+Before marking any implementation as complete:
+
+### Data Operations
+- [ ] All database operations use real Supabase queries
+- [ ] Progress tracking reflects actual operation status
+- [ ] Error handling includes retry logic where appropriate
+- [ ] Loading states show real operation progress
+- [ ] Optimistic updates have proper rollback
+
+### API Integration
+- [ ] All external API calls are implemented
+- [ ] Webhook handlers process real data
+- [ ] Rate limiting is respected
+- [ ] API errors are properly handled
+- [ ] Response data is validated
+
+### User Interface
+- [ ] Forms submit real data to server actions
+- [ ] Tables display actual database records
+- [ ] Filters/search work with real queries
+- [ ] Pagination uses database limits/offsets
+- [ ] Real-time updates via Supabase subscriptions
+
+### State Management
+- [ ] No hardcoded test data in production code
+- [ ] State reflects actual server responses
+- [ ] Cache invalidation triggers real refetches
+- [ ] Optimistic updates match server behavior
+- [ ] Error states show actual error messages
+
+### Testing & Validation
+- [ ] Can create/read/update/delete real records
+- [ ] Business logic matches requirements
+- [ ] Edge cases are handled
+- [ ] Performance meets requirements
+- [ ] Security policies are enforced
+
 ---
 
-**Remember**: You're building a system handling critical B2B data. Prioritize data accuracy, security (RLS), and user experience. When in doubt, choose reliability over complexity.
+**Remember**: You're building a system handling critical B2B data. Prioritize data accuracy, security (RLS), and user experience. When in doubt, choose reliability over complexity. **NEVER use mock implementations or simulated behavior in production code.**
