@@ -6,6 +6,7 @@ import config from '@/config'
 const UserProfilePage = () => {
   if (!config?.auth?.enabled) {
     redirect('/')
+    return null // This line will never be reached, but makes the flow explicit
   }
 
   return (
