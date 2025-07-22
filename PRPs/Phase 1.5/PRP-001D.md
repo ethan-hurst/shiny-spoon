@@ -115,7 +115,7 @@ export async function generateStaticParams() {
   const spec = await getApiSpec()
   const paths = Object.keys(spec.paths).flatMap((path) => {
     return Object.keys(spec.paths[path]).map((method) => ({
-      slug: [path.slice(1), method].filter(Boolean),
+      slug: [...path.slice(1).split('/').filter(Boolean), method],
     }))
   })
   return paths
