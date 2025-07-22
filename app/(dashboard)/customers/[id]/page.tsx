@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { CustomerHeader } from '@/components/features/customers/customer-header'
 import { CustomerTabs } from '@/components/features/customers/customer-tabs'
 import { createClient } from '@/lib/supabase/server'
-import { ContactRecord, CustomerWithStats } from '@/types/customer.types'
+import { CustomerWithStats } from '@/types/customer.types'
 
 interface PageProps {
   params: {
@@ -60,6 +60,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         .from('customer_contacts')
         .select('*')
         .eq('customer_id', params.id)
+        .eq('organization_id', profile.organization_id)
         .order('is_primary', { ascending: false })
         .order('created_at', { ascending: true }),
 
@@ -67,6 +68,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         .from('customer_activities')
         .select('*')
         .eq('customer_id', params.id)
+        .eq('organization_id', profile.organization_id)
         .order('created_at', { ascending: false })
         .limit(50),
 
