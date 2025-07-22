@@ -334,12 +334,27 @@ export function InvoiceHistory({ invoices }: { invoices: Invoice[] }) {
     setDownloading(invoiceId)
     try {
       const response = await fetch(`/api/billing/invoices/${invoiceId}/download`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to download invoice: ${response.statusText}`)
+      }
+
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `invoice-${invoiceId}.pdf`
-      a.click()
+
+      try {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `invoice-${invoiceId}.pdf`
+        a.click()
+      } finally {
+        // Clean up the object URL to prevent memory leaks
+        window.URL.revokeObjectURL(url)
+      }
+    } catch (error) {
+      console.error('Error downloading invoice:', error)
+      // You might want to show a toast notification here
+      // toast.error('Failed to download invoice')
     } finally {
       setDownloading(null)
     }
