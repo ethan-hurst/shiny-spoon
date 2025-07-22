@@ -43,14 +43,6 @@ const ProjectsData = [
   },
   {
     id: 5,
-    name: 'Clerk Authentication',
-    description:
-      'Seamless and secure authentication service for web applications.',
-    image: 'https://utfs.io/f/aee7360d-54f1-4ed1-a4b4-49a56b455bf4-1ker11.png',
-    url: 'https://clerk.com/',
-  },
-  {
-    id: 6,
     name: 'Supabase (PostgreSQL)',
     description:
       'PostgreSQL-based open-source database with Supabase for building scalable applications.',

@@ -1,9 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useAuth } from '@clerk/nextjs'
 import { Dialog, DialogClose } from '@radix-ui/react-dialog'
+import type { User } from '@supabase/supabase-js'
 import { BlocksIcon } from 'lucide-react'
 import { GiHamburgerMenu } from 'react-icons/gi'
 import {
@@ -14,8 +15,8 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
+import { createBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import config from '@/config'
 import ModeToggle from '../mode-toggle'
 import { Button } from '../ui/button'
 import {
@@ -28,19 +29,41 @@ import { UserProfile } from '../user-profile'
 
 const components: { title: string; href: string; description: string }[] = [
   {
-    title: 'Marketing Page',
-    href: '/marketing-page',
-    description: 'Write some wavy here to get them to click.',
+    title: 'Real-time Sync',
+    href: '#features',
+    description: 'Keep your inventory data synchronized across all platforms.',
+  },
+  {
+    title: 'Analytics Dashboard',
+    href: '#analytics',
+    description: 'Gain insights with powerful analytics and reporting tools.',
+  },
+  {
+    title: 'Integrations',
+    href: '#integrations',
+    description: 'Connect with NetSuite, Shopify, and more.',
   },
 ]
 
 export default function NavBar() {
-  let userId = null
-  /* eslint-disable react-hooks/rules-of-hooks */
-  if (config?.auth?.enabled) {
-    const user = useAuth()
-    userId = user?.userId
-  }
+  const [user, setUser] = useState<User | null>(null)
+  const supabase = createBrowserClient()
+
+  useEffect(() => {
+    // Get initial user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
 
   return (
     <div className="flex min-w-full fixed justify-between p-2 border-b z-10 dark:bg-black dark:bg-opacity-50 bg-white">
@@ -69,16 +92,34 @@ export default function NavBar() {
                   </Button>
                 </Link>
               </DialogClose>
-              <DialogClose asChild>
-                <Link
-                  href="/dashboard"
-                  legacyBehavior
-                  passHref
-                  className="cursor-pointer"
-                >
-                  <Button variant="outline">Dashboard</Button>
-                </Link>
-              </DialogClose>
+              {user && (
+                <DialogClose asChild>
+                  <Link
+                    href="/dashboard"
+                    legacyBehavior
+                    passHref
+                    className="cursor-pointer"
+                  >
+                    <Button variant="outline">Dashboard</Button>
+                  </Link>
+                </DialogClose>
+              )}
+              {!user && (
+                <>
+                  <DialogClose asChild>
+                    <Link href="/login">
+                      <Button variant="outline" className="w-full">
+                        Log In
+                      </Button>
+                    </Link>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Link href="/signup">
+                      <Button className="w-full">Sign Up</Button>
+                    </Link>
+                  </DialogClose>
+                </>
+              )}
             </div>
           </SheetContent>
         </Dialog>
@@ -110,15 +151,30 @@ export default function NavBar() {
               </ul>
             </NavigationMenuContent>
           </NavigationMenuItem>
-          <NavigationMenuItem className="max-[825px]:hidden">
-            <Link href="/dashboard" legacyBehavior passHref>
-              <Button variant="ghost">Dashboard</Button>
-            </Link>
-          </NavigationMenuItem>
+          {user && (
+            <NavigationMenuItem className="max-[825px]:hidden">
+              <Link href="/dashboard" legacyBehavior passHref>
+                <Button variant="ghost">Dashboard</Button>
+              </Link>
+            </NavigationMenuItem>
+          )}
         </NavigationMenuList>
       </NavigationMenu>
       <div className="flex items-center gap-2 max-[825px]:hidden">
-        {userId && <UserProfile />}
+        {user ? (
+          <UserProfile />
+        ) : (
+          <>
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                Log In
+              </Button>
+            </Link>
+            <Link href="/signup">
+              <Button size="sm">Sign Up</Button>
+            </Link>
+          </>
+        )}
         <ModeToggle />
       </div>
     </div>

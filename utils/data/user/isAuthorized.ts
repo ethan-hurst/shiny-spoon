@@ -1,7 +1,6 @@
 'server only'
 
 import { cookies } from 'next/headers'
-import { clerkClient } from '@clerk/nextjs/server'
 import { createServerClient } from '@supabase/ssr'
 import config from '@/tailwind.config'
 
@@ -12,15 +11,6 @@ export const isAuthorized = async (
     return {
       authorized: true,
       message: 'Payments are disabled',
-    }
-  }
-
-  const result = (await clerkClient()).users.getUser(userId)
-
-  if (!result) {
-    return {
-      authorized: false,
-      message: 'User not found',
     }
   }
 
@@ -39,6 +29,16 @@ export const isAuthorized = async (
   )
 
   try {
+    // First check if user exists
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId)
+    
+    if (userError || !userData.user) {
+      return {
+        authorized: false,
+        message: 'User not found',
+      }
+    }
+
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')

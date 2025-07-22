@@ -556,6 +556,7 @@ export default async function ProductPage() {
 import Image from 'next/image'
 
 // ✅ Always use Next.js Image component
+
 ;<Image
   src={product.image}
   alt={product.name}

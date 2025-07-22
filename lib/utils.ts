@@ -24,3 +24,8 @@ export function formatPercent(value: number): string {
     maximumFractionDigits: 1,
   }).format(value / 100)
 }
+
+// Helper function to format dates
+export function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat('en-US').format(date)
+}
