@@ -1,9 +1,10 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { LogOut, Settings, User } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { User } from '@supabase/supabase-js'
+import { LogOut, Settings, User as UserIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -17,20 +18,41 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import type { User } from '@supabase/supabase-js'
+import config from '@/config'
 
 export function UserProfile() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const supabase = createBrowserClient()
 
   useEffect(() => {
-    // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-      setLoading(false)
-    })
+    const fetchUser = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser()
+
+        if (error) {
+          console.error('Error fetching user:', error)
+          setError(error.message)
+          setUser(null)
+        } else {
+          setUser(user)
+          setError(null)
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching user:', err)
+        setError('Failed to fetch user data')
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUser()
 
     // Listen for auth changes
     const {
@@ -45,14 +67,26 @@ export function UserProfile() {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut()
-      router.push('/')
+      router.push('/sign-in')
       toast.success('Signed out successfully')
     } catch {
       toast.error('Error signing out')
     }
   }
 
-  if (loading || !user) return null
+  if (!config?.auth?.enabled) {
+    router.back()
+  }
+
+  if (loading) {
+    return (
+      <div className="w-[2.25rem] h-[2.25rem] rounded-full bg-muted animate-pulse" />
+    )
+  }
+
+  if (error || !user) {
+    return null
+  }
 
   // Get initials for avatar fallback
   const getInitials = () => {
@@ -65,7 +99,7 @@ export function UserProfile() {
       <DropdownMenuTrigger asChild className="w-[2.25rem] h-[2.25rem]">
         <Avatar className="cursor-pointer">
           <AvatarImage
-            src={user.user_metadata?.avatar_url}
+            src={user?.user_metadata?.avatar_url}
             alt="User Profile"
           />
           <AvatarFallback>{getInitials()}</AvatarFallback>
@@ -84,7 +118,7 @@ export function UserProfile() {
         <DropdownMenuGroup>
           <Link href="/dashboard">
             <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
+              <UserIcon className="mr-2 h-4 w-4" />
               <span>Dashboard</span>
             </DropdownMenuItem>
           </Link>
