@@ -1,6 +1,8 @@
 -- Create RPC function for atomically setting default warehouse
 CREATE OR REPLACE FUNCTION set_default_warehouse(warehouse_id UUID, org_id UUID)
 RETURNS void AS $$
+DECLARE
+  rows_affected INTEGER;
 BEGIN
   -- Verify the warehouse exists and belongs to the organization
   IF NOT EXISTS (
@@ -25,8 +27,10 @@ BEGIN
   WHERE id = warehouse_id
   AND organization_id = org_id;
 
-  -- If no rows were updated, raise an error
-  IF NOT FOUND THEN
+  -- Check if the update actually affected any rows
+  GET DIAGNOSTICS rows_affected = ROW_COUNT;
+  
+  IF rows_affected = 0 THEN
     RAISE EXCEPTION 'Failed to set default warehouse';
   END IF;
 END;
