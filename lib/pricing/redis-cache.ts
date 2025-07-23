@@ -22,6 +22,17 @@ class SimpleCache {
   }
 
   async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+    // Validate TTL parameter
+    if (!Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
+      throw new Error('TTL must be a positive number')
+    }
+    
+    // Set reasonable maximum TTL (30 days)
+    const MAX_TTL_SECONDS = 30 * 24 * 60 * 60
+    if (ttlSeconds > MAX_TTL_SECONDS) {
+      throw new Error(`TTL cannot exceed ${MAX_TTL_SECONDS} seconds (30 days)`)
+    }
+    
     const expiry = Date.now() + ttlSeconds * 1000
     this.cache.set(key, { value, expiry })
   }
