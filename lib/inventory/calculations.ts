@@ -64,7 +64,8 @@ export function calculateReorderQuantity(
     const usageDuringLeadTime = leadTimeDays * averageDailyUsage
     
     // Order enough to cover lead time usage plus the base reorder quantity
-    const suggestedQuantity = baseReorderQuantity + usageDuringLeadTime - available
+    // Ensure we never get a negative quantity
+    const suggestedQuantity = Math.max(0, baseReorderQuantity + usageDuringLeadTime - available)
     
     // Round up to nearest 10 for cleaner ordering
     return Math.ceil(suggestedQuantity / 10) * 10
