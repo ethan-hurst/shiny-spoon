@@ -1,11 +1,15 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { Product, ProductFilters, ProductWithStats } from '@/types/product.types'
-import { createClient } from '@/lib/supabase/client'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
+import {
+  Product,
+  ProductFilters,
+  ProductWithStats,
+} from '@/types/product.types'
 
 // Define types for the inventory item structure from the database
 interface InventoryItem {
@@ -19,7 +23,9 @@ interface ProductWithInventory extends Product {
 }
 
 export function useProducts(initialData?: ProductWithStats[]) {
-  const [products, setProducts] = useState<ProductWithStats[]>(initialData || [])
+  const [products, setProducts] = useState<ProductWithStats[]>(
+    initialData || []
+  )
   const [isLoading, setIsLoading] = useState(!initialData)
   const [filters, setFilters] = useState<ProductFilters>({})
   const router = useRouter()
@@ -38,7 +44,9 @@ export function useProducts(initialData?: ProductWithStats[]) {
 
       // Apply filters
       if (filters.search) {
-        query = query.or(`sku.ilike.%${filters.search}%,name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
+        query = query.or(
+          `sku.ilike.%${filters.search}%,name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+        )
       }
 
       if (filters.category) {
@@ -58,7 +66,9 @@ export function useProducts(initialData?: ProductWithStats[]) {
         }
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false })
+      const { data, error } = await query.order('created_at', {
+        ascending: false,
+      })
 
       if (error) {
         toast.error('Failed to fetch products')
@@ -67,20 +77,29 @@ export function useProducts(initialData?: ProductWithStats[]) {
       }
 
       // Transform products to include stats
-      const productsWithStats = (data || []).map((product: ProductWithInventory): ProductWithStats => {
-        const inventoryItems = product.inventory || []
-        const totalQuantity = inventoryItems.reduce((sum: number, item: InventoryItem) => sum + (item.quantity || 0), 0)
-        const totalReserved = inventoryItems.reduce((sum: number, item: InventoryItem) => sum + (item.reserved_quantity || 0), 0)
-        const availableQuantity = totalQuantity - totalReserved
-        
-        return {
-          ...product,
-          inventory_count: inventoryItems.length,
-          total_quantity: totalQuantity,
-          available_quantity: availableQuantity,
-          low_stock: totalQuantity < 10,
+      const productsWithStats = (data || []).map(
+        (product: ProductWithInventory): ProductWithStats => {
+          const inventoryItems = product.inventory || []
+          const totalQuantity = inventoryItems.reduce(
+            (sum: number, item: InventoryItem) => sum + (item.quantity || 0),
+            0
+          )
+          const totalReserved = inventoryItems.reduce(
+            (sum: number, item: InventoryItem) =>
+              sum + (item.reserved_quantity || 0),
+            0
+          )
+          const availableQuantity = totalQuantity - totalReserved
+
+          return {
+            ...product,
+            inventory_count: inventoryItems.length,
+            total_quantity: totalQuantity,
+            available_quantity: availableQuantity,
+            low_stock: totalQuantity < 10,
+          }
         }
-      })
+      )
 
       setProducts(productsWithStats)
     } catch (error) {
@@ -90,33 +109,45 @@ export function useProducts(initialData?: ProductWithStats[]) {
     }
   }, [filters, supabase])
 
-  const deleteProduct = useCallback(async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ active: false, updated_at: new Date().toISOString() })
-        .eq('id', id)
+  const deleteProduct = useCallback(
+    async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('products')
+          .update({ active: false, updated_at: new Date().toISOString() })
+          .eq('id', id)
 
-      if (error) throw error
+        if (error) throw error
 
-      toast.success('Product deleted successfully')
-      
-      // Update local state
-      setProducts(prev => prev.map(p => 
-        p.id === id ? { ...p, active: false } : p
-      ))
-      
-      router.refresh()
-    } catch (error) {
-      toast.error('Failed to delete product')
-      console.error('Error deleting product:', error)
-    }
-  }, [supabase, router])
+        toast.success('Product deleted successfully')
+
+        // Update local state
+        setProducts((prev) =>
+          prev.map((p) => (p.id === id ? { ...p, active: false } : p))
+        )
+
+        router.refresh()
+      } catch (error) {
+        toast.error('Failed to delete product')
+        console.error('Error deleting product:', error)
+      }
+    },
+    [supabase, router]
+  )
 
   const exportProducts = useCallback(async () => {
     try {
-      const csvHeaders = ['SKU', 'Name', 'Description', 'Category', 'Base Price', 'Cost', 'Weight', 'Status']
-      const csvRows = products.map(product => [
+      const csvHeaders = [
+        'SKU',
+        'Name',
+        'Description',
+        'Category',
+        'Base Price',
+        'Cost',
+        'Weight',
+        'Status',
+      ]
+      const csvRows = products.map((product) => [
         product.sku,
         product.name,
         product.description || '',
@@ -124,7 +155,7 @@ export function useProducts(initialData?: ProductWithStats[]) {
         product.base_price || '0',
         product.cost || '0',
         product.weight || '0',
-        product.active ? 'Active' : 'Inactive'
+        product.active ? 'Active' : 'Inactive',
       ])
 
       // Escape quotes in CSV cells
@@ -137,7 +168,9 @@ export function useProducts(initialData?: ProductWithStats[]) {
 
       const csvContent = [
         csvHeaders.join(','),
-        ...csvRows.map(row => row.map(cell => escapeCSVCell(String(cell))).join(','))
+        ...csvRows.map((row) =>
+          row.map((cell) => escapeCSVCell(String(cell))).join(',')
+        ),
       ].join('\n')
 
       const blob = new Blob([csvContent], { type: 'text/csv' })
@@ -183,11 +216,13 @@ export function useProducts(initialData?: ProductWithStats[]) {
 
                 const inventory = inventoryData || []
                 const totalQuantity = inventory.reduce(
-                  (sum: number, item: { quantity: number }) => sum + (item.quantity || 0),
+                  (sum: number, item: { quantity: number }) =>
+                    sum + (item.quantity || 0),
                   0
                 )
                 const totalReserved = inventory.reduce(
-                  (sum: number, item: { reserved_quantity: number }) => sum + (item.reserved_quantity || 0),
+                  (sum: number, item: { reserved_quantity: number }) =>
+                    sum + (item.reserved_quantity || 0),
                   0
                 )
 
@@ -227,7 +262,9 @@ export function useProducts(initialData?: ProductWithStats[]) {
 
             case 'DELETE': {
               if (oldRecord) {
-                setProducts((prev) => prev.filter((product) => product.id !== oldRecord.id))
+                setProducts((prev) =>
+                  prev.filter((product) => product.id !== oldRecord.id)
+                )
                 toast.info(`Product "${oldRecord.name}" removed`)
               }
               break
@@ -247,11 +284,13 @@ export function useProducts(initialData?: ProductWithStats[]) {
           schema: 'public',
           table: 'inventory',
         },
-        async (payload: RealtimePostgresChangesPayload<{
-          product_id: string
-          quantity: number
-          reserved_quantity: number
-        }>) => {
+        async (
+          payload: RealtimePostgresChangesPayload<{
+            product_id: string
+            quantity: number
+            reserved_quantity: number
+          }>
+        ) => {
           const { new: newRecord, old: oldRecord } = payload
 
           // Type guard to ensure we have product_id
@@ -259,8 +298,8 @@ export function useProducts(initialData?: ProductWithStats[]) {
             newRecord && 'product_id' in newRecord
               ? newRecord.product_id
               : oldRecord && 'product_id' in oldRecord
-              ? oldRecord.product_id
-              : null
+                ? oldRecord.product_id
+                : null
 
           if (productId) {
             // Recalculate stats for the affected product
@@ -271,11 +310,13 @@ export function useProducts(initialData?: ProductWithStats[]) {
 
             const inventory = inventoryData || []
             const totalQuantity = inventory.reduce(
-              (sum: number, item: { quantity: number }) => sum + (item.quantity || 0),
+              (sum: number, item: { quantity: number }) =>
+                sum + (item.quantity || 0),
               0
             )
             const totalReserved = inventory.reduce(
-              (sum: number, item: { reserved_quantity: number }) => sum + (item.reserved_quantity || 0),
+              (sum: number, item: { reserved_quantity: number }) =>
+                sum + (item.reserved_quantity || 0),
               0
             )
 
