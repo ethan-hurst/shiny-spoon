@@ -130,6 +130,7 @@
     "postcss": "latest",
     "supabase": "^2.31.8",
     "tailwindcss": "^3.3.5",
-    "typescript": "latest"
+    "typescript": "latest",
+    "undici": "^7.12.0"
   }
 }
