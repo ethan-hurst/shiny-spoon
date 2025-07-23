@@ -3,7 +3,7 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from '@/supabase/types/database'
-import type { SupabaseClient } from '@supabase/supabase-js'
+// import type { SupabaseClient } from '@supabase/supabase-js' // Not currently used
 
 // Create a singleton instance
 let client: ReturnType<typeof createBrowserClient<Database>> | undefined
@@ -45,31 +45,31 @@ export function createClient() {
     const mockClient: MockSupabaseClient = {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
-        onAuthStateChange: (callback: (event: string, session: any) => void) => ({ 
+        onAuthStateChange: (_callback: (event: string, session: any) => void) => ({ 
           data: { subscription: { unsubscribe: () => {} } } 
         }),
         signOut: async () => ({ error: null }),
-        signInWithPassword: async (credentials: any) => ({ 
+        signInWithPassword: async (_credentials: any) => ({ 
           data: { user: null, session: null }, 
           error: new Error('Mock client - authentication not available') 
         }),
       },
-      from: (table: string) => {
+      from: (_table: string) => {
         const mockQueryBuilder = {
-          select: async (columns?: string) => ({ data: [], error: null }),
-          insert: async (values: any) => ({ data: [], error: null }),
-          update: async (values: any) => ({ data: [], error: null }),
+          select: async (_columns?: string) => ({ data: [], error: null }),
+          insert: async (_values: any) => ({ data: [], error: null }),
+          update: async (_values: any) => ({ data: [], error: null }),
           delete: async () => ({ data: [], error: null }),
-          eq: (column: string, value: any) => mockQueryBuilder,
+          eq: (_column: string, _value: any) => mockQueryBuilder,
           single: async () => ({ data: null, error: new Error('Mock client - no data available') }),
         }
         return mockQueryBuilder
       },
-      channel: (name: string) => ({
-        on: (event: string, config: any, callback: Function) => ({}),
+      channel: (_name: string) => ({
+        on: (_event: string, _config: any, _callback: Function) => ({}),
         subscribe: () => ({}),
       }),
-      removeChannel: (channel: any) => {},
+      removeChannel: (_channel: any) => {},
     }
     return mockClient as any
   }

@@ -38,11 +38,10 @@ interface WarehouseResult {
   code: string
 }
 
-export default async function InventoryPage({
-  searchParams,
-}: {
-  searchParams: { warehouse_id?: string; search?: string; low_stock?: string }
+export default async function InventoryPage(props: {
+  searchParams: Promise<{ warehouse_id?: string; search?: string; low_stock?: string }>
 }) {
+  const searchParams = await props.searchParams
   const supabase = createClient()
 
   // Check authentication

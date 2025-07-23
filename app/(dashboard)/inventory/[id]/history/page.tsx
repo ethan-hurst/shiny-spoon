@@ -37,11 +37,10 @@ interface RawAdjustmentData {
   user_email: string
 }
 
-export default async function InventoryHistoryPage({
-  params,
-}: {
-  params: { id: string }
+export default async function InventoryHistoryPage(props: {
+  params: Promise<{ id: string }>
 }) {
+  const params = await props.params
   const supabase = createClient()
 
   // Check authentication

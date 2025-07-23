@@ -11,7 +11,8 @@ export async function generateStaticParams() {
   }))
 }
 
-export async function generateMetadata({ params }: { params: { slug: string[] } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
+  const params = await props.params
   const doc = allDocs.find((doc) => doc.slug === params.slug.join('/'))
   if (!doc) return {}
 
@@ -21,7 +22,8 @@ export async function generateMetadata({ params }: { params: { slug: string[] } 
   }
 }
 
-export default function DocPage({ params }: { params: { slug: string[] } }) {
+export default async function DocPage(props: { params: Promise<{ slug: string[] }> }) {
+  const params = await props.params
   const doc = allDocs.find((doc) => doc.slug === params.slug.join('/'))
 
   if (!doc) {

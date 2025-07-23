@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import {
   customerPricingSchema,
-  PricingRuleImport,
   pricingRuleSchema,
-  ProductPricingImport,
   productPricingSchema,
   QuantityBreak,
   quantityBreakSchema,
+  PricingRule,
+  ProductPricing,
+  PricingRuleRecord,
 } from '@/types/pricing.types'
 
 // Extended schemas for creation/update operations
@@ -32,15 +33,18 @@ export const updateProductPricingSchema = productPricingSchema
     id: z.string().uuid(),
   })
 
-export const createPricingRuleSchema = pricingRuleSchema.extend({
+export const createPricingRuleSchema = z.object({
+  ...pricingRuleSchema.shape,
   quantity_breaks: z.array(quantityBreakSchema).optional(),
 })
 
-export const updatePricingRuleSchema = pricingRuleSchema.partial().extend({
+export const updatePricingRuleSchema = z.object({
+  ...pricingRuleSchema.partial().shape,
   id: z.string().uuid(),
   quantity_breaks: z
     .array(
-      quantityBreakSchema.extend({
+      z.object({
+        ...quantityBreakSchema.shape,
         id: z.string().uuid().optional(),
         _action: z.enum(['create', 'update', 'delete']).optional(),
       })
@@ -50,11 +54,10 @@ export const updatePricingRuleSchema = pricingRuleSchema.partial().extend({
 
 export const createCustomerPricingSchema = customerPricingSchema
 
-export const updateCustomerPricingSchema = customerPricingSchema
-  .partial()
-  .extend({
-    id: z.string().uuid(),
-  })
+export const updateCustomerPricingSchema = z.object({
+  ...customerPricingSchema.partial().shape,
+  id: z.string().uuid(),
+})
 
 // Bulk import schemas
 export const pricingRuleImportSchema = z.object({
@@ -147,14 +150,14 @@ export function validateQuantityBreaks(breaks: QuantityBreak[]): string[] {
     const next = sortedBreaks[i + 1]
 
     // Check if max_quantity is set and valid
-    if (current.max_quantity && current.max_quantity <= current.min_quantity) {
+    if (current && current.max_quantity && current.max_quantity <= current.min_quantity) {
       errors.push(
         `Break ${i + 1}: Max quantity must be greater than min quantity`
       )
     }
 
     // Check for gaps between breaks
-    if (next) {
+    if (next && current) {
       if (current.max_quantity) {
         if (next.min_quantity > current.max_quantity) {
           errors.push(
@@ -182,12 +185,14 @@ export function parseQuantityBreaksCSV(csv: string): QuantityBreak[] {
     .filter(Boolean)
 
   for (let i = 0; i < parts.length; i++) {
-    const [range, discount] = parts[i].split(':')
+    const partStr = parts[i]
+    if (!partStr) continue
+    const [range, discount] = partStr.split(':')
     if (!range || !discount) continue
 
     const [min, max] = range.split('-')
-    const minQty = parseInt(min)
-    const maxQty = max === '+' ? undefined : parseInt(max)
+    const minQty = parseInt(min || '0')
+    const maxQty = max === '+' ? undefined : parseInt(max || '0')
 
     // Parse discount
     let discountType: 'percentage' | 'fixed' | 'price' = 'percentage'
@@ -274,7 +279,7 @@ export function transformPricingRuleImport(
     quantity_breaks = parseQuantityBreaksCSV(data.quantity_breaks)
   }
 
-  return { rule, quantity_breaks }
+  return { rule, quantity_breaks: quantity_breaks }
 }
 
 export function transformProductPricingImport(

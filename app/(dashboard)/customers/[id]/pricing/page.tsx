@@ -30,14 +30,15 @@ import { CustomerPricingStats } from '@/types/customer-pricing.types'
 // import { PriceExportButton } from '@/components/features/pricing/price-export-button'
 
 interface CustomerPricingPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export async function generateMetadata({
-  params,
-}: CustomerPricingPageProps): Promise<Metadata> {
+export async function generateMetadata(
+  props: CustomerPricingPageProps
+): Promise<Metadata> {
+  const params = await props.params
   const supabase = createServerClient()
 
   const { data: customer } = await supabase
@@ -113,9 +114,10 @@ async function getCustomerData(customerId: string) {
   }
 }
 
-export default async function CustomerPricingPage({
-  params,
-}: CustomerPricingPageProps) {
+export default async function CustomerPricingPage(
+  props: CustomerPricingPageProps
+) {
+  const params = await props.params
   const data = await getCustomerData(params.id)
 
   if (!data) {

@@ -8,12 +8,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle } from 'lucide-react'
 
 interface SubscriptionPageProps {
-  searchParams: {
+  searchParams: Promise<{
     success?: string
-  }
+  }>
 }
 
-export default async function SubscriptionPage({ searchParams }: SubscriptionPageProps) {
+export default async function SubscriptionPage(props: SubscriptionPageProps) {
+  const searchParams = await props.searchParams
   const supabase = createServerClient()
 
   const { data: { user } } = await supabase.auth.getUser()

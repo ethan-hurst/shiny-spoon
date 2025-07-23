@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import {
   AppliedRule,
-  CachedPrice,
   PriceCalculationRequest,
   PriceCalculationResult,
   PriceContext,
@@ -114,7 +113,7 @@ export class PricingEngine {
     }
 
     // Filter applicable rules
-    const applicableRules = rules.filter((rule) =>
+    const applicableRules = rules.filter((rule: PricingRuleRecord) =>
       this.isRuleApplicable(rule, context)
     )
 
@@ -404,9 +403,9 @@ export class PricingEngine {
       rule_id: rule.id,
       type: rule.rule_type,
       name: rule.name,
-      description: rule.description,
-      discount_type: discountType,
-      discount_value: discountValue,
+      description: rule.description || '',
+      discount_type: discountType || 'percentage',
+      discount_value: discountValue || 0,
       discount_amount: discount,
     }
 
@@ -464,7 +463,12 @@ export class PricingEngine {
           result,
           timestamp: new Date().toISOString(),
         },
-        cache_key: this.getCacheKey(request),
+        cache_key: generateCacheKey(
+          request.product_id,
+          request.customer_id,
+          request.quantity,
+          request.requested_date
+        ),
         ttl_seconds: this.cacheTTL / 1000,
       })
     } catch (error) {
