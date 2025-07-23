@@ -21,7 +21,10 @@ export default function DocsPage() {
 
   // Sort docs within each category by order
   Object.keys(docsByCategory).forEach((category) => {
-    docsByCategory[category].sort((a, b) => a.order - b.order)
+    const docs = docsByCategory[category]
+    if (docs) {
+      docs.sort((a, b) => a.order - b.order)
+    }
   })
 
   const categoryIcons: Record<string, React.ReactNode> = {
