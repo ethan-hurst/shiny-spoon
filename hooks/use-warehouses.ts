@@ -12,7 +12,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
   const [filters, setFilters] = useState<WarehouseFilters>({})
   const router = useRouter()
   const supabase = createClient()
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const debounceTimerRef = useRef<number | null>(null)
 
   const fetchWarehouses = useCallback(async (currentFilters?: WarehouseFilters) => {
     setIsLoading(true)
@@ -52,7 +52,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
     } finally {
       setIsLoading(false)
     }
-  }, [supabase])
+  }, [supabase, filters])
 
   const deleteWarehouse = useCallback(async (id: string) => {
     try {
@@ -180,7 +180,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
 
           // Clear any existing debounce timer
           if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current)
+            window.clearTimeout(debounceTimerRef.current)
           }
 
           // Update local state directly for simple changes
@@ -194,7 +194,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
             setWarehouses(prev => prev.filter(w => w.id !== oldRecord.id))
           } else {
             // For complex changes or when unsure, debounce the full refresh
-            debounceTimerRef.current = setTimeout(() => {
+            debounceTimerRef.current = window.setTimeout(() => {
               fetchWarehouses()
             }, 500)
           }
@@ -204,7 +204,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
 
     return () => {
       if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
+        window.clearTimeout(debounceTimerRef.current)
       }
       supabase.removeChannel(channel)
     }
