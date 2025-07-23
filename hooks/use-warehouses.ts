@@ -118,28 +118,75 @@ export function useWarehouses(initialData?: Warehouse[]) {
 
       if (rpcError) {
         // Fallback to sequential updates with proper error handling
-        const { error: unsetError } = await supabase
+        // First, get the current default warehouse ID for potential rollback
+        const { data: currentDefault } = await supabase
           .from('warehouses')
-          .update({ is_default: false })
+          .select('id')
           .eq('organization_id', profile.organization_id)
           .eq('is_default', true)
+          .single()
 
-        if (unsetError) {
-          throw new Error('Failed to unset current default warehouse')
-        }
+        const previousDefaultId = currentDefault?.id
 
-        // Then set the new default
-        const { error: setError } = await supabase
-          .from('warehouses')
-          .update({ is_default: true })
-          .eq('id', id)
-          .eq('organization_id', profile.organization_id)
+        try {
+          // Step 1: Unset current default
+          const { error: unsetError } = await supabase
+            .from('warehouses')
+            .update({ is_default: false })
+            .eq('organization_id', profile.organization_id)
+            .eq('is_default', true)
 
-        if (setError) {
-          // Try to restore the previous state
-          toast.error('Failed to set new default warehouse')
-          console.error('Error setting default warehouse:', setError)
-          return
+          if (unsetError) {
+            throw new Error('Failed to unset current default warehouse')
+          }
+
+          // Step 2: Set the new default
+          const { error: setError } = await supabase
+            .from('warehouses')
+            .update({ is_default: true })
+            .eq('id', id)
+            .eq('organization_id', profile.organization_id)
+
+          if (setError) {
+            // Restore the original default warehouse
+            console.error('Failed to set new default, attempting to restore previous default:', setError)
+            
+            if (previousDefaultId) {
+              const { error: restoreError } = await supabase
+                .from('warehouses')
+                .update({ is_default: true })
+                .eq('id', previousDefaultId)
+                .eq('organization_id', profile.organization_id)
+
+              if (restoreError) {
+                console.error('Critical: Failed to restore previous default warehouse:', restoreError)
+                toast.error('Failed to update default warehouse and could not restore previous state. Please refresh and try again.')
+              } else {
+                toast.error('Failed to set new default warehouse. Previous default has been restored.')
+              }
+            } else {
+              toast.error('Failed to set new default warehouse. No previous default to restore.')
+            }
+            
+            return
+          }
+        } catch (error) {
+          // If we fail at any point, try to restore the original state
+          if (previousDefaultId) {
+            const { error: restoreError } = await supabase
+              .from('warehouses')
+              .update({ is_default: true })
+              .eq('id', previousDefaultId)
+              .eq('organization_id', profile.organization_id)
+
+            if (restoreError) {
+              console.error('Critical: Failed to restore previous default warehouse:', restoreError)
+              toast.error('Operation failed and could not restore previous state. Please refresh and try again.')
+            } else {
+              toast.error('Operation failed. Previous default has been restored.')
+            }
+          }
+          throw error
         }
       }
 
