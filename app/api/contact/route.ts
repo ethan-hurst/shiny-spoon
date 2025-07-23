@@ -6,13 +6,21 @@ import { Redis } from '@upstash/redis'
 import { queueEmail } from '@/lib/email/email-queue'
 
 // Rate limiting: 5 submissions per hour per IP
-const ratelimit = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN 
-  ? new Ratelimit({
+let ratelimit: Ratelimit | null = null
+
+try {
+  if (process.env.UPSTASH_REDIS_REST_URL && 
+      process.env.UPSTASH_REDIS_REST_TOKEN &&
+      process.env.UPSTASH_REDIS_REST_URL.startsWith('https://')) {
+    ratelimit = new Ratelimit({
       redis: Redis.fromEnv(),
       limiter: Ratelimit.slidingWindow(5, '1 h'),
       analytics: true,
     })
-  : null
+  }
+} catch (error) {
+  console.warn('Rate limiting disabled: Redis configuration invalid')
+}
 
 export async function POST(request: NextRequest) {
   try {

@@ -102,14 +102,52 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
     },
   ]
 
-  // TODO: Add dynamic pages when blog/docs are implemented
-  // const blogPosts = await fetchBlogPosts()
-  // const dynamicPages = blogPosts.map(post => ({
-  //   url: `${baseUrl}/blog/${post.slug}`,
-  //   lastModified: post.updated_at || post.created_at,
-  //   changeFrequency: 'monthly' as const,
-  //   priority: 0.6,
-  // }))
+  // Import content from Contentlayer
+  const { allPosts } = await import('contentlayer/generated')
+  const { allDocs } = await import('contentlayer/generated')
+  const { allHelpArticles } = await import('contentlayer/generated')
 
-  return [...staticPages]
+  // Add blog posts
+  const blogPages: SitemapEntry[] = allPosts
+    .filter((post) => post.published)
+    .map((post) => ({
+      url: `${baseUrl}${post.url}`,
+      lastModified: new Date(post.date).toISOString(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    }))
+
+  // Add documentation pages
+  const docPages: SitemapEntry[] = allDocs.map((doc) => ({
+    url: `${baseUrl}${doc.url}`,
+    lastModified: new Date().toISOString(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }))
+
+  // Add help articles
+  const helpPages: SitemapEntry[] = allHelpArticles.map((article) => ({
+    url: `${baseUrl}${article.url}`,
+    lastModified: new Date().toISOString(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }))
+
+  // Add docs and help landing pages
+  const contentLandingPages: SitemapEntry[] = [
+    {
+      url: `${baseUrl}/docs`,
+      lastModified: new Date().toISOString(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/help`,
+      lastModified: new Date().toISOString(),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+  ]
+
+  return [...staticPages, ...contentLandingPages, ...blogPages, ...docPages, ...helpPages]
 }

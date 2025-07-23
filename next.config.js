@@ -1,16 +1,8 @@
-import type { NextConfig } from 'next'
+const { withContentlayer } = require('next-contentlayer')
 
-const nextConfig: NextConfig = {
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has type errors.
-    ignoreBuildErrors: true,
-  },
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Server Actions are stable in Next.js 14+, no need for experimental flag
   images: {
     remotePatterns: [
       {
@@ -46,4 +38,5 @@ const nextConfig: NextConfig = {
     ],
   },
 }
-export default nextConfig
+
+module.exports = withContentlayer(nextConfig)
