@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { TITLE_TAILWIND_CLASS } from '@/utils/constants'
+import { SUBSCRIPTION_PLANS, BILLING_INTERVALS, ANNUAL_DISCOUNT_PERCENTAGE } from '@/lib/constants/billing'
 
 type PricingSwitchProps = {
   // eslint-disable-next-line no-unused-vars
@@ -244,48 +245,37 @@ export default function Pricing() {
 
   const plans = [
     {
-      title: 'Basic',
-      monthlyPrice: 10,
-      yearlyPrice: 100,
-      description: 'Essential features you need to get started',
-      features: [
-        'Example Feature Number 1',
-        'Example Feature Number 2',
-        'Example Feature Number 3',
-      ],
-      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
-      priceIdYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
+      title: SUBSCRIPTION_PLANS.BASIC.name,
+      monthlyPrice: SUBSCRIPTION_PLANS.BASIC.monthlyPrice,
+      yearlyPrice: SUBSCRIPTION_PLANS.BASIC.yearlyPrice,
+      description: SUBSCRIPTION_PLANS.BASIC.description,
+      features: SUBSCRIPTION_PLANS.BASIC.features,
+      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_BASIC_MONTHLY,
+      priceIdYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_BASIC_YEARLY,
       actionLabel: 'Get Started',
     },
     {
-      title: 'Pro',
-      monthlyPrice: 25,
-      yearlyPrice: 250,
-      description: 'Perfect for owners of small & medium businessess',
-      features: [
-        'Example Feature Number 1',
-        'Example Feature Number 2',
-        'Example Feature Number 3',
-      ],
+      title: SUBSCRIPTION_PLANS.PRO.name,
+      monthlyPrice: SUBSCRIPTION_PLANS.PRO.monthlyPrice,
+      yearlyPrice: SUBSCRIPTION_PLANS.PRO.yearlyPrice,
+      description: SUBSCRIPTION_PLANS.PRO.description,
+      features: SUBSCRIPTION_PLANS.PRO.features,
       actionLabel: 'Get Started',
-      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
-      priceIdYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
-      popular: true,
+      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO_MONTHLY,
+      priceIdYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO_YEARLY,
+      popular: SUBSCRIPTION_PLANS.PRO.popular,
     },
     {
-      title: 'Enterprise',
+      title: SUBSCRIPTION_PLANS.ENTERPRISE.name,
       price: 'Custom',
-      description: 'Dedicated support and infrastructure to fit your needs',
-      features: [
-        'Example Feature Number 1',
-        'Example Feature Number 2',
-        'Example Feature Number 3',
-        'Super Exclusive Feature',
-      ],
+      monthlyPrice: SUBSCRIPTION_PLANS.ENTERPRISE.monthlyPrice,
+      yearlyPrice: SUBSCRIPTION_PLANS.ENTERPRISE.yearlyPrice,
+      description: SUBSCRIPTION_PLANS.ENTERPRISE.description,
+      features: SUBSCRIPTION_PLANS.ENTERPRISE.features,
       actionLabel: 'Contact Sales',
-      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
-      priceIdYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
-      exclusive: true,
+      priceIdMonthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE,
+      priceIdYearly: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE,
+      exclusive: SUBSCRIPTION_PLANS.ENTERPRISE.exclusive,
     },
   ]
 

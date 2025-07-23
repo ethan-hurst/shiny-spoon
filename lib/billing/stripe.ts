@@ -1,8 +1,13 @@
 import Stripe from 'stripe'
 
+// Validate required environment variables
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY environment variable is required')
+}
+
 // Initialize Stripe with the secret key
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16',
   typescript: true,
 })
 
@@ -15,7 +20,7 @@ export const SUBSCRIPTION_PLANS = {
     monthlyPriceId: process.env.STRIPE_PRICE_STARTER_MONTHLY,
     yearlyPriceId: process.env.STRIPE_PRICE_STARTER_YEARLY,
     monthlyPrice: 99,
-    yearlyPrice: 990,
+    yearlyPrice: Math.round(99 * 12 * 0.83), // 17% discount for yearly
     features: [
       'Up to 1,000 products',
       '2 warehouse locations',
@@ -35,7 +40,7 @@ export const SUBSCRIPTION_PLANS = {
     monthlyPriceId: process.env.STRIPE_PRICE_GROWTH_MONTHLY,
     yearlyPriceId: process.env.STRIPE_PRICE_GROWTH_YEARLY,
     monthlyPrice: 299,
-    yearlyPrice: 2990,
+    yearlyPrice: Math.round(299 * 12 * 0.83), // 17% discount for yearly
     popular: true,
     features: [
       'Up to 10,000 products',
@@ -57,7 +62,7 @@ export const SUBSCRIPTION_PLANS = {
     monthlyPriceId: process.env.STRIPE_PRICE_SCALE_MONTHLY,
     yearlyPriceId: process.env.STRIPE_PRICE_SCALE_YEARLY,
     monthlyPrice: 799,
-    yearlyPrice: 7990,
+    yearlyPrice: Math.round(799 * 12 * 0.83), // 17% discount for yearly
     features: [
       'Unlimited products',
       'Unlimited warehouses',
@@ -82,9 +87,12 @@ export async function getOrCreateStripeCustomer(
   email: string,
   name?: string
 ): Promise<string> {
+  if (!organizationId || !email) {
+    throw new Error('Organization ID and email are required')
+  }
   // First, check if we already have a Stripe customer ID
-  const { createAdminClient } = await import('@/lib/supabase/admin')
-  const supabase = createAdminClient()
+  const { supabaseAdmin } = await import('@/lib/supabase/admin')
+  const supabase = supabaseAdmin
 
   const { data: billing } = await supabase
     .from('customer_billing')
@@ -132,31 +140,36 @@ export async function createCheckoutSession({
 }) {
   const planConfig = SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS]
   if (!planConfig) {
-    throw new Error(`Invalid plan: ${plan}`)
+    throw new Error(`Invalid subscription plan selected: ${plan}`)
   }
 
   const priceId = interval === 'year' ? planConfig.yearlyPriceId : planConfig.monthlyPriceId
   if (!priceId) {
-    throw new Error(`Price ID not configured for ${plan} ${interval}ly`)
+    throw new Error(`Pricing is not configured for the ${plan} plan (${interval}ly billing). Please contact support.`)
   }
 
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    payment_method_types: ['card'],
-    mode: 'subscription',
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    success_url: successUrl,
-    cancel_url: cancelUrl,
-    client_reference_id: customerId,
-    allow_promotion_codes: true,
-  })
+  try {
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      client_reference_id: customerId,
+      allow_promotion_codes: true,
+    })
 
-  return session
+    return session
+  } catch (error) {
+    console.error('Error creating checkout session:', error)
+    throw new Error('Unable to create checkout session. Please try again.')
+  }
 }
 
 // Create a portal session for managing subscription
@@ -167,12 +180,17 @@ export async function createBillingPortalSession({
   customerId: string
   returnUrl: string
 }) {
-  const session = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    return_url: returnUrl,
-  })
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    })
 
-  return session
+    return session
+  } catch (error) {
+    console.error('Error creating billing portal session:', error)
+    throw new Error('Unable to create billing portal session. Please try again.')
+  }
 }
 
 // Get subscription details

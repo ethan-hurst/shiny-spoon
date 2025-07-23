@@ -34,7 +34,7 @@ export default async function SubscriptionPage({ searchParams }: SubscriptionPag
     id: key,
     name: key.charAt(0).toUpperCase() + key.slice(1),
     monthlyPrice: value.monthlyPrice,
-    yearlyPrice: value.yearlyPrice || value.monthlyPrice * 10, // 2 months free
+    yearlyPrice: value.yearlyPrice || Math.floor(value.monthlyPrice * 10), // 2 months free (16.67% discount)
     features: [
       value.limits.products === -1 
         ? 'Unlimited products' 

@@ -2,7 +2,7 @@ const { withContentlayer } = require('next-contentlayer')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Server Actions are stable in Next.js 14+, no need for experimental flag
+  // Server Actions are stable in Next.js 14+
   images: {
     remotePatterns: [
       {

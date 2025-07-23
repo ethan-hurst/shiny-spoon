@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate stats
     const today = new Date()
-    const activeToday = members.data?.filter(m => {
+    const activeToday = members.data?.filter((m: any) => {
       if (!m.auth?.users?.last_sign_in_at) return false
       const lastSignIn = new Date(m.auth.users.last_sign_in_at)
       return lastSignIn.toDateString() === today.toDateString()
@@ -49,11 +49,11 @@ export async function GET(request: NextRequest) {
 
     const stats = {
       totalMembers: members.data?.length || 0,
-      admins: members.data?.filter(m => m.role === 'admin').length || 0,
+      admins: members.data?.filter((m: any) => m.role === 'admin').length || 0,
       activeToday,
       pendingInvites: invites.data?.length || 0,
       apiCallsToday: activity.data?.length || 0,
-      newMembersThisMonth: members.data?.filter(m => {
+      newMembersThisMonth: members.data?.filter((m: any) => {
         const createdAt = new Date(m.created_at)
         return createdAt.getMonth() === today.getMonth() && 
                createdAt.getFullYear() === today.getFullYear()

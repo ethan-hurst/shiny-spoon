@@ -17,6 +17,7 @@ import {
   updateProductPricingSchema,
 } from '@/lib/pricing/validations'
 import { createClient } from '@/lib/supabase/server'
+import type { QuantityBreak } from '@/types/pricing.types'
 
 // Product Pricing Actions
 export async function createProductPricing(formData: FormData) {
@@ -131,7 +132,7 @@ export async function createPricingRule(
     const { error: breaksError } = await supabase
       .from('quantity_breaks')
       .insert(
-        quantity_breaks.map((qb, index) => ({
+        quantity_breaks.map((qb: QuantityBreak, index: number) => ({
           ...qb,
           pricing_rule_id: rule.id,
           sort_order: index,
@@ -467,7 +468,7 @@ export async function importPricingRules(file: File) {
     throw new Error('CSV file must contain headers and at least one data row')
   }
 
-  const headers = rows[0].map((h) => h.trim())
+  const headers = rows[0]!.map((h) => h.trim())
   const rules = rows.slice(1).map((values) => {
     const rule: any = {}
     headers.forEach((header, index) => {
@@ -480,7 +481,8 @@ export async function importPricingRules(file: File) {
   const errors: string[] = []
   const successes: string[] = []
 
-  for (const [index, rule] of rules.entries()) {
+  for (let index = 0; index < rules.length; index++) {
+    const rule = rules[index]
     try {
       // Transform and validate rule data
       const transformedRule = {
@@ -498,7 +500,7 @@ export async function importPricingRules(file: File) {
       await createPricingRule(transformedRule)
       successes.push(`Row ${index + 2}: ${rule.name}`)
     } catch (error) {
-      errors.push(`Row ${index + 2}: ${error.message}`)
+      errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -535,7 +537,7 @@ export async function exportPricingRules() {
 
   const csvContent = [
     headers.join(','),
-    ...rules.map((rule) =>
+    ...rules.map((rule: Record<string, any>) =>
       headers
         .map((header) => {
           const value = rule[header] || ''

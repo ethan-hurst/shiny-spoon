@@ -124,9 +124,10 @@ export const InventoryTable = React.memo(function InventoryTable({
               onClick={() =>
                 column.toggleSorting(column.getIsSorted() === 'asc')
               }
+              aria-label={`Sort by SKU ${column.getIsSorted() === 'asc' ? 'descending' : column.getIsSorted() === 'desc' ? 'ascending' : ''}`}
             >
               SKU
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ArrowUpDown className="ml-2 h-4 w-4" aria-hidden="true" />
             </Button>
           )
         },
@@ -143,9 +144,10 @@ export const InventoryTable = React.memo(function InventoryTable({
               onClick={() =>
                 column.toggleSorting(column.getIsSorted() === 'asc')
               }
+              aria-label={`Sort by Product Name ${column.getIsSorted() === 'asc' ? 'descending' : column.getIsSorted() === 'desc' ? 'ascending' : ''}`}
             >
               Product Name
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ArrowUpDown className="ml-2 h-4 w-4" aria-hidden="true" />
             </Button>
           )
         },
@@ -171,9 +173,10 @@ export const InventoryTable = React.memo(function InventoryTable({
               onClick={() =>
                 column.toggleSorting(column.getIsSorted() === 'asc')
               }
+              aria-label={`Sort by On Hand quantity ${column.getIsSorted() === 'asc' ? 'descending' : column.getIsSorted() === 'desc' ? 'ascending' : ''}`}
             >
               On Hand
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ArrowUpDown className="ml-2 h-4 w-4" aria-hidden="true" />
             </Button>
           )
         },
@@ -210,9 +213,10 @@ export const InventoryTable = React.memo(function InventoryTable({
               onClick={() =>
                 column.toggleSorting(column.getIsSorted() === 'asc')
               }
+              aria-label={`Sort by Available quantity ${column.getIsSorted() === 'asc' ? 'descending' : column.getIsSorted() === 'desc' ? 'ascending' : ''}`}
             >
               Available
-              <ArrowUpDown className="ml-2 h-4 w-4" />
+              <ArrowUpDown className="ml-2 h-4 w-4" aria-hidden="true" />
             </Button>
           )
         },
@@ -239,6 +243,7 @@ export const InventoryTable = React.memo(function InventoryTable({
                     'h-4 w-4',
                     outOfStock ? 'text-red-600' : 'text-yellow-600'
                   )}
+                  aria-label={outOfStock ? 'Out of stock warning' : 'Low stock warning'}
                 />
               )}
             </div>
@@ -353,6 +358,7 @@ export const InventoryTable = React.memo(function InventoryTable({
         <div className="flex items-center gap-2">
           <Input
             placeholder="Search by SKU or product name..."
+            aria-label="Search inventory items"
             value={
               (table.getColumn('product.sku')?.getFilterValue() as string) ?? ''
             }
@@ -381,6 +387,9 @@ export const InventoryTable = React.memo(function InventoryTable({
       <div
         ref={tableContainerRef}
         className="rounded-md border h-[600px] overflow-auto"
+        role="region"
+        aria-label="Inventory table"
+        tabIndex={0}
       >
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10">
@@ -447,6 +456,7 @@ export const InventoryTable = React.memo(function InventoryTable({
             size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            aria-label="Go to previous page"
           >
             Previous
           </Button>
@@ -455,6 +465,7 @@ export const InventoryTable = React.memo(function InventoryTable({
             size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            aria-label="Go to next page"
           >
             Next
           </Button>

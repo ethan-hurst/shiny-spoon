@@ -13,16 +13,16 @@ function parseCSV(csvString: string): Record<string, string>[] {
   if (lines.length < 2) return []
 
   // Parse headers
-  const headers = parseCSVLine(lines[0])
+  const headers = parseCSVLine(lines[0]!)
 
   // Parse data rows
   const data: Record<string, string>[] = []
   for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i])
+    const values = parseCSVLine(lines[i]!)
     if (values.length === headers.length) {
       const row: Record<string, string> = {}
       headers.forEach((header, index) => {
-        row[header.trim()] = values[index].trim()
+        row[header.trim()] = values[index]?.trim() || ''
       })
       data.push(row)
     }
@@ -150,7 +150,7 @@ export async function importCustomers(
       .eq('organization_id', organizationId)
 
     const tierMap = new Map(
-      tiers?.map((t) => [t.name.toLowerCase(), t.id]) || []
+      tiers?.map((t: any) => [t.name.toLowerCase(), t.id]) || []
     )
 
     // Get existing customers to check for duplicates
@@ -160,10 +160,10 @@ export async function importCustomers(
       .eq('organization_id', organizationId)
 
     const existingMap = new Set(
-      existingCustomers?.map((c) => c.company_name.toLowerCase()) || []
+      existingCustomers?.map((c: any) => c.company_name.toLowerCase()) || []
     )
     const existingTaxIds = new Set(
-      existingCustomers?.filter((c) => c.tax_id).map((c) => c.tax_id) || []
+      existingCustomers?.filter((c: any) => c.tax_id).map((c: any) => c.tax_id) || []
     )
 
     let imported = 0

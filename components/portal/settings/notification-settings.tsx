@@ -18,6 +18,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { NOTIFICATION_CATEGORIES, DEFAULT_NOTIFICATION_PREFERENCES } from '@/lib/constants/notifications'
 
 interface NotificationPreferences {
   user_id: string
@@ -37,13 +38,13 @@ interface NotificationSettingsProps {
 export function NotificationSettings({ preferences }: NotificationSettingsProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [settings, setSettings] = useState({
-    emailNotifications: preferences.email_notifications,
-    billingAlerts: preferences.billing_alerts,
-    usageAlerts: preferences.usage_alerts,
-    teamUpdates: preferences.team_updates,
-    apiUpdates: preferences.api_updates,
-    productUpdates: preferences.product_updates,
-    securityAlerts: preferences.security_alerts,
+    emailNotifications: preferences.email_notifications ?? DEFAULT_NOTIFICATION_PREFERENCES.emailNotifications,
+    billingAlerts: preferences.billing_alerts ?? DEFAULT_NOTIFICATION_PREFERENCES.billingAlerts,
+    usageAlerts: preferences.usage_alerts ?? DEFAULT_NOTIFICATION_PREFERENCES.usageAlerts,
+    teamUpdates: preferences.team_updates ?? DEFAULT_NOTIFICATION_PREFERENCES.teamUpdates,
+    apiUpdates: preferences.api_updates ?? DEFAULT_NOTIFICATION_PREFERENCES.apiUpdates,
+    productUpdates: preferences.product_updates ?? DEFAULT_NOTIFICATION_PREFERENCES.productUpdates,
+    securityAlerts: preferences.security_alerts ?? DEFAULT_NOTIFICATION_PREFERENCES.securityAlerts,
   })
 
   const handleSave = async () => {
@@ -66,73 +67,73 @@ export function NotificationSettings({ preferences }: NotificationSettingsProps)
 
   const notificationGroups = [
     {
-      title: 'Billing & Subscription',
-      description: 'Notifications about your billing and subscription',
+      title: NOTIFICATION_CATEGORIES.BILLING.title,
+      description: NOTIFICATION_CATEGORIES.BILLING.description,
       settings: [
         {
-          key: 'billingAlerts',
-          label: 'Billing Alerts',
-          description: 'Payment failures, subscription changes, invoices',
+          key: NOTIFICATION_CATEGORIES.BILLING.settings.billingAlerts.key,
+          label: NOTIFICATION_CATEGORIES.BILLING.settings.billingAlerts.label,
+          description: NOTIFICATION_CATEGORIES.BILLING.settings.billingAlerts.description,
           icon: CreditCard,
         },
       ],
     },
     {
-      title: 'Usage & Limits',
-      description: 'Alerts when approaching or exceeding limits',
+      title: NOTIFICATION_CATEGORIES.USAGE.title,
+      description: NOTIFICATION_CATEGORIES.USAGE.description,
       settings: [
         {
-          key: 'usageAlerts',
-          label: 'Usage Alerts',
-          description: 'API limits, storage limits, quota warnings',
+          key: NOTIFICATION_CATEGORIES.USAGE.settings.usageAlerts.key,
+          label: NOTIFICATION_CATEGORIES.USAGE.settings.usageAlerts.label,
+          description: NOTIFICATION_CATEGORIES.USAGE.settings.usageAlerts.description,
           icon: BarChart3,
         },
       ],
     },
     {
-      title: 'Team Activity',
-      description: 'Updates about your team',
+      title: NOTIFICATION_CATEGORIES.TEAM.title,
+      description: NOTIFICATION_CATEGORIES.TEAM.description,
       settings: [
         {
-          key: 'teamUpdates',
-          label: 'Team Updates',
-          description: 'New members, role changes, invitations',
+          key: NOTIFICATION_CATEGORIES.TEAM.settings.teamUpdates.key,
+          label: NOTIFICATION_CATEGORIES.TEAM.settings.teamUpdates.label,
+          description: NOTIFICATION_CATEGORIES.TEAM.settings.teamUpdates.description,
           icon: Users,
         },
       ],
     },
     {
-      title: 'API & Integration',
-      description: 'Technical updates and changes',
+      title: NOTIFICATION_CATEGORIES.API.title,
+      description: NOTIFICATION_CATEGORIES.API.description,
       settings: [
         {
-          key: 'apiUpdates',
-          label: 'API Updates',
-          description: 'API changes, deprecations, new endpoints',
+          key: NOTIFICATION_CATEGORIES.API.settings.apiUpdates.key,
+          label: NOTIFICATION_CATEGORIES.API.settings.apiUpdates.label,
+          description: NOTIFICATION_CATEGORIES.API.settings.apiUpdates.description,
           icon: Key,
         },
       ],
     },
     {
-      title: 'Product Updates',
-      description: 'New features and improvements',
+      title: NOTIFICATION_CATEGORIES.PRODUCT.title,
+      description: NOTIFICATION_CATEGORIES.PRODUCT.description,
       settings: [
         {
-          key: 'productUpdates',
-          label: 'Product Updates',
-          description: 'New features, improvements, announcements',
+          key: NOTIFICATION_CATEGORIES.PRODUCT.settings.productUpdates.key,
+          label: NOTIFICATION_CATEGORIES.PRODUCT.settings.productUpdates.label,
+          description: NOTIFICATION_CATEGORIES.PRODUCT.settings.productUpdates.description,
           icon: Package,
         },
       ],
     },
     {
-      title: 'Security',
-      description: 'Important security notifications',
+      title: NOTIFICATION_CATEGORIES.SECURITY.title,
+      description: NOTIFICATION_CATEGORIES.SECURITY.description,
       settings: [
         {
-          key: 'securityAlerts',
-          label: 'Security Alerts',
-          description: 'Suspicious activity, login attempts, security updates',
+          key: NOTIFICATION_CATEGORIES.SECURITY.settings.securityAlerts.key,
+          label: NOTIFICATION_CATEGORIES.SECURITY.settings.securityAlerts.label,
+          description: NOTIFICATION_CATEGORIES.SECURITY.settings.securityAlerts.description,
           icon: Shield,
         },
       ],
@@ -162,7 +163,7 @@ export function NotificationSettings({ preferences }: NotificationSettingsProps)
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="master-switch" className="text-base font-medium flex items-center gap-2">
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4 w-4" aria-hidden="true" />
                 Master Email Switch
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -213,10 +214,10 @@ export function NotificationSettings({ preferences }: NotificationSettingsProps)
                                 htmlFor={setting.key} 
                                 className="text-sm font-normal flex items-center gap-2"
                               >
-                                <Icon className="h-4 w-4 text-muted-foreground" />
+                                <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                 {setting.label}
                               </Label>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground" id={`${setting.key}-description`}>
                                 {setting.description}
                               </p>
                             </div>
@@ -227,6 +228,7 @@ export function NotificationSettings({ preferences }: NotificationSettingsProps)
                                 setSettings(prev => ({ ...prev, [setting.key]: checked }))
                               }
                               disabled={!settings.emailNotifications}
+                              aria-describedby={`${setting.key}-description`}
                             />
                           </div>
                         )
@@ -242,8 +244,8 @@ export function NotificationSettings({ preferences }: NotificationSettingsProps)
 
       {hasChanges && (
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={handleSave} disabled={isLoading} aria-label="Save notification preferences">
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
             Save Changes
           </Button>
         </div>

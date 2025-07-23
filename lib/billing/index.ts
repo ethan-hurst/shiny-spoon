@@ -1,20 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { stripe, SUBSCRIPTION_PLANS } from './stripe'
-
-export interface SubscriptionData {
-  id: string
-  status: string
-  plan: string
-  interval: 'month' | 'year'
-  currentPeriodStart: Date
-  currentPeriodEnd: Date
-  cancelAtPeriodEnd: boolean
-  limits: {
-    products: number
-    warehouses: number
-    apiCalls: number
-  }
-}
+import type { SubscriptionData, Invoice, PaymentMethod } from '@/types/billing.types'
 
 export interface UsageStats {
   products: {
@@ -34,15 +20,8 @@ export interface UsageStats {
   }
 }
 
-export interface Invoice {
-  id: string
-  number: string
-  amount_paid: number
-  status: string
-  created: number
-  hosted_invoice_url: string
-  invoice_pdf: string
-}
+// Re-export types for backward compatibility
+export type { SubscriptionData, Invoice, PaymentMethod } from '@/types/billing.types'
 
 // Get subscription data for an organization
 export async function getSubscription(organizationId: string): Promise<SubscriptionData | null> {
@@ -58,13 +37,12 @@ export async function getSubscription(organizationId: string): Promise<Subscript
     // Return free tier defaults
     return {
       id: 'free',
-      status: 'active',
       plan: 'starter',
       interval: 'month',
+      status: 'active',
       currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       cancelAtPeriodEnd: false,
-      limits: SUBSCRIPTION_PLANS.starter.limits,
     }
   }
 
@@ -84,13 +62,12 @@ export async function getSubscription(organizationId: string): Promise<Subscript
 
     return {
       id: subscription.id,
-      status: subscription.status,
-      plan,
+      plan: plan as 'starter' | 'growth' | 'scale' | 'enterprise',
       interval: subscription.items.data[0].price.recurring?.interval as 'month' | 'year',
+      status: subscription.status as 'active' | 'canceled' | 'past_due' | 'incomplete' | 'trialing',
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
-      limits: SUBSCRIPTION_PLANS[plan as keyof typeof SUBSCRIPTION_PLANS].limits,
     }
   } catch (error) {
     console.error('Error fetching subscription:', error)
@@ -109,7 +86,8 @@ export async function getUsageStats(organizationId: string): Promise<UsageStats>
 
   // Get subscription to know limits
   const subscription = await getSubscription(organizationId)
-  const limits = subscription?.limits || SUBSCRIPTION_PLANS.starter.limits
+  const planKey = subscription?.plan || 'starter'
+  const limits = SUBSCRIPTION_PLANS[planKey as keyof typeof SUBSCRIPTION_PLANS]?.limits || SUBSCRIPTION_PLANS.starter.limits
 
   // Get actual usage counts
   const [productCount, warehouseCount, apiCallCount] = await Promise.all([
@@ -202,12 +180,15 @@ export async function getInvoices(organizationId: string): Promise<Invoice[]> {
 
     return invoices.data.map(invoice => ({
       id: invoice.id,
-      number: invoice.number || '',
+      status: (invoice.status || 'draft') as Invoice['status'],
       amount_paid: invoice.amount_paid,
-      status: invoice.status || 'draft',
+      amount_due: invoice.amount_due,
+      currency: invoice.currency,
+      period_start: invoice.period_start,
+      period_end: invoice.period_end,
       created: invoice.created,
-      hosted_invoice_url: invoice.hosted_invoice_url || '',
-      invoice_pdf: invoice.invoice_pdf || '',
+      invoice_pdf: invoice.invoice_pdf,
+      hosted_invoice_url: invoice.hosted_invoice_url,
     }))
   } catch (error) {
     console.error('Error fetching invoices:', error)
@@ -216,7 +197,7 @@ export async function getInvoices(organizationId: string): Promise<Invoice[]> {
 }
 
 // Get payment methods for an organization
-export async function getPaymentMethods(organizationId: string) {
+export async function getPaymentMethods(organizationId: string): Promise<PaymentMethod[]> {
   const supabase = createServerClient()
 
   const { data: billing } = await supabase

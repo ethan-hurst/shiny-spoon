@@ -152,7 +152,7 @@ export async function bulkUpdateInventory(csvData: string) {
 
   if (parseResult.errors.length > 0) {
     return {
-      error: `CSV parsing error: ${parseResult.errors[0].message}`,
+      error: `CSV parsing error: ${parseResult.errors[0]?.message || 'Unknown error'}`,
       successCount: 0,
       errorCount: parseResult.errors.length,
     }
@@ -170,7 +170,7 @@ export async function bulkUpdateInventory(csvData: string) {
 
   if (!validationResult.success) {
     return {
-      error: 'Validation failed: ' + validationResult.error.errors[0].message,
+      error: 'Validation failed: ' + (validationResult.error.errors[0]?.message || 'Unknown error'),
       successCount: 0,
       errorCount: updates.length,
     }
@@ -210,7 +210,7 @@ export async function bulkUpdateInventory(csvData: string) {
 
   // Create a map for quick lookup
   const inventoryMap = new Map()
-  inventoryItems?.forEach((item) => {
+  inventoryItems?.forEach((item: any) => {
     const key = `${item.product.sku}-${item.warehouse.code}`
     inventoryMap.set(key, item)
   })
@@ -356,14 +356,14 @@ export async function exportInventory(filters?: {
   // Filter for low stock if needed
   let filteredInventory = inventory || []
   if (filters?.low_stock_only) {
-    filteredInventory = filteredInventory.filter((item) => {
+    filteredInventory = filteredInventory.filter((item: any) => {
       const available = (item.quantity || 0) - (item.reserved_quantity || 0)
       return available <= (item.reorder_point || 0)
     })
   }
 
   // Transform to export format
-  const exportData: InventoryExportRow[] = filteredInventory.map((item) => ({
+  const exportData: InventoryExportRow[] = filteredInventory.map((item: any) => ({
     sku: item.product.sku,
     product_name: item.product.name,
     warehouse: item.warehouse.name,

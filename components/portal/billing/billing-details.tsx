@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { openBillingPortal } from '@/app/actions/billing'
-import { SubscriptionData } from '@/lib/billing'
+import type { SubscriptionData, Organization, PlanPricing } from '@/types/billing.types'
 import { 
   Building2, 
   CreditCard, 
@@ -11,21 +11,31 @@ import {
   Receipt,
   ExternalLink
 } from 'lucide-react'
+import { SUBSCRIPTION_PLANS } from '@/lib/constants/billing'
 
 interface BillingDetailsProps {
   subscription: SubscriptionData
-  organization: any
+  organization: Organization
 }
 
 export function BillingDetails({ subscription, organization }: BillingDetailsProps) {
-  const getPlanPrice = () => {
-    const prices: Record<string, Record<string, number>> = {
-      starter: { month: 99, year: 990 },
-      growth: { month: 299, year: 2990 },
-      scale: { month: 799, year: 7990 },
+  const getPlanPrice = (): number => {
+    // Map subscription plan names to our constants
+    const planMap: Record<string, typeof SUBSCRIPTION_PLANS[keyof typeof SUBSCRIPTION_PLANS]> = {
+      starter: SUBSCRIPTION_PLANS.BASIC,
+      growth: SUBSCRIPTION_PLANS.PRO,
+      scale: SUBSCRIPTION_PLANS.PRO, // You may want to add a SCALE plan to your constants
+      enterprise: SUBSCRIPTION_PLANS.ENTERPRISE,
     }
 
-    return prices[subscription.plan]?.[subscription.interval] || 0
+    const plan = planMap[subscription.plan]
+    if (!plan) return 0
+
+    if (subscription.interval === 'month') {
+      return plan.monthlyPrice || 0
+    } else {
+      return plan.yearlyPrice || 0
+    }
   }
 
   const nextBillingAmount = getPlanPrice()
@@ -105,7 +115,7 @@ export function BillingDetails({ subscription, organization }: BillingDetailsPro
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                   <span className="text-2xl font-bold">
-                    ${(nextBillingAmount / (subscription.interval === 'year' ? 1 : 100)).toFixed(2)}
+                    ${nextBillingAmount.toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">

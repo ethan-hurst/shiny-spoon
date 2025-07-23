@@ -27,7 +27,7 @@ export default async function BillingPage() {
     getPaymentMethods(profile.organization_id),
   ])
 
-  const hasActiveSubscription = subscription && subscription.id !== 'free'
+  const hasActiveSubscription = Boolean(subscription && subscription.id !== 'free')
   const hasPastDueInvoice = invoices.some(invoice => invoice.status === 'past_due')
 
   return (

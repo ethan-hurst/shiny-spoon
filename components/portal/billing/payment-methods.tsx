@@ -16,14 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { removePaymentMethod } from '@/app/actions/billing'
 import { CreditCard, Plus, Trash2, Check } from 'lucide-react'
-
-interface PaymentMethod {
-  id: string
-  brand?: string
-  last4?: string
-  exp_month?: number
-  exp_year?: number
-}
+import type { PaymentMethod } from '@/types/billing.types'
 
 interface PaymentMethodsProps {
   paymentMethods: PaymentMethod[]
@@ -43,6 +36,7 @@ export function PaymentMethods({ paymentMethods, hasActiveSubscription }: Paymen
       await removePaymentMethod(selectedMethodId)
     } catch (error) {
       console.error('Error removing payment method:', error)
+      // TODO: Add toast notification for error
     } finally {
       setRemovingId(null)
       setDeleteDialogOpen(false)
@@ -102,7 +96,7 @@ export function PaymentMethods({ paymentMethods, hasActiveSubscription }: Paymen
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">
-                          {method.brand?.charAt(0).toUpperCase() + method.brand?.slice(1) || 'Card'} •••• {method.last4}
+                          {method.brand ? method.brand.charAt(0).toUpperCase() + method.brand.slice(1) : 'Card'} •••• {method.last4 || '****'}
                         </span>
                         {index === 0 && (
                           <Badge variant="secondary" className="flex items-center gap-1">

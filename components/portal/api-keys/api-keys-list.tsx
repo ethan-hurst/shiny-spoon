@@ -124,7 +124,7 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
   }
 
   const getPermissionBadge = (permission: string) => {
-    const variants: Record<string, any> = {
+    const variants: Record<string, 'secondary' | 'default' | 'destructive' | 'outline'> = {
       read: 'secondary',
       write: 'default',
       delete: 'destructive',

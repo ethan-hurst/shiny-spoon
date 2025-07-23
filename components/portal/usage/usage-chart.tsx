@@ -6,8 +6,14 @@ import { UsageStats } from '@/lib/billing'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
 import { format, startOfDay, eachDayOfInterval, subDays } from 'date-fns'
 
+interface HistoricalUsageItem {
+  created_at: string
+  metric_type: 'api_calls' | 'products_count' | 'warehouses_count'
+  metric_value: number
+}
+
 interface UsageChartProps {
-  historicalUsage: any[]
+  historicalUsage: HistoricalUsageItem[]
   currentUsage: UsageStats
 }
 
@@ -45,12 +51,24 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
     }
   })
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  interface TooltipPayload {
+    color: string
+    name: string
+    value: number | null
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean
+    payload?: TooltipPayload[]
+    label?: string
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background border rounded-lg shadow-lg p-3">
           <p className="text-sm font-medium mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry, index) => (
             <div key={index} className="flex items-center gap-2 text-sm">
               <div 
                 className="w-3 h-3 rounded-full" 

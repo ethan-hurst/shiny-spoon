@@ -30,22 +30,22 @@ export const navigation: NavSection[] = [
     items: [
       {
         title: 'Dashboard',
-        href: '/dashboard',
+        href: '/',
         icon: LayoutDashboard,
       },
       {
         title: 'Inventory',
-        href: '/dashboard/inventory',
+        href: '/inventory',
         icon: Package,
       },
       {
         title: 'Products',
-        href: '/dashboard/products',
+        href: '/products',
         icon: Package,
       },
       {
         title: 'Warehouses',
-        href: '/dashboard/warehouses',
+        href: '/warehouses',
         icon: Warehouse,
       },
     ],
@@ -55,12 +55,12 @@ export const navigation: NavSection[] = [
     items: [
       {
         title: 'Customers',
-        href: '/dashboard/customers',
+        href: '/customers',
         icon: Users,
       },
       {
         title: 'Pricing',
-        href: '/dashboard/pricing',
+        href: '/pricing',
         icon: DollarSign,
       },
     ],
@@ -70,12 +70,12 @@ export const navigation: NavSection[] = [
     items: [
       {
         title: 'Reports',
-        href: '/dashboard/reports',
+        href: '/reports',
         icon: FileText,
       },
       {
         title: 'Insights',
-        href: '/dashboard/insights',
+        href: '/insights',
         icon: BarChart3,
       },
     ],
@@ -85,12 +85,12 @@ export const navigation: NavSection[] = [
     items: [
       {
         title: 'Integrations',
-        href: '/dashboard/integrations',
+        href: '/integrations',
         icon: Settings,
       },
       {
         title: 'Settings',
-        href: '/dashboard/settings',
+        href: '/settings',
         icon: Settings,
       },
     ],

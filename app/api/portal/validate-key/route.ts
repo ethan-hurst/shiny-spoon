@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
@@ -16,10 +16,8 @@ export async function POST(request: NextRequest) {
     // Hash the full key for comparison
     const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex')
 
-    const supabase = createAdminClient()
-    
     // Find the API key
-    const { data: apiKeyRecord } = await supabase
+    const { data: apiKeyRecord } = await supabaseAdmin
       .from('api_keys')
       .select('*, organizations(name)')
       .eq('key_prefix', keyPrefix)
@@ -37,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update last used timestamp
-    await supabase
+    await supabaseAdmin
       .from('api_keys')
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', apiKeyRecord.id)

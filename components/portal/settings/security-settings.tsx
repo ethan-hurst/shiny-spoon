@@ -39,9 +39,14 @@ import {
 import { toast } from 'sonner'
 
 const passwordSchema = z.object({
-  currentPassword: z.string().min(6, 'Password must be at least 6 characters'),
-  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -55,6 +60,7 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [showPasswordDialog, setShowPasswordDialog] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [showDownloadConfirmation, setShowDownloadConfirmation] = useState(false)
 
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
@@ -107,6 +113,7 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
       toast.error('Failed to download account data')
     } finally {
       setIsDownloading(false)
+      setShowDownloadConfirmation(false)
     }
   }
 
@@ -120,8 +127,11 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => setShowPasswordDialog(true)}>
-            <Lock className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={() => setShowPasswordDialog(true)}
+            aria-label="Change password"
+          >
+            <Lock className="h-4 w-4 mr-2" aria-hidden="true" />
             Change Password
           </Button>
         </CardContent>
@@ -142,8 +152,12 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
             </AlertDescription>
           </Alert>
           
-          <Button variant="outline" disabled>
-            <Shield className="h-4 w-4 mr-2" />
+          <Button 
+            variant="outline" 
+            disabled
+            aria-label="Enable two-factor authentication (coming soon)"
+          >
+            <Shield className="h-4 w-4 mr-2" aria-hidden="true" />
             Enable Two-Factor Authentication
           </Button>
           
@@ -172,7 +186,12 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
               <Badge variant="secondary">Active</Badge>
             </div>
             
-            <Button variant="outline" className="w-full" disabled>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              disabled
+              aria-label="View all sessions (coming soon)"
+            >
               View All Sessions
             </Button>
           </div>
@@ -194,17 +213,18 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
             </p>
             <Button 
               variant="outline" 
-              onClick={handleDownloadData}
+              onClick={() => setShowDownloadConfirmation(true)}
               disabled={isDownloading}
+              aria-label="Download account data"
             >
               {isDownloading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" aria-hidden="true" />
                   Preparing Download...
                 </>
               ) : (
                 <>
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="h-4 w-4 mr-2" aria-hidden="true" />
                   Download Account Data
                 </>
               )}
@@ -247,6 +267,8 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
                       <Input 
                         type="password" 
                         placeholder="Enter current password"
+                        aria-label="Current password"
+                        autoComplete="current-password"
                         {...field} 
                       />
                     </FormControl>
@@ -265,11 +287,13 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
                       <Input 
                         type="password" 
                         placeholder="Enter new password"
+                        aria-label="New password"
+                        autoComplete="new-password"
                         {...field} 
                       />
                     </FormControl>
                     <FormDescription>
-                      Must be at least 6 characters long
+                      Must be at least 8 characters with uppercase, lowercase, number, and special character
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -286,6 +310,8 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
                       <Input 
                         type="password" 
                         placeholder="Confirm new password"
+                        aria-label="Confirm new password"
+                        autoComplete="new-password"
                         {...field} 
                       />
                     </FormControl>
@@ -305,13 +331,58 @@ export function SecuritySettings({ user }: SecuritySettingsProps) {
                 </Button>
                 <Button type="submit" disabled={isChangingPassword}>
                   {isChangingPassword && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                   )}
                   Change Password
                 </Button>
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDownloadConfirmation} onOpenChange={setShowDownloadConfirmation}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Download Account Data</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to download all your account data? This will include all your personal information, settings, and activity.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Your data will be downloaded as a JSON file containing all information associated with your account.
+            </AlertDescription>
+          </Alert>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowDownloadConfirmation(false)}
+              disabled={isDownloading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDownloadData} 
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Download Data
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

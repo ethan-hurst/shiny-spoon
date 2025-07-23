@@ -35,6 +35,7 @@ import {
 import { InviteTeamMemberDialog } from './invite-team-member-dialog'
 import { EditMemberRoleDialog } from './edit-member-role-dialog'
 import { updateTeamMember, removeTeamMember } from '@/app/actions/team'
+import { TEAM_ROLES } from '@/lib/constants/team'
 import { 
   Plus, 
   MoreHorizontal, 
@@ -104,12 +105,12 @@ export function TeamMembersList({
 
   const getRoleBadge = (role: string) => {
     const config = {
-      admin: { icon: Shield, label: 'Admin', variant: 'default' as const },
-      member: { icon: User, label: 'Member', variant: 'secondary' as const },
-      viewer: { icon: Eye, label: 'Viewer', variant: 'outline' as const },
+      [TEAM_ROLES.ADMIN.value]: { icon: Shield, label: TEAM_ROLES.ADMIN.label, variant: 'default' as const },
+      [TEAM_ROLES.MEMBER.value]: { icon: User, label: TEAM_ROLES.MEMBER.label, variant: 'secondary' as const },
+      [TEAM_ROLES.VIEWER.value]: { icon: Eye, label: TEAM_ROLES.VIEWER.label, variant: 'outline' as const },
     }
 
-    const roleConfig = config[role as keyof typeof config] || config.member
+    const roleConfig = config[role as keyof typeof config] || config[TEAM_ROLES.MEMBER.value]
     const Icon = roleConfig.icon
 
     return (

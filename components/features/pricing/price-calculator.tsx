@@ -158,7 +158,7 @@ export function PriceCalculator() {
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading...</div>
+    return <div className="text-center py-8" role="status" aria-label="Loading products and customers">Loading...</div>
   }
 
   return (
@@ -167,7 +167,7 @@ export function PriceCalculator() {
         <div>
           <Label htmlFor="product">Product</Label>
           <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-            <SelectTrigger id="product">
+            <SelectTrigger id="product" aria-label="Select a product">
               <SelectValue placeholder="Select a product" />
             </SelectTrigger>
             <SelectContent>
@@ -183,7 +183,7 @@ export function PriceCalculator() {
         <div>
           <Label htmlFor="customer">Customer (Optional)</Label>
           <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-            <SelectTrigger id="customer">
+            <SelectTrigger id="customer" aria-label="Select a customer">
               <SelectValue placeholder="Select a customer" />
             </SelectTrigger>
             <SelectContent>
@@ -206,6 +206,8 @@ export function PriceCalculator() {
             onChange={(e) => setQuantity(e.target.value)}
             min="1"
             placeholder="1"
+            aria-label="Enter quantity"
+            aria-describedby="quantity-description"
           />
         </div>
       </div>
@@ -217,19 +219,19 @@ export function PriceCalculator() {
       >
         {calculating ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
             Calculating...
           </>
         ) : (
           <>
-            <Calculator className="mr-2 h-4 w-4" />
+            <Calculator className="mr-2 h-4 w-4" aria-hidden="true" />
             Calculate Price
           </>
         )}
       </Button>
 
       {result && (
-        <Card className="p-6">
+        <Card className="p-6" role="region" aria-label="Price calculation results">
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
               <div>

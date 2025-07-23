@@ -58,13 +58,13 @@ export function RealtimeIndicator() {
   const getStatusIcon = () => {
     switch (status.state) {
       case 'connected':
-        return <Wifi className="h-4 w-4" />
+        return <Wifi className="h-4 w-4" aria-hidden="true" />
       case 'connecting':
-        return <Activity className="h-4 w-4 animate-pulse" />
+        return <Activity className="h-4 w-4 animate-pulse" aria-hidden="true" />
       case 'disconnected':
-        return <WifiOff className="h-4 w-4" />
+        return <WifiOff className="h-4 w-4" aria-hidden="true" />
       case 'error':
-        return <AlertCircle className="h-4 w-4" />
+        return <AlertCircle className="h-4 w-4" aria-hidden="true" />
     }
   }
 
@@ -158,7 +158,7 @@ export function RealtimeIndicator() {
   }
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={300}>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -168,6 +168,9 @@ export function RealtimeIndicator() {
               getStatusColor(),
               isReceivingUpdates && 'animate-pulse'
             )}
+            aria-label={`Realtime connection status: ${getStatusText()}`}
+            role="status"
+            aria-live="polite"
           >
             {getStatusIcon()}
             <span className="text-xs font-medium hidden sm:inline">

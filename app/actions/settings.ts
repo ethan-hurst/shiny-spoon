@@ -1,7 +1,7 @@
 'use server'
 
 import { createServerClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
 const updateProfileSchema = z.object({
@@ -29,98 +29,142 @@ const changePasswordSchema = z.object({
 })
 
 export async function updateProfile(formData: FormData) {
-  const supabase = createServerClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+  try {
+    const supabase = createServerClient()
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
 
-  const parsed = updateProfileSchema.parse({
-    displayName: formData.get('displayName') || undefined,
-    bio: formData.get('bio') || undefined,
-  })
+    // Parse and validate input
+    const rawData = {
+      displayName: formData.get('displayName'),
+      bio: formData.get('bio'),
+    }
 
-  // Update user profile
-  const { error } = await supabase
-    .from('user_profiles')
-    .update({
-      display_name: parsed.displayName,
-      bio: parsed.bio,
-      updated_at: new Date().toISOString(),
+    const parsed = updateProfileSchema.parse({
+      displayName: rawData.displayName ? String(rawData.displayName).trim() : undefined,
+      bio: rawData.bio ? String(rawData.bio).trim() : undefined,
     })
-    .eq('user_id', user.id)
 
-  if (error) throw error
+    // Update user profile
+    const { error } = await supabase
+      .from('user_profiles')
+      .update({
+        display_name: parsed.displayName,
+        bio: parsed.bio,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id)
 
-  return { success: true }
+    if (error) throw error
+
+    return { success: true }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(error.errors[0]?.message || 'Validation error')
+    }
+    throw error
+  }
 }
 
 export async function updateNotificationPreferences(formData: FormData) {
-  const supabase = createServerClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+  try {
+    const supabase = createServerClient()
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
 
-  const parsed = updateNotificationPrefsSchema.parse({
-    emailNotifications: formData.get('emailNotifications') === 'true',
-    billingAlerts: formData.get('billingAlerts') === 'true',
-    usageAlerts: formData.get('usageAlerts') === 'true',
-    teamUpdates: formData.get('teamUpdates') === 'true',
-    apiUpdates: formData.get('apiUpdates') === 'true',
-    productUpdates: formData.get('productUpdates') === 'true',
-    securityAlerts: formData.get('securityAlerts') === 'true',
-  })
+    // Safely parse boolean values
+    const parseBoolean = (value: FormDataEntryValue | null): boolean => {
+      return value === 'true'
+    }
 
-  // Upsert notification preferences
-  const adminSupabase = createAdminClient()
-  const { error } = await adminSupabase
-    .from('notification_preferences')
-    .upsert({
-      user_id: user.id,
-      email_notifications: parsed.emailNotifications,
-      billing_alerts: parsed.billingAlerts,
-      usage_alerts: parsed.usageAlerts,
-      team_updates: parsed.teamUpdates,
-      api_updates: parsed.apiUpdates,
-      product_updates: parsed.productUpdates,
-      security_alerts: parsed.securityAlerts,
-      updated_at: new Date().toISOString(),
+    const parsed = updateNotificationPrefsSchema.parse({
+      emailNotifications: parseBoolean(formData.get('emailNotifications')),
+      billingAlerts: parseBoolean(formData.get('billingAlerts')),
+      usageAlerts: parseBoolean(formData.get('usageAlerts')),
+      teamUpdates: parseBoolean(formData.get('teamUpdates')),
+      apiUpdates: parseBoolean(formData.get('apiUpdates')),
+      productUpdates: parseBoolean(formData.get('productUpdates')),
+      securityAlerts: parseBoolean(formData.get('securityAlerts')),
     })
 
-  if (error) throw error
+    // Upsert notification preferences
+    const { error } = await supabaseAdmin
+      .from('notification_preferences')
+      .upsert({
+        user_id: user.id,
+        email_notifications: parsed.emailNotifications,
+        billing_alerts: parsed.billingAlerts,
+        usage_alerts: parsed.usageAlerts,
+        team_updates: parsed.teamUpdates,
+        api_updates: parsed.apiUpdates,
+        product_updates: parsed.productUpdates,
+        security_alerts: parsed.securityAlerts,
+        updated_at: new Date().toISOString(),
+      })
 
-  return { success: true }
+    if (error) throw error
+
+    return { success: true }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(error.errors[0]?.message || 'Validation error')
+    }
+    throw error
+  }
 }
 
 export async function changePassword(formData: FormData) {
-  const supabase = createServerClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+  try {
+    const supabase = createServerClient()
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
+    if (!user.email) throw new Error('User email not found')
 
-  const parsed = changePasswordSchema.parse({
-    currentPassword: formData.get('currentPassword'),
-    newPassword: formData.get('newPassword'),
-    confirmPassword: formData.get('confirmPassword'),
-  })
+    // Safely get string values
+    const rawData = {
+      currentPassword: formData.get('currentPassword'),
+      newPassword: formData.get('newPassword'),
+      confirmPassword: formData.get('confirmPassword'),
+    }
 
-  // Verify current password by attempting to sign in
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: user.email!,
-    password: parsed.currentPassword,
-  })
+    // Validate all fields are strings
+    if (!rawData.currentPassword || !rawData.newPassword || !rawData.confirmPassword) {
+      throw new Error('All password fields are required')
+    }
 
-  if (signInError) {
-    throw new Error('Current password is incorrect')
+    const parsed = changePasswordSchema.parse({
+      currentPassword: String(rawData.currentPassword),
+      newPassword: String(rawData.newPassword),
+      confirmPassword: String(rawData.confirmPassword),
+    })
+
+    // Verify current password by attempting to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: parsed.currentPassword,
+    })
+
+    if (signInError) {
+      throw new Error('Current password is incorrect')
+    }
+
+    // Update password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: parsed.newPassword,
+    })
+
+    if (updateError) throw updateError
+
+    return { success: true }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(error.errors[0]?.message || 'Validation error')
+    }
+    throw error
   }
-
-  // Update password
-  const { error: updateError } = await supabase.auth.updateUser({
-    password: parsed.newPassword,
-  })
-
-  if (updateError) throw updateError
-
-  return { success: true }
 }
 
 export async function enableTwoFactor() {
@@ -146,39 +190,61 @@ export async function disableTwoFactor() {
 }
 
 export async function downloadAccountData() {
-  const supabase = createServerClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+  try {
+    const supabase = createServerClient()
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Unauthorized')
 
-  // Gather all user data
-  const [profile, apiKeys, activity] = await Promise.all([
-    supabase
+    // Get user profile to verify organization
+    const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('*')
+      .select('organization_id')
       .eq('user_id', user.id)
-      .single(),
-    supabase
-      .from('api_keys')
-      .select('name, created_at, last_used_at, permissions')
-      .eq('created_by', user.id),
-    supabase
-      .from('api_call_logs')
-      .select('endpoint, method, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(100),
-  ])
+      .single()
 
-  const userData = {
-    profile: profile.data,
-    apiKeys: apiKeys.data,
-    recentActivity: activity.data,
-    exportedAt: new Date().toISOString(),
-  }
+    if (!userProfile?.organization_id) {
+      throw new Error('No organization found for user')
+    }
 
-  return {
-    data: JSON.stringify(userData, null, 2),
-    filename: `truthsource-data-${user.id}-${Date.now()}.json`,
+    // Gather all user data with proper error handling
+    const [profile, apiKeys, activity] = await Promise.all([
+      supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single(),
+      supabase
+        .from('api_keys')
+        .select('name, created_at, last_used_at, permissions')
+        .eq('created_by', user.id)
+        .eq('organization_id', userProfile.organization_id),
+      supabase
+        .from('api_call_logs')
+        .select('endpoint, method, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100),
+    ])
+
+    // Check for errors in responses
+    if (profile.error) throw profile.error
+    if (apiKeys.error) throw apiKeys.error
+    if (activity.error) throw activity.error
+
+    const userData = {
+      profile: profile.data,
+      apiKeys: apiKeys.data,
+      recentActivity: activity.data,
+      exportedAt: new Date().toISOString(),
+    }
+
+    return {
+      data: JSON.stringify(userData, null, 2),
+      filename: `truthsource-data-${user.id}-${Date.now()}.json`,
+    }
+  } catch (error) {
+    console.error('Failed to download account data:', error)
+    throw new Error('Failed to export account data')
   }
 }

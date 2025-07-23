@@ -56,7 +56,7 @@ export function UserNav({ user, organization }: UserNavProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full" aria-label="User account menu">
           <Avatar className="h-10 w-10">
             <AvatarImage src={user.avatar} alt={user.name || user.email} />
             <AvatarFallback>{initials}</AvatarFallback>
@@ -78,7 +78,7 @@ export function UserNav({ user, organization }: UserNavProps) {
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer">
-              <Building className="mr-2 h-4 w-4" />
+              <Building className="mr-2 h-4 w-4" aria-hidden="true" />
               <span>{organization.name}</span>
             </DropdownMenuItem>
           </>
@@ -87,15 +87,17 @@ export function UserNav({ user, organization }: UserNavProps) {
         <DropdownMenuItem
           className="cursor-pointer"
           onClick={() => router.push('/dashboard/settings')}
+          aria-label="Go to settings"
         >
-          <Settings className="mr-2 h-4 w-4" />
+          <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
           <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer"
           onClick={() => router.push('/dashboard/profile')}
+          aria-label="Go to profile"
         >
-          <User className="mr-2 h-4 w-4" />
+          <User className="mr-2 h-4 w-4" aria-hidden="true" />
           <span>Profile</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -103,8 +105,9 @@ export function UserNav({ user, organization }: UserNavProps) {
           className="cursor-pointer text-red-600 focus:text-red-600"
           onClick={handleSignOut}
           disabled={isLoading}
+          aria-label="Sign out of your account"
         >
-          <LogOut className="mr-2 h-4 w-4" />
+          <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
           <span>{isLoading ? 'Signing out...' : 'Sign out'}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

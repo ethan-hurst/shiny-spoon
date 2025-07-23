@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Check, Sparkles, Calendar, CreditCard } from 'lucide-react'
 import { changePlan } from '@/app/actions/billing'
+import { BILLING_MESSAGES, ANNUAL_DISCOUNT_PERCENTAGE } from '@/lib/constants/billing'
 
 interface Plan {
   id: string
@@ -54,7 +55,7 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
         <CardHeader>
           <CardTitle>Billing Cycle</CardTitle>
           <CardDescription>
-            Choose how often you'd like to be billed. Save 2 months with annual billing.
+            Choose how often you'd like to be billed. {BILLING_MESSAGES.ANNUAL_DESCRIPTION}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -80,7 +81,7 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
                   </div>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Pay month-to-month with the flexibility to cancel anytime
+                  {BILLING_MESSAGES.MONTHLY_DESCRIPTION}
                 </div>
               </Label>
             </div>
@@ -101,11 +102,11 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
                     <span className="font-medium">Annual billing</span>
                   </div>
                   <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300">
-                    Save 17%
+                    {BILLING_MESSAGES.ANNUAL_SAVINGS}
                   </Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Pay annually and get 2 months free on any plan
+                  {BILLING_MESSAGES.ANNUAL_DESCRIPTION}
                 </div>
               </Label>
             </div>

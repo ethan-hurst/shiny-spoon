@@ -5,11 +5,12 @@
       "@/*": ["./*"],
       "contentlayer/generated": ["./.contentlayer/generated"]
     },
-    "target": "es5",
+    "target": "es2015",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "downlevelIteration": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitAny": true,
     "noEmit": true,

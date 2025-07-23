@@ -132,13 +132,13 @@ export function ContactDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" aria-describedby="contact-dialog-description">
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>
               {isEditing ? 'Edit Contact' : 'Add New Contact'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="contact-dialog-description">
               {isEditing
                 ? 'Update the contact information below'
                 : 'Enter the contact details below'}
@@ -220,7 +220,7 @@ export function ContactDialog({
                   value={form.watch('role')}
                   onValueChange={(value) => form.setValue('role', value as any)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="role" aria-label="Select contact role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -242,7 +242,7 @@ export function ContactDialog({
                     form.setValue('preferred_contact_method', value as any)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="preferred_contact_method" aria-label="Select preferred contact method">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

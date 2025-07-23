@@ -25,9 +25,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { updateTeamMember } from '@/app/actions/team'
 import { Shield, User, Eye, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { TEAM_ROLES } from '@/lib/constants/team'
 
 const formSchema = z.object({
-  role: z.enum(['admin', 'member', 'viewer']),
+  role: z.enum([
+    TEAM_ROLES.ADMIN.value,
+    TEAM_ROLES.MEMBER.value,
+    TEAM_ROLES.VIEWER.value
+  ] as [string, ...string[]]),
 })
 
 interface EditMemberRoleDialogProps {
@@ -56,21 +61,21 @@ export function EditMemberRoleDialog({ member, open, onOpenChange }: EditMemberR
 
   const roles = [
     {
-      value: 'admin',
-      label: 'Admin',
-      description: 'Full access to all features and settings',
+      value: TEAM_ROLES.ADMIN.value,
+      label: TEAM_ROLES.ADMIN.label,
+      description: TEAM_ROLES.ADMIN.description,
       icon: Shield,
     },
     {
-      value: 'member',
-      label: 'Member',
-      description: 'Can view and edit data, but not settings',
+      value: TEAM_ROLES.MEMBER.value,
+      label: TEAM_ROLES.MEMBER.label,
+      description: TEAM_ROLES.MEMBER.description,
       icon: User,
     },
     {
-      value: 'viewer',
-      label: 'Viewer',
-      description: 'Can only view data, no editing allowed',
+      value: TEAM_ROLES.VIEWER.value,
+      label: TEAM_ROLES.VIEWER.label,
+      description: TEAM_ROLES.VIEWER.description,
       icon: Eye,
     },
   ] as const

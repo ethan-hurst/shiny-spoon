@@ -26,13 +26,31 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { inviteTeamMember } from '@/app/actions/team'
+import { TEAM_ROLES } from '@/lib/constants/team'
 import { Shield, User, Eye, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 const formSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  role: z.enum(['admin', 'member', 'viewer']),
-  message: z.string().max(500).optional(),
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please enter a valid email address')
+    .toLowerCase()
+    .trim(),
+  role: z.enum(
+    [
+      TEAM_ROLES.ADMIN.value,
+      TEAM_ROLES.MEMBER.value,
+      TEAM_ROLES.VIEWER.value
+    ] as [string, ...string[]],
+    {
+      required_error: 'Please select a role',
+    }
+  ),
+  message: z
+    .string()
+    .max(500, 'Message must be less than 500 characters')
+    .optional(),
 })
 
 interface InviteTeamMemberDialogProps {
@@ -47,28 +65,28 @@ export function InviteTeamMemberDialog({ open, onOpenChange }: InviteTeamMemberD
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
-      role: 'member',
+      role: TEAM_ROLES.MEMBER.value,
       message: '',
     },
   })
 
   const roles = [
     {
-      value: 'admin',
-      label: 'Admin',
-      description: 'Full access to all features and settings',
+      value: TEAM_ROLES.ADMIN.value,
+      label: TEAM_ROLES.ADMIN.label,
+      description: TEAM_ROLES.ADMIN.description,
       icon: Shield,
     },
     {
-      value: 'member',
-      label: 'Member',
-      description: 'Can view and edit data, but not settings',
+      value: TEAM_ROLES.MEMBER.value,
+      label: TEAM_ROLES.MEMBER.label,
+      description: TEAM_ROLES.MEMBER.description,
       icon: User,
     },
     {
-      value: 'viewer',
-      label: 'Viewer',
-      description: 'Can only view data, no editing allowed',
+      value: TEAM_ROLES.VIEWER.value,
+      label: TEAM_ROLES.VIEWER.label,
+      description: TEAM_ROLES.VIEWER.description,
       icon: Eye,
     },
   ] as const

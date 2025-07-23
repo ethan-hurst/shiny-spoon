@@ -38,6 +38,7 @@ export type HelpArticle = {
   body: MDX
   url: string
   slug: string
+  readingTime: json
 }
 
 export type Post = {

@@ -19,13 +19,21 @@ export default async function PortalLayout({
   }
 
   // Get user profile with organization
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('user_profiles')
     .select('*, organizations(*)')
     .eq('user_id', user.id)
     .single()
 
-  if (!profile?.organization_id) {
+  // Handle query errors or missing profile
+  if (error || !profile) {
+    console.error('Error fetching user profile:', error)
+    redirect('/dashboard')
+  }
+
+  // Ensure user has organization association
+  if (!profile.organization_id || !profile.organizations) {
+    console.error('User profile missing organization association')
     redirect('/dashboard')
   }
 

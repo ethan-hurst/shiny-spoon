@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Invoice } from '@/lib/billing'
+import type { Invoice } from '@/types/billing.types'
 import { Download, FileText, ExternalLink } from 'lucide-react'
 
 interface InvoiceHistoryProps {
@@ -20,7 +20,7 @@ interface InvoiceHistoryProps {
 
 export function InvoiceHistory({ invoices, hasActiveSubscription }: InvoiceHistoryProps) {
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; label: string }> = {
+    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
       paid: { variant: 'default', label: 'Paid' },
       open: { variant: 'secondary', label: 'Open' },
       past_due: { variant: 'destructive', label: 'Past Due' },
@@ -79,7 +79,7 @@ export function InvoiceHistory({ invoices, hasActiveSubscription }: InvoiceHisto
                 {invoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">
-                      {invoice.number || `INV-${invoice.id.slice(-8).toUpperCase()}`}
+                      {`INV-${invoice.id.slice(-8).toUpperCase()}`}
                     </TableCell>
                     <TableCell>
                       {format(new Date(invoice.created * 1000), 'MMM d, yyyy')}
