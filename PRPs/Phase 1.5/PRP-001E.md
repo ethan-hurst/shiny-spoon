@@ -158,7 +158,7 @@ export interface AuthState {
 #### Form component types
 ```typescript
 // types/form.types.ts
-import { FieldError, UseFormRegister } from 'react-hook-form'
+import { FieldError, Path, UseFormRegister } from 'react-hook-form'
 
 export interface FormFieldProps<TFieldValues> {
   name: Path<TFieldValues>
