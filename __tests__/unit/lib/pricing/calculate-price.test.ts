@@ -7,7 +7,7 @@ import {
   getQuickPrice,
   validatePriceMargin,
 } from '@/lib/pricing/calculate-price'
-import { PricingEngine } from '@/lib/pricing/pricing-engine'
+// PricingEngine is mocked in this test
 import { PriceCalculationRequest } from '@/types/pricing.types'
 
 // Mock the pricing engine
@@ -219,9 +219,9 @@ describe('Price Calculation Utilities', () => {
     it('should compare prices across different scenarios', async () => {
       const productId = 'test-product'
       const scenarios = [
-        { customerId: undefined, quantity: 1, label: 'Regular Price' },
+        { quantity: 1, label: 'Regular Price' },
         { customerId: 'vip-customer', quantity: 1, label: 'VIP Price' },
-        { customerId: undefined, quantity: 100, label: 'Bulk Price' },
+        { quantity: 100, label: 'Bulk Price' },
       ]
 
       mockEngine.calculatePrice

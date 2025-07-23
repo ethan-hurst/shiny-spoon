@@ -1,9 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import {
-  createTestOrganization,
-  createTestProduct,
-  createTestUser,
-} from '../utils/supabase-mocks'
 
 // Enhanced test setup with improved mocks for reliable CI execution
 const describeWithSupabase = process.env.CI ? describe.skip : describe
@@ -170,7 +165,7 @@ describeWithSupabase('RLS Policies', () => {
       })
 
       // Try to access user 2's product directly
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('products')
         .select('*')
         .eq('id', 'product-2-id')

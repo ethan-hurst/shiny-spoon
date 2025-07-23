@@ -38,9 +38,11 @@ export const userUpdate = async ({
       .eq('user_id', user_id)
       .select()
 
-    if (data) return data
+    if (error) {
+      throw new Error(error.message)
+    }
 
-    if (error) return error
+    return data
   } catch (error: any) {
     throw new Error(error.message)
   }

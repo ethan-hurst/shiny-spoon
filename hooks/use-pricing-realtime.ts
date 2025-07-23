@@ -60,9 +60,6 @@ export function usePricingRealtime(enabled: boolean = true) {
   // Handle product pricing changes
   const handlePricingChange = useCallback(
     (payload: any) => {
-      const eventType = payload.eventType
-      const pricing = payload.new
-
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['product-pricing'] })
       queryClient.invalidateQueries({ queryKey: ['price-calculations'] })
@@ -83,9 +80,6 @@ export function usePricingRealtime(enabled: boolean = true) {
   // Handle customer pricing changes
   const handleCustomerPricingChange = useCallback(
     (payload: any) => {
-      const eventType = payload.eventType
-      const pricing = payload.new
-
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['customer-pricing'] })
       queryClient.invalidateQueries({ queryKey: ['price-calculations'] })

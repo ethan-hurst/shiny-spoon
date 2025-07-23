@@ -27,10 +27,10 @@ export function useInventoryPresence({
       userId: user.id,
       userName: user.full_name || user.email?.split('@')[0] || 'Anonymous',
       userEmail: user.email || '',
-      avatarUrl: user.avatar_url,
       currentView,
-      itemId: inventoryId,
       lastActivity: new Date(),
+      ...(user.avatar_url && { avatarUrl: user.avatar_url }),
+      ...(inventoryId && { itemId: inventoryId }),
     }
 
     await channel.track(presence)
@@ -52,7 +52,7 @@ export function useInventoryPresence({
         const state = presenceChannel.presenceState()
         const users: PresenceData[] = []
 
-        Object.entries(state).forEach(([id, presenceArray]) => {
+        Object.entries(state).forEach(([, presenceArray]) => {
           if (Array.isArray(presenceArray) && presenceArray.length > 0) {
             // Get the most recent presence data for each user with proper type safety
             const latestPresence = presenceArray[
@@ -85,10 +85,10 @@ export function useInventoryPresence({
             userName:
               user.full_name || user.email?.split('@')[0] || 'Anonymous',
             userEmail: user.email || '',
-            avatarUrl: user.avatar_url,
             currentView,
-            itemId: inventoryId,
             lastActivity: new Date(),
+            ...(user.avatar_url && { avatarUrl: user.avatar_url }),
+            ...(inventoryId && { itemId: inventoryId }),
           }
 
           await presenceChannel.track(presence)

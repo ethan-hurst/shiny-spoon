@@ -3,10 +3,10 @@
 
 import { createClient } from '@supabase/supabase-js'
 // Load environment variables
-import dotenv from 'dotenv'
-import { Database } from './types/database.types'
+// import dotenv from 'dotenv'
+import { Database } from './supabase/types/database'
 
-dotenv.config({ path: '.env.local' })
+// dotenv.config({ path: '.env.local' })
 
 async function testConnection() {
   console.log('🔍 Testing Supabase connection...\n')
@@ -32,7 +32,7 @@ async function testConnection() {
   try {
     // Test 1: Check if we can connect
     console.log('📡 Test 1: Testing basic connection...')
-    const { data: orgs, error: orgsError } = await supabase
+    const { error: orgsError } = await supabase
       .from('organizations')
       .select('count')
       .limit(1)
@@ -64,7 +64,7 @@ async function testConnection() {
     ]
 
     for (const table of tables) {
-      const { error } = await supabase.from(table).select('*').limit(0)
+      const { error } = await supabase.from(table as keyof Database['public']['Tables']).select('*').limit(0)
       if (error) {
         console.error(`❌ Table '${table}' check failed:`, error.message)
       } else {

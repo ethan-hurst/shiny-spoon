@@ -1,6 +1,6 @@
-import { FieldError, Path, UseFormRegister } from 'react-hook-form'
+import { FieldError, FieldValues, Path, UseFormRegister } from 'react-hook-form'
 
-export interface FormFieldProps<TFieldValues> {
+export interface FormFieldProps<TFieldValues extends FieldValues> {
   name: Path<TFieldValues>
   register: UseFormRegister<TFieldValues>
   error?: FieldError

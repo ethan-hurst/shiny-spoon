@@ -1,4 +1,4 @@
-import type { Stripe } from 'stripe'
+// Billing types for subscription management
 
 // Subscription data returned from our billing functions
 export interface SubscriptionData {

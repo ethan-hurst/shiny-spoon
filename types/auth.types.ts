@@ -1,7 +1,7 @@
 // Authentication types and validation schemas
 
 import { z } from 'zod'
-import { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
+import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 // Auth change handler type
 export type AuthChangeHandler = (

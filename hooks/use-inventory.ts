@@ -106,7 +106,7 @@ export function useInventoryRealtime({
           table: 'inventory_adjustments',
           filter: `organization_id=eq.${organizationId}`,
         },
-        (payload: RealtimePostgresChangesPayload<any>) => {
+        () => {
           // Refresh when adjustments are made
           router.refresh()
         }
@@ -164,7 +164,6 @@ export function useInventoryRealtime({
 
 // Hook for optimistic updates
 export function useOptimisticInventory(
-  initialData: InventoryWithRelations[],
   organizationId: string
 ) {
   const router = useRouter()
