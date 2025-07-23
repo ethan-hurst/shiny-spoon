@@ -1,6 +1,13 @@
 // Authentication types and validation schemas
 
 import { z } from 'zod'
+import { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
+
+// Auth change handler type
+export type AuthChangeHandler = (
+  event: AuthChangeEvent,
+  session: Session | null
+) => void | Promise<void>
 
 // User types
 export interface AuthUser {
