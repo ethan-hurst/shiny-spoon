@@ -159,20 +159,21 @@ export function useProducts(initialData?: ProductWithStats[]) {
 
   // Set up real-time subscription
   useEffect(() => {
-    const channel = supabase
+    // Subscribe to product changes
+    const productChannel = supabase
       .channel('products-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'products'
+          table: 'products',
         },
         async (payload: RealtimePostgresChangesPayload<Product>) => {
           const { eventType, new: newRecord, old: oldRecord } = payload
 
           switch (eventType) {
-            case 'INSERT':
+            case 'INSERT': {
               if (newRecord) {
                 // Fetch inventory data for the new product
                 const { data: inventoryData } = await supabase
@@ -181,9 +182,15 @@ export function useProducts(initialData?: ProductWithStats[]) {
                   .eq('product_id', newRecord.id)
 
                 const inventory = inventoryData || []
-                const totalQuantity = inventory.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
-                const totalReserved = inventory.reduce((sum: number, item: { reserved_quantity: number }) => sum + (item.reserved_quantity || 0), 0)
-                
+                const totalQuantity = inventory.reduce(
+                  (sum: number, item: { quantity: number }) => sum + (item.quantity || 0),
+                  0
+                )
+                const totalReserved = inventory.reduce(
+                  (sum: number, item: { reserved_quantity: number }) => sum + (item.reserved_quantity || 0),
+                  0
+                )
+
                 const newProductWithStats: ProductWithStats = {
                   ...newRecord,
                   inventory_count: inventory.length,
@@ -192,40 +199,45 @@ export function useProducts(initialData?: ProductWithStats[]) {
                   low_stock: totalQuantity < 10,
                 }
 
-                setProducts(prev => [newProductWithStats, ...prev])
+                setProducts((prev) => [newProductWithStats, ...prev])
                 toast.success(`Product "${newRecord.name}" added`)
               }
               break
+            }
 
-            case 'UPDATE':
+            case 'UPDATE': {
               if (newRecord) {
-                setProducts(prev => prev.map(product => {
-                  if (product.id === newRecord.id) {
-                    // Preserve existing inventory stats, only update product fields
-                    return {
-                      ...product,
-                      ...newRecord,
-                      // Recalculate low_stock based on existing quantity
-                      low_stock: product.total_quantity < 10,
+                setProducts((prev) =>
+                  prev.map((product) => {
+                    if (product.id === newRecord.id) {
+                      // Preserve existing inventory stats, only update product fields
+                      return {
+                        ...product,
+                        ...newRecord,
+                        // Recalculate low_stock based on existing quantity
+                        low_stock: product.total_quantity < 10,
+                      }
                     }
-                  }
-                  return product
-                }))
+                    return product
+                  })
+                )
               }
               break
+            }
 
-            case 'DELETE':
+            case 'DELETE': {
               if (oldRecord) {
-                setProducts(prev => prev.filter(product => product.id !== oldRecord.id))
+                setProducts((prev) => prev.filter((product) => product.id !== oldRecord.id))
                 toast.info(`Product "${oldRecord.name}" removed`)
               }
               break
+            }
           }
         }
       )
       .subscribe()
 
-    // Also subscribe to inventory changes that affect product stats
+    // Subscribe to inventory changes that affect product stats
     const inventoryChannel = supabase
       .channel('inventory-changes-for-products')
       .on(
@@ -233,16 +245,21 @@ export function useProducts(initialData?: ProductWithStats[]) {
         {
           event: '*',
           schema: 'public',
-          table: 'inventory'
+          table: 'inventory',
         },
-        async (payload: RealtimePostgresChangesPayload<{ product_id: string; quantity: number; reserved_quantity: number }>) => {
-          const { new: newRecord, old: oldRecord, eventType } = payload
-          
+        async (payload: RealtimePostgresChangesPayload<{
+          product_id: string
+          quantity: number
+          reserved_quantity: number
+        }>) => {
+          const { new: newRecord, old: oldRecord } = payload
+
           // Type guard to ensure we have product_id
-          const productId = (newRecord && 'product_id' in newRecord) 
-            ? newRecord.product_id 
-            : (oldRecord && 'product_id' in oldRecord) 
-              ? oldRecord.product_id 
+          const productId =
+            newRecord && 'product_id' in newRecord
+              ? newRecord.product_id
+              : oldRecord && 'product_id' in oldRecord
+              ? oldRecord.product_id
               : null
 
           if (productId) {
@@ -253,28 +270,36 @@ export function useProducts(initialData?: ProductWithStats[]) {
               .eq('product_id', productId)
 
             const inventory = inventoryData || []
-            const totalQuantity = inventory.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
-            const totalReserved = inventory.reduce((sum: number, item: { reserved_quantity: number }) => sum + (item.reserved_quantity || 0), 0)
+            const totalQuantity = inventory.reduce(
+              (sum: number, item: { quantity: number }) => sum + (item.quantity || 0),
+              0
+            )
+            const totalReserved = inventory.reduce(
+              (sum: number, item: { reserved_quantity: number }) => sum + (item.reserved_quantity || 0),
+              0
+            )
 
-            setProducts(prev => prev.map(product => {
-              if (product.id === productId) {
-                return {
-                  ...product,
-                  inventory_count: inventory.length,
-                  total_quantity: totalQuantity,
-                  available_quantity: totalQuantity - totalReserved,
-                  low_stock: totalQuantity < 10,
+            setProducts((prev) =>
+              prev.map((product) => {
+                if (product.id === productId) {
+                  return {
+                    ...product,
+                    inventory_count: inventory.length,
+                    total_quantity: totalQuantity,
+                    available_quantity: totalQuantity - totalReserved,
+                    low_stock: totalQuantity < 10,
+                  }
                 }
-              }
-              return product
-            }))
+                return product
+              })
+            )
           }
         }
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(productChannel)
       supabase.removeChannel(inventoryChannel)
     }
   }, [supabase])
