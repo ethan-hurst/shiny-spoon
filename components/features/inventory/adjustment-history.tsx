@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { format } from 'date-fns'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { 
   Table,
   TableBody,
@@ -52,49 +53,47 @@ const reasonColors: Record<string, 'default' | 'secondary' | 'destructive' | 'ou
   other: 'default',
 }
 
-export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHistoryProps) {
-  const [adjustments, setAdjustments] = useState<InventoryAdjustment[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+// Query function for fetching adjustments
+async function fetchAdjustments(inventoryId: string, organizationId: string) {
   const supabase = createClient()
+  
+  // Use the view that includes user details
+  const { data, error } = await supabase
+    .from('inventory_adjustments_with_user')
+    .select('*')
+    .eq('inventory_id', inventoryId)
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (error) throw error
+
+  // Map the data to match our interface
+  const adjustmentsWithUser = data?.map((adj: any) => ({
+    ...adj,
+    user: {
+      full_name: adj.user_full_name || adj.user_email?.split('@')[0] || 'Unknown',
+      email: adj.user_email || 'unknown@example.com'
+    }
+  })) || []
+
+  return adjustmentsWithUser as InventoryAdjustment[]
+}
+
+export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHistoryProps) {
+  const supabase = createClient()
+  const queryClient = useQueryClient()
+
+  // Use React Query for data fetching
+  const { data: adjustments = [], isLoading, error } = useQuery({
+    queryKey: ['inventory-adjustments', inventoryId, organizationId],
+    queryFn: () => fetchAdjustments(inventoryId, organizationId),
+    staleTime: 30 * 1000, // Consider data stale after 30 seconds
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (formerly cacheTime)
+    refetchOnWindowFocus: true,
+  })
 
   useEffect(() => {
-    const fetchAdjustments = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('inventory_adjustments')
-          .select(`
-            *,
-            user:created_by (
-              id,
-              email
-            )
-          `)
-          .eq('inventory_id', inventoryId)
-          .eq('organization_id', organizationId)
-          .order('created_at', { ascending: false })
-          .limit(50)
-
-        if (error) throw error
-
-        // Map the data to include user information
-        const adjustmentsWithUser = data?.map((adj: any) => ({
-          ...adj,
-          user: {
-            full_name: adj.user?.email?.split('@')[0] || 'Unknown',
-            email: adj.user?.email || 'unknown@example.com'
-          }
-        })) || []
-
-        setAdjustments(adjustmentsWithUser as InventoryAdjustment[])
-      } catch (error) {
-        console.error('Error fetching adjustment history:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchAdjustments()
-
     // Set up real-time subscription
     const channel = supabase
       .channel(`adjustments-${inventoryId}`)
@@ -106,30 +105,11 @@ export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHis
           table: 'inventory_adjustments',
           filter: `inventory_id=eq.${inventoryId}`,
         },
-        async (payload: any) => {
-          // Fetch the new adjustment with user data
-          const { data } = await supabase
-            .from('inventory_adjustments')
-            .select(`
-              *,
-              user:created_by (
-                id,
-                email
-              )
-            `)
-            .eq('id', payload.new.id)
-            .single()
-
-          if (data) {
-            const newAdjustment = {
-              ...data,
-              user: {
-                full_name: data.user?.email?.split('@')[0] || 'Unknown',
-                email: data.user?.email || 'unknown@example.com'
-              }
-            }
-            setAdjustments(prev => [newAdjustment as InventoryAdjustment, ...prev])
-          }
+        () => {
+          // Invalidate and refetch the query when new adjustments are added
+          queryClient.invalidateQueries({ 
+            queryKey: ['inventory-adjustments', inventoryId, organizationId] 
+          })
         }
       )
       .subscribe()
@@ -137,7 +117,7 @@ export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHis
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [inventoryId, organizationId, supabase])
+  }, [inventoryId, organizationId, supabase, queryClient])
 
   if (isLoading) {
     return (
@@ -151,6 +131,21 @@ export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHis
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Adjustment History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Failed to load adjustment history. Please try again later.
+          </p>
         </CardContent>
       </Card>
     )
