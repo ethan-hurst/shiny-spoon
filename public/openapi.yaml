@@ -1,0 +1,1048 @@
+openapi: 3.0.3
+info:
+  title: TruthSource API
+  description: |
+    The TruthSource API enables seamless integration with your B2B e-commerce data accuracy platform.
+    Synchronize inventory, pricing, and delivery data between ERPs and e-commerce platforms in real-time.
+    
+    ## Authentication
+    All API requests require authentication using an API key. Include your API key in the `X-API-Key` header:
+    ```
+    X-API-Key: your_api_key_here
+    ```
+    
+    ## Rate Limiting
+    - Standard tier: 1,000 requests per hour
+    - Professional tier: 10,000 requests per hour
+    - Enterprise tier: Unlimited (fair use policy applies)
+    
+    ## Base URL
+    All API endpoints are relative to: `https://api.truthsource.io/v1`
+  version: 1.0.0
+  contact:
+    name: TruthSource Support
+    email: support@truthsource.io
+    url: https://truthsource.io/support
+  license:
+    name: Proprietary
+    url: https://truthsource.io/terms
+
+servers:
+  - url: https://api.truthsource.io/v1
+    description: Production server
+  - url: https://sandbox.api.truthsource.io/v1
+    description: Sandbox server for testing
+
+tags:
+  - name: Authentication
+    description: API authentication endpoints
+  - name: Inventory
+    description: Inventory management and synchronization
+  - name: Pricing
+    description: Dynamic pricing rules and calculations
+  - name: Orders
+    description: Order management and processing
+  - name: Products
+    description: Product catalog management
+  - name: Webhooks
+    description: Webhook configuration and management
+  - name: Sync
+    description: Data synchronization operations
+  - name: Health
+    description: API health and status
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Check API health status
+      description: Returns the current health status of the API
+      operationId: getHealthStatus
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    description: Uptime in seconds
+
+  /auth/api-keys:
+    post:
+      tags: [Authentication]
+      summary: Create new API key
+      description: Creates a new API key for accessing the TruthSource API
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, permissions]
+              properties:
+                name:
+                  type: string
+                  description: Descriptive name for the API key
+                  example: "Production Integration"
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                    enum: [read:inventory, write:inventory, read:pricing, write:pricing, read:orders, write:orders]
+                  example: ["read:inventory", "write:inventory"]
+                expiresAt:
+                  type: string
+                  format: date-time
+                  description: Optional expiration date for the API key
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags: [Authentication]
+      summary: List API keys
+      description: Retrieves a list of all API keys for the authenticated organization
+      operationId: listApiKeys
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /auth/api-keys/{keyId}:
+    delete:
+      tags: [Authentication]
+      summary: Revoke API key
+      description: Revokes an existing API key
+      operationId: revokeApiKey
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: API key revoked successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /inventory:
+    get:
+      tags: [Inventory]
+      summary: List inventory items
+      description: Retrieves a paginated list of inventory items with optional filtering
+      operationId: listInventory
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: warehouseId
+          in: query
+          description: Filter by warehouse ID
+          schema:
+            type: string
+            format: uuid
+        - name: productId
+          in: query
+          description: Filter by product ID
+          schema:
+            type: string
+            format: uuid
+        - name: lowStock
+          in: query
+          description: Only return items below reorder point
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InventoryItem'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      tags: [Inventory]
+      summary: Create inventory item
+      description: Creates a new inventory item or updates existing if product/warehouse combination exists
+      operationId: createInventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInventoryRequest'
+      responses:
+        '201':
+          description: Inventory item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /inventory/{inventoryId}:
+    get:
+      tags: [Inventory]
+      summary: Get inventory item
+      description: Retrieves details of a specific inventory item
+      operationId: getInventoryItem
+      parameters:
+        - name: inventoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Inventory item details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Inventory]
+      summary: Update inventory item
+      description: Updates an existing inventory item
+      operationId: updateInventory
+      parameters:
+        - name: inventoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInventoryRequest'
+      responses:
+        '200':
+          description: Inventory item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /inventory/bulk:
+    post:
+      tags: [Inventory]
+      summary: Bulk update inventory
+      description: Updates multiple inventory items in a single request
+      operationId: bulkUpdateInventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  maxItems: 1000
+                  items:
+                    $ref: '#/components/schemas/BulkInventoryUpdate'
+      responses:
+        '200':
+          description: Bulk update results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  successful:
+                    type: integer
+                  failed:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index:
+                          type: integer
+                        error:
+                          type: string
+
+  /pricing/calculate:
+    post:
+      tags: [Pricing]
+      summary: Calculate product price
+      description: Calculates the final price for a product based on pricing rules and customer context
+      operationId: calculatePrice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceCalculationRequest'
+      responses:
+        '200':
+          description: Calculated price details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceCalculationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /pricing/rules:
+    get:
+      tags: [Pricing]
+      summary: List pricing rules
+      description: Retrieves all active pricing rules
+      operationId: listPricingRules
+      parameters:
+        - name: type
+          in: query
+          description: Filter by rule type
+          schema:
+            type: string
+            enum: [customer, product, category, promotion]
+        - name: active
+          in: query
+          description: Filter by active status
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of pricing rules
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PricingRule'
+
+    post:
+      tags: [Pricing]
+      summary: Create pricing rule
+      description: Creates a new pricing rule
+      operationId: createPricingRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePricingRuleRequest'
+      responses:
+        '201':
+          description: Pricing rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingRule'
+
+  /products:
+    get:
+      tags: [Products]
+      summary: List products
+      description: Retrieves a paginated list of products
+      operationId: listProducts
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          description: Search products by name or SKU
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          description: Filter by category ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /products/{productId}:
+    get:
+      tags: [Products]
+      summary: Get product details
+      description: Retrieves detailed information about a specific product
+      operationId: getProduct
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sync/status:
+    get:
+      tags: [Sync]
+      summary: Get sync status
+      description: Retrieves the current synchronization status for all integrations
+      operationId: getSyncStatus
+      responses:
+        '200':
+          description: Sync status for all integrations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  integrations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SyncStatus'
+
+  /sync/trigger:
+    post:
+      tags: [Sync]
+      summary: Trigger manual sync
+      description: Manually triggers a synchronization for specified integration
+      operationId: triggerSync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [integration, type]
+              properties:
+                integration:
+                  type: string
+                  enum: [netsuite, shopify, sap, magento]
+                type:
+                  type: string
+                  enum: [inventory, pricing, products, orders]
+      responses:
+        '202':
+          description: Sync triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  syncId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [queued]
+
+  /webhooks:
+    get:
+      tags: [Webhooks]
+      summary: List webhook subscriptions
+      description: Retrieves all webhook subscriptions for the organization
+      operationId: listWebhooks
+      responses:
+        '200':
+          description: List of webhook subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookSubscription'
+
+    post:
+      tags: [Webhooks]
+      summary: Create webhook subscription
+      description: Creates a new webhook subscription
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookSubscription'
+
+  /webhooks/{webhookId}:
+    delete:
+      tags: [Webhooks]
+      summary: Delete webhook subscription
+      description: Deletes an existing webhook subscription
+      operationId: deleteWebhook
+      parameters:
+        - name: webhookId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Webhook deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        key:
+          type: string
+          description: Only returned on creation
+        permissions:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        warehouseId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 0
+        reservedQuantity:
+          type: integer
+          minimum: 0
+        availableQuantity:
+          type: integer
+          minimum: 0
+        reorderPoint:
+          type: integer
+          nullable: true
+        reorderQuantity:
+          type: integer
+          nullable: true
+        lastSync:
+          type: string
+          format: date-time
+        syncStatus:
+          type: string
+          enum: [synced, pending, error]
+        product:
+          $ref: '#/components/schemas/Product'
+        warehouse:
+          $ref: '#/components/schemas/Warehouse'
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+        unitOfMeasure:
+          type: string
+        weight:
+          type: number
+          nullable: true
+        dimensions:
+          type: object
+          nullable: true
+          properties:
+            length:
+              type: number
+            width:
+              type: number
+            height:
+              type: number
+            unit:
+              type: string
+              enum: [cm, in]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Warehouse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            postalCode:
+              type: string
+            country:
+              type: string
+
+    PricingRule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [customer, product, category, promotion]
+        priority:
+          type: integer
+        conditions:
+          type: object
+        discountType:
+          type: string
+          enum: [percentage, fixed, price]
+        discountValue:
+          type: number
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        active:
+          type: boolean
+
+    SyncStatus:
+      type: object
+      properties:
+        integration:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+          enum: [idle, syncing, error]
+        lastSync:
+          type: string
+          format: date-time
+          nullable: true
+        nextSync:
+          type: string
+          format: date-time
+          nullable: true
+        itemsSynced:
+          type: integer
+        errors:
+          type: integer
+
+    WebhookSubscription:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+            enum: [inventory.updated, order.created, price.changed, product.updated]
+        secret:
+          type: string
+          description: Used for webhook signature verification
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              nullable: true
+
+    CreateInventoryRequest:
+      type: object
+      required: [productId, warehouseId, quantity]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        warehouseId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 0
+        reorderPoint:
+          type: integer
+          minimum: 0
+          nullable: true
+        reorderQuantity:
+          type: integer
+          minimum: 1
+          nullable: true
+
+    UpdateInventoryRequest:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+        reorderPoint:
+          type: integer
+          minimum: 0
+          nullable: true
+        reorderQuantity:
+          type: integer
+          minimum: 1
+          nullable: true
+
+    BulkInventoryUpdate:
+      type: object
+      required: [productId, warehouseId, quantity]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        warehouseId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 0
+
+    PriceCalculationRequest:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+          nullable: true
+        quantity:
+          type: integer
+          minimum: 1
+        requestedDate:
+          type: string
+          format: date
+          nullable: true
+
+    PriceCalculationResponse:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        basePrice:
+          type: number
+        finalPrice:
+          type: number
+        currency:
+          type: string
+        appliedRules:
+          type: array
+          items:
+            type: object
+            properties:
+              ruleId:
+                type: string
+                format: uuid
+              ruleName:
+                type: string
+              discount:
+                type: number
+        priceBreaks:
+          type: array
+          items:
+            type: object
+            properties:
+              minQuantity:
+                type: integer
+              price:
+                type: number
+
+    CreatePricingRuleRequest:
+      type: object
+      required: [name, type, discountType, discountValue]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [customer, product, category, promotion]
+        priority:
+          type: integer
+          default: 0
+        conditions:
+          type: object
+          properties:
+            customerId:
+              type: string
+              format: uuid
+            productId:
+              type: string
+              format: uuid
+            categoryId:
+              type: string
+              format: uuid
+            minOrderValue:
+              type: number
+            minQuantity:
+              type: integer
+        discountType:
+          type: string
+          enum: [percentage, fixed, price]
+        discountValue:
+          type: number
+          minimum: 0
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateWebhookRequest:
+      type: object
+      required: [url, events]
+      properties:
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [inventory.updated, order.created, price.changed, product.updated]
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: BAD_REQUEST
+              message: Invalid request parameters
+              details:
+                field: quantity
+                reason: Must be a positive integer
+
+    Unauthorized:
+      description: Unauthorized - Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Invalid or missing API key
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: NOT_FOUND
+              message: Resource not found
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per hour
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Time when rate limit resets (Unix timestamp)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: API rate limit exceeded
