@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   const validatedRedirectUrl = validateRedirectUrl(rawNext, requestUrl.origin)
 
   if (code) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Exchange code for session
     const { error } = await supabase.auth.exchangeCodeForSession(code)

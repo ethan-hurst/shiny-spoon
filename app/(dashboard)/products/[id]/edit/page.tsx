@@ -16,7 +16,7 @@ interface EditProductPageProps {
 
 export default async function EditProductPage(props: EditProductPageProps) {
   const params = await props.params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {

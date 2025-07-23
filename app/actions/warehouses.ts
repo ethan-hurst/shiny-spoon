@@ -7,7 +7,7 @@ import { warehouseSchema } from '@/lib/validations/warehouse'
 
 // Helper function for authentication and organization fetching
 async function getAuthenticatedOrgId() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {

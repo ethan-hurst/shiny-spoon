@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ProductsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {

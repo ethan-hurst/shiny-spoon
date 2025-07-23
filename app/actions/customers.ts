@@ -14,7 +14,7 @@ import {
 import { createClient } from '@/lib/supabase/server'
 
 export async function createCustomer(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -109,7 +109,7 @@ export async function createCustomer(formData: FormData) {
 }
 
 export async function updateCustomer(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const id = formData.get('id') as string
   if (!id) {
@@ -195,7 +195,7 @@ export async function updateCustomer(formData: FormData) {
 }
 
 export async function deleteCustomer(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -242,7 +242,7 @@ export async function deleteCustomer(id: string) {
 }
 
 export async function createContact(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -304,7 +304,7 @@ export async function createContact(formData: FormData) {
 }
 
 export async function updateContact(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const id = formData.get('id') as string
   if (!id) {
@@ -356,7 +356,7 @@ export async function updateContact(formData: FormData) {
 }
 
 export async function deleteContact(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -410,7 +410,7 @@ export async function deleteContact(id: string) {
 export async function assignCustomerTier(
   data: z.infer<typeof assignTierSchema>
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -462,7 +462,7 @@ export async function assignCustomerTier(
 export async function updateCustomerCreditLimit(
   data: z.infer<typeof updateCreditLimitSchema>
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -515,7 +515,7 @@ export async function updateCustomerCreditLimit(
 export async function logCustomerActivity(
   data: z.infer<typeof createActivitySchema>
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

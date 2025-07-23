@@ -21,7 +21,7 @@ import type { QuantityBreak } from '@/types/pricing.types'
 
 // Product Pricing Actions
 export async function createProductPricing(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -63,7 +63,7 @@ export async function createProductPricing(formData: FormData) {
 }
 
 export async function updateProductPricing(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -106,7 +106,7 @@ export async function updateProductPricing(formData: FormData) {
 export async function createPricingRule(
   data: z.infer<typeof createPricingRuleSchema>
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -152,7 +152,7 @@ export async function createPricingRule(
 export async function updatePricingRule(
   data: z.infer<typeof updatePricingRuleSchema>
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -199,7 +199,7 @@ export async function updatePricingRule(
 }
 
 export async function deletePricingRule(ruleId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -221,7 +221,7 @@ export async function deletePricingRule(ruleId: string) {
 
 // Customer Pricing Actions
 export async function createCustomerPricing(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -259,7 +259,7 @@ export async function createCustomerPricing(formData: FormData) {
 }
 
 export async function updateCustomerPricing(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -298,7 +298,7 @@ export async function updateCustomerPricing(formData: FormData) {
 }
 
 export async function approveCustomerPricing(pricingId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -320,7 +320,7 @@ export async function approveCustomerPricing(pricingId: string) {
 
 // Bulk update customer prices
 export async function bulkUpdateCustomerPrices(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -382,7 +382,7 @@ export async function bulkUpdateCustomerPrices(formData: FormData) {
 export async function calculatePrice(
   data: z.infer<typeof priceCalculationRequestSchema>
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -409,7 +409,7 @@ export async function calculatePrice(
 
 // Bulk Import Actions
 export async function importPricingRules(file: File) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -508,7 +508,7 @@ export async function importPricingRules(file: File) {
 }
 
 export async function exportPricingRules() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

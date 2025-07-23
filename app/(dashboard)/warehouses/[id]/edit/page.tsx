@@ -12,7 +12,7 @@ export default async function EditWarehousePage(
   props: EditWarehousePageProps
 ) {
   const params = await props.params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Validate UUID format
   const uuidRegex =

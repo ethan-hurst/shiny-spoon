@@ -42,7 +42,7 @@ export default async function InventoryPage(props: {
   searchParams: Promise<{ warehouse_id?: string; search?: string; low_stock?: string }>
 }) {
   const searchParams = await props.searchParams
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check authentication
   const {

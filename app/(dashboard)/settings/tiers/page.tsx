@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function TiersPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get user's organization
   const {

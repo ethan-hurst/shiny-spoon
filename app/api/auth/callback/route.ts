@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     try {
       // Exchange code for session

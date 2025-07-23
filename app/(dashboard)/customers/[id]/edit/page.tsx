@@ -10,7 +10,7 @@ interface PageProps {
 
 export default async function EditCustomerPage(props: PageProps) {
   const params = await props.params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get user's organization
   const {

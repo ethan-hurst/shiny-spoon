@@ -41,7 +41,7 @@ export default async function InventoryHistoryPage(props: {
   params: Promise<{ id: string }>
 }) {
   const params = await props.params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Check authentication
   const {

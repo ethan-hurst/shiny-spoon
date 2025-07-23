@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 }
 
 export default async function PricingPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   try {
     // Fetch pricing stats

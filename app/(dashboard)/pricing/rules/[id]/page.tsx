@@ -18,7 +18,7 @@ export default async function EditPricingRulePage(
   props: EditPricingRulePageProps
 ) {
   const params = await props.params
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get user's organization for security
   const {

@@ -27,10 +27,10 @@ export async function updateSession(request: NextRequest) {
   // Create Supabase client with cookie handling
   const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      getAll() {
+      async getAll() {
         return request.cookies.getAll()
       },
-      setAll(cookiesToSet) {
+      async setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value)
         )
@@ -134,7 +134,7 @@ export async function checkUserRole(
     .eq('user_id', user.id)
     .single()
 
-  if (!profile) return false
+  if (!profile || !profile.role) return false
 
   // Role hierarchy: owner > admin > member
   const roleHierarchy = { owner: 3, admin: 2, member: 1 }
