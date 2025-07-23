@@ -181,7 +181,7 @@ describe('Pricing Server Actions', () => {
 
       await createPricingRule(formData as any)
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      expect(mockRulesBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Summer Sale',
           rule_type: 'promotion',
@@ -201,12 +201,13 @@ describe('Pricing Server Actions', () => {
       formData.append('product_id', 'test-product-id')
       formData.append('override_price', '85.00')
 
-      // Mock is already set up with createChainableMock
+      const mockQueryBuilder = createMockQueryBuilder()
+      mockSupabase.from.mockReturnValue(mockQueryBuilder)
 
       await createCustomerPricing(formData as any)
 
       expect(mockSupabase.from).toHaveBeenCalledWith('customer_pricing')
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         customer_id: 'test-customer-id',
         product_id: 'test-product-id',
         override_price: 85,
@@ -226,11 +227,12 @@ describe('Pricing Server Actions', () => {
       formData.append('product_id', 'test-product-id')
       formData.append('override_discount_percent', '15')
 
-      // Mock is already set up with createChainableMock
+      const mockQueryBuilder = createMockQueryBuilder()
+      mockSupabase.from.mockReturnValue(mockQueryBuilder)
 
       await createCustomerPricing(formData as any)
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           override_price: undefined,
           override_discount_percent: 15,
@@ -253,51 +255,37 @@ describe('Pricing Server Actions', () => {
       formData.append('apply_to_all_warehouses', 'true')
 
       // Mock product lookups
+      const productQuery1 = createMockQueryBuilder()
+      setupQueryResult(productQuery1, {
+        id: 'product-1-id',
+        product_pricing: { base_price: 100, cost: 50 },
+      })
+      
+      const productQuery2 = createMockQueryBuilder()
+      setupQueryResult(productQuery2, null)
+      
+      const insertQuery1 = createMockQueryBuilder()
+      insertQuery1.insert.mockResolvedValue({ error: null })
+      
+      const insertQuery2 = createMockQueryBuilder()
+      insertQuery2.insert.mockResolvedValue({ error: null })
+      
+      const productQuery3 = createMockQueryBuilder()
+      setupQueryResult(productQuery3, {
+        id: 'product-2-id',
+        product_pricing: { base_price: 200, cost: 100 },
+      })
+      
+      const productQuery4 = createMockQueryBuilder()
+      setupQueryResult(productQuery4, null)
+      
       mockSupabase.from
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: {
-              id: 'product-1-id',
-              product_pricing: { base_price: 100, cost: 50 },
-            },
-            error: null,
-          }),
-        })
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: null,
-          }),
-        })
-        .mockReturnValueOnce({
-          insert: jest.fn().mockResolvedValue({ error: null }),
-        })
-        .mockReturnValueOnce({
-          insert: jest.fn().mockResolvedValue({ error: null }),
-        })
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: {
-              id: 'product-2-id',
-              product_pricing: { base_price: 200, cost: 100 },
-            },
-            error: null,
-          }),
-        })
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: null,
-          }),
-        })
+        .mockReturnValueOnce(productQuery1)
+        .mockReturnValueOnce(productQuery2)
+        .mockReturnValueOnce(insertQuery1)
+        .mockReturnValueOnce(insertQuery2)
+        .mockReturnValueOnce(productQuery3)
+        .mockReturnValueOnce(productQuery4)
       // Mock the new RPC call for bulk updates
       mockSupabase.rpc.mockResolvedValueOnce({
         data: {
@@ -308,6 +296,9 @@ describe('Pricing Server Actions', () => {
           bulk_update_id: 'bulk-update-123',
         },
         error: null,
+        count: null,
+        status: 200,
+        statusText: 'OK',
       })
 
       const result: any = await bulkUpdateCustomerPrices(formData as any)
@@ -349,6 +340,9 @@ describe('Pricing Server Actions', () => {
           bulk_update_id: 'bulk-update-456',
         },
         error: null,
+        count: null,
+        status: 200,
+        statusText: 'OK',
       })
 
       const result: any = await bulkUpdateCustomerPrices(formData as any)
@@ -394,6 +388,9 @@ describe('Pricing Server Actions', () => {
           },
         ],
         error: null,
+        count: null,
+        status: 200,
+        statusText: 'OK',
       })
 
       const result = await calculatePrice(data)
@@ -436,6 +433,9 @@ describe('Pricing Server Actions', () => {
           },
         ],
         error: null,
+        count: null,
+        status: 200,
+        statusText: 'OK',
       })
 
       await calculatePrice(data)
@@ -451,7 +451,16 @@ describe('Pricing Server Actions', () => {
     it('should handle calculation errors', async () => {
       mockSupabase.rpc.mockResolvedValue({
         data: null,
-        error: { message: 'Product not found' },
+        error: { 
+          message: 'Product not found',
+          details: null,
+          hint: null,
+          code: '404',
+          name: 'PostgrestError'
+        },
+        count: null,
+        status: 404,
+        statusText: 'Not Found',
       })
 
       await expect(

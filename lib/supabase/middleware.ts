@@ -4,7 +4,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import type { Database } from '@/types/database.types'
+import type { Database } from '@/supabase/types/database'
 
 export async function updateSession(request: NextRequest) {
   // Validate environment variables

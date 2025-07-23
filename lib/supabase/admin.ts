@@ -4,7 +4,7 @@
 // NEVER expose this to the client or use in client components
 
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database.types'
+import type { Database } from '@/supabase/types/database'
 
 // Ensure we're in a server environment
 if (typeof window !== 'undefined') {

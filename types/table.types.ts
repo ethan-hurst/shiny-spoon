@@ -1,3 +1,5 @@
+import React from 'react'
+
 export interface Column<T> {
   id: keyof T | string
   header: string

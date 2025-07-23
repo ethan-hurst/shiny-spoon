@@ -2,7 +2,7 @@
 // This client is safe to use in browser/client components
 
 import { createBrowserClient } from '@supabase/ssr'
-import type { Database } from '@/types/database.types'
+import type { Database } from '@/supabase/types/database'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Create a singleton instance

@@ -1,9 +1,9 @@
-import { SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient, PostgrestQueryBuilder } from '@supabase/supabase-js'
 import { Database } from '@/supabase/types'
 
 type MockSupabaseClient = jest.Mocked<SupabaseClient<Database>>
 
-interface MockQueryBuilder {
+interface MockQueryBuilder extends Partial<PostgrestQueryBuilder<any, any, string, any>> {
   insert: jest.Mock
   update: jest.Mock
   delete: jest.Mock
@@ -35,9 +35,11 @@ interface MockQueryBuilder {
   explain: jest.Mock
   rollback: jest.Mock
   match: jest.Mock
+  url?: URL
+  headers?: Record<string, string>
 }
 
-export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): MockQueryBuilder {
+export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): PostgrestQueryBuilder<any, any, string, any> {
   const builder: MockQueryBuilder = {
     insert: jest.fn(),
     update: jest.fn(),
@@ -70,8 +72,10 @@ export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): M
     explain: jest.fn(),
     rollback: jest.fn(),
     match: jest.fn(),
+    url: new URL('https://mock.supabase.co'),
+    headers: {},
     ...overrides,
-  }
+  } as MockQueryBuilder
 
   // Make all methods chainable except single/maybeSingle
   Object.keys(builder).forEach((key) => {
@@ -85,7 +89,7 @@ export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): M
   builder.single.mockResolvedValue({ data: null, error: null })
   builder.maybeSingle.mockResolvedValue({ data: null, error: null })
 
-  return builder
+  return builder as unknown as PostgrestQueryBuilder<any, any, string, any>
 }
 
 export function createMockSupabaseClient(): MockSupabaseClient {
@@ -187,12 +191,13 @@ export function setupUnauthenticatedUser(mockClient: MockSupabaseClient) {
 }
 
 export function setupQueryResult<T>(
-  mockQueryBuilder: MockQueryBuilder,
+  mockQueryBuilder: PostgrestQueryBuilder<any, any, string, any>,
   data: T | null,
   error: any = null
 ) {
-  mockQueryBuilder.single.mockResolvedValue({ data, error })
-  mockQueryBuilder.maybeSingle.mockResolvedValue({ data, error })
-  mockQueryBuilder.select.mockReturnValue(mockQueryBuilder)
+  const builder = mockQueryBuilder as unknown as MockQueryBuilder
+  builder.single.mockResolvedValue({ data, error })
+  builder.maybeSingle.mockResolvedValue({ data, error })
+  builder.select.mockReturnValue(mockQueryBuilder)
   return mockQueryBuilder
 }
