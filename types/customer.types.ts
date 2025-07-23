@@ -211,7 +211,7 @@ export function getCustomerInitials(
 
   if (words.length === 1) {
     // Single word - take first two characters or just first if only one character
-    return words[0].slice(0, 2).toUpperCase()
+    return words[0]!.slice(0, 2).toUpperCase()
   }
 
   // Multiple words - take first character of each word, up to 2 characters

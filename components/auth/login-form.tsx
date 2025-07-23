@@ -54,7 +54,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" aria-label="Login form">
         <FormField
           control={form.control}
           name="email"
@@ -84,6 +84,7 @@ export function LoginForm() {
                 <Link
                   href="/reset-password"
                   className="text-sm text-blue-600 hover:underline"
+                  aria-label="Reset your password"
                 >
                   Forgot password?
                 </Link>

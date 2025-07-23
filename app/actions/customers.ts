@@ -226,7 +226,7 @@ export async function deleteCustomer(id: string) {
   try {
     await supabase.from('customer_activities').insert({
       customer_id: id,
-      organization_id: profile.organization_id,
+      organization_id: customer.organization_id,
       type: 'settings_update',
       title: 'Customer Deleted',
       description: `Customer account was permanently deleted by user ${user.id}`,

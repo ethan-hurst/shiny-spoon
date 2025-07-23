@@ -20,7 +20,7 @@ export default function DocsLayout({
 
   // Sort docs within each category by order
   Object.keys(docsByCategory).forEach((category) => {
-    docsByCategory[category].sort((a, b) => a.order - b.order)
+    docsByCategory[category]!.sort((a, b) => a.order - b.order)
   })
 
   return (

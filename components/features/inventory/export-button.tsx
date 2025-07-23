@@ -77,15 +77,16 @@ export function ExportButton({ filters, organizationId }: ExportButtonProps) {
       size="sm"
       onClick={handleExport}
       disabled={isExporting}
+      aria-label="Export inventory data to CSV"
     >
       {isExporting ? (
         <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
           Exporting...
         </>
       ) : (
         <>
-          <Download className="mr-2 h-4 w-4" />
+          <Download className="mr-2 h-4 w-4" aria-hidden="true" />
           Export CSV
         </>
       )}

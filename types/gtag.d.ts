@@ -2,7 +2,7 @@
 
 interface Window {
   gtag?: (
-    command: 'event'  < /dev/null |  'config' | 'set' | 'consent',
+    command: 'event' | 'config' | 'set' | 'consent',
     targetId: string,
     config?: Gtag.ControlParams | Gtag.EventParams | Gtag.ConfigParams | Gtag.ConsentParams
   ) => void

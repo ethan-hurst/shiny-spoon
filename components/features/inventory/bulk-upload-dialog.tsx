@@ -172,10 +172,10 @@ export function BulkUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" aria-describedby="bulk-upload-description">
         <DialogHeader>
           <DialogTitle>Bulk Update Inventory</DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="bulk-upload-description">
             Upload a CSV file to update multiple inventory items at once
           </DialogDescription>
         </DialogHeader>
@@ -183,14 +183,14 @@ export function BulkUploadDialog({
         <div className="space-y-4">
           {/* Template Download */}
           <Alert>
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
             <AlertDescription>
               <div className="flex items-center justify-between">
                 <span>Download a template to see the required format</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="link" size="sm" className="h-auto p-0">
-                      <Download className="mr-2 h-4 w-4" />
+                    <Button variant="link" size="sm" className="h-auto p-0" aria-label="Download CSV templates">
+                      <Download className="mr-2 h-4 w-4" aria-hidden="true" />
                       Templates
                     </Button>
                   </DropdownMenuTrigger>
@@ -231,6 +231,7 @@ export function BulkUploadDialog({
                   ? 'border-primary bg-primary/5'
                   : 'border-muted-foreground/25'
               )}
+              aria-label="Choose CSV file to upload"
             >
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <FileUp
@@ -238,6 +239,7 @@ export function BulkUploadDialog({
                     'w-8 h-8 mb-2',
                     file ? 'text-primary' : 'text-muted-foreground'
                   )}
+                  aria-hidden="true"
                 />
                 <p className="mb-2 text-sm text-center">
                   {file ? (
@@ -250,7 +252,7 @@ export function BulkUploadDialog({
                   )}
                 </p>
                 {!file && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground" id="file-upload-help">
                     CSV files only (max 10MB, 10,000 rows)
                   </p>
                 )}
@@ -262,6 +264,7 @@ export function BulkUploadDialog({
                 className="hidden"
                 onChange={handleFileChange}
                 disabled={isUploading}
+                aria-describedby="file-upload-help"
               />
             </label>
           </div>
@@ -290,7 +293,7 @@ export function BulkUploadDialog({
               <div className="flex items-center gap-4">
                 {uploadResult.successCount > 0 && (
                   <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                     <span className="text-sm font-medium">
                       {uploadResult.successCount} updated
                     </span>
@@ -298,7 +301,7 @@ export function BulkUploadDialog({
                 )}
                 {uploadResult.errorCount > 0 && (
                   <div className="flex items-center gap-2 text-red-600">
-                    <XCircle className="h-4 w-4" />
+                    <XCircle className="h-4 w-4" aria-hidden="true" />
                     <span className="text-sm font-medium">
                       {uploadResult.errorCount} errors
                     </span>
@@ -340,12 +343,12 @@ export function BulkUploadDialog({
           <Button onClick={handleUpload} disabled={!file || isUploading}>
             {isUploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                 Uploading...
               </>
             ) : (
               <>
-                <FileUp className="mr-2 h-4 w-4" />
+                <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
                 Upload
               </>
             )}

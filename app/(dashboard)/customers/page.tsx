@@ -173,18 +173,18 @@ export default async function CustomersPage({ searchParams }: PageProps) {
           stats || {
             total_customers: customers?.length || 0,
             active_customers:
-              customers?.filter((c: any) => c.status === 'active').length || 0,
+              customers?.filter((c: CustomerWithStats) => c.status === 'active').length || 0,
             inactive_customers:
-              customers?.filter((c: any) => c.status === 'inactive').length ||
+              customers?.filter((c: CustomerWithStats) => c.status === 'inactive').length ||
               0,
             suspended_customers:
-              customers?.filter((c: any) => c.status === 'suspended').length ||
+              customers?.filter((c: CustomerWithStats) => c.status === 'suspended').length ||
               0,
             by_tier:
-              tiers?.map((tier) => ({
+              tiers?.map((tier: { id: string; name: string; color: string }) => ({
                 tier_name: tier.name,
                 count:
-                  customers?.filter((c: any) => c.tier_id === tier.id).length ||
+                  customers?.filter((c: CustomerWithStats) => c.tier_id === tier.id).length ||
                   0,
               })) || [],
           }

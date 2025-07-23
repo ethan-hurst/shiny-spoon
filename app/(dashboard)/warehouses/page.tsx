@@ -46,7 +46,7 @@ export default async function WarehousesPage() {
 
   // Transform data to include inventory count
   const warehousesWithCounts =
-    warehouses?.map((warehouse) => ({
+    warehouses?.map((warehouse: any) => ({
       ...warehouse,
       inventory_count: warehouse.inventory?.[0]?.count || 0,
     })) || []
@@ -55,7 +55,7 @@ export default async function WarehousesPage() {
   const states = Array.from(
     new Set(
       warehouses
-        ?.map((w) => {
+        ?.map((w: any) => {
           const address = w.address as Address
           return address?.state
         })

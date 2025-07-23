@@ -192,6 +192,8 @@ export function AdjustmentDialog({
                         onChange={(e) =>
                           field.onChange(parseInt(e.target.value) || 0)
                         }
+                        aria-label="Enter new quantity"
+                        aria-describedby="quantity-description"
                       />
                     </FormControl>
                     <FormDescription>
@@ -205,7 +207,7 @@ export function AdjustmentDialog({
               {/* Adjustment Preview */}
               {adjustment !== 0 && (
                 <Alert>
-                  <Package className="h-4 w-4" />
+                  <Package className="h-4 w-4" aria-hidden="true" />
                   <AlertDescription>
                     Adjustment: {adjustment > 0 ? '+' : ''}
                     {adjustment.toLocaleString()} units
@@ -216,7 +218,7 @@ export function AdjustmentDialog({
               {/* Warning for reducing below reserved */}
               {newQuantity < reservedQuantity && (
                 <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                   <AlertDescription>
                     Warning: New quantity is below reserved quantity (
                     {reservedQuantity.toLocaleString()})
@@ -235,7 +237,7 @@ export function AdjustmentDialog({
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger aria-label="Select reason for adjustment">
                           <SelectValue placeholder="Select a reason" />
                         </SelectTrigger>
                       </FormControl>
@@ -268,6 +270,7 @@ export function AdjustmentDialog({
                         placeholder="Add any additional details..."
                         className="resize-none"
                         rows={3}
+                        aria-label="Additional notes for adjustment"
                       />
                     </FormControl>
                     <FormDescription>
@@ -292,7 +295,7 @@ export function AdjustmentDialog({
                   disabled={isSubmitting || adjustment === 0}
                 >
                   {isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                   )}
                   Update Inventory
                 </Button>

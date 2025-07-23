@@ -73,9 +73,9 @@ export default async function PricingPage() {
     ])
 
     // Process stats
-    const rulesByType =
+    const rulesByType: Record<string, number> =
       rulesResult.data?.reduce(
-        (acc, rule) => {
+        (acc: Record<string, number>, rule: { rule_type: string; id: string }) => {
           acc[rule.rule_type] = (acc[rule.rule_type] || 0) + 1
           return acc
         },
@@ -84,14 +84,14 @@ export default async function PricingPage() {
 
     const avgDiscount = calculationsResult.data?.length
       ? calculationsResult.data.reduce(
-          (sum, calc) => sum + (calc.discount_percent || 0),
+          (sum: number, calc: { discount_percent?: number }) => sum + (calc.discount_percent || 0),
           0
         ) / calculationsResult.data.length
       : 0
 
     const avgMargin = calculationsResult.data?.length
       ? calculationsResult.data.reduce(
-          (sum, calc) => sum + (calc.margin_percent || 0),
+          (sum: number, calc: { margin_percent?: number }) => sum + (calc.margin_percent || 0),
           0
         ) / calculationsResult.data.length
       : 0
@@ -124,12 +124,12 @@ export default async function PricingPage() {
                 Active Rules
               </CardTitle>
               <Badge variant="secondary">
-                {Object.values(rulesByType).reduce((a, b) => a + b, 0)}
+                {Object.values(rulesByType).reduce((a: number, b: number) => a + b, 0)}
               </Badge>
             </CardHeader>
             <CardContent>
               <div className="space-y-1">
-                {Object.entries(rulesByType).map(([type, count]) => (
+                {Object.entries(rulesByType).map(([type, count]: [string, number]) => (
                   <div key={type} className="flex justify-between text-xs">
                     <span className="text-muted-foreground capitalize">
                       {type}

@@ -47,7 +47,7 @@ async function getCustomerEmail(customerId: string): Promise<string | null> {
 async function handleSubscriptionEvent(
   event: Stripe.Event,
   type: 'created' | 'updated' | 'deleted',
-  supabase: ReturnType<typeof createServerClient>
+  supabase: any
 ) {
   const subscription = event.data.object as Stripe.Subscription
   const customerEmail = await getCustomerEmail(subscription.customer as string)
@@ -74,7 +74,7 @@ async function handleSubscriptionEvent(
     stripe_user_id: subscription.customer,
     status: subscription.status,
     start_date: new Date(subscription.created * 1000).toISOString(),
-    plan_id: subscription.items.data[0]?.price.id,
+    plan_id: subscription.items.data[0]?.price.id || '',
     user_id: subscription.metadata?.userId || '',
     email: customerEmail,
   }
@@ -127,7 +127,7 @@ async function handleSubscriptionEvent(
 async function handleInvoiceEvent(
   event: Stripe.Event,
   status: 'succeeded' | 'failed',
-  supabase: ReturnType<typeof createServerClient>
+  supabase: any
 ) {
   const invoice = event.data.object as Stripe.Invoice
   const customerEmail = await getCustomerEmail(invoice.customer as string)
@@ -169,7 +169,7 @@ async function handleInvoiceEvent(
 
 async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
-  supabase: ReturnType<typeof createServerClient>
+  supabase: any
 ) {
   const session = event.data.object as Stripe.Checkout.Session
   const metadata: any = session?.metadata
@@ -254,7 +254,7 @@ async function handleCheckoutSessionCompleted(
 async function webhooksHandler(
   reqText: string,
   request: NextRequest,
-  supabase: ReturnType<typeof createServerClient>
+  supabase: any
 ): Promise<NextResponse> {
   const sig = request.headers.get('Stripe-Signature')
 

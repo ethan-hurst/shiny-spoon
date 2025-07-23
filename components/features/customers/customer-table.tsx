@@ -117,7 +117,7 @@ export function CustomerTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border">
+      <div className="rounded-md border" role="region" aria-label="Customer table">
         <Table>
           <TableHeader>
             <TableRow>
@@ -148,6 +148,7 @@ export function CustomerTable({
                     <Link
                       href={`/customers/${customer.id}`}
                       className="flex items-center gap-3 hover:opacity-80"
+                      aria-label={`View details for ${formatCustomerName(customer)}`}
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
@@ -190,33 +191,33 @@ export function CustomerTable({
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
+                          <Link href={`/customers/${customer.id}`} aria-label={`View details for ${formatCustomerName(customer)}`}>
+                            <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
                             View Details
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}/edit`}>
-                            <Edit className="mr-2 h-4 w-4" />
+                          <Link href={`/customers/${customer.id}/edit`} aria-label={`Edit ${formatCustomerName(customer)}`}>
+                            <Edit className="mr-2 h-4 w-4" aria-hidden="true" />
                             Edit
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}/contacts`}>
-                            <UserPlus className="mr-2 h-4 w-4" />
+                          <Link href={`/customers/${customer.id}/contacts`} aria-label={`Manage contacts for ${formatCustomerName(customer)}`}>
+                            <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
                             Manage Contacts
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}/pricing`}>
-                            <CreditCard className="mr-2 h-4 w-4" />
+                          <Link href={`/customers/${customer.id}/pricing`} aria-label={`Manage custom pricing for ${formatCustomerName(customer)}`}>
+                            <CreditCard className="mr-2 h-4 w-4" aria-hidden="true" />
                             Custom Pricing
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/orders?customer_id=${customer.id}`}>
-                            <FileText className="mr-2 h-4 w-4" />
+                          <Link href={`/orders?customer_id=${customer.id}`} aria-label={`View orders for ${formatCustomerName(customer)}`}>
+                            <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
                             View Orders
                           </Link>
                         </DropdownMenuItem>
@@ -226,7 +227,7 @@ export function CustomerTable({
                           onClick={() => handleDelete(customer.id)}
                           disabled={deletingId === customer.id}
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
+                          <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -256,8 +257,9 @@ export function CustomerTable({
               size="sm"
               onClick={() => router.push(`/customers?page=${currentPage - 1}`)}
               disabled={currentPage === 1}
+              aria-label="Go to previous page"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               Previous
             </Button>
             <Button
@@ -265,9 +267,10 @@ export function CustomerTable({
               size="sm"
               onClick={() => router.push(`/customers?page=${currentPage + 1}`)}
               disabled={!hasMore}
+              aria-label="Go to next page"
             >
               Next
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
