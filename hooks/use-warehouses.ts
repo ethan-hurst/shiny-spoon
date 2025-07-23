@@ -14,25 +14,26 @@ export function useWarehouses(initialData?: Warehouse[]) {
   const supabase = createClient()
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const fetchWarehouses = useCallback(async () => {
+  const fetchWarehouses = useCallback(async (currentFilters?: WarehouseFilters) => {
     setIsLoading(true)
     try {
+      const filtersToUse = currentFilters || filters
       let query = supabase.from('warehouses').select(`
         *,
         inventory:inventory(count)
       `)
 
       // Apply filters
-      if (filters.search) {
-        query = query.or(`code.ilike.%${filters.search}%,name.ilike.%${filters.search}%`)
+      if (filtersToUse.search) {
+        query = query.or(`code.ilike.%${filtersToUse.search}%,name.ilike.%${filtersToUse.search}%`)
       }
 
-      if (filters.active !== undefined) {
-        query = query.eq('active', filters.active)
+      if (filtersToUse.active !== undefined) {
+        query = query.eq('active', filtersToUse.active)
       }
 
-      if (filters.state) {
-        query = query.ilike('address->state', `%${filters.state}%`)
+      if (filtersToUse.state) {
+        query = query.ilike('address->state', `%${filtersToUse.state}%`)
       }
 
       const { data, error } = await query
@@ -51,7 +52,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
     } finally {
       setIsLoading(false)
     }
-  }, [filters, supabase])
+  }, [supabase])
 
   const deleteWarehouse = useCallback(async (id: string) => {
     try {
@@ -74,7 +75,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
       // Soft delete by setting active to false
       const { error } = await supabase
         .from('warehouses')
-        .update({ active: false, updated_at: new Date().toISOString() })
+        .update({ active: false })
         .eq('id', id)
 
       if (error) throw error
@@ -157,6 +158,11 @@ export function useWarehouses(initialData?: Warehouse[]) {
     }
   }, [supabase, router])
 
+  // Fetch warehouses when filters change
+  useEffect(() => {
+    fetchWarehouses(filters)
+  }, [filters, fetchWarehouses])
+
   // Set up real-time subscription
   useEffect(() => {
     const channel = supabase
@@ -202,7 +208,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
       }
       supabase.removeChannel(channel)
     }
-  }, [supabase, fetchWarehouses])
+  }, [supabase])
 
   return {
     warehouses,
