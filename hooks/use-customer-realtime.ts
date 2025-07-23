@@ -35,7 +35,7 @@ export function useCustomerRealtime({
           ? `id=eq.${customerId}`
           : `organization_id=eq.${organizationId}`,
       },
-      (payload) => {
+      (payload: any) => {
         const { eventType, new: newRecord, old: oldRecord } = payload
 
         // Handle specific customer updates
@@ -66,7 +66,7 @@ export function useCustomerRealtime({
           table: 'customer_contacts',
           filter: customerId ? `customer_id=eq.${customerId}` : undefined,
         },
-        (payload) => {
+        (payload: any) => {
           if (customerId) {
             queryClient.invalidateQueries({
               queryKey: ['customer-contacts', customerId],
@@ -97,7 +97,7 @@ export function useCustomerRealtime({
             ? `customer_id=eq.${customerId}`
             : `organization_id=eq.${organizationId}`,
         },
-        (payload) => {
+        (payload: any) => {
           if (customerId) {
             queryClient.invalidateQueries({
               queryKey: ['customer-activities', customerId],
@@ -118,7 +118,7 @@ export function useCustomerRealtime({
         table: 'customer_tiers',
         filter: `organization_id=eq.${organizationId}`,
       },
-      (payload) => {
+      (payload: any) => {
         queryClient.invalidateQueries({ queryKey: ['customer-tiers'] })
 
         const { eventType, new: newRecord } = payload

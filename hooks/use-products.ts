@@ -55,7 +55,7 @@ export function useProducts(initialData?: ProductWithStats[]) {
       }
 
       // Transform products to include stats
-      const productsWithStats = (data || []).map(product => {
+      const productsWithStats = (data || []).map((product: any) => {
         const inventoryItems = product.inventory || []
         const totalQuantity = inventoryItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
         const totalReserved = inventoryItems.reduce((sum: number, item: any) => sum + (item.reserved_quantity || 0), 0)
@@ -125,7 +125,7 @@ export function useProducts(initialData?: ProductWithStats[]) {
 
       const csvContent = [
         csvHeaders.join(','),
-        ...csvRows.map(row => row.map(cell => escapeCSVCell(cell)).join(','))
+        ...csvRows.map(row => row.map(cell => escapeCSVCell(String(cell))).join(','))
       ].join('\n')
 
       const blob = new Blob([csvContent], { type: 'text/csv' })
@@ -156,7 +156,7 @@ export function useProducts(initialData?: ProductWithStats[]) {
           schema: 'public',
           table: 'products'
         },
-        (payload) => {
+        (payload: any) => {
           // Refresh products when changes occur
           fetchProducts()
         }

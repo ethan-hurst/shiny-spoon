@@ -221,7 +221,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
           schema: 'public',
           table: 'warehouses'
         },
-        (payload) => {
+        (payload: any) => {
           // Handle different event types efficiently
           const { eventType, new: newRecord, old: oldRecord } = payload
 

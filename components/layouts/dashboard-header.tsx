@@ -1,14 +1,18 @@
 'use client'
 
+import { ReactNode } from 'react'
 import { Menu } from 'lucide-react'
 import { DashboardBreadcrumb } from '@/components/layouts/dashboard-breadcrumb'
 import ModeToggle from '@/components/mode-toggle'
 import { Button } from '@/components/ui/button'
 import { UserProfile } from '@/components/user-profile'
 import { useSidebar } from '@/hooks/use-sidebar'
-import { RealtimeIndicator } from '@/components/features/inventory/realtime-indicator'
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  rightExtras?: ReactNode
+}
+
+export function DashboardHeader({ rightExtras }: DashboardHeaderProps) {
   const { setOpenMobile } = useSidebar()
 
   return (
@@ -26,7 +30,7 @@ export function DashboardHeader() {
       <DashboardBreadcrumb />
 
       <div className="ml-auto flex items-center gap-2">
-        <RealtimeIndicator />
+        {rightExtras}
         <ModeToggle />
         <UserProfile />
       </div>
