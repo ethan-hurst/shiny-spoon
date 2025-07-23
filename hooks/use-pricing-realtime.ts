@@ -212,7 +212,7 @@ export function useProductPriceRealtime(
           table: 'price_calculations',
           filter: `product_id=eq.${productId}`,
         },
-        (payload) => {
+        (payload: any) => {
           // Invalidate price queries for this product
           queryClient.invalidateQueries({
             queryKey: ['product-price', productId],
@@ -251,7 +251,7 @@ export function usePriceCalculationNotifications(enabled: boolean = true) {
           schema: 'public',
           table: 'price_calculations',
         },
-        async (payload) => {
+        async (payload: any) => {
           const calculation = payload.new
 
           // Check for low margin warnings

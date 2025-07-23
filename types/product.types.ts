@@ -18,5 +18,6 @@ export interface ProductFilters {
 export interface ProductWithStats extends Product {
   inventory_count: number
   total_quantity: number
+  available_quantity: number
   low_stock: boolean
 }

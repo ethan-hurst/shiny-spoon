@@ -39,7 +39,7 @@ export default async function ApiKeysPage() {
   }
   
   const keyLimit = keyLimits[subscription?.plan || 'starter'] || 3
-  const activeKeys = apiKeys?.filter(key => key.is_active) || []
+  const activeKeys = apiKeys?.filter((key: any) => key.is_active) || []
 
   // Get usage stats for the last 30 days
   const thirtyDaysAgo = new Date()
@@ -57,7 +57,7 @@ export default async function ApiKeysPage() {
     activeKeys: activeKeys.length,
     totalCalls: apiStats?.length || 0,
     successRate: apiStats && apiStats.length > 0 
-      ? (apiStats.filter(s => s.status_code >= 200 && s.status_code < 300).length / apiStats.length) * 100
+      ? (apiStats.filter((s: any) => s.status_code >= 200 && s.status_code < 300).length / apiStats.length) * 100
       : 100,
   }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { ReactNode } from 'react'
 import { Menu } from 'lucide-react'
 import { DashboardBreadcrumb } from '@/components/layouts/dashboard-breadcrumb'
 import ModeToggle from '@/components/mode-toggle'
@@ -7,7 +8,11 @@ import { Button } from '@/components/ui/button'
 import { UserProfile } from '@/components/user-profile'
 import { useSidebar } from '@/hooks/use-sidebar'
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  rightExtras?: ReactNode
+}
+
+export function DashboardHeader({ rightExtras }: DashboardHeaderProps) {
   const { setOpenMobile } = useSidebar()
 
   return (
@@ -25,6 +30,7 @@ export function DashboardHeader() {
       <DashboardBreadcrumb />
 
       <div className="ml-auto flex items-center gap-2">
+        {rightExtras}
         <ModeToggle />
         <UserProfile />
       </div>
