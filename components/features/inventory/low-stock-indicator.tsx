@@ -6,6 +6,43 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils'
 import { calculateAvailableQuantity, getStockStatus } from '@/lib/inventory/calculations'
 
+// Shared configuration for stock status display
+const stockStatusConfig = {
+  out_of_stock: {
+    label: 'Out of Stock',
+    variant: 'destructive' as const,
+    icon: AlertCircle,
+    showQuantity: false,
+  },
+  critical: {
+    label: 'Critical',
+    variant: 'destructive' as const,
+    icon: TrendingDown,
+    showQuantity: true,
+  },
+  low: {
+    label: 'Low Stock',
+    variant: 'outline' as const,
+    icon: AlertCircle,
+    showQuantity: true,
+  },
+  normal: {
+    label: 'In Stock',
+    variant: 'secondary' as const,
+    icon: AlertCircle,
+    showQuantity: true,
+  },
+}
+
+// Helper function to get stock status label with optional quantity
+function getStockStatusLabel(status: keyof typeof stockStatusConfig, quantity?: number): string {
+  const config = stockStatusConfig[status]
+  if (config.showQuantity && quantity !== undefined) {
+    return `${config.label} (${quantity})`
+  }
+  return config.label
+}
+
 interface LowStockIndicatorProps {
   quantity: number
   reorderPoint: number
@@ -47,40 +84,26 @@ export function LowStockIndicator({
     lg: 'h-5 w-5',
   }
 
-  const getStatusConfig = () => {
+  const baseConfig = stockStatusConfig[stockStatus] || stockStatusConfig.normal
+  
+  // Add specific tooltip based on status
+  const getTooltip = () => {
     switch (stockStatus) {
       case 'out_of_stock':
-        return {
-          label: 'Out of Stock',
-          variant: 'destructive' as const,
-          icon: AlertCircle,
-          tooltip: `No available inventory (${quantity} on hand, ${reserved} reserved)`,
-        }
+        return `No available inventory (${quantity} on hand, ${reserved} reserved)`
       case 'critical':
-        return {
-          label: 'Critical Stock',
-          variant: 'destructive' as const,
-          icon: TrendingDown,
-          tooltip: `Only ${availableQuantity} available (reorder point: ${reorderPoint})`,
-        }
+        return `Only ${availableQuantity} available (reorder point: ${reorderPoint})`
       case 'low':
-        return {
-          label: 'Low Stock',
-          variant: 'outline' as const,
-          icon: AlertCircle,
-          tooltip: `${availableQuantity} available (reorder point: ${reorderPoint})`,
-        }
+        return `${availableQuantity} available (reorder point: ${reorderPoint})`
       default:
-        return {
-          label: 'In Stock',
-          variant: 'secondary' as const,
-          icon: AlertCircle,
-          tooltip: `${availableQuantity} available`,
-        }
+        return `${availableQuantity} available`
     }
   }
 
-  const status = getStatusConfig()
+  const status = {
+    ...baseConfig,
+    tooltip: getTooltip()
+  }
   const Icon = status.icon
 
   const content = (
@@ -137,33 +160,15 @@ export function StockStatusBadge({
     reorder_point: reorderPoint
   })
 
-  switch (stockStatus) {
-    case 'out_of_stock':
-      return (
-        <Badge variant="destructive" className={className}>
-          Out of Stock
-        </Badge>
-      )
-    case 'critical':
-      return (
-        <Badge variant="destructive" className={className}>
-          Critical ({availableQuantity})
-        </Badge>
-      )
-    case 'low':
-      return (
-        <Badge variant="outline" className={className}>
-          Low Stock ({availableQuantity})
-        </Badge>
-      )
-    case 'normal':
-    default:
-      return (
-        <Badge variant="secondary" className={className}>
-          In Stock ({availableQuantity})
-        </Badge>
-      )
-  }
+  // Use shared configuration
+  const config = stockStatusConfig[stockStatus] || stockStatusConfig.normal
+  const label = getStockStatusLabel(stockStatus, availableQuantity)
+
+  return (
+    <Badge variant={config.variant} className={className}>
+      {label}
+    </Badge>
+  )
 }
 
 interface StockLevelBarProps {
@@ -202,18 +207,15 @@ export function StockLevelBar({
   const reservedPercentage = Math.min((reserved / max) * 100, 100)
   const reorderPercentage = (reorderPoint / max) * 100
 
-  const getBarColor = () => {
-    switch (stockStatus) {
-      case 'out_of_stock':
-        return 'bg-red-500'
-      case 'critical':
-      case 'low':
-        return 'bg-yellow-500'
-      case 'normal':
-      default:
-        return 'bg-green-500'
-    }
+  // Map stock status to bar colors consistently
+  const barColorMap = {
+    out_of_stock: 'bg-red-500',
+    critical: 'bg-red-500',
+    low: 'bg-yellow-500',
+    normal: 'bg-green-500'
   }
+  
+  const getBarColor = () => barColorMap[stockStatus] || barColorMap.normal
 
   return (
     <div className={cn('space-y-1', className)}>
