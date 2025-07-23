@@ -4,6 +4,7 @@ import { AlertCircle, TrendingDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { calculateAvailableQuantity, getStockStatus } from '@/lib/inventory/calculations'
 
 interface LowStockIndicatorProps {
   quantity: number
@@ -22,12 +23,21 @@ export function LowStockIndicator({
   showText = true,
   size = 'md',
 }: LowStockIndicatorProps) {
-  const availableQuantity = quantity - reserved
-  const isOutOfStock = availableQuantity <= 0
-  const isLowStock = availableQuantity > 0 && availableQuantity <= reorderPoint
-  const isCriticalStock = availableQuantity > 0 && availableQuantity <= Math.ceil(reorderPoint * 0.5)
+  // Use utility function to calculate available quantity
+  const availableQuantity = calculateAvailableQuantity({
+    quantity,
+    reserved_quantity: reserved
+  })
+  
+  // Use utility function to get stock status
+  const stockStatus = getStockStatus({
+    quantity,
+    reserved_quantity: reserved,
+    reorder_point: reorderPoint
+  })
 
-  if (!isOutOfStock && !isLowStock) {
+  // Only show indicator for non-normal stock levels
+  if (stockStatus === 'normal') {
     return null
   }
 
@@ -37,32 +47,40 @@ export function LowStockIndicator({
     lg: 'h-5 w-5',
   }
 
-  const getStockStatus = () => {
-    if (isOutOfStock) {
-      return {
-        label: 'Out of Stock',
-        variant: 'destructive' as const,
-        icon: AlertCircle,
-        tooltip: `No available inventory (${quantity} on hand, ${reserved} reserved)`,
-      }
-    }
-    if (isCriticalStock) {
-      return {
-        label: 'Critical Stock',
-        variant: 'destructive' as const,
-        icon: TrendingDown,
-        tooltip: `Only ${availableQuantity} available (reorder point: ${reorderPoint})`,
-      }
-    }
-    return {
-      label: 'Low Stock',
-      variant: 'outline' as const,
-      icon: AlertCircle,
-      tooltip: `${availableQuantity} available (reorder point: ${reorderPoint})`,
+  const getStatusConfig = () => {
+    switch (stockStatus) {
+      case 'out_of_stock':
+        return {
+          label: 'Out of Stock',
+          variant: 'destructive' as const,
+          icon: AlertCircle,
+          tooltip: `No available inventory (${quantity} on hand, ${reserved} reserved)`,
+        }
+      case 'critical':
+        return {
+          label: 'Critical Stock',
+          variant: 'destructive' as const,
+          icon: TrendingDown,
+          tooltip: `Only ${availableQuantity} available (reorder point: ${reorderPoint})`,
+        }
+      case 'low':
+        return {
+          label: 'Low Stock',
+          variant: 'outline' as const,
+          icon: AlertCircle,
+          tooltip: `${availableQuantity} available (reorder point: ${reorderPoint})`,
+        }
+      default:
+        return {
+          label: 'In Stock',
+          variant: 'secondary' as const,
+          icon: AlertCircle,
+          tooltip: `${availableQuantity} available`,
+        }
     }
   }
 
-  const status = getStockStatus()
+  const status = getStatusConfig()
   const Icon = status.icon
 
   const content = (
@@ -107,37 +125,45 @@ export function StockStatusBadge({
   reserved = 0,
   className,
 }: StockStatusBadgeProps) {
-  const availableQuantity = quantity - reserved
+  // Use utility functions for consistency
+  const availableQuantity = calculateAvailableQuantity({
+    quantity,
+    reserved_quantity: reserved
+  })
+  
+  const stockStatus = getStockStatus({
+    quantity,
+    reserved_quantity: reserved,
+    reorder_point: reorderPoint
+  })
 
-  if (availableQuantity <= 0) {
-    return (
-      <Badge variant="destructive" className={className}>
-        Out of Stock
-      </Badge>
-    )
+  switch (stockStatus) {
+    case 'out_of_stock':
+      return (
+        <Badge variant="destructive" className={className}>
+          Out of Stock
+        </Badge>
+      )
+    case 'critical':
+      return (
+        <Badge variant="destructive" className={className}>
+          Critical ({availableQuantity})
+        </Badge>
+      )
+    case 'low':
+      return (
+        <Badge variant="outline" className={className}>
+          Low Stock ({availableQuantity})
+        </Badge>
+      )
+    case 'normal':
+    default:
+      return (
+        <Badge variant="secondary" className={className}>
+          In Stock ({availableQuantity})
+        </Badge>
+      )
   }
-
-  if (availableQuantity <= Math.ceil(reorderPoint * 0.5)) {
-    return (
-      <Badge variant="destructive" className={className}>
-        Critical ({availableQuantity})
-      </Badge>
-    )
-  }
-
-  if (availableQuantity <= reorderPoint) {
-    return (
-      <Badge variant="outline" className={className}>
-        Low Stock ({availableQuantity})
-      </Badge>
-    )
-  }
-
-  return (
-    <Badge variant="secondary" className={className}>
-      In Stock ({availableQuantity})
-    </Badge>
-  )
 }
 
 interface StockLevelBarProps {
@@ -157,7 +183,19 @@ export function StockLevelBar({
   className,
   showLabels = false,
 }: StockLevelBarProps) {
-  const availableQuantity = quantity - reserved
+  // Use utility function for available quantity
+  const availableQuantity = calculateAvailableQuantity({
+    quantity,
+    reserved_quantity: reserved
+  })
+  
+  // Use utility function for stock status
+  const stockStatus = getStockStatus({
+    quantity,
+    reserved_quantity: reserved,
+    reorder_point: reorderPoint
+  })
+  
   const max = maxQuantity || Math.max(quantity * 1.5, reorderPoint * 2)
   
   const availablePercentage = Math.min((availableQuantity / max) * 100, 100)
@@ -165,9 +203,16 @@ export function StockLevelBar({
   const reorderPercentage = (reorderPoint / max) * 100
 
   const getBarColor = () => {
-    if (availableQuantity <= 0) return 'bg-red-500'
-    if (availableQuantity <= reorderPoint) return 'bg-yellow-500'
-    return 'bg-green-500'
+    switch (stockStatus) {
+      case 'out_of_stock':
+        return 'bg-red-500'
+      case 'critical':
+      case 'low':
+        return 'bg-yellow-500'
+      case 'normal':
+      default:
+        return 'bg-green-500'
+    }
   }
 
   return (
