@@ -5,6 +5,18 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Product, ProductFilters, ProductWithStats } from '@/types/product.types'
 import { createClient } from '@/lib/supabase/client'
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+
+// Define types for the inventory item structure from the database
+interface InventoryItem {
+  quantity: number
+  reserved_quantity: number
+}
+
+// Define type for product with inventory relation
+interface ProductWithInventory extends Product {
+  inventory: InventoryItem[]
+}
 
 export function useProducts(initialData?: ProductWithStats[]) {
   const [products, setProducts] = useState<ProductWithStats[]>(initialData || [])
@@ -55,10 +67,10 @@ export function useProducts(initialData?: ProductWithStats[]) {
       }
 
       // Transform products to include stats
-      const productsWithStats = (data || []).map((product: any) => {
+      const productsWithStats = (data || []).map((product: ProductWithInventory): ProductWithStats => {
         const inventoryItems = product.inventory || []
-        const totalQuantity = inventoryItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)
-        const totalReserved = inventoryItems.reduce((sum: number, item: any) => sum + (item.reserved_quantity || 0), 0)
+        const totalQuantity = inventoryItems.reduce((sum: number, item: InventoryItem) => sum + (item.quantity || 0), 0)
+        const totalReserved = inventoryItems.reduce((sum: number, item: InventoryItem) => sum + (item.reserved_quantity || 0), 0)
         const availableQuantity = totalQuantity - totalReserved
         
         return {
@@ -156,17 +168,116 @@ export function useProducts(initialData?: ProductWithStats[]) {
           schema: 'public',
           table: 'products'
         },
-        (payload: any) => {
-          // Refresh products when changes occur
-          fetchProducts()
+        async (payload: RealtimePostgresChangesPayload<Product>) => {
+          const { eventType, new: newRecord, old: oldRecord } = payload
+
+          switch (eventType) {
+            case 'INSERT':
+              if (newRecord) {
+                // Fetch inventory data for the new product
+                const { data: inventoryData } = await supabase
+                  .from('inventory')
+                  .select('quantity, reserved_quantity')
+                  .eq('product_id', newRecord.id)
+
+                const inventory = inventoryData || []
+                const totalQuantity = inventory.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
+                const totalReserved = inventory.reduce((sum: number, item: { reserved_quantity: number }) => sum + (item.reserved_quantity || 0), 0)
+                
+                const newProductWithStats: ProductWithStats = {
+                  ...newRecord,
+                  inventory_count: inventory.length,
+                  total_quantity: totalQuantity,
+                  available_quantity: totalQuantity - totalReserved,
+                  low_stock: totalQuantity < 10,
+                }
+
+                setProducts(prev => [newProductWithStats, ...prev])
+                toast.success(`Product "${newRecord.name}" added`)
+              }
+              break
+
+            case 'UPDATE':
+              if (newRecord) {
+                setProducts(prev => prev.map(product => {
+                  if (product.id === newRecord.id) {
+                    // Preserve existing inventory stats, only update product fields
+                    return {
+                      ...product,
+                      ...newRecord,
+                      // Recalculate low_stock based on existing quantity
+                      low_stock: product.total_quantity < 10,
+                    }
+                  }
+                  return product
+                }))
+              }
+              break
+
+            case 'DELETE':
+              if (oldRecord) {
+                setProducts(prev => prev.filter(product => product.id !== oldRecord.id))
+                toast.info(`Product "${oldRecord.name}" removed`)
+              }
+              break
+          }
+        }
+      )
+      .subscribe()
+
+    // Also subscribe to inventory changes that affect product stats
+    const inventoryChannel = supabase
+      .channel('inventory-changes-for-products')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'inventory'
+        },
+        async (payload: RealtimePostgresChangesPayload<{ product_id: string; quantity: number; reserved_quantity: number }>) => {
+          const { new: newRecord, old: oldRecord, eventType } = payload
+          
+          // Type guard to ensure we have product_id
+          const productId = (newRecord && 'product_id' in newRecord) 
+            ? newRecord.product_id 
+            : (oldRecord && 'product_id' in oldRecord) 
+              ? oldRecord.product_id 
+              : null
+
+          if (productId) {
+            // Recalculate stats for the affected product
+            const { data: inventoryData } = await supabase
+              .from('inventory')
+              .select('quantity, reserved_quantity')
+              .eq('product_id', productId)
+
+            const inventory = inventoryData || []
+            const totalQuantity = inventory.reduce((sum: number, item: { quantity: number }) => sum + (item.quantity || 0), 0)
+            const totalReserved = inventory.reduce((sum: number, item: { reserved_quantity: number }) => sum + (item.reserved_quantity || 0), 0)
+
+            setProducts(prev => prev.map(product => {
+              if (product.id === productId) {
+                return {
+                  ...product,
+                  inventory_count: inventory.length,
+                  total_quantity: totalQuantity,
+                  available_quantity: totalQuantity - totalReserved,
+                  low_stock: totalQuantity < 10,
+                }
+              }
+              return product
+            }))
+          }
         }
       )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
+      supabase.removeChannel(inventoryChannel)
     }
-  }, [supabase, fetchProducts])
+  }, [supabase])
 
   return {
     products,
