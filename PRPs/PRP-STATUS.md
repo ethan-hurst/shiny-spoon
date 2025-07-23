@@ -159,9 +159,20 @@ This document tracks the status of all Project Requirement Plans (PRPs) in the T
 
 **PRP-006 (Warehouse Management)**
 
-- `/app/(dashboard)/warehouses/page.tsx` - Warehouses page
-- `/components/features/warehouses/*` - Warehouse components
-- `/app/actions/warehouses.ts` - Server actions
+- `/app/(dashboard)/warehouses/page.tsx` - Warehouses listing page with inventory counts
+- `/app/(dashboard)/warehouses/new/page.tsx` - Create new warehouse page
+- `/app/(dashboard)/warehouses/[id]/edit/page.tsx` - Edit warehouse page
+- `/app/(dashboard)/warehouses/loading.tsx` - Loading state for warehouse pages
+- `/components/features/warehouses/warehouses-table.tsx` - Warehouses data table with status badges
+- `/components/features/warehouses/warehouse-form.tsx` - Warehouse creation/editing form
+- `/components/features/warehouses/warehouse-actions.tsx` - Row actions for warehouse operations
+- `/components/features/warehouses/warehouse-filters.tsx` - Search and filter UI
+- `/components/features/warehouses/address-fields.tsx` - Address input group component
+- `/components/features/warehouses/contact-list.tsx` - Dynamic contact management
+- `/app/actions/warehouses.ts` - Server actions for warehouse CRUD operations
+- `/lib/validations/warehouse.ts` - Zod validation schemas
+- `/types/warehouse.types.ts` - TypeScript types for warehouses
+- `/hooks/use-warehouses.ts` - Custom hook for warehouse data management
 
 **PRP-007 (Inventory Management Core)**
 
@@ -294,6 +305,19 @@ This document tracks the status of all Project Requirement Plans (PRPs) in the T
 - Missing: Streaming processor, progress tracking, rollback
 
 ## Recent Updates (2025-07-23)
+
+### Warehouse Management Verification (PRP-006)
+- Verified all warehouse management files are properly implemented
+- Created missing hooks/use-warehouses.ts file for data management
+- Updated PRP-STATUS.md to include complete file listing
+- All warehouse features working with real Supabase queries:
+  - Warehouse CRUD operations with address and contact management
+  - Default warehouse logic enforced (only one per organization)
+  - Soft delete with inventory check
+  - Real-time updates via Supabase subscriptions
+  - Code uniqueness per organization
+  - International address support
+  - Multiple contacts with primary designation
 
 ### Products Management Implementation (PRP-005)
 - Corrected implementation status - PRP-005 was incorrectly marked as implemented
