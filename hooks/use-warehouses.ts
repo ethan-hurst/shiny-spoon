@@ -242,7 +242,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
           } else {
             // For complex changes or when unsure, debounce the full refresh
             debounceTimerRef.current = window.setTimeout(() => {
-              fetchWarehouses()
+              fetchWarehouses(filters)
             }, 500)
           }
         }
@@ -255,7 +255,7 @@ export function useWarehouses(initialData?: Warehouse[]) {
       }
       supabase.removeChannel(channel)
     }
-  }, [supabase])
+  }, [supabase, fetchWarehouses, filters])
 
   return {
     warehouses,
