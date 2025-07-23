@@ -25,16 +25,21 @@ export function DocsSidebar({ categories }: DocsSidebarProps) {
         size="icon"
         className="fixed top-4 left-4 z-50 md:hidden"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label={isOpen ? "Close menu" : "Open menu"}
+        aria-expanded={isOpen}
+        aria-controls="docs-sidebar"
       >
         {isOpen ? <X /> : <Menu />}
       </Button>
 
       {/* Sidebar */}
       <aside
+        id="docs-sidebar"
         className={cn(
           'fixed inset-y-0 left-0 z-40 w-64 transform bg-background border-r transition-transform duration-200 ease-in-out md:relative md:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
+        aria-label="Documentation navigation"
       >
         <div className="flex h-full flex-col">
           <div className="flex h-16 items-center border-b px-6">
@@ -82,6 +87,14 @@ export function DocsSidebar({ categories }: DocsSidebarProps) {
         <div
           className="fixed inset-0 z-30 bg-black/50 md:hidden"
           onClick={() => setIsOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setIsOpen(false)
+            }
+          }}
+          tabIndex={0}
+          role="button"
+          aria-label="Close sidebar overlay"
         />
       )}
     </>

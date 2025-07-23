@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { allPosts } from 'contentlayer/generated'
 import { getMDXComponent } from 'next-contentlayer/hooks'
 import { format } from 'date-fns'
+import Image from 'next/image'
 import { BlogAuthor } from '@/components/blog/blog-author'
 import { ShareButtons } from '@/components/blog/share-buttons'
 import { RelatedPosts } from '@/components/blog/related-posts'
@@ -70,11 +71,16 @@ export default function BlogPost({ params }: { params: { slug: string[] } }) {
         </header>
 
         {/* Featured Image */}
-        <img
-          src={post.image}
-          alt={post.title}
-          className="w-full h-auto rounded-lg mb-8"
-        />
+        <div className="relative w-full aspect-video mb-8">
+          <Image
+            src={post.image}
+            alt={post.title}
+            fill
+            className="object-cover rounded-lg"
+            priority
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+          />
+        </div>
 
         {/* Content */}
         <div className="prose prose-gray max-w-none dark:prose-invert">

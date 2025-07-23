@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Fuse from 'fuse.js'
 import { Search } from 'lucide-react'
@@ -13,11 +13,12 @@ export function HelpSearch() {
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [results, setResults] = useState<typeof allHelpArticles>([])
 
-  const fuse = new Fuse(allHelpArticles, {
+  // Memoize Fuse instance to avoid recreating on each render
+  const fuse = useMemo(() => new Fuse(allHelpArticles, {
     keys: ['title', 'description', 'body.raw', 'keywords'],
     threshold: 0.3,
     includeScore: true,
-  })
+  }), [])
 
   useEffect(() => {
     if (query) {
@@ -26,7 +27,7 @@ export function HelpSearch() {
     } else {
       setResults([])
     }
-  }, [query])
+  }, [query, fuse])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()

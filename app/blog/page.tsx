@@ -3,7 +3,6 @@ import { compareDesc } from 'date-fns'
 import { BlogCard } from '@/components/blog/blog-card'
 import { BlogFilters } from '@/components/blog/blog-filters'
 import { Pagination } from '@/components/ui/pagination'
-import { generateRssFeed } from '@/lib/rss'
 
 export const metadata = {
   title: 'Blog - TruthSource',
@@ -17,12 +16,10 @@ export default async function BlogPage({
 }: {
   searchParams: { page?: string; category?: string; tag?: string }
 }) {
-  // Generate RSS feed on each build
-  await generateRssFeed()
-
-  const currentPage = Number(searchParams.page) || 1
-  const selectedCategory = searchParams.category
-  const selectedTag = searchParams.tag
+  // Parse and validate search params
+  const rawPage = Number(searchParams.page) || 1
+  const selectedCategory = typeof searchParams.category === 'string' ? searchParams.category : undefined
+  const selectedTag = typeof searchParams.tag === 'string' ? searchParams.tag : undefined
 
   // Filter and sort posts
   let filteredPosts = allPosts
@@ -41,8 +38,12 @@ export default async function BlogPage({
     )
   }
 
-  // Pagination
-  const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE)
+  // Pagination with boundary check
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE))
+  
+  // Validate and clamp current page
+  const currentPage = Math.min(Math.max(1, rawPage), totalPages)
+  
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE
   const endIndex = startIndex + POSTS_PER_PAGE
   const currentPosts = filteredPosts.slice(startIndex, endIndex)

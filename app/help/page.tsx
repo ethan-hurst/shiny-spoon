@@ -10,14 +10,17 @@ export const metadata = {
 }
 
 export default function HelpCenterPage() {
-  const articlesByCategory = allHelpArticles.reduce((acc, article) => {
+  // Type-safe accumulator for article grouping
+  type ArticlesByCategory = Record<string, typeof allHelpArticles>
+  
+  const articlesByCategory = allHelpArticles.reduce<ArticlesByCategory>((acc, article) => {
     const category = article.category
     if (!acc[category]) {
       acc[category] = []
     }
     acc[category].push(article)
     return acc
-  }, {} as Record<string, typeof allHelpArticles>)
+  }, {})
 
   return (
     <div className="container mx-auto px-4 py-16">

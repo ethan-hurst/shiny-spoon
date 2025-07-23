@@ -8,14 +8,15 @@ export default function DocsLayout({
 }: {
   children: React.ReactNode
 }) {
-  const docsByCategory = allDocs.reduce((acc, doc) => {
-    const category = doc.category
+  // Type-safe grouping of docs by category
+  const docsByCategory = allDocs.reduce<Record<string, typeof allDocs>>((acc, doc) => {
+    const category = doc.category || 'Uncategorized'
     if (!acc[category]) {
       acc[category] = []
     }
     acc[category].push(doc)
     return acc
-  }, {} as Record<string, typeof allDocs>)
+  }, {})
 
   // Sort docs within each category by order
   Object.keys(docsByCategory).forEach((category) => {

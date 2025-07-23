@@ -55,7 +55,7 @@ export default function HelpArticlePage({ params }: { params: { slug: string[] }
               </span>
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                <span>5 min read</span>
+                <span>{article.readingTime.text}</span>
               </div>
             </div>
             <h1 className="text-3xl font-bold mb-4">{article.title}</h1>

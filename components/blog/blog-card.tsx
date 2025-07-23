@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { format } from 'date-fns'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,10 +15,14 @@ export function BlogCard({ post }: BlogCardProps) {
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
       <Link href={post.url}>
         <div className="aspect-video relative overflow-hidden bg-gray-100">
-          <img
+          <Image
             src={post.image}
             alt={post.title}
-            className="object-cover w-full h-full hover:scale-105 transition-transform duration-300"
+            fill
+            className="object-cover hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mO8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
           />
         </div>
       </Link>

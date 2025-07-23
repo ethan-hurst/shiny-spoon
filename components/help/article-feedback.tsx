@@ -45,9 +45,21 @@ export function ArticleFeedback({ articleId }: ArticleFeedbackProps) {
     setIsSubmitting(true)
     
     try {
-      // In a real app, you'd send this to your backend
-      // For now, we'll just simulate it
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          articleId,
+          helpful: helpful === false,
+          feedback,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to submit feedback')
+      }
       
       toast.success('Thank you for your feedback! We\'ll use it to improve our help content.')
       setShowFeedbackForm(false)
@@ -62,6 +74,7 @@ export function ArticleFeedback({ articleId }: ArticleFeedbackProps) {
         })
       }
     } catch (error) {
+      console.error('Failed to submit feedback:', error)
       toast.error('Failed to submit feedback. Please try again.')
     } finally {
       setIsSubmitting(false)

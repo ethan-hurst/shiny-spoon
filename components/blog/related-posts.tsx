@@ -14,11 +14,11 @@ export function RelatedPosts({ currentPost }: RelatedPostsProps) {
     .filter((post) => post.published && post._id !== currentPost._id)
     .map((post) => {
       // Calculate relevance score
-      const categoryMatches = post.categories.filter((cat) =>
-        currentPost.categories.includes(cat)
+      const categoryMatches = (post.categories || []).filter((cat) =>
+        (currentPost.categories || []).includes(cat)
       ).length
-      const tagMatches = post.tags.filter((tag) =>
-        currentPost.tags.includes(tag)
+      const tagMatches = (post.tags || []).filter((tag) =>
+        (currentPost.tags || []).includes(tag)
       ).length
       const score = categoryMatches * 2 + tagMatches // Categories weighted more
 
@@ -33,7 +33,11 @@ export function RelatedPosts({ currentPost }: RelatedPostsProps) {
     // If no related posts found, show the latest posts
     const latestPosts = allPosts
       .filter((post) => post.published && post._id !== currentPost._id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0
+        const dateB = b.date ? new Date(b.date).getTime() : 0
+        return dateB - dateA
+      })
       .slice(0, 3)
     
     return (
@@ -62,11 +66,15 @@ export function RelatedPosts({ currentPost }: RelatedPostsProps) {
 
 function RelatedPostCard({ post }: { post: Post }) {
   return (
-    <Card className="h-full hover:shadow-lg transition-shadow">
+    <Card 
+      className="h-full hover:shadow-lg transition-shadow"
+      role="article"
+      aria-label={`Related post: ${post.title}`}
+    >
       <Link href={post.url}>
         <CardHeader className="space-y-2">
           <div className="flex flex-wrap gap-1">
-            {post.categories.slice(0, 2).map((category) => (
+            {(post.categories || []).slice(0, 2).map((category) => (
               <Badge key={category} variant="secondary" className="text-xs">
                 {category}
               </Badge>
@@ -80,9 +88,11 @@ function RelatedPostCard({ post }: { post: Post }) {
           <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
             {post.description}
           </p>
-          <time className="text-xs text-muted-foreground">
-            {format(new Date(post.date), 'MMM d, yyyy')}
-          </time>
+          {post.date && (
+            <time className="text-xs text-muted-foreground">
+              {format(new Date(post.date), 'MMM d, yyyy')}
+            </time>
+          )}
         </CardContent>
       </Link>
     </Card>

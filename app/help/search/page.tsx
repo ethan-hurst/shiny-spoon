@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Fuse from 'fuse.js'
 import Link from 'next/link'
 import { allHelpArticles } from 'contentlayer/generated'
@@ -15,11 +15,12 @@ export default function HelpSearchPage() {
   const query = searchParams.get('q') || ''
   const [results, setResults] = useState<typeof allHelpArticles>([])
 
-  const fuse = new Fuse(allHelpArticles, {
+  // Memoize Fuse instance to avoid recreation on each render
+  const fuse = useMemo(() => new Fuse(allHelpArticles, {
     keys: ['title', 'description', 'body.raw', 'keywords'],
     threshold: 0.3,
     includeScore: true,
-  })
+  }), [])
 
   useEffect(() => {
     if (query) {
@@ -28,7 +29,7 @@ export default function HelpSearchPage() {
     } else {
       setResults([])
     }
-  }, [query])
+  }, [query, fuse])
 
   return (
     <div className="container mx-auto px-4 py-16">

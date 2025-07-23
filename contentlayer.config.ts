@@ -80,6 +80,10 @@ export const HelpArticle = defineDocumentType(() => ({
       type: 'string',
       resolve: (article) => article._raw.flattenedPath.replace('help/', ''),
     },
+    readingTime: {
+      type: 'json',
+      resolve: (article) => readingTime(article.body.raw),
+    },
   },
 }))
 

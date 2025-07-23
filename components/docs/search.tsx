@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Fuse from 'fuse.js'
 import { Search } from 'lucide-react'
@@ -23,11 +23,11 @@ export function DocsSearch() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<typeof allDocs>([])
 
-  const fuse = new Fuse(allDocs, {
+  const fuse = useMemo(() => new Fuse(allDocs, {
     keys: ['title', 'description', 'body.raw'],
     threshold: 0.3,
     includeScore: true,
-  })
+  }), [])
 
   useEffect(() => {
     if (query) {
@@ -36,7 +36,7 @@ export function DocsSearch() {
     } else {
       setResults([])
     }
-  }, [query])
+  }, [query, fuse])
 
   const handleSelect = useCallback((url: string) => {
     setOpen(false)

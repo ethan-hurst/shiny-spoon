@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 // Custom link component that handles internal/external links
@@ -9,6 +10,22 @@ function CustomLink({
   ...props
 }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   if (!href) return <>{children}</>
+
+  // Validate URL for security
+  const isValidUrl = (url: string) => {
+    try {
+      if (url.startsWith('/') || url.startsWith('#')) return true
+      const parsed = new URL(url)
+      return ['http:', 'https:', 'mailto:', 'tel:'].includes(parsed.protocol)
+    } catch {
+      return false
+    }
+  }
+
+  if (!isValidUrl(href)) {
+    console.warn(`Invalid URL detected: ${href}`)
+    return <span {...props}>{children}</span>
+  }
 
   if (href.startsWith('/')) {
     return (
@@ -34,6 +51,7 @@ function CustomLink({
       {...props}
     >
       {children}
+      <span className="sr-only">(opens in new tab)</span>
     </a>
   )
 }
@@ -49,30 +67,70 @@ function CustomImage({
   width?: number
   height?: number
 }) {
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
+
   if (!src) return null
+
+  // Require meaningful alt text
+  if (!alt || alt.trim() === '') {
+    console.warn(`Image missing alt text: ${src}`)
+  }
+
+  const handleLoad = () => setIsLoading(false)
+  const handleError = () => {
+    setIsLoading(false)
+    setHasError(true)
+  }
+
+  if (hasError) {
+    return (
+      <div className="flex items-center justify-center bg-gray-100 rounded-lg p-8 text-gray-500">
+        <span>Failed to load image</span>
+      </div>
+    )
+  }
 
   // If dimensions are provided, use Next.js Image
   if (width && height) {
     return (
-      <Image
-        src={src}
-        alt={alt || ''}
-        width={width}
-        height={height}
-        className="rounded-lg"
-        {...props}
-      />
+      <div className="relative">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+            <span className="text-gray-500">Loading...</span>
+          </div>
+        )}
+        <Image
+          src={src}
+          alt={alt || 'Image'}
+          width={width}
+          height={height}
+          className={cn('rounded-lg', isLoading && 'opacity-0')}
+          onLoad={handleLoad}
+          onError={handleError}
+          {...props}
+        />
+      </div>
     )
   }
 
-  // Otherwise, use regular img tag
+  // Otherwise, use regular img tag with loading state
   return (
-    <img
-      src={src}
-      alt={alt || ''}
-      className="rounded-lg"
-      {...props}
-    />
+    <div className="relative">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+          <span className="text-gray-500">Loading...</span>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt || 'Image'}
+        className={cn('rounded-lg', isLoading && 'opacity-0')}
+        onLoad={handleLoad}
+        onError={handleError}
+        {...props}
+      />
+    </div>
   )
 }
 
@@ -141,8 +199,12 @@ function Callout({
 // Table components with responsive wrapper
 function Table({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="my-6 overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" {...props}>
+    <div className="my-6 overflow-x-auto" role="region" aria-label="Table content">
+      <table 
+        className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" 
+        role="table"
+        {...props}
+      >
         {children}
       </table>
     </div>
@@ -259,6 +321,7 @@ const components = {
   th: ({ children, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
     <th
       className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+      scope="col"
       {...props}
     >
       {children}
