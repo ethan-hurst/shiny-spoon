@@ -15,7 +15,7 @@ This document tracks the status of all Project Requirement Plans (PRPs) in the T
 | Phase       | Total PRPs | Documented | Partial | Implemented |
 | ----------- | ---------- | ---------- | ------- | ----------- |
 | Phase 1     | 4          | 4          | 0       | 4           |
-| Phase 1.5   | 4          | 4          | 0       | 1           |
+| Phase 1.5   | 4          | 4          | 0       | 2           |
 | Phase 2     | 4          | 4          | 0       | 4           |
 | Phase 3     | 3          | 3          | 0       | 1           |
 | Phase 4     | 3          | 3          | 0       | 0           |
@@ -41,7 +41,7 @@ This document tracks the status of all Project Requirement Plans (PRPs) in the T
 | PRP      | Title                           | Status        | Documentation                  | Implementation | Notes                                |
 | -------- | ------------------------------- | ------------- | ------------------------------ | -------------- | ------------------------------------ |
 | PRP-001A | Public Website Foundation       | ✅ Implemented | [View](Phase%201.5/PRP-001A.md) | Complete       | Landing, pricing, about pages        |
-| PRP-001B | Content Management System       | 📄 Documented | [View](Phase%201.5/PRP-001B.md) | Not Started    | MDX blog, docs, help center          |
+| PRP-001B | Content Management System       | ✅ Implemented | [View](Phase%201.5/PRP-001B.md) | Complete       | MDX blog, docs, help center          |
 | PRP-001C | Customer Portal & Self-Service  | 📄 Documented | [View](Phase%201.5/PRP-001C.md) | Not Started    | Billing, usage, API keys             |
 | PRP-001D | Developer Portal & API Docs     | 📄 Documented | [View](Phase%201.5/PRP-001D.md) | Not Started    | Interactive docs, SDKs, webhooks     |
 

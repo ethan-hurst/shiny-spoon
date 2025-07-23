@@ -1,0 +1,145 @@
+---
+title: "Getting Started with TruthSource"
+description: "Learn how to set up TruthSource and connect your first integration in under 10 minutes."
+category: "Setup"
+order: 1
+version: v1
+---
+
+# Getting Started with TruthSource
+
+Welcome to TruthSource! This guide will walk you through setting up your account and connecting your first integration.
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- Admin access to your ERP system (NetSuite, SAP, etc.)
+- API credentials for your e-commerce platform (Shopify B2B, BigCommerce, etc.)
+- A TruthSource account ([sign up here](/signup) if you haven't already)
+
+## Step 1: Initial Setup
+
+### Create Your Organization
+
+1. Log into your TruthSource dashboard
+2. Navigate to **Settings** → **Organization**
+3. Complete your organization profile:
+   - Company name
+   - Industry type
+   - Primary warehouse locations
+   - Default currency
+
+### Configure User Roles
+
+Set up your team with appropriate permissions:
+
+```typescript
+const roles = {
+  admin: ["full_access"],
+  manager: ["view_all", "edit_products", "edit_inventory"],
+  operator: ["view_inventory", "update_stock_levels"],
+  viewer: ["read_only"]
+}
+```
+
+## Step 2: Connect Your First Integration
+
+### NetSuite Connection
+
+1. Go to **Integrations** → **Add New**
+2. Select **NetSuite** from the list
+3. Enter your NetSuite credentials:
+   - Account ID
+   - Consumer Key
+   - Consumer Secret
+   - Token ID
+   - Token Secret
+
+### Verify Connection
+
+```bash
+# Test your connection
+truthsource test-connection netsuite
+
+# Expected output:
+✓ Authentication successful
+✓ Read permissions verified
+✓ Write permissions verified
+✓ Webhook endpoint configured
+```
+
+## Step 3: Configure Sync Settings
+
+### Select Data Types to Sync
+
+Choose which data should flow between systems:
+
+- ✅ **Products**: SKUs, descriptions, categories
+- ✅ **Inventory**: Stock levels, warehouse locations
+- ✅ **Pricing**: Base prices, customer-specific pricing
+- ✅ **Customers**: Account information, credit limits
+
+### Set Sync Frequency
+
+**Inventory**: Real-time (High-volume operations)
+**Pricing**: Every 15 min (Dynamic pricing)
+**Products**: Hourly (Stable catalog)
+**Customers**: Daily (B2B accounts)
+
+## Step 4: Map Your Data
+
+### Field Mapping
+
+TruthSource automatically suggests field mappings, but you can customize them:
+
+```json
+{
+  "product_mappings": {
+    "netsuite.internalId": "truthsource.sku",
+    "netsuite.displayName": "truthsource.name",
+    "netsuite.salesDescription": "truthsource.description",
+    "netsuite.basePrice": "truthsource.price"
+  }
+}
+```
+
+### Validation Rules
+
+Set up rules to ensure data quality:
+
+- **Required fields**: SKU, name, price
+- **Format validation**: Price must be numeric
+- **Business rules**: Inventory cannot be negative
+
+## Step 5: Test Your Integration
+
+### Run a Test Sync
+
+1. Select a small subset of data (e.g., 10 products)
+2. Click **Run Test Sync**
+3. Review the results in the sync log
+4. Verify data in both systems
+
+### Monitor Results
+
+Check the dashboard for:
+- Sync success rate
+- Processing time
+- Any errors or warnings
+
+## Next Steps
+
+Now that you have your first integration running:
+
+1. **[Add more integrations](/docs/integrations)** to complete your ecosystem
+2. **[Set up alerts](/docs/monitoring)** for sync failures or data discrepancies
+3. **[Configure pricing rules](/docs/pricing)** for dynamic B2B pricing
+4. **[Explore automation](/docs/automation)** options for your workflows
+
+## Need Help?
+
+- 📚 Browse our [complete documentation](/docs)
+- 💬 Chat with support (bottom right)
+- 📧 Email us at support@truthsource.io
+- 📅 [Schedule a call](https://calendly.com/truthsource/onboarding) with our success team
