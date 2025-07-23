@@ -1,9 +1,29 @@
 -- Create RPC function for atomically setting default warehouse
+-- This function uses SECURITY DEFINER to bypass RLS for atomic operations,
+-- but explicitly checks user permissions to ensure security
 CREATE OR REPLACE FUNCTION set_default_warehouse(warehouse_id UUID, org_id UUID)
 RETURNS void AS $$
 DECLARE
   rows_affected INTEGER;
+  current_user_id UUID;
 BEGIN
+  -- Get the current user ID from auth context
+  current_user_id := auth.uid();
+  
+  -- Check if user is authenticated
+  IF current_user_id IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+  
+  -- Verify the user has permission to modify warehouses in this organization
+  IF NOT EXISTS (
+    SELECT 1 FROM user_profiles
+    WHERE user_id = current_user_id
+    AND organization_id = org_id
+  ) THEN
+    RAISE EXCEPTION 'Permission denied: User does not belong to this organization';
+  END IF;
+
   -- Verify the warehouse exists and belongs to the organization
   IF NOT EXISTS (
     SELECT 1 FROM warehouses 

@@ -46,7 +46,7 @@ export default async function ProductsPage() {
   }
 
   // Fetch products with inventory stats
-  const { data: products, error } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .select(`
       *,
@@ -57,7 +57,8 @@ export default async function ProductsPage() {
     `)
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
-    .returns<ProductWithInventory[]>()
+  
+  const products = data as ProductWithInventory[] | null
 
   if (error) {
     console.error('Error fetching products:', error)
@@ -82,10 +83,10 @@ export default async function ProductsPage() {
 
   // Get unique categories for filter
   const rawCategories = products
-    ?.map((p: ProductWithInventory) => p.category)
+    ?.map((p) => p.category)
     .filter((c): c is string => typeof c === 'string' && c.length > 0) || []
   
-  const categories: string[] = Array.from(new Set(rawCategories)).sort()
+  const categories = Array.from(new Set(rawCategories)).sort()
 
   return (
     <div className="space-y-4">
