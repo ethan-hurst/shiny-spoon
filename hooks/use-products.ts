@@ -115,9 +115,17 @@ export function useProducts(initialData?: ProductWithStats[]) {
         product.active ? 'Active' : 'Inactive'
       ])
 
+      // Escape quotes in CSV cells
+      const escapeCSVCell = (cell: string) => {
+        // Replace double quotes with two double quotes
+        const escaped = cell.toString().replace(/"/g, '""')
+        // Wrap in quotes
+        return `"${escaped}"`
+      }
+
       const csvContent = [
         csvHeaders.join(','),
-        ...csvRows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ...csvRows.map(row => row.map(cell => escapeCSVCell(cell)).join(','))
       ].join('\n')
 
       const blob = new Blob([csvContent], { type: 'text/csv' })

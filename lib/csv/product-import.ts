@@ -1,5 +1,8 @@
 import { z } from 'zod'
+import Papa from 'papaparse'
 import { productSchema } from '@/lib/validations/product'
+import { SupabaseClient } from '@supabase/supabase-js'
+import { Database } from '@/types/database.types'
 
 export interface CSVParseResult {
   success: boolean
@@ -30,121 +33,98 @@ const csvRowSchema = z.object({
 })
 
 export function parseProductCSV(csvContent: string): CSVParseResult {
-  try {
-    const lines = csvContent.split('\n').filter(line => line.trim())
-    
-    if (lines.length < 2) {
-      return {
-        success: false,
-        errors: ['CSV file must have a header row and at least one data row'],
-      }
-    }
-
-    // Parse headers
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-    const requiredHeaders = ['sku', 'name', 'base_price']
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h))
-    
-    if (missingHeaders.length > 0) {
-      return {
-        success: false,
-        errors: [`Missing required columns: ${missingHeaders.join(', ')}`],
-      }
-    }
-
-    const errors: string[] = []
-    const validRows: ProductImportRow[] = []
-    const dataRows = lines.slice(1)
-
-    // Validate row count
-    if (dataRows.length > 5000) {
-      return {
-        success: false,
-        errors: ['CSV file contains more than 5000 rows. Please split into smaller files.'],
-      }
-    }
-
-    // Parse each row
-    dataRows.forEach((line, index) => {
-      const rowNumber = index + 2 // Account for header row
-      
-      try {
-        const values = parseCSVLine(line)
-        const rowData: any = {}
-
-        headers.forEach((header, i) => {
-          const value = values[i]?.trim()
-          
-          if (header === 'base_price' || header === 'cost' || header === 'weight') {
-            rowData[header] = value ? parseFloat(value) : undefined
-          } else {
-            rowData[header] = value || undefined
-          }
+  const errors: string[] = []
+  const validRows: ProductImportRow[] = []
+  
+  // Parse CSV using papaparse
+  const parseResult = Papa.parse(csvContent, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (header) => header.trim().toLowerCase(),
+    dynamicTyping: false, // We'll handle type conversion ourselves
+    complete: (results) => {
+      // Check for parse errors
+      if (results.errors.length > 0) {
+        results.errors.forEach((error) => {
+          errors.push(`Row ${(error.row || 0) + 2}: ${error.message}`)
         })
-
-        // Validate row data
-        const result = csvRowSchema.safeParse(rowData)
-        
-        if (result.success) {
-          validRows.push(result.data)
-        } else {
-          const fieldErrors = result.error.flatten().fieldErrors
-          Object.entries(fieldErrors).forEach(([field, messages]) => {
-            errors.push(`Row ${rowNumber}, ${field}: ${messages.join(', ')}`)
-          })
-        }
-      } catch (error) {
-        errors.push(`Row ${rowNumber}: Failed to parse line`)
       }
-    })
-
-    return {
-      success: errors.length === 0,
-      data: validRows,
-      errors: errors.length > 0 ? errors : undefined,
-      totalRows: dataRows.length,
-      validRows: validRows.length,
     }
-  } catch (error) {
+  })
+
+  // Validate parsed data
+  const data = parseResult.data as any[]
+  
+  if (data.length === 0) {
     return {
       success: false,
-      errors: ['Failed to parse CSV file. Please check the format.'],
+      errors: ['CSV file must have a header row and at least one data row'],
     }
+  }
+
+  // Check required headers
+  const headers = parseResult.meta.fields || []
+  const requiredHeaders = ['sku', 'name', 'base_price']
+  const missingHeaders = requiredHeaders.filter(h => !headers.includes(h))
+  
+  if (missingHeaders.length > 0) {
+    return {
+      success: false,
+      errors: [`Missing required columns: ${missingHeaders.join(', ')}`],
+    }
+  }
+
+  // Validate row count
+  if (data.length > 5000) {
+    return {
+      success: false,
+      errors: ['CSV file contains more than 5000 rows. Please split into smaller files.'],
+    }
+  }
+
+  // Parse and validate each row
+  data.forEach((row, index) => {
+    const rowNumber = index + 2 // Account for header row
+    
+    try {
+      const rowData: any = {}
+
+      // Process each field
+      headers.forEach((header) => {
+        const value = row[header]?.toString().trim()
+        
+        if (header === 'base_price' || header === 'cost' || header === 'weight') {
+          rowData[header] = value ? parseFloat(value) : undefined
+        } else {
+          rowData[header] = value || undefined
+        }
+      })
+
+      // Validate row data
+      const result = csvRowSchema.safeParse(rowData)
+      
+      if (result.success) {
+        validRows.push(result.data)
+      } else {
+        const fieldErrors = result.error.flatten().fieldErrors
+        Object.entries(fieldErrors).forEach(([field, messages]) => {
+          errors.push(`Row ${rowNumber}, ${field}: ${messages.join(', ')}`)
+        })
+      }
+    } catch (error) {
+      errors.push(`Row ${rowNumber}: Failed to parse row`)
+    }
+  })
+
+  return {
+    success: errors.length === 0,
+    data: validRows,
+    errors: errors.length > 0 ? errors : undefined,
+    totalRows: data.length,
+    validRows: validRows.length,
   }
 }
 
-// Helper function to parse CSV line handling quoted values
-function parseCSVLine(line: string): string[] {
-  const result: string[] = []
-  let current = ''
-  let inQuotes = false
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-    
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        // Escaped quote
-        current += '"'
-        i++
-      } else {
-        // Toggle quote state
-        inQuotes = !inQuotes
-      }
-    } else if (char === ',' && !inQuotes) {
-      // End of field
-      result.push(current)
-      current = ''
-    } else {
-      current += char
-    }
-  }
-  
-  // Don't forget the last field
-  result.push(current)
-  
-  return result
-}
 
 export function generateProductCSVTemplate(): string {
   const headers = ['sku', 'name', 'description', 'category', 'base_price', 'cost', 'weight']
@@ -165,7 +145,7 @@ export function generateProductCSVTemplate(): string {
 export async function validateProductsForImport(
   products: ProductImportRow[],
   organizationId: string,
-  supabase: any
+  supabase: SupabaseClient<Database>
 ): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = []
   

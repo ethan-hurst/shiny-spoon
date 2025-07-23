@@ -85,7 +85,7 @@ export function ProductFilters({
                       priceRange: {
                         ...localFilters.priceRange,
                         min: e.target.value ? parseFloat(e.target.value) : 0,
-                        max: localFilters.priceRange?.max || 999999,
+                        max: localFilters.priceRange?.max ?? 999999,
                       },
                     })
                   }
@@ -100,7 +100,7 @@ export function ProductFilters({
                     setLocalFilters({
                       ...localFilters,
                       priceRange: {
-                        min: localFilters.priceRange?.min || 0,
+                        min: localFilters.priceRange?.min ?? 0,
                         max: e.target.value
                           ? parseFloat(e.target.value)
                           : 999999,
@@ -118,6 +118,21 @@ export function ProductFilters({
           <div className="space-y-3">
             <Label>Category</Label>
             <div className="space-y-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="category"
+                  checked={!localFilters.category}
+                  onChange={() =>
+                    setLocalFilters({
+                      ...localFilters,
+                      category: undefined,
+                    })
+                  }
+                  className="h-4 w-4"
+                />
+                <span className="text-sm">All Categories</span>
+              </label>
               {categories.map((category) => (
                 <label
                   key={category}
@@ -127,10 +142,10 @@ export function ProductFilters({
                     type="radio"
                     name="category"
                     checked={localFilters.category === category}
-                    onChange={(e) =>
+                    onChange={() =>
                       setLocalFilters({
                         ...localFilters,
-                        category: e.target.checked ? category : undefined,
+                        category: category,
                       })
                     }
                     className="h-4 w-4"

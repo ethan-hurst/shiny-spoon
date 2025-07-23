@@ -6,6 +6,16 @@ import { ProductsTable } from '@/components/features/products/products-table'
 import { BulkImportDialog } from '@/components/features/products/bulk-import-dialog'
 import { createClient } from '@/lib/supabase/server'
 import { generateProductCSVTemplate } from '@/lib/csv/product-import'
+import { Product } from '@/types/product.types'
+
+interface InventoryItem {
+  quantity: number
+  reserved_quantity: number
+}
+
+interface ProductWithInventory extends Product {
+  inventory?: InventoryItem[]
+}
 
 export const metadata: Metadata = {
   title: 'Products',
@@ -40,13 +50,14 @@ export default async function ProductsPage() {
     .from('products')
     .select(`
       *,
-      inventory:inventory!inner(
+      inventory:inventory!left(
         quantity,
         reserved_quantity
       )
     `)
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
+    .returns<ProductWithInventory[]>()
 
   if (error) {
     console.error('Error fetching products:', error)
@@ -54,10 +65,10 @@ export default async function ProductsPage() {
   }
 
   // Transform products to include stats
-  const productsWithStats = products?.map((product: any) => {
+  const productsWithStats = products?.map((product: ProductWithInventory) => {
     const inventoryItems = product.inventory || []
-    const totalQuantity = inventoryItems.reduce((sum: number, item: { quantity?: number }) => sum + (item.quantity || 0), 0)
-    const totalReserved = inventoryItems.reduce((sum: number, item: { reserved_quantity?: number }) => sum + (item.reserved_quantity || 0), 0)
+    const totalQuantity = inventoryItems.reduce((sum: number, item: InventoryItem) => sum + (item.quantity || 0), 0)
+    const totalReserved = inventoryItems.reduce((sum: number, item: InventoryItem) => sum + (item.reserved_quantity || 0), 0)
     const availableQuantity = totalQuantity - totalReserved
     
     return {
@@ -71,10 +82,10 @@ export default async function ProductsPage() {
 
   // Get unique categories for filter
   const rawCategories = products
-    ?.map((p: any) => p.category)
-    .filter((c: any) => typeof c === 'string' && c.length > 0) || []
+    ?.map((p: ProductWithInventory) => p.category)
+    .filter((c): c is string => typeof c === 'string' && c.length > 0) || []
   
-  const categories: string[] = Array.from(new Set(rawCategories as string[])).sort()
+  const categories: string[] = Array.from(new Set(rawCategories)).sort()
 
   return (
     <div className="space-y-4">

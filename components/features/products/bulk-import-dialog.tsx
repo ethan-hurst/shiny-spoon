@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Download, FileText, Upload } from 'lucide-react'
 import { toast } from 'sonner'
+import Papa from 'papaparse'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -80,83 +81,97 @@ export function BulkImportDialog({ children }: BulkImportDialogProps) {
   }
 
   const parseCSV = (content: string) => {
-    try {
-      const lines = content.split('\n').filter((line) => line.trim())
-      if (lines.length < 2) {
-        setValidationErrors([
-          'CSV file must have a header row and at least one data row',
-        ])
-        return
-      }
+    Papa.parse(content, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim().toLowerCase(),
+      complete: (results) => {
+        if (results.errors.length > 0) {
+          setValidationErrors(
+            results.errors.map((error) => `Row ${error.row}: ${error.message}`)
+          )
+          return
+        }
 
-      const headers = lines[0].split(',').map((h) => h.trim().toLowerCase())
-      const requiredHeaders = ['sku', 'name', 'base_price']
-      const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
+        const data = results.data as any[]
+        if (data.length === 0) {
+          setValidationErrors([
+            'CSV file must have a header row and at least one data row',
+          ])
+          return
+        }
 
-      if (missingHeaders.length > 0) {
-        setValidationErrors([
-          `Missing required columns: ${missingHeaders.join(', ')}`,
-        ])
-        return
-      }
+        // Check required headers
+        const headers = results.meta.fields || []
+        const requiredHeaders = ['sku', 'name', 'base_price']
+        const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
 
-      const errors: string[] = []
-      const products: ParsedProduct[] = []
+        if (missingHeaders.length > 0) {
+          setValidationErrors([
+            `Missing required columns: ${missingHeaders.join(', ')}`,
+          ])
+          return
+        }
 
-      // Parse data rows (limit preview to first 10)
-      const dataRows = lines.slice(1, Math.min(11, lines.length))
-      dataRows.forEach((line, index) => {
-        const values = line.split(',').map((v) => v.trim())
-        const product: any = {}
+        const errors: string[] = []
+        const products: ParsedProduct[] = []
 
-        headers.forEach((header, i) => {
-          const value = values[i]
-          if (
-            header === 'base_price' ||
-            header === 'cost' ||
-            header === 'weight'
-          ) {
-            product[header] = value ? parseFloat(value) : 0
-            if (isNaN(product[header])) {
-              errors.push(`Row ${index + 2}: Invalid number for ${header}`)
+        // Parse data rows (limit preview to first 10)
+        const dataRows = data.slice(0, Math.min(10, data.length))
+        dataRows.forEach((row, index) => {
+          const product: any = {}
+
+          // Process each field
+          headers.forEach((header) => {
+            const value = row[header]
+            if (
+              header === 'base_price' ||
+              header === 'cost' ||
+              header === 'weight'
+            ) {
+              product[header] = value ? parseFloat(value) : 0
+              if (isNaN(product[header])) {
+                errors.push(`Row ${index + 2}: Invalid number for ${header}`)
+              }
+            } else {
+              product[header] = value || ''
             }
-          } else {
-            product[header] = value || ''
+          })
+
+          // Validate required fields
+          if (!product.sku) {
+            errors.push(`Row ${index + 2}: SKU is required`)
+          }
+          if (!product.name) {
+            errors.push(`Row ${index + 2}: Name is required`)
+          }
+          if (!product.base_price || product.base_price <= 0) {
+            errors.push(`Row ${index + 2}: Base price must be greater than 0`)
+          }
+
+          if (
+            errors.length === 0 ||
+            errors.filter((e) => e.includes(`Row ${index + 2}`)).length === 0
+          ) {
+            products.push(product as ParsedProduct)
           }
         })
 
-        // Validate required fields
-        if (!product.sku) {
-          errors.push(`Row ${index + 2}: SKU is required`)
-        }
-        if (!product.name) {
-          errors.push(`Row ${index + 2}: Name is required`)
-        }
-        if (!product.base_price || product.base_price <= 0) {
-          errors.push(`Row ${index + 2}: Base price must be greater than 0`)
-        }
+        setValidationErrors(errors)
+        setParsedData(products)
 
-        if (
-          errors.length === 0 ||
-          errors.filter((e) => e.includes(`Row ${index + 2}`)).length === 0
-        ) {
-          products.push(product as ParsedProduct)
+        if (data.length > 10) {
+          toast.info(
+            `Showing preview of first 10 rows. Total rows: ${data.length}`
+          )
         }
-      })
-
-      setValidationErrors(errors)
-      setParsedData(products)
-
-      if (lines.length > 11) {
-        toast.info(
-          `Showing preview of first 10 rows. Total rows: ${lines.length - 1}`
-        )
+      },
+      error: (error) => {
+        setValidationErrors([
+          `Failed to parse CSV file: ${error.message}`,
+        ])
       }
-    } catch (error) {
-      setValidationErrors([
-        'Failed to parse CSV file. Please check the format.',
-      ])
-    }
+    })
   }
 
   const handleImport = async () => {
@@ -165,15 +180,19 @@ export function BulkImportDialog({ children }: BulkImportDialogProps) {
     setIsImporting(true)
     setImportProgress(0)
 
+    let progressInterval: NodeJS.Timeout | null = null
+
     try {
       // Simulate progress for now since bulkImportProducts is not fully implemented
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setImportProgress((prev) => Math.min(prev + 10, 90))
       }, 200)
 
       const result = await bulkImportProducts(csvContent)
 
-      clearInterval(progressInterval)
+      if (progressInterval) {
+        clearInterval(progressInterval)
+      }
       setImportProgress(100)
 
       if (result.error) {
@@ -184,12 +203,24 @@ export function BulkImportDialog({ children }: BulkImportDialogProps) {
         setOpen(false)
       }
     } catch (error) {
+      if (progressInterval) {
+        clearInterval(progressInterval)
+      }
       toast.error('Failed to import products')
     } finally {
       setIsImporting(false)
       setImportProgress(0)
     }
   }
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      // Clean up any running intervals when component unmounts
+      setIsImporting(false)
+      setImportProgress(0)
+    }
+  }, [])
 
   const downloadTemplate = () => {
     const template =

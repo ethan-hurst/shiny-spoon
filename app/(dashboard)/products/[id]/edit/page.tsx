@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ProductForm } from '@/components/features/products/product-form'
 
@@ -23,7 +23,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return <div>Unauthorized</div>
+    redirect('/login')
   }
 
   // Get user's organization
@@ -34,7 +34,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     .single()
 
   if (!profile) {
-    return <div>User profile not found</div>
+    redirect('/login')
   }
 
   // Fetch product
