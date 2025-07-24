@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { stripe, SUBSCRIPTION_PLANS } from './stripe'
 import type { SubscriptionData, Invoice, PaymentMethod } from '@/types/billing.types'
 
@@ -25,7 +25,7 @@ export type { SubscriptionData, Invoice, PaymentMethod } from '@/types/billing.t
 
 // Get subscription data for an organization
 export async function getSubscription(organizationId: string): Promise<SubscriptionData | null> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: billing } = await supabase
     .from('customer_billing')
@@ -49,7 +49,11 @@ export async function getSubscription(organizationId: string): Promise<Subscript
   // Get subscription from Stripe
   try {
     const subscription = await stripe.subscriptions.retrieve(billing.stripe_subscription_id)
-    const priceId = subscription.items.data[0].price.id
+    const firstItem = subscription.items.data[0]
+    if (!firstItem) {
+      throw new Error('No subscription items found')
+    }
+    const priceId = firstItem.price.id
     
     // Determine which plan based on price ID
     let plan = 'starter'
@@ -63,7 +67,7 @@ export async function getSubscription(organizationId: string): Promise<Subscript
     return {
       id: subscription.id,
       plan: plan as 'starter' | 'growth' | 'scale' | 'enterprise',
-      interval: subscription.items.data[0].price.recurring?.interval as 'month' | 'year',
+      interval: firstItem.price.recurring?.interval as 'month' | 'year',
       status: subscription.status as 'active' | 'canceled' | 'past_due' | 'incomplete' | 'trialing',
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
@@ -77,7 +81,7 @@ export async function getSubscription(organizationId: string): Promise<Subscript
 
 // Get usage statistics for an organization
 export async function getUsageStats(organizationId: string): Promise<UsageStats> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   // Get current period
   const periodStart = new Date()
@@ -133,7 +137,7 @@ export async function getUsageStats(organizationId: string): Promise<UsageStats>
 
 // Get recent activity for an organization
 export async function getRecentActivity(organizationId: string, limit = 10) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   // For now, we'll get recent API calls as activity
   const { data: apiCalls } = await supabase
@@ -144,7 +148,7 @@ export async function getRecentActivity(organizationId: string, limit = 10) {
     .limit(limit)
 
   // Transform into activity format
-  const activity = apiCalls?.map(call => ({
+  const activity = apiCalls?.map((call: any) => ({
     id: call.id,
     type: 'api_call',
     description: `API call to ${call.method} ${call.endpoint}`,
@@ -160,7 +164,7 @@ export async function getRecentActivity(organizationId: string, limit = 10) {
 
 // Get invoices for an organization
 export async function getInvoices(organizationId: string): Promise<Invoice[]> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: billing } = await supabase
     .from('customer_billing')
@@ -187,8 +191,8 @@ export async function getInvoices(organizationId: string): Promise<Invoice[]> {
       period_start: invoice.period_start,
       period_end: invoice.period_end,
       created: invoice.created,
-      invoice_pdf: invoice.invoice_pdf,
-      hosted_invoice_url: invoice.hosted_invoice_url,
+      invoice_pdf: invoice.invoice_pdf || null,
+      hosted_invoice_url: invoice.hosted_invoice_url || null,
     }))
   } catch (error) {
     console.error('Error fetching invoices:', error)
@@ -198,7 +202,7 @@ export async function getInvoices(organizationId: string): Promise<Invoice[]> {
 
 // Get payment methods for an organization
 export async function getPaymentMethods(organizationId: string): Promise<PaymentMethod[]> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: billing } = await supabase
     .from('customer_billing')
@@ -218,10 +222,10 @@ export async function getPaymentMethods(organizationId: string): Promise<Payment
 
     return paymentMethods.data.map(pm => ({
       id: pm.id,
-      brand: pm.card?.brand,
-      last4: pm.card?.last4,
-      exp_month: pm.card?.exp_month,
-      exp_year: pm.card?.exp_year,
+      brand: pm.card?.brand || '',
+      last4: pm.card?.last4 || '',
+      exp_month: pm.card?.exp_month || 0,
+      exp_year: pm.card?.exp_year || 0,
     }))
   } catch (error) {
     console.error('Error fetching payment methods:', error)
@@ -231,7 +235,7 @@ export async function getPaymentMethods(organizationId: string): Promise<Payment
 
 // Get team members for an organization
 export async function getTeamMembers(organizationId: string) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: members } = await supabase
     .from('user_profiles')
@@ -244,7 +248,7 @@ export async function getTeamMembers(organizationId: string) {
 
 // Get pending invitations for an organization
 export async function getPendingInvites(organizationId: string) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: invites } = await supabase
     .from('team_invitations')
@@ -258,8 +262,8 @@ export async function getPendingInvites(organizationId: string) {
 }
 
 // Get team activity
-export async function getTeamActivity(organizationId: string, limit = 20) {
-  const supabase = createServerClient()
+export async function getTeamActivity(_organizationId: string, _limit = 20) {
+  const _supabase = await createClient()
 
   // For now, return empty array - would need to implement activity tracking
   return []

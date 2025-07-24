@@ -1,7 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { stripe, createCheckoutSession, createBillingPortalSession } from '@/lib/billing/stripe'
 import { z } from 'zod'
@@ -33,7 +33,7 @@ const changePlanSchema = z.object({
 
 export async function changePlan(formData: FormData) {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -133,7 +133,7 @@ export async function changePlan(formData: FormData) {
 
 export async function cancelSubscription() {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -191,7 +191,7 @@ export async function cancelSubscription() {
 
 export async function resumeSubscription() {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -249,7 +249,7 @@ export async function resumeSubscription() {
 
 export async function openBillingPortal() {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -311,7 +311,7 @@ export async function addPaymentMethod(data: z.infer<typeof addPaymentMethodSche
       throw new Error('Invalid payment method data provided.')
     }
 
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -376,7 +376,7 @@ export async function removePaymentMethod(paymentMethodId: string) {
       throw new Error('Invalid payment method ID provided.')
     }
 
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {

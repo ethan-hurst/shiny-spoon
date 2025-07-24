@@ -3,8 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UsageStats } from '@/lib/billing'
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend } from 'recharts'
-import { format, startOfDay, eachDayOfInterval, subDays } from 'date-fns'
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { format, eachDayOfInterval, subDays } from 'date-fns'
 
 interface HistoricalUsageItem {
   created_at: string

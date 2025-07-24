@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export interface EmailMessage {
   to: string | string[]
@@ -29,7 +29,7 @@ export interface EmailQueueItem {
  */
 export async function queueEmail(message: EmailMessage): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const queueItem: Omit<EmailQueueItem, 'id' | 'created_at' | 'updated_at'> = {
       message,

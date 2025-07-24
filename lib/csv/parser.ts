@@ -186,7 +186,7 @@ export function parseCSV<T>(
             row: rowNumber,
             column: err.path.join('.'),
             message: err.message,
-            value: mappedRow[err.path[0]],
+            value: err.path[0] ? mappedRow[err.path[0]] : undefined,
           })
         })
       }
@@ -213,7 +213,7 @@ export function parseInventoryCSV(
     notes: z.string().optional(),
   })
 
-  return parseCSV(csvContent, inventorySchema, COLUMN_MAPPINGS)
+  return parseCSV(csvContent, inventorySchema, COLUMN_MAPPINGS) as ParseResult<InventoryImportRow>
 }
 
 // CSV generation utilities
@@ -286,7 +286,7 @@ export function validateCSVFile(file: File): {
 export async function* streamParseCSV<T>(
   file: File,
   schema: z.ZodSchema<T>,
-  chunkSize: number = 1000
+  _chunkSize: number = 1000
 ): AsyncGenerator<ParseResult<T>> {
   // This is a placeholder for future implementation
   // Would use Papa.parse with step callback for streaming

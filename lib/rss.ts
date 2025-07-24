@@ -1,5 +1,6 @@
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { allPosts } from 'contentlayer/generated'
+// @ts-ignore - RSS library types not available
 import RSS from 'rss'
 import path from 'path'
 
@@ -74,7 +75,7 @@ export async function generateRssFeed() {
       writeFileSync(path.join(publicDir, 'rss.xml'), feed.xml({ indent: true }))
       console.log('RSS feed generated successfully')
     } catch (error) {
-      throw new Error(`Failed to write RSS feed: ${error.message}`)
+      throw new Error(`Failed to write RSS feed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   } catch (error) {
     console.error('Failed to generate RSS feed:', error)

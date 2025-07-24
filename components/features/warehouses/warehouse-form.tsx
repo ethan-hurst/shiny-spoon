@@ -27,9 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { warehouseSchema } from '@/lib/validations/warehouse'
 import {
-  createWarehouse,
   createWarehouseTyped,
-  updateWarehouse,
   updateWarehouseTyped,
 } from '@/app/actions/warehouses'
 import { Warehouse } from '@/types/warehouse.types'
@@ -51,14 +49,18 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
     defaultValues: {
       name: warehouse?.name || '',
       code: warehouse?.code || '',
-      address: warehouse?.address || {
-        street: '',
-        city: '',
-        state: '',
-        postalCode: '',
-        country: 'USA',
-      },
-      contacts: warehouse?.contact || [
+      address: (warehouse?.address && typeof warehouse.address === 'object' && !Array.isArray(warehouse.address) 
+        ? warehouse.address as any
+        : {
+            street: '',
+            city: '',
+            state: '',
+            postalCode: '',
+            country: 'USA',
+          }),
+      contacts: (warehouse?.contact && Array.isArray(warehouse.contact) 
+        ? warehouse.contact as any
+        : [
         {
           name: '',
           role: 'Manager',
@@ -66,7 +68,7 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
           phone: '',
           isPrimary: true,
         },
-      ],
+      ]),
       is_default: warehouse?.is_default || false,
       active: warehouse?.active ?? true,
     },
