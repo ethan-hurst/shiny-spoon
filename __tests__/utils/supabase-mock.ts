@@ -1,4 +1,4 @@
-import { SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClient, PostgrestQueryBuilder } from '@supabase/supabase-js'
 import type { Database } from '@/supabase/types/database'
 
 type MockSupabaseClient = jest.Mocked<SupabaseClient<Database>>

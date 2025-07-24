@@ -462,26 +462,26 @@ describe('PricingEngine', () => {
       }
 
       // Quantity breaks would be handled separately in the actual implementation
-      const _quantityBreaks = [
-        {
-          id: 'qb-1',
-          rule_id: 'rule-1',
-          min_quantity: 10,
-          max_quantity: 50,
-          discount_type: 'percentage',
-          discount_value: 5,
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: 'qb-2',
-          rule_id: 'rule-1',
-          min_quantity: 51,
-          max_quantity: null,
-          discount_type: 'percentage',
-          discount_value: 10,
-          created_at: new Date().toISOString(),
-        },
-      ]
+      // const quantityBreaks = [
+      //   {
+      //     id: 'qb-1',
+      //     rule_id: 'rule-1',
+      //     min_quantity: 10,
+      //     max_quantity: 50,
+      //     discount_type: 'percentage',
+      //     discount_value: 5,
+      //     created_at: new Date().toISOString(),
+      //   },
+      //   {
+      //     id: 'qb-2',
+      //     rule_id: 'rule-1',
+      //     min_quantity: 51,
+      //     max_quantity: null,
+      //     discount_type: 'percentage',
+      //     discount_value: 10,
+      //     created_at: new Date().toISOString(),
+      //   },
+      // ]
 
       // Test quantity 25 (should get 5% discount)
       const context1: PriceContext = {

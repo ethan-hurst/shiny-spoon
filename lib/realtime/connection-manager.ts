@@ -234,14 +234,12 @@ export class RealtimeConnectionManager {
 
   public registerChannel(name: string, channel: RealtimeChannel): void {
     this.channels.set(name, channel)
-    // Update subscription count
-    // this.metrics.subscriptionCount = this.channels.size
+    // Note: subscription count is tracked in PerformanceMonitor, not ConnectionMetrics
   }
 
   public unregisterChannel(name: string): void {
     this.channels.delete(name)
-    // Update subscription count
-    // this.metrics.subscriptionCount = this.channels.size
+    // Note: subscription count is tracked in PerformanceMonitor, not ConnectionMetrics
   }
 
   public getHealthScore(): number {

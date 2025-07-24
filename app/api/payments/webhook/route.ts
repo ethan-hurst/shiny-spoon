@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/ssr'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     })
   }
   
-  const supabase = createServerClient(
+  const supabase = await createClient(
     supabaseUrl,
     supabaseServiceKey,
     {
@@ -253,10 +253,10 @@ async function handleCheckoutSessionCompleted(
 
 async function webhooksHandler(
   reqText: string,
-  request: NextRequest,
+  _request: NextRequest,
   supabase: any
 ): Promise<NextResponse> {
-  const sig = request.headers.get('Stripe-Signature')
+  const sig = _request.headers.get('Stripe-Signature')
 
   try {
     const event = await stripe.webhooks.constructEventAsync(

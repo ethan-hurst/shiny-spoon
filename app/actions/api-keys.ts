@@ -57,7 +57,7 @@ function generateApiKey(): { key: string; hash: string } {
 }
 
 // Helper function to get user profile with error handling
-async function getUserProfile(supabase: ReturnType<typeof createClient>, userId: string): Promise<UserProfile> {
+async function getUserProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<UserProfile> {
   try {
     const { data: profile, error } = await supabase
       .from('user_profiles')
@@ -85,7 +85,7 @@ async function getUserProfile(supabase: ReturnType<typeof createClient>, userId:
 
 // Helper function to get customer billing with error handling
 async function getCustomerBilling(
-  supabase: ReturnType<typeof createClient>, 
+  supabase: Awaited<ReturnType<typeof createClient>>, 
   organizationId: string
 ): Promise<CustomerBilling | null> {
   try {

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getSubscription } from '@/lib/billing'
 import { SUBSCRIPTION_PLANS } from '@/lib/billing/stripe'
 import { CurrentPlan } from '@/components/portal/subscription/current-plan'
@@ -15,7 +15,7 @@ interface SubscriptionPageProps {
 
 export default async function SubscriptionPage(props: SubscriptionPageProps) {
   const searchParams = await props.searchParams
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

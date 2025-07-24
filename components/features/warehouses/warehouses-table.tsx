@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { WarehouseWithDetails } from '@/types/warehouse.types'
+import { WarehouseWithDetails, Address } from '@/types/warehouse.types'
 import { WarehouseActions } from './warehouse-actions'
 import { WarehouseFilters } from './warehouse-filters'
 
@@ -68,7 +68,7 @@ export function WarehousesTable({ initialData, states }: WarehousesTableProps) {
       header: 'Location',
       cell: ({ row }) => {
         const warehouse = row.original
-        const address = warehouse.address as any
+        const address = warehouse.address as Address
         if (!address) return null
 
         return (

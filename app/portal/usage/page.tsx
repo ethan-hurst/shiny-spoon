@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getSubscription, getUsageStats } from '@/lib/billing'
 import { UsageOverview } from '@/components/portal/usage/usage-overview'
 import { UsageChart } from '@/components/portal/usage/usage-chart'
@@ -7,7 +7,7 @@ import { UsageBreakdown } from '@/components/portal/usage/usage-breakdown'
 import { UsageAlerts } from '@/components/portal/usage/usage-alerts'
 
 export default async function UsagePage() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

@@ -41,8 +41,8 @@ export default async function TeamPage() {
   // Calculate team stats
   const stats = {
     totalMembers: members.length,
-    admins: members.filter(m => m.role === 'admin').length,
-    activeToday: members.filter(m => {
+    admins: members.filter((m: any) => m.role === 'admin').length,
+    activeToday: members.filter((m: any) => {
       if (!m.auth?.users?.last_sign_in_at) return false
       const lastSignIn = new Date(m.auth.users.last_sign_in_at)
       const today = new Date()

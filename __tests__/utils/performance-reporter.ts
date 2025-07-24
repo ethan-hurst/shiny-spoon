@@ -99,7 +99,7 @@ class PerformanceReporter {
     const grouped = this.metrics.reduce((acc, metric) => {
       const prefix = metric.name.split(':')[0]
       if (prefix && !acc[prefix]) acc[prefix] = []
-      if (prefix) acc[prefix].push(metric)
+      if (prefix && acc[prefix]) acc[prefix].push(metric)
       return acc
     }, {} as Record<string, PerformanceMetric[]>)
 

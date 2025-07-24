@@ -10,6 +10,11 @@ export interface SubscriptionData {
   currentPeriodEnd: Date
   cancelAtPeriodEnd: boolean
   trialEnd?: Date
+  limits?: {
+    products: number
+    warehouses: number
+    apiCalls: number
+  }
 }
 
 // Organization billing information

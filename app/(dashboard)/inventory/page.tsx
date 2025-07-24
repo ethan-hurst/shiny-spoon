@@ -194,8 +194,8 @@ export default async function InventoryPage(props: {
           <InventoryFilters
             warehouses={warehouses || []}
             currentFilters={{
-              warehouse_id: searchParams.warehouse_id,
-              search: searchParams.search,
+              ...(searchParams.warehouse_id && { warehouse_id: searchParams.warehouse_id }),
+              ...(searchParams.search && { search: searchParams.search }),
               low_stock_only: searchParams.low_stock === 'true',
             }}
           />

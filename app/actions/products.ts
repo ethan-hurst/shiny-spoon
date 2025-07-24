@@ -1,8 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { productSchema } from '@/lib/validations/product'
 
@@ -75,7 +73,7 @@ async function validateAndUploadImage(
 
   const fileName = `${organizationId}/${generateUUID()}.${fileExt}`
 
-  const { error: uploadError, data: uploadData } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from('products')
     .upload(fileName, file)
 
@@ -355,7 +353,7 @@ export async function deleteProduct(id: string) {
   return { success: true }
 }
 
-export async function bulkImportProducts(csvData: string) {
+export async function bulkImportProducts(_csvData: string) {
   // TODO: Implement CSV parsing and bulk import
   const supabase = await createClient()
 
@@ -384,7 +382,7 @@ export async function bulkImportProducts(csvData: string) {
   return { error: 'Bulk import not yet implemented' }
 }
 
-export async function exportProducts(filters?: ProductFilters) {
+export async function exportProducts(_filters?: ProductFilters) {
   // TODO: Implement export with filters
   const supabase = await createClient()
 

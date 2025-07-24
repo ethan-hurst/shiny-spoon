@@ -30,7 +30,7 @@ import {
   createWarehouseTyped,
   updateWarehouseTyped,
 } from '@/app/actions/warehouses'
-import { Warehouse } from '@/types/warehouse.types'
+import { Warehouse, Address, Contact } from '@/types/warehouse.types'
 import { AddressFields } from './address-fields'
 import { ContactList } from './contact-list'
 
@@ -50,7 +50,7 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
       name: warehouse?.name || '',
       code: warehouse?.code || '',
       address: (warehouse?.address && typeof warehouse.address === 'object' && !Array.isArray(warehouse.address) 
-        ? warehouse.address as any
+        ? warehouse.address as Address
         : {
             street: '',
             city: '',
@@ -59,7 +59,7 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
             country: 'USA',
           }),
       contacts: (warehouse?.contact && Array.isArray(warehouse.contact) 
-        ? warehouse.contact as any
+        ? warehouse.contact as Contact[]
         : [
         {
           name: '',

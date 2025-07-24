@@ -43,6 +43,7 @@ export async function getSubscription(organizationId: string): Promise<Subscript
       currentPeriodStart: new Date(),
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       cancelAtPeriodEnd: false,
+      limits: SUBSCRIPTION_PLANS.starter.limits,
     }
   }
 
@@ -64,6 +65,7 @@ export async function getSubscription(organizationId: string): Promise<Subscript
       }
     }
 
+    const planKey = plan as keyof typeof SUBSCRIPTION_PLANS
     return {
       id: subscription.id,
       plan: plan as 'starter' | 'growth' | 'scale' | 'enterprise',
@@ -72,6 +74,7 @@ export async function getSubscription(organizationId: string): Promise<Subscript
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      limits: SUBSCRIPTION_PLANS[planKey]?.limits || SUBSCRIPTION_PLANS.starter.limits,
     }
   } catch (error) {
     console.error('Error fetching subscription:', error)

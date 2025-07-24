@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NotificationSettings } from '@/components/portal/settings/notification-settings'
 import { ProfileSettings } from '@/components/portal/settings/profile-settings'
 import { SecuritySettings } from '@/components/portal/settings/security-settings'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default async function SettingsPage() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

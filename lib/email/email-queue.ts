@@ -59,7 +59,7 @@ export async function queueEmail(message: EmailMessage): Promise<{ success: bool
  * This would be called by a cron job or edge function
  */
 export async function processEmailQueue(): Promise<void> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
   
   // Get pending emails
   const { data: pendingEmails, error } = await supabase
@@ -84,7 +84,7 @@ export async function processEmailQueue(): Promise<void> {
  * Process a single email
  */
 async function processEmail(queueItem: EmailQueueItem): Promise<void> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
   
   // Update status to processing
   await supabase
