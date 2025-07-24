@@ -1,7 +1,7 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
 import { DashboardLayoutClient } from '@/components/layouts/dashboard-layout-client'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { SidebarProvider } from '@/hooks/use-sidebar'
 
 export default async function DashboardLayout({
@@ -10,7 +10,7 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   // Check authentication
-  const supabase = await createServerClient()
+  const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()

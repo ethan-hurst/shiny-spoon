@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 import crypto from 'crypto'
@@ -57,7 +57,7 @@ function generateApiKey(): { key: string; hash: string } {
 }
 
 // Helper function to get user profile with error handling
-async function getUserProfile(supabase: ReturnType<typeof createServerClient>, userId: string): Promise<UserProfile> {
+async function getUserProfile(supabase: ReturnType<typeof createClient>, userId: string): Promise<UserProfile> {
   try {
     const { data: profile, error } = await supabase
       .from('user_profiles')
@@ -85,7 +85,7 @@ async function getUserProfile(supabase: ReturnType<typeof createServerClient>, u
 
 // Helper function to get customer billing with error handling
 async function getCustomerBilling(
-  supabase: ReturnType<typeof createServerClient>, 
+  supabase: ReturnType<typeof createClient>, 
   organizationId: string
 ): Promise<CustomerBilling | null> {
   try {
@@ -115,7 +115,7 @@ async function getCustomerBilling(
 
 export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     // Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -206,7 +206,7 @@ export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> 
 
 export async function updateApiKey(formData: FormData): Promise<void> {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     // Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -269,7 +269,7 @@ export async function revokeApiKey(keyId: string): Promise<void> {
       throw new Error(validationResult.error.errors[0]?.message || 'Validation error')
     }
 
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     // Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -311,7 +311,7 @@ export async function regenerateApiKey(keyId: string): Promise<ApiKeyResponse> {
       throw new Error(validationResult.error.errors[0]?.message || 'Validation error')
     }
 
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     // Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

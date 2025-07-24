@@ -253,10 +253,10 @@ describe('Price Calculation Utilities', () => {
       const results = await comparePrices(productId, scenarios)
 
       expect(results).toHaveLength(3)
-      expect(results[0].savings).toBe(0)
-      expect(results[1].savings).toBe(15)
-      expect(results[2].savings).toBe(20)
-      expect(results[2].savingsPercent).toBe(20)
+      expect(results[0]?.savings).toBe(0)
+      expect(results[1]?.savings).toBe(15)
+      expect(results[2]?.savings).toBe(20)
+      expect(results[2]?.savingsPercent).toBe(20)
     })
   })
 
@@ -306,11 +306,11 @@ describe('Price Calculation Utilities', () => {
       )
 
       expect(results).toHaveLength(4)
-      expect(results[0].unitPrice).toBe(100)
-      expect(results[1].unitPrice).toBe(95)
-      expect(results[2].unitPrice).toBe(90)
-      expect(results[3].unitPrice).toBe(85)
-      expect(results[3].savingsPercent).toBe(15)
+      expect(results[0]?.unitPrice).toBe(100)
+      expect(results[1]?.unitPrice).toBe(95)
+      expect(results[2]?.unitPrice).toBe(90)
+      expect(results[3]?.unitPrice).toBe(85)
+      expect(results[3]?.savingsPercent).toBe(15)
     })
 
     it('should use default quantities if not provided', async () => {

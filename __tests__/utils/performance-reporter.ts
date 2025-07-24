@@ -98,8 +98,8 @@ class PerformanceReporter {
     // Group metrics by name prefix
     const grouped = this.metrics.reduce((acc, metric) => {
       const prefix = metric.name.split(':')[0]
-      if (!acc[prefix]) acc[prefix] = []
-      acc[prefix].push(metric)
+      if (prefix && !acc[prefix]) acc[prefix] = []
+      if (prefix) acc[prefix].push(metric)
       return acc
     }, {} as Record<string, PerformanceMetric[]>)
 
@@ -129,7 +129,7 @@ export const perfReporter = new PerformanceReporter()
 
 // Export helper functions for common operations
 export function logPerformance(name: string, duration: number, metadata?: Record<string, any>): void {
-  perfReporter.logMetric({ name, duration, metadata })
+  perfReporter.logMetric({ name, duration, metadata: metadata || {} })
 }
 
 export function logComparison(
@@ -148,7 +148,7 @@ export function logComparison(
   }
   // If both are 0, improvement remains 0
   
-  perfReporter.logComparison({ name, baseline, current, improvement, unit })
+  perfReporter.logComparison({ name, baseline, current, improvement, unit: unit || 'ms' })
 }
 
 export function logMemory(name: string, bytes: number): void {

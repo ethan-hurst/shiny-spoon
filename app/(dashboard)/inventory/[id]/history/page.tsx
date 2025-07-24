@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { format } from 'date-fns'
-import { ArrowLeft, Calendar, FileText, Package, User } from 'lucide-react'
+import { ArrowLeft, Calendar, FileText, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,20 +22,20 @@ import type {
 } from '@/types/inventory.types'
 
 // Interface for raw adjustment data from database
-interface RawAdjustmentData {
-  id: string
-  inventory_id: string
-  organization_id: string
-  previous_quantity: number
-  new_quantity: number
-  adjustment: number
-  reason: AdjustmentReason
-  notes: string | null
-  created_at: string
-  created_by: string
-  user_full_name: string | null
-  user_email: string
-}
+// interface RawAdjustmentData {
+//   id: string
+//   inventory_id: string
+//   organization_id: string
+//   previous_quantity: number
+//   new_quantity: number
+//   adjustment: number
+//   reason: AdjustmentReason
+//   notes: string | null
+//   created_at: string
+//   created_by: string
+//   user_full_name: string | null
+//   user_email: string
+// }
 
 export default async function InventoryHistoryPage(props: {
   params: Promise<{ id: string }>

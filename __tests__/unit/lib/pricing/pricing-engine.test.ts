@@ -1,7 +1,6 @@
 import { PricingEngine } from '@/lib/pricing/pricing-engine'
 import {
   PriceCalculationRequest,
-  PriceCalculationResult,
   PriceContext,
   PricingRuleRecord,
 } from '@/types/pricing.types'
@@ -123,7 +122,7 @@ describe('PricingEngine', () => {
       expect(result.final_price).toBe(85)
       expect(result.discount_percent).toBe(15)
       expect(result.applied_rules).toHaveLength(1)
-      expect(result.applied_rules[0].type).toBe('quantity')
+      expect(result.applied_rules[0]?.type).toBe('quantity')
     })
 
     it('should handle customer-specific pricing', async () => {
@@ -160,7 +159,7 @@ describe('PricingEngine', () => {
 
       expect(result.final_price).toBe(75)
       expect(result.discount_percent).toBe(25)
-      expect(result.applied_rules[0].type).toBe('customer')
+      expect(result.applied_rules[0]?.type).toBe('customer')
     })
 
     it('should handle promotional pricing with dates', async () => {
@@ -196,8 +195,8 @@ describe('PricingEngine', () => {
       const result = await pricingEngine.calculatePrice(request)
 
       expect(result.final_price).toBe(80)
-      expect(result.applied_rules[0].type).toBe('promotion')
-      expect(result.applied_rules[0].name).toBe('Christmas Sale')
+      expect(result.applied_rules[0]?.type).toBe('promotion')
+      expect(result.applied_rules[0]?.name).toBe('Christmas Sale')
     })
 
     it('should handle errors from the database', async () => {
@@ -285,7 +284,7 @@ describe('PricingEngine', () => {
 
       // Should only return Summer Sale rule
       expect(rules).toHaveLength(1)
-      expect(rules[0].name).toBe('Summer Sale')
+      expect(rules[0]?.name).toBe('Summer Sale')
     })
 
     it('should filter rules by product and category', async () => {
@@ -463,7 +462,7 @@ describe('PricingEngine', () => {
       }
 
       // Quantity breaks would be handled separately in the actual implementation
-      const quantityBreaks = [
+      const _quantityBreaks = [
         {
           id: 'qb-1',
           rule_id: 'rule-1',

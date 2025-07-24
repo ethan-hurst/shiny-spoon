@@ -1,9 +1,9 @@
-import { SupabaseClient, PostgrestQueryBuilder } from '@supabase/supabase-js'
-import { Database } from '@/supabase/types'
+import { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/supabase/types/database'
 
 type MockSupabaseClient = jest.Mocked<SupabaseClient<Database>>
 
-interface MockQueryBuilder extends Partial<PostgrestQueryBuilder<any, any, string, any>> {
+interface MockQueryBuilder {
   insert: jest.Mock
   update: jest.Mock
   delete: jest.Mock
@@ -81,7 +81,9 @@ export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): P
   Object.keys(builder).forEach((key) => {
     const method = key as keyof MockQueryBuilder
     if (method !== 'single' && method !== 'maybeSingle') {
-      builder[method].mockReturnValue(builder)
+      if (builder[method] && typeof builder[method] === 'function' && 'mockReturnValue' in builder[method]) {
+        (builder[method] as any).mockReturnValue(builder)
+      }
     }
   })
 
@@ -168,7 +170,7 @@ export function createMockSupabaseClient(): MockSupabaseClient {
 
 // Helper to set up common mock scenarios
 export function setupAuthenticatedUser(mockClient: MockSupabaseClient, userId = 'test-user-id') {
-  mockClient.auth.getUser.mockResolvedValue({
+  (mockClient.auth.getUser as jest.Mock).mockResolvedValue({
     data: {
       user: {
         id: userId,
@@ -184,7 +186,7 @@ export function setupAuthenticatedUser(mockClient: MockSupabaseClient, userId = 
 }
 
 export function setupUnauthenticatedUser(mockClient: MockSupabaseClient) {
-  mockClient.auth.getUser.mockResolvedValue({
+  (mockClient.auth.getUser as jest.Mock).mockResolvedValue({
     data: { user: null },
     error: null,
   })

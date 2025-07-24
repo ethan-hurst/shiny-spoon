@@ -1,3 +1,4 @@
+// @ts-ignore - vi is from vitest
 import { vi } from '@jest/globals'
 
 // Mock Supabase client
@@ -109,7 +110,7 @@ export const createMockQueryBuilder = (data: any = null, error: any = null) => {
     limit: vi.fn().mockReturnThis(),
     single: vi.fn(() => Promise.resolve({ data, error })),
     maybeSingle: vi.fn(() => Promise.resolve({ data, error })),
-    then: vi.fn((callback) => callback({ data, error })),
+    then: vi.fn((callback: any) => callback({ data, error })),
   }
   return queryBuilder
 }

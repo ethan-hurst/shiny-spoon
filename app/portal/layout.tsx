@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { PortalSidebar } from '@/components/portal/portal-sidebar'
 import { PortalHeader } from '@/components/portal/portal-header'
 
@@ -8,7 +8,7 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

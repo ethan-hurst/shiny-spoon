@@ -1,3 +1,4 @@
+// @ts-ignore - undici types not available in test environment
 import { FormData } from 'undici'
 import {
   bulkUpdateCustomerPrices,
@@ -453,8 +454,8 @@ describe('Pricing Server Actions', () => {
         data: null,
         error: { 
           message: 'Product not found',
-          details: null,
-          hint: null,
+          details: '',
+          hint: '',
           code: '404',
           name: 'PostgrestError'
         },

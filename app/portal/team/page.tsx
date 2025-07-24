@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getSubscription, getTeamMembers, getPendingInvites } from '@/lib/billing'
 import { TeamMembersList } from '@/components/portal/team/team-members-list'
 import { PendingInvites } from '@/components/portal/team/pending-invites'
@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users } from 'lucide-react'
 
 export default async function TeamPage() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

@@ -6,7 +6,6 @@ import {
   DollarSign,
   Download,
   FileText,
-  History,
   Plus,
   Upload,
 } from 'lucide-react'
@@ -22,8 +21,8 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { createServerClient } from '@/lib/supabase/server'
-import { formatCurrency, formatPercent } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/server'
+import { formatPercent } from '@/lib/utils'
 import { CustomerPricingStats } from '@/types/customer-pricing.types'
 
 // import { BulkPriceUpdate } from '@/components/features/pricing/bulk-price-update'
@@ -39,7 +38,7 @@ export async function generateMetadata(
   props: CustomerPricingPageProps
 ): Promise<Metadata> {
   const params = await props.params
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: customer } = await supabase
     .from('customers')
@@ -57,7 +56,7 @@ export async function generateMetadata(
 }
 
 async function getCustomerData(customerId: string) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   // Get customer details
   const { data: customer, error: customerError } = await supabase
