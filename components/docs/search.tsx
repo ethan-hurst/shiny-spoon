@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Fuse from 'fuse.js'
 import { Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
 import {
-  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -14,7 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { allDocs } from 'contentlayer/generated'
+import { allDocs } from 'contentlayer2/generated'
 import { Button } from '@/components/ui/button'
 
 export function DocsSearch() {

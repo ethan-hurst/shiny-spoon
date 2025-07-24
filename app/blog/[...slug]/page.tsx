@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
-import { allPosts } from 'contentlayer/generated'
-import { getMDXComponent } from 'next-contentlayer/hooks'
+import { allPosts } from 'contentlayer2/generated'
+import { getMDXComponent } from 'next-contentlayer2/hooks'
 import { format } from 'date-fns'
 import Image from 'next/image'
 import { BlogAuthor } from '@/components/blog/blog-author'

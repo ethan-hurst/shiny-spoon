@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ChevronRight, Menu, X } from 'lucide-react'
 import { useState } from 'react'
-import type { Doc } from 'contentlayer/generated'
+import type { Doc } from 'contentlayer2/generated'
 
 interface DocsSidebarProps {
   categories: Record<string, Doc[]>

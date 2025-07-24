@@ -1,5 +1,5 @@
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
-import { allPosts } from 'contentlayer/generated'
+import { allPosts } from 'contentlayer2/generated'
 // @ts-ignore - RSS library types not available
 import RSS from 'rss'
 import path from 'path'

@@ -1,4 +1,4 @@
-import { SupabaseClient, PostgrestQueryBuilder } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/supabase/types/database'
 
 type MockSupabaseClient = jest.Mocked<SupabaseClient<Database>>
@@ -39,7 +39,7 @@ interface MockQueryBuilder {
   headers?: Record<string, string>
 }
 
-export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): PostgrestQueryBuilder<any, any, string, any> {
+export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): any {
   const builder: MockQueryBuilder = {
     insert: jest.fn(),
     update: jest.fn(),
@@ -91,7 +91,7 @@ export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): P
   builder.single.mockResolvedValue({ data: null, error: null })
   builder.maybeSingle.mockResolvedValue({ data: null, error: null })
 
-  return builder as unknown as PostgrestQueryBuilder<any, any, string, any>
+  return builder
 }
 
 export function createMockSupabaseClient(): MockSupabaseClient {
@@ -193,7 +193,7 @@ export function setupUnauthenticatedUser(mockClient: MockSupabaseClient) {
 }
 
 export function setupQueryResult<T>(
-  mockQueryBuilder: PostgrestQueryBuilder<any, any, string, any>,
+  mockQueryBuilder: any,
   data: T | null,
   error: any = null
 ) {

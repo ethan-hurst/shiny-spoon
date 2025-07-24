@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Download, FileText, Upload } from 'lucide-react'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,7 +17,6 @@ import {
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Textarea } from '@/components/ui/textarea'
-import { customerImportSchema } from '@/lib/customers/validations'
 import {
   exportCustomers,
   importCustomers,
@@ -36,7 +34,7 @@ const CSV_TEMPLATE = `company_name,display_name,tax_id,website,tier_name,status,
 
 export function CustomerImportExport({
   organizationId,
-  tierMap,
+  tierMap: _tierMap,
 }: CustomerImportExportProps) {
   const router = useRouter()
   const [isImportOpen, setIsImportOpen] = useState(false)

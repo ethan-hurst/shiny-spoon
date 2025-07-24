@@ -3,7 +3,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "contentlayer/generated": ["./.contentlayer/generated"]
+      "contentlayer2/generated": ["./.contentlayer/generated"]
     },
     "target": "es2015",
     "lib": ["dom", "dom.iterable", "esnext"],

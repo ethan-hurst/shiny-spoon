@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Clock } from 'lucide-react'
-import type { Post } from 'contentlayer/generated'
+import type { Post } from 'contentlayer2/generated'
 
 interface BlogCardProps {
   post: Post

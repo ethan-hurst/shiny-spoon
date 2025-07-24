@@ -29,7 +29,18 @@
       "Bash(rm:*)",
       "Bash(true)",
       "Bash(echo $CODESPACES)",
-      "Bash(code:*)"
+      "Bash(code:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx contentlayer:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx --package=typescript tsc --noEmit --pretty)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(npx typescript:*)",
+      "Bash(node_modules/.bin/tsc:*)",
+      "Bash(grep:*)",
+      "Bash(npm view:*)",
+      "Bash(npm search:*)"
     ],
     "deny": []
   }

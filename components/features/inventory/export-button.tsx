@@ -12,7 +12,7 @@ interface ExportButtonProps {
   organizationId: string
 }
 
-export function ExportButton({ filters, organizationId }: ExportButtonProps) {
+export function ExportButton({ filters, organizationId: _organizationId }: ExportButtonProps) {
   const { toast } = useToast()
   const [isExporting, setIsExporting] = useState(false)
 

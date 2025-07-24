@@ -327,7 +327,7 @@ export async function bulkUpdateCustomerPrices(formData: FormData) {
 
   const customerId = formData.get('customer_id') as string
   const updatesJson = formData.get('updates') as string
-  const applyToAllWarehouses =
+  const _applyToAllWarehouses =
     formData.get('apply_to_all_warehouses') === 'true'
 
   if (!customerId || !updatesJson) {

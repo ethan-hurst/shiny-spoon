@@ -9,11 +9,9 @@ import {
   Shield,
   Zap,
   AlertCircle,
-  Code2,
   Package,
   CreditCard,
   ShoppingCart,
-  Copy,
   Check,
 } from 'lucide-react'
 import Link from 'next/link'

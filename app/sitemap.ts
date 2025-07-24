@@ -103,9 +103,9 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
   ]
 
   // Import content from Contentlayer
-  const { allPosts } = await import('contentlayer/generated')
-  const { allDocs } = await import('contentlayer/generated')
-  const { allHelpArticles } = await import('contentlayer/generated')
+  const { allPosts } = await import('contentlayer2/generated')
+  const { allDocs } = await import('contentlayer2/generated')
+  const { allHelpArticles } = await import('contentlayer2/generated')
 
   // Add blog posts
   const blogPages: SitemapEntry[] = allPosts

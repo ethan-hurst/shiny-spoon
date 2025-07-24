@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface DocsPaginationProps {
   prev: { title: string; href: string } | null

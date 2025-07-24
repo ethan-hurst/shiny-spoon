@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
-import { allHelpArticles } from 'contentlayer/generated'
-import { getMDXComponent } from 'next-contentlayer/hooks'
+import { allHelpArticles } from 'contentlayer2/generated'
+import { getMDXComponent } from 'next-contentlayer2/hooks'
 import Link from 'next/link'
 import { ArrowLeft, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
