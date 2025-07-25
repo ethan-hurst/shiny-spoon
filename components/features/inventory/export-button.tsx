@@ -9,15 +9,9 @@ import { exportInventory } from '@/app/actions/inventory'
 
 interface ExportButtonProps {
   filters?: ColumnFiltersState
-  organizationId: string
 }
 
-/**
- * Renders a button that exports inventory data as a CSV file, applying optional filters.
- *
- * When clicked, initiates the export process, downloads the resulting CSV file, and displays toast notifications for success or failure.
- */
-export function ExportButton({ filters, organizationId: _organizationId }: ExportButtonProps) {
+export function ExportButton({ filters }: ExportButtonProps) {
   const { toast } = useToast()
   const [isExporting, setIsExporting] = useState(false)
 

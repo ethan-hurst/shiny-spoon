@@ -7,6 +7,12 @@ export interface InventoryData {
   warehouseId?: string
 }
 
+interface InventoryItem {
+  quantity: number | null
+  reserved_quantity: number | null
+  warehouse_id: string
+}
+
 /**
  * Retrieves aggregated inventory data for a product within an organization, optionally filtered by warehouse.
  *
@@ -48,7 +54,7 @@ export async function getProductInventory(
 
     // Aggregate inventory across warehouses
     const aggregated = data.reduce(
-      (acc: { totalQuantity: number; reservedQuantity: number }, item: any) => {
+      (acc: { totalQuantity: number; reservedQuantity: number }, item: InventoryItem) => {
         acc.totalQuantity += item.quantity || 0
         acc.reservedQuantity += item.reserved_quantity || 0
         return acc

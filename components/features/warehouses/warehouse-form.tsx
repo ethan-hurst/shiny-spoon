@@ -56,26 +56,30 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
     defaultValues: {
       name: warehouse?.name || '',
       code: warehouse?.code || '',
-      address: (warehouse?.address && typeof warehouse.address === 'object' && !Array.isArray(warehouse.address) 
-        ? warehouse.address as Address
-        : {
-            street: '',
-            city: '',
-            state: '',
-            postalCode: '',
-            country: 'USA',
-          }),
-      contacts: (warehouse?.contact && Array.isArray(warehouse.contact) 
-        ? warehouse.contact as Contact[]
-        : [
-        {
-          name: '',
-          role: 'Manager',
-          email: '',
-          phone: '',
-          isPrimary: true,
-        },
-      ]),
+      address:
+        warehouse?.address &&
+        typeof warehouse.address === 'object' &&
+        !Array.isArray(warehouse.address)
+          ? (warehouse.address as Address)
+          : {
+              street: '',
+              city: '',
+              state: '',
+              postalCode: '',
+              country: 'USA',
+            },
+      contacts:
+        warehouse?.contact && Array.isArray(warehouse.contact)
+          ? (warehouse.contact as Contact[])
+          : [
+              {
+                name: '',
+                role: 'Manager',
+                email: '',
+                phone: '',
+                isPrimary: true,
+              },
+            ],
       is_default: warehouse?.is_default || false,
       active: warehouse?.active ?? true,
     },
