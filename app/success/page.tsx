@@ -15,8 +15,6 @@ export default async function SuccessPage(props: {
     searchParams?.session_id as string
   )
 
-  const _jsonString = JSON.stringify(session, null, 2)
-
   return (
     <main className="flex min-w-screen flex-col items-center justify-between">
       <NavBar />

@@ -109,7 +109,6 @@ export const createMockQueryBuilder = (data: any = null, error: any = null) => {
     limit: jest.fn().mockReturnThis(),
     single: jest.fn(() => Promise.resolve({ data, error })),
     maybeSingle: jest.fn(() => Promise.resolve({ data, error })),
-    then: jest.fn((callback: any) => callback({ data, error })),
   }
   return queryBuilder
 }

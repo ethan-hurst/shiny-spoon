@@ -7,6 +7,15 @@ import { TeamStats } from '@/components/portal/team/team-stats'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users } from 'lucide-react'
 
+interface TeamMember {
+  role: string
+  auth?: {
+    users?: {
+      last_sign_in_at?: string
+    }
+  }
+}
+
 export default async function TeamPage() {
   const supabase = await createClient()
 
@@ -41,8 +50,8 @@ export default async function TeamPage() {
   // Calculate team stats
   const stats = {
     totalMembers: members.length,
-    admins: members.filter((m: any) => m.role === 'admin').length,
-    activeToday: members.filter((m: any) => {
+    admins: members.filter((m: TeamMember) => m.role === 'admin').length,
+    activeToday: members.filter((m: TeamMember) => {
       if (!m.auth?.users?.last_sign_in_at) return false
       const lastSignIn = new Date(m.auth.users.last_sign_in_at)
       const today = new Date()
