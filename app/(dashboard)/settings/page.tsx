@@ -16,6 +16,11 @@ import {
   BarChart3
 } from 'lucide-react'
 
+/**
+ * Renders the settings dashboard page with role-based access control and navigation links.
+ *
+ * Redirects unauthenticated users or users without an organization to the login page. Displays a grid of settings cards, with certain options visible only to admin users. Provides access to the customer portal and guides non-admin users on how to request admin access for restricted settings.
+ */
 export default async function SettingsPage() {
   const supabase = await createClient()
 

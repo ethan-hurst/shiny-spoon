@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const API_BASE_URL = process.env.TRUTHSOURCE_API_URL || 'https://api.truthsource.io/v1'
 
+/**
+ * Handles POST requests by forwarding them to an external API with provided parameters and returns the API response.
+ *
+ * Expects a JSON body containing `method`, `path`, `body`, and `apiKey`. Validates required fields, constructs the external API request, and returns a JSON response with status, status text, selected headers, response body, and response time. Returns appropriate error responses for missing fields, authentication failure, network errors, or unexpected exceptions.
+ */
 export async function POST(request: NextRequest) {
   try {
     const { method, path, body, apiKey } = await request.json()
@@ -98,7 +103,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Add OPTIONS support for CORS
+/**
+ * Handles CORS preflight requests by responding with appropriate headers.
+ *
+ * Returns a 200 response with headers allowing any origin, POST and OPTIONS methods, and the Content-Type header.
+ */
 export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 200,

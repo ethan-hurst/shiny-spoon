@@ -33,6 +33,13 @@ interface CustomerActivityTimelineProps {
   activities: CustomerActivity[]
 }
 
+/**
+ * Displays a vertical timeline of customer activities, showing recent interactions, notes, and related metadata.
+ *
+ * Renders a scrollable list of activity entries, each with an icon, title, description, type badge, optional metadata, related resource link, and a relative timestamp. If no activities are present, displays a placeholder message.
+ *
+ * @param activities - The list of customer activity objects to display in the timeline.
+ */
 export function CustomerActivityTimeline({
   customerId: _customerId,
   activities,

@@ -8,12 +8,24 @@ import { MDXComponents } from '@/components/mdx'
 import { RelatedArticles } from '@/components/help/related-articles'
 import { ArticleFeedback } from '@/components/help/article-feedback'
 
+/**
+ * Generates the list of route parameters for statically generating help article pages.
+ *
+ * @returns An array of objects, each containing a `slug` array representing the path segments for a help article.
+ */
 export async function generateStaticParams() {
   return allHelpArticles.map((article) => ({
     slug: article.slug.split('/'),
   }))
 }
 
+/**
+ * Generates metadata for a help article page based on the provided slug parameters.
+ *
+ * If a matching article is found, returns an object containing the article's title and description for use in page metadata. Returns an empty object if no article matches the slug.
+ *
+ * @returns An object with `title` and `description` for the article, or an empty object if not found.
+ */
 export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params
   const article = allHelpArticles.find(
@@ -27,6 +39,11 @@ export async function generateMetadata(props: { params: Promise<{ slug: string[]
   }
 }
 
+/**
+ * Renders a help article page based on the provided slug parameters.
+ *
+ * Displays the article content, metadata, feedback form, and related articles. If the article is not found, triggers a 404 page.
+ */
 export default async function HelpArticlePage(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params
   const article = allHelpArticles.find(

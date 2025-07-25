@@ -39,6 +39,14 @@ interface MockQueryBuilder {
   headers?: Record<string, string>
 }
 
+/**
+ * Creates a mock Supabase query builder with all standard query methods mocked for testing.
+ *
+ * All methods except `single` and `maybeSingle` are chainable by default. The `single` and `maybeSingle` methods resolve to an object with `data: null` and `error: null`. Optional overrides allow customization of any method or property.
+ *
+ * @param overrides - Optional partial overrides for specific methods or properties of the mock query builder
+ * @returns A mock query builder object with chainable methods and default resolved values for `single` and `maybeSingle`
+ */
 export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): any {
   const builder: MockQueryBuilder = {
     insert: jest.fn(),
@@ -94,6 +102,13 @@ export function createMockQueryBuilder(overrides?: Partial<MockQueryBuilder>): a
   return builder
 }
 
+/**
+ * Creates a fully mocked Supabase client for testing purposes.
+ *
+ * The returned mock client includes mocked authentication, query, channel, function, and storage interfaces, with all methods set up for use in Jest-based unit tests.
+ *
+ * @returns A mocked Supabase client with all major methods and properties stubbed for testing.
+ */
 export function createMockSupabaseClient(): MockSupabaseClient {
   const mockClient = {
     auth: {
@@ -168,7 +183,13 @@ export function createMockSupabaseClient(): MockSupabaseClient {
   return mockClient
 }
 
-// Helper to set up common mock scenarios
+/**
+ * Configures the mock Supabase client to simulate an authenticated user with the specified user ID.
+ *
+ * Sets the `auth.getUser` mock to resolve with a user object containing the provided `userId` and default test user data.
+ *
+ * @param userId - The ID to assign to the mocked user (defaults to `'test-user-id'`)
+ */
 export function setupAuthenticatedUser(mockClient: MockSupabaseClient, userId = 'test-user-id') {
   (mockClient.auth.getUser as jest.Mock).mockResolvedValue({
     data: {
@@ -185,6 +206,11 @@ export function setupAuthenticatedUser(mockClient: MockSupabaseClient, userId = 
   })
 }
 
+/**
+ * Configures the mock Supabase client to simulate an unauthenticated user.
+ *
+ * Sets the `auth.getUser` mock to resolve with `user: null`, representing a user who is not signed in.
+ */
 export function setupUnauthenticatedUser(mockClient: MockSupabaseClient) {
   (mockClient.auth.getUser as jest.Mock).mockResolvedValue({
     data: { user: null },
@@ -192,6 +218,16 @@ export function setupUnauthenticatedUser(mockClient: MockSupabaseClient) {
   })
 }
 
+/**
+ * Configures a mock query builder to resolve its `single` and `maybeSingle` methods with the specified data and error.
+ *
+ * Also ensures the `select` method returns the mock query builder for method chaining.
+ *
+ * @param mockQueryBuilder - The mock query builder to configure
+ * @param data - The data value to resolve with for `single` and `maybeSingle`
+ * @param error - The error value to resolve with for `single` and `maybeSingle` (defaults to null)
+ * @returns The configured mock query builder
+ */
 export function setupQueryResult<T>(
   mockQueryBuilder: any,
   data: T | null,

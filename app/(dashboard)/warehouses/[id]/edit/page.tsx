@@ -8,6 +8,14 @@ interface EditWarehousePageProps {
   }>
 }
 
+/**
+ * Server component for editing a warehouse entity by ID.
+ *
+ * Retrieves the warehouse associated with the current user's organization, validates access and input, and renders a form for editing the warehouse. Returns a 404 page if the warehouse is not found or the ID is invalid, and throws an error if the user or user profile is missing.
+ *
+ * @param props - Contains a promise resolving to route parameters with the warehouse ID.
+ * @returns A React element rendering the warehouse edit form, or triggers a 404/error as appropriate.
+ */
 export default async function EditWarehousePage(
   props: EditWarehousePageProps
 ) {

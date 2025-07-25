@@ -11,6 +11,14 @@ import {
   type InventoryExportRow,
 } from '@/types/inventory.types'
 
+/**
+ * Adjusts the quantity of a specific inventory item and logs the adjustment.
+ *
+ * Authenticates the user, validates input, updates the inventory quantity, records the adjustment in the log, and refreshes relevant inventory pages. Returns a success status or an error message if any step fails.
+ *
+ * @param formData - Form data containing inventory adjustment details
+ * @returns An object indicating success or containing an error message
+ */
 export async function adjustInventory(formData: FormData) {
   const supabase = await createClient()
 
@@ -120,6 +128,14 @@ export async function adjustInventory(formData: FormData) {
   }
 }
 
+/**
+ * Performs a bulk update of inventory quantities from CSV data for the authenticated user's organization.
+ *
+ * Parses and validates the provided CSV, matches inventory items by SKU and warehouse code, updates quantities, and logs adjustments. Returns counts of successful and failed updates, along with up to 10 error messages if applicable.
+ *
+ * @param csvData - The CSV string containing inventory updates
+ * @returns An object indicating success or error, with counts of successful and failed updates, and error messages if any
+ */
 export async function bulkUpdateInventory(csvData: string) {
   const supabase = await createClient()
 
@@ -298,6 +314,14 @@ export async function bulkUpdateInventory(csvData: string) {
   }
 }
 
+/**
+ * Exports inventory data as a CSV file based on optional filters.
+ *
+ * Authenticates the user, retrieves their organization, applies optional filters for warehouse, search, and low stock, and returns a CSV export of inventory items with relevant details.
+ *
+ * @param filters - Optional filters for warehouse ID, search term, and low stock only
+ * @returns An object containing the CSV content, filename, row count, and success status, or an error message if the operation fails
+ */
 export async function exportInventory(filters?: {
   warehouse_id?: string
   search?: string

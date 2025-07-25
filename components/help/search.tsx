@@ -7,6 +7,11 @@ import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { allHelpArticles } from 'contentlayer2/generated'
 
+/**
+ * Renders a search form for help articles with client-side fuzzy search and URL query synchronization.
+ *
+ * Displays a search input that filters help articles in real time using fuzzy matching. Updates the browser URL with the current query on form submission.
+ */
 export function HelpSearch() {
   const router = useRouter()
   const searchParams = useSearchParams()

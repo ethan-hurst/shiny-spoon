@@ -5,6 +5,13 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/supabase/types/database'
 
+/**
+ * Creates and returns a Supabase server client configured for use in Next.js server environments.
+ *
+ * If required Supabase environment variables are missing, returns a mock client with stubbed authentication and database methods.
+ *
+ * @returns A Supabase client instance for server-side operations, or a mock client if configuration is incomplete.
+ */
 export async function createClient() {
   const cookieStore = await cookies()
   

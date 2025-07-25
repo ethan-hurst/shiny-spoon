@@ -10,6 +10,14 @@ interface PageProps {
   }>
 }
 
+/**
+ * Server component that renders a detailed customer profile page, including customer information, contacts, activities, and statistics.
+ *
+ * Retrieves the authenticated user's organization, fetches the specified customer and related data, and displays the information using header and tab components. Redirects unauthenticated users to the login page and returns a 404 page if the customer or user profile is not found.
+ *
+ * @param props - Contains a promise resolving to route parameters with the customer ID.
+ * @returns The rendered customer detail page as JSX.
+ */
 export default async function CustomerDetailPage(props: PageProps) {
   const params = await props.params
   const supabase = await createClient()

@@ -10,6 +10,14 @@ import {
   updatePasswordSchema,
 } from '@/types/auth.types'
 
+/**
+ * Authenticates a user with email and password, verifies profile completion, and redirects to the dashboard on success.
+ *
+ * Validates the provided credentials, attempts sign-in, and checks for an associated user profile. If the profile is missing or an error occurs, the user is signed out and an error is returned. On successful authentication and profile verification, the root layout is revalidated and the user is redirected to the dashboard.
+ *
+ * @param formData - The form data containing user credentials.
+ * @returns An object with an error message and field errors if authentication or validation fails; otherwise, redirects to the dashboard.
+ */
 export async function signIn(formData: FormData) {
   // Parse and validate input
   const parsed = loginSchema.safeParse({
@@ -54,6 +62,14 @@ export async function signIn(formData: FormData) {
   redirect('/dashboard')
 }
 
+/**
+ * Handles user registration by validating input and creating a new account with Supabase.
+ *
+ * Validates the provided form data for email, password, confirmation, full name, and organization name. Attempts to register the user with Supabase, including user metadata. Returns error details on validation or registration failure. If email confirmation is required, returns a message prompting the user to check their email. If the user is auto-confirmed, redirects to the dashboard. Otherwise, returns a generic success message.
+ *
+ * @param formData - The form data containing registration fields
+ * @returns An object indicating success or error, with additional information such as field errors or confirmation requirements
+ */
 export async function signUp(formData: FormData) {
   // Parse and validate all fields
   const parsed = signupSchema.safeParse({
@@ -111,6 +127,11 @@ export async function signUp(formData: FormData) {
   }
 }
 
+/**
+ * Signs out the current user and redirects to the home page.
+ *
+ * If sign-out fails, returns an error message.
+ */
 export async function signOut() {
   const supabase = await createClient()
 
@@ -124,6 +145,11 @@ export async function signOut() {
   redirect('/')
 }
 
+/**
+ * Initiates a password reset process by sending a reset link to the provided email address.
+ *
+ * Validates the email from the form data and, if valid, requests a password reset email with a redirect URL. Returns error details on failure or a success message if the email was sent.
+ */
 export async function resetPassword(formData: FormData) {
   // Validate email
   const parsed = resetPasswordSchema.safeParse({
@@ -156,6 +182,11 @@ export async function resetPassword(formData: FormData) {
   }
 }
 
+/**
+ * Updates the current user's password after validating the provided input.
+ *
+ * If the input is invalid, returns field-specific error messages. On successful password update, revalidates the root layout and redirects the user to the dashboard.
+ */
 export async function updatePassword(formData: FormData) {
   // Parse and validate input
   const parsed = updatePasswordSchema.safeParse({

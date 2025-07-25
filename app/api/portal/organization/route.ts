@@ -16,6 +16,11 @@ const updateOrgSchema = z.object({
   }).optional(),
 })
 
+/**
+ * Retrieves the authenticated user's organization data.
+ *
+ * Returns the organization information associated with the current user, or an error response if the user is unauthorized or no organization is found.
+ */
 export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -45,6 +50,11 @@ export async function GET(_request: NextRequest) {
   }
 }
 
+/**
+ * Updates the authenticated user's organization with validated fields.
+ *
+ * Requires the user to be an admin of an organization. Validates the request body against the organization update schema and applies changes to the organization's record. Returns the updated organization data in JSON format, or an error response if authorization fails or an error occurs.
+ */
 export async function PATCH(request: NextRequest) {
   try {
     const supabase = await createClient()

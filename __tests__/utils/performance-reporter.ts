@@ -127,11 +127,22 @@ class PerformanceReporter {
 // Export singleton instance
 export const perfReporter = new PerformanceReporter()
 
-// Export helper functions for common operations
+/**
+ * Logs a performance metric with the specified name, duration, and optional metadata.
+ *
+ * @param name - The name of the performance metric
+ * @param duration - The measured duration for the metric
+ * @param metadata - Optional additional data to associate with the metric
+ */
 export function logPerformance(name: string, duration: number, metadata?: Record<string, any>): void {
   perfReporter.logMetric({ name, duration, metadata: metadata || {} })
 }
 
+/**
+ * Logs a performance comparison between a baseline and current value, calculating the percentage improvement.
+ *
+ * If the baseline is zero and the current value is positive, the improvement is capped at -100%. If both are zero, improvement is zero. The comparison is recorded with the specified unit, defaulting to milliseconds.
+ */
 export function logComparison(
   name: string, 
   baseline: number, 
@@ -151,6 +162,12 @@ export function logComparison(
   perfReporter.logComparison({ name, baseline, current, improvement, unit: unit || 'ms' })
 }
 
+/**
+ * Logs memory usage as a performance metric in megabytes with the specified name.
+ *
+ * @param name - The label for the memory usage metric
+ * @param bytes - The amount of memory used, in bytes
+ */
 export function logMemory(name: string, bytes: number): void {
   perfReporter.logMemoryUsage(name, bytes)
 }

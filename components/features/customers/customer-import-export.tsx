@@ -32,6 +32,13 @@ interface CustomerImportExportProps {
 const CSV_TEMPLATE = `company_name,display_name,tax_id,website,tier_name,status,customer_type,billing_line1,billing_line2,billing_city,billing_state,billing_postal_code,billing_country,shipping_line1,shipping_line2,shipping_city,shipping_state,shipping_postal_code,shipping_country,credit_limit,payment_terms,currency,notes,tags,contact_first_name,contact_last_name,contact_email,contact_phone,contact_mobile
 "Acme Corporation","Acme Corp","12-3456789","https://acme.com","Gold","active","vip","123 Main St","Suite 100","New York","NY","10001","US","123 Main St","Suite 100","New York","NY","10001","US",50000,30,"USD","Important customer","wholesale,premium","John","Doe","john@acme.com","+1-555-123-4567","+1-555-987-6543"`
 
+/**
+ * React component for importing and exporting customer data as CSV files within an organization.
+ *
+ * Provides dialogs for importing customers from pasted CSV data (with validation, progress tracking, and error reporting) and exporting all customers to a downloadable CSV file. Includes a template download for correct CSV formatting. User feedback is provided via dialogs, alerts, and toast notifications.
+ *
+ * @param organizationId - The unique identifier for the organization whose customers are being managed.
+ */
 export function CustomerImportExport({
   organizationId,
   tierMap: _tierMap,

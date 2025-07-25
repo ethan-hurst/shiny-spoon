@@ -43,7 +43,11 @@ const regenerateApiKeySchema = z.object({
   keyId: z.string().uuid('Invalid API key ID'),
 })
 
-// Generate a secure API key
+/**
+ * Generates a secure API key and its hash for storage.
+ *
+ * @returns An object containing the plain API key (`key`) and its hashed value (`hash`).
+ */
 function generateApiKey(): { key: string; hash: string } {
   // Generate a random key with prefix
   const prefix = API_KEY_CONFIG.PREFIX.LIVE
@@ -56,7 +60,13 @@ function generateApiKey(): { key: string; hash: string } {
   return { key, hash }
 }
 
-// Helper function to get user profile with error handling
+/**
+ * Retrieves the user profile for the specified user ID, ensuring the user is associated with an organization.
+ *
+ * @param userId - The unique identifier of the user whose profile is being fetched.
+ * @returns The user's profile data.
+ * @throws If the profile cannot be fetched or if the user is not associated with any organization.
+ */
 async function getUserProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<UserProfile> {
   try {
     const { data: profile, error } = await supabase
@@ -83,7 +93,14 @@ async function getUserProfile(supabase: Awaited<ReturnType<typeof createClient>>
   }
 }
 
-// Helper function to get customer billing with error handling
+/**
+ * Retrieves the billing information for a given organization.
+ *
+ * Returns the organization's billing record if it exists, or null if no billing record is found. Throws an error if the query fails for other reasons.
+ *
+ * @param organizationId - The unique identifier of the organization whose billing information is requested
+ * @returns The organization's billing information, or null if no billing record exists
+ */
 async function getCustomerBilling(
   supabase: Awaited<ReturnType<typeof createClient>>, 
   organizationId: string
@@ -113,6 +130,14 @@ async function getCustomerBilling(
   }
 }
 
+/**
+ * Creates a new API key for the authenticated user's organization, enforcing subscription-based limits and input validation.
+ *
+ * Validates the provided form data, checks the organization's current API key count against its subscription plan limit, generates a secure API key, stores its hash in the database, and returns the new key (shown only once).
+ *
+ * @param formData - The form data containing API key creation details
+ * @returns An object with the new API key's ID, the plain key (displayed once), and a message
+ */
 export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> {
   try {
     const supabase = await createClient()
@@ -204,6 +229,11 @@ export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> 
   }
 }
 
+/**
+ * Updates an existing API key's metadata and permissions for the authenticated user's organization.
+ *
+ * Validates the provided form data, ensures user authentication, and applies updates to the specified API key record. Throws an error if validation fails, the user is unauthorized, or the update operation encounters an issue.
+ */
 export async function updateApiKey(formData: FormData): Promise<void> {
   try {
     const supabase = await createClient()
@@ -261,6 +291,13 @@ export async function updateApiKey(formData: FormData): Promise<void> {
   }
 }
 
+/**
+ * Revokes an API key by marking it as inactive and recording revocation details.
+ *
+ * Validates the key ID, authenticates the user, verifies organizational ownership, and performs a soft delete by updating the API key's status.
+ *
+ * @param keyId - The unique identifier of the API key to revoke
+ */
 export async function revokeApiKey(keyId: string): Promise<void> {
   try {
     // Validate input
@@ -303,6 +340,12 @@ export async function revokeApiKey(keyId: string): Promise<void> {
   }
 }
 
+/**
+ * Regenerates an API key by revoking the existing key and creating a new one with the same settings.
+ *
+ * @param keyId - The unique identifier of the API key to regenerate
+ * @returns An object containing the new API key ID, the plain key (shown once), and a message
+ */
 export async function regenerateApiKey(keyId: string): Promise<ApiKeyResponse> {
   try {
     // Validate input

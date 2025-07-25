@@ -33,6 +33,12 @@ interface MockSupabaseClient {
   removeChannel: (channel: any) => void
 }
 
+/**
+ * Returns a singleton Supabase client for browser usage, or a mock client if required environment variables are missing.
+ *
+ * If the necessary Supabase environment variables are not set, a mock client is returned that allows the application to run but does not provide real authentication or database functionality.
+ * @returns The Supabase client instance or a mock client if configuration is incomplete
+ */
 export function createClient() {
   if (client) return client
 

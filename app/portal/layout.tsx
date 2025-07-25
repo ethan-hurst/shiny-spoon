@@ -3,6 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { PortalSidebar } from '@/components/portal/portal-sidebar'
 import { PortalHeader } from '@/components/portal/portal-header'
 
+/**
+ * Asynchronous layout component that enforces authentication and organization association for user portal pages.
+ *
+ * Redirects unauthenticated users to the login page and users without a valid organization to the dashboard. Renders the portal header, sidebar, and main content area for authenticated users with an associated organization.
+ *
+ * @param children - The content to display within the portal layout
+ */
 export default async function PortalLayout({
   children,
 }: {

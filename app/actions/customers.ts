@@ -13,6 +13,14 @@ import {
 } from '@/lib/customers/validations'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Creates a new customer record using validated form data and associates it with the authenticated user's organization.
+ *
+ * Parses and validates the provided form data, inserts the customer into the database, logs the creation activity, and revalidates the customers cache path. Returns an error object if authentication, validation, or database operations fail; otherwise, returns the created customer data.
+ *
+ * @param formData - The form data containing customer details to be created
+ * @returns An object with either the created customer data on success or an error property with details on failure
+ */
 export async function createCustomer(formData: FormData) {
   const supabase = await createClient()
 
@@ -108,6 +116,14 @@ export async function createCustomer(formData: FormData) {
   return { success: true, data: customer }
 }
 
+/**
+ * Updates an existing customer record with new data from the provided form.
+ *
+ * Validates the form data, updates the customer in the database, and revalidates relevant cache paths. Returns the updated customer data on success or an error object if validation or database operations fail.
+ *
+ * @param formData - The form data containing updated customer fields and the customer ID
+ * @returns An object with either the updated customer data on success or an error message on failure
+ */
 export async function updateCustomer(formData: FormData) {
   const supabase = await createClient()
 
@@ -194,6 +210,14 @@ export async function updateCustomer(formData: FormData) {
   return { success: true, data: customer }
 }
 
+/**
+ * Permanently deletes a customer and all related contacts and activities.
+ *
+ * Also logs the deletion activity for audit purposes and revalidates the customers cache path. Returns an error if the user is unauthorized or the customer does not exist.
+ *
+ * @param id - The unique identifier of the customer to delete
+ * @returns An object indicating success or containing an error message
+ */
 export async function deleteCustomer(id: string) {
   const supabase = await createClient()
 
@@ -241,6 +265,13 @@ export async function deleteCustomer(id: string) {
   return { success: true }
 }
 
+/**
+ * Creates a new contact for a customer after validating input and authenticating the user.
+ *
+ * Validates the provided form data, inserts a new contact record, logs the activity, and revalidates the relevant customer cache path.
+ *
+ * @returns An object containing either the created contact data on success or an error message on failure.
+ */
 export async function createContact(formData: FormData) {
   const supabase = await createClient()
 
@@ -303,6 +334,14 @@ export async function createContact(formData: FormData) {
   return { success: true, data: contact }
 }
 
+/**
+ * Updates an existing contact with new information provided in the form data.
+ *
+ * Validates the input, updates the contact record in the database, and revalidates the associated customer's cache path. Returns the updated contact data on success or an error object on failure.
+ *
+ * @param formData - The form data containing updated contact fields and the contact ID
+ * @returns An object with either the updated contact data and `success: true`, or an `error` property with details
+ */
 export async function updateContact(formData: FormData) {
   const supabase = await createClient()
 
@@ -355,6 +394,14 @@ export async function updateContact(formData: FormData) {
   return { success: true, data: contact }
 }
 
+/**
+ * Deletes a contact by ID after verifying user authorization and logs the removal as a customer activity.
+ *
+ * Revalidates the cache for the associated customer after deletion.
+ *
+ * @param id - The unique identifier of the contact to delete
+ * @returns An object indicating success or containing an error message
+ */
 export async function deleteContact(id: string) {
   const supabase = await createClient()
 
@@ -407,6 +454,14 @@ export async function deleteContact(id: string) {
   return { success: true }
 }
 
+/**
+ * Assigns or updates the tier for a specific customer.
+ *
+ * Updates the customer's tier and logs an activity if the tier has changed. Revalidates the cache for the affected customer.
+ *
+ * @param data - The customer tier assignment details, including customer ID and new tier ID.
+ * @returns An object indicating success or containing an error message.
+ */
 export async function assignCustomerTier(
   data: z.infer<typeof assignTierSchema>
 ) {
@@ -459,6 +514,11 @@ export async function assignCustomerTier(
   return { success: true }
 }
 
+/**
+ * Updates a customer's credit limit and logs the change as an activity.
+ *
+ * Returns an error if the user is unauthorized or the customer is not found. On success, updates the credit limit, records the change with the provided reason, revalidates the relevant cache path, and returns a success indicator.
+ */
 export async function updateCustomerCreditLimit(
   data: z.infer<typeof updateCreditLimitSchema>
 ) {
@@ -512,6 +572,11 @@ export async function updateCustomerCreditLimit(
   return { success: true }
 }
 
+/**
+ * Logs a custom activity for a customer and revalidates the relevant cache path.
+ *
+ * Returns an error if the user is unauthorized or the customer is not found. On success, returns the logged activity data.
+ */
 export async function logCustomerActivity(
   data: z.infer<typeof createActivitySchema>
 ) {

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Handles the authentication callback for OAuth flows, exchanging the authorization code for a session, verifying the user and their profile, and redirecting accordingly.
+ *
+ * Redirects to the login page with appropriate error details if any step fails, or to the specified `next` URL on successful authentication and profile verification.
+ */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')

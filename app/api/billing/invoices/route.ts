@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getInvoices } from '@/lib/billing'
 
+/**
+ * Handles GET requests to retrieve a paginated list of invoices for the authenticated user's organization.
+ *
+ * Authenticates the user, determines their organization, and returns a JSON response containing up to the specified limit of invoices and the total invoice count. Responds with appropriate error codes if authentication fails, the organization is not found, or an unexpected error occurs.
+ *
+ * @param request - The incoming Next.js request object containing query parameters
+ * @returns A JSON response with the invoices and total count, or an error message with the appropriate HTTP status code
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()

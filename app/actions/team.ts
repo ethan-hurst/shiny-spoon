@@ -41,11 +41,22 @@ const removeTeamMemberSchema = z.object({
   userId: z.string().uuid(),
 })
 
-// Generate invitation token
+/**
+ * Generates a secure, random 32-byte token encoded in base64url format for use in team invitations.
+ *
+ * @returns A base64url-encoded invitation token
+ */
 function generateInvitationToken(): string {
   return crypto.randomBytes(32).toString('base64url')
 }
 
+/**
+ * Invites a new team member to the organization by creating an invitation and sending an email.
+ *
+ * Validates the inviter's permissions and the input data, enforces team size limits based on the organization's subscription plan, and prevents duplicate or expired invitations. If the invitation email fails to send, the invitation is deleted and an error is thrown.
+ *
+ * @returns An object indicating success if the invitation was sent.
+ */
 export async function inviteTeamMember(formData: FormData) {
   const supabase = await createClient()
 
@@ -171,6 +182,14 @@ export async function inviteTeamMember(formData: FormData) {
   return { success: true }
 }
 
+/**
+ * Updates the role of a specified team member within the current user's organization.
+ *
+ * Only users with the admin or owner role can perform this action. Users cannot change their own role.
+ *
+ * @param formData - Form data containing the target user's ID and the new role
+ * @returns An object indicating success
+ */
 export async function updateTeamMember(formData: FormData) {
   const supabase = await createClient()
 
@@ -217,6 +236,14 @@ export async function updateTeamMember(formData: FormData) {
   return { success: true }
 }
 
+/**
+ * Removes a team member from the organization, enforcing admin/owner permissions and preventing removal of the last admin or owner.
+ *
+ * Throws an error if the user is not authorized, attempts to remove themselves, or if removing the last admin/owner without another promoted member.
+ *
+ * @param formData - Form data containing the user ID of the member to remove
+ * @returns An object indicating success
+ */
 export async function removeTeamMember(formData: FormData) {
   const supabase = await createClient()
 
@@ -299,6 +326,14 @@ interface TeamInvitation {
   updated_at: string
 }
 
+/**
+ * Resends a pending team invitation email and extends its expiration by 7 days.
+ *
+ * Only users with admin or owner roles can resend invitations. Throws an error if the invitation does not exist, the user is unauthorized, or if email delivery fails.
+ *
+ * @param invitationId - The unique identifier of the invitation to resend
+ * @returns An object indicating success
+ */
 export async function resendInvitation(invitationId: string) {
   const supabase = await createClient()
 
@@ -375,6 +410,12 @@ export async function resendInvitation(invitationId: string) {
   return { success: true }
 }
 
+/**
+ * Cancels a pending team invitation by deleting it, if the current user is an admin or owner of the organization.
+ *
+ * @param invitationId - The ID of the invitation to cancel
+ * @returns An object indicating success
+ */
 export async function cancelInvitation(invitationId: string) {
   const supabase = await createClient()
 

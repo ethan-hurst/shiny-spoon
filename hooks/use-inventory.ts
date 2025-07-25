@@ -15,6 +15,13 @@ interface UseInventoryOptions {
   onDelete?: (payload: RealtimePostgresChangesPayload<any>) => void
 }
 
+/**
+ * Sets up real-time subscriptions for inventory changes within an organization, providing handlers for updates, inserts, and deletions.
+ *
+ * Subscribes to inventory and inventory adjustment events filtered by organization (and optionally warehouse), triggering custom or default UI updates and notifications. Returns methods to manually refresh inventory data and to subscribe to changes for a specific inventory item.
+ *
+ * @returns An object with `refreshInventory` to manually refresh inventory data and `subscribeToItem` to subscribe to real-time changes for a specific inventory item.
+ */
 export function useInventoryRealtime({
   organizationId,
   warehouseId,
@@ -162,7 +169,11 @@ export function useInventoryRealtime({
   }
 }
 
-// Hook for optimistic updates
+/**
+ * Provides a function for performing optimistic UI updates when modifying inventory quantities.
+ *
+ * Returns an object containing `updateInventoryOptimistically`, which refreshes the UI optimistically and handles optional success and error callbacks.
+ */
 export function useOptimisticInventory(
   _organizationId: string
 ) {

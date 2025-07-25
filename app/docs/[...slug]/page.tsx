@@ -5,12 +5,24 @@ import { MDXComponents } from '@/components/mdx'
 import { TableOfContents } from '@/components/docs/table-of-contents'
 import { DocsPagination } from '@/components/docs/pagination'
 
+/**
+ * Generates route parameters for all documentation pages for static site generation.
+ *
+ * @returns An array of objects, each containing a `slug` array representing the path segments for a documentation page.
+ */
 export async function generateStaticParams() {
   return allDocs.map((doc) => ({
     slug: doc.slug.split('/'),
   }))
 }
 
+/**
+ * Generates metadata for a documentation page based on the provided slug parameters.
+ *
+ * Resolves the slug from the incoming parameters, locates the corresponding document, and returns an object containing the page title and description. Returns an empty object if no matching document is found.
+ *
+ * @returns An object with `title` and `description` for the page, or an empty object if the document does not exist.
+ */
 export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params
   const doc = allDocs.find((doc) => doc.slug === params.slug.join('/'))
@@ -22,6 +34,11 @@ export async function generateMetadata(props: { params: Promise<{ slug: string[]
   }
 }
 
+/**
+ * Renders a documentation page based on the provided slug parameters.
+ *
+ * Displays the document's title, description, MDX content, pagination links to adjacent documents in the same category, and a sidebar table of contents. Triggers a 404 page if the document is not found.
+ */
 export default async function DocPage(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params
   const doc = allDocs.find((doc) => doc.slug === params.slug.join('/'))

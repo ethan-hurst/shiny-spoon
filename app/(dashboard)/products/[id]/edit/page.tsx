@@ -14,6 +14,14 @@ interface EditProductPageProps {
   }>
 }
 
+/**
+ * Server component for the "Edit Product" page that handles authentication, authorization, and product retrieval.
+ *
+ * Awaits route parameters and initializes a Supabase client. Redirects unauthenticated users or users without a profile to the login page. Fetches the specified product for the authenticated user's organization; if not found, triggers a 404 response. Renders a form pre-filled with the product's data for editing.
+ *
+ * @param props - Contains a promise resolving to route parameters with the product ID.
+ * @returns The JSX for the edit product page, or redirects/not found responses as appropriate.
+ */
 export default async function EditProductPage(props: EditProductPageProps) {
   const params = await props.params
   const supabase = await createClient()

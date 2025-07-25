@@ -38,6 +38,11 @@ interface WarehouseResult {
   code: string
 }
 
+/**
+ * Renders the inventory management page, displaying inventory items, statistics, and filtering options for the authenticated user's organization.
+ *
+ * Authenticates the user, retrieves their organization, fetches inventory and warehouse data, applies filters and statistics, and renders the inventory interface with relevant controls and tables.
+ */
 export default async function InventoryPage(props: {
   searchParams: Promise<{ warehouse_id?: string; search?: string; low_stock?: string }>
 }) {

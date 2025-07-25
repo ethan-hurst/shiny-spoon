@@ -18,6 +18,16 @@ interface PageProps {
   }>
 }
 
+/**
+ * Renders the customer management page, displaying a list of customers with filtering, statistics, and pagination for the authenticated user's organization.
+ *
+ * Retrieves the current user's organization, applies optional filters and pagination to the customer query, aggregates contact counts, fetches customer statistics and tiers, and composes the UI with relevant controls and data tables.
+ *
+ * @param props - Contains a promise resolving to search/filter parameters for the customer list
+ * @returns The JSX for the customers management page
+ *
+ * @throws Error if the user is not authenticated, the user profile is missing, or customer data fails to load
+ */
 export default async function CustomersPage(props: PageProps) {
   const searchParams = await props.searchParams
   const supabase = await createClient()

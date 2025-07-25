@@ -8,7 +8,14 @@ export interface InventoryData {
 }
 
 /**
- * Get inventory data for a product across all warehouses
+ * Retrieves aggregated inventory data for a product within an organization, optionally filtered by warehouse.
+ *
+ * Fetches inventory records from the database, sums total and reserved quantities across all matching warehouses, and calculates available quantity. Returns `null` if no data is found or on error.
+ *
+ * @param productId - The unique identifier of the product
+ * @param organizationId - The unique identifier of the organization
+ * @param warehouseId - Optional warehouse identifier to filter inventory by a specific warehouse
+ * @returns An `InventoryData` object with aggregated inventory metrics, or `null` if unavailable
  */
 export async function getProductInventory(
   productId: string,

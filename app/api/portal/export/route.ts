@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Handles a GET request to export the authenticated user's profile, organization, API keys, and recent activity as a downloadable JSON file.
+ *
+ * Returns a 401 response if the user is not authenticated, or 403 if the user is not associated with an organization. On success, responds with a JSON file containing user-related data and a timestamp. Returns a 500 response if an unexpected error occurs.
+ */
 export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()

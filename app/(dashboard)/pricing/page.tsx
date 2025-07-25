@@ -29,6 +29,13 @@ export const metadata: Metadata = {
   description: 'Manage pricing rules, discounts, and promotions',
 }
 
+/**
+ * Renders the Pricing Management dashboard page, displaying key pricing metrics, alerts, and management tools.
+ *
+ * Fetches active pricing rules, recent price calculations, and low margin alerts from the database, computes summary statistics, and presents a dashboard with metrics cards, alerts, and tabbed sections for rules, calculator, promotions, and analytics. If data loading fails, displays an error message with a retry option.
+ *
+ * @returns The JSX for the Pricing Management page UI.
+ */
 export default async function PricingPage() {
   const supabase = await createClient()
 

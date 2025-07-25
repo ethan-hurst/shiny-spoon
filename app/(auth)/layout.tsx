@@ -1,6 +1,13 @@
 // Auth pages layout - centered card design
 import Link from 'next/link'
 
+/**
+ * Provides a centered authentication page layout with branding, a content area for forms, and footer links to legal documents.
+ *
+ * Renders a full-page layout featuring the TruthSource logo, a tagline, and a styled container for authentication-related content. Includes footer links to the Terms of Service and Privacy Policy.
+ *
+ * @param children - The content to display within the authentication layout, typically authentication forms or related components.
+ */
 export default function AuthLayout({
   children,
 }: {

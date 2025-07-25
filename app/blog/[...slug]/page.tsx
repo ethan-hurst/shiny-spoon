@@ -9,12 +9,24 @@ import { RelatedPosts } from '@/components/blog/related-posts'
 import { NewsletterCTA } from '@/components/marketing/newsletter-cta'
 import { MDXComponents } from '@/components/mdx'
 
+/**
+ * Generates static route parameters for all blog posts.
+ *
+ * @returns An array of objects containing the slug segments for each post, used for static path generation.
+ */
 export async function generateStaticParams() {
   return allPosts.map((post) => ({
     slug: post.slug.split('/'),
   }))
 }
 
+/**
+ * Generates metadata for a blog post page based on the provided slug parameters.
+ *
+ * Resolves the post matching the slug and returns metadata for SEO, Open Graph, and Twitter cards. Returns an empty object if no matching post is found.
+ *
+ * @returns An object containing metadata for the blog post, or an empty object if the post does not exist.
+ */
 export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params
   const post = allPosts.find((post) => post.slug === params.slug.join('/'))
@@ -40,6 +52,11 @@ export async function generateMetadata(props: { params: Promise<{ slug: string[]
   }
 }
 
+/**
+ * Renders a blog post page based on the provided slug route parameters.
+ *
+ * Finds the corresponding post by slug, displays its content using MDX, and includes author information, sharing options, featured image, newsletter call-to-action, and related posts. If the post does not exist or is unpublished, triggers a 404 response.
+ */
 export default async function BlogPost(props: { params: Promise<{ slug: string[] }> }) {
   const params = await props.params
   const post = allPosts.find((post) => post.slug === params.slug.join('/'))

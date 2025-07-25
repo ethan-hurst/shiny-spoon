@@ -24,8 +24,10 @@ export interface EmailQueueItem {
 }
 
 /**
- * Queue an email for sending
- * This stores the email in the database to be processed by a background job
+ * Adds an email message to the database-backed queue for later sending.
+ *
+ * @param message - The email message to be queued
+ * @returns An object indicating whether the email was successfully queued, and an error message if not
  */
 export async function queueEmail(message: EmailMessage): Promise<{ success: boolean; error?: string }> {
   try {
@@ -55,8 +57,9 @@ export async function queueEmail(message: EmailMessage): Promise<{ success: bool
 }
 
 /**
- * Process pending emails from the queue
- * This would be called by a cron job or edge function
+ * Processes up to 10 pending emails from the queue, attempting to send each one.
+ *
+ * Intended to be triggered periodically (e.g., by a cron job or edge function) to handle queued email delivery.
  */
 export async function processEmailQueue(): Promise<void> {
   const supabase = await createClient()
@@ -81,7 +84,9 @@ export async function processEmailQueue(): Promise<void> {
 }
 
 /**
- * Process a single email
+ * Processes a single queued email by attempting to send it and updating its status in the database.
+ *
+ * Updates the queue item's status to `processing`, sends the email using the configured provider, and then marks it as `sent` or updates its status and error message if sending fails. If the maximum number of attempts is reached, the status is set to `failed`.
  */
 async function processEmail(queueItem: EmailQueueItem): Promise<void> {
   const supabase = await createClient()

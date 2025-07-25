@@ -2,6 +2,13 @@ import { notFound, redirect } from 'next/navigation'
 import { CustomerForm } from '@/components/features/customers/customer-form'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Renders the page for creating a new customer, ensuring the user is authenticated and belongs to an organization.
+ *
+ * Redirects unauthenticated users to the login page and returns a 404 response if the user's profile is missing. Fetches available customer tiers for the user's organization and passes them to the customer creation form.
+ *
+ * @returns The JSX for the new customer creation page
+ */
 export default async function NewCustomerPage() {
   const supabase = await createClient()
 

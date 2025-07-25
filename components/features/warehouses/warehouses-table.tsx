@@ -33,6 +33,15 @@ interface WarehousesTableProps {
   states: string[]
 }
 
+/**
+ * Displays a data table of warehouses with sorting, filtering, pagination, and column visibility controls.
+ *
+ * Renders warehouse details including code, name, location, primary contact, inventory count, and status. Provides interactive features such as column sorting, filtering by state, row selection, and paginated navigation. If no warehouses match the current filters, displays a message indicating no results.
+ *
+ * @param initialData - The list of warehouses to display in the table.
+ * @param states - The list of state names available for filtering warehouses.
+ * @returns A React component rendering the warehouses table with interactive controls.
+ */
 export function WarehousesTable({ initialData, states }: WarehousesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])

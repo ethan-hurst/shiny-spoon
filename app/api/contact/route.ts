@@ -22,6 +22,11 @@ try {
   console.warn('Rate limiting disabled: Redis configuration invalid')
 }
 
+/**
+ * Handles POST requests for contact form submissions.
+ *
+ * Validates and rate-limits incoming requests, stores valid submissions in the database, and queues notification emails to both the sales team and the user. Responds with appropriate HTTP status codes and messages based on validation, rate limiting, and processing outcomes.
+ */
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting check

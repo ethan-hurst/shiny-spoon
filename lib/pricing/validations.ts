@@ -136,6 +136,14 @@ export function validateDateRange(
   return new Date(startDate) <= new Date(endDate)
 }
 
+/**
+ * Validates an array of quantity breaks for logical consistency.
+ *
+ * Checks for invalid max/min quantities, gaps, and overlaps between consecutive breaks. Returns an array of error messages describing any issues found.
+ *
+ * @param breaks - The array of quantity breaks to validate
+ * @returns An array of error messages, or an empty array if no errors are found
+ */
 export function validateQuantityBreaks(breaks: QuantityBreak[]): string[] {
   const errors: string[] = []
 
@@ -174,7 +182,14 @@ export function validateQuantityBreaks(breaks: QuantityBreak[]): string[] {
   return errors
 }
 
-// Parse quantity breaks from CSV format
+/**
+ * Parses a CSV string of quantity breaks into an array of `QuantityBreak` objects.
+ *
+ * The input should be formatted as `"1-10:5%;11-50:10%;51+:15%"`, where each segment specifies a quantity range and a discount. Supports percentage (e.g., `5%`), fixed amount off (e.g., `$10off`), and fixed price (e.g., `$15`).
+ *
+ * @param csv - The CSV string representing quantity breaks and discounts
+ * @returns An array of parsed `QuantityBreak` objects with min/max quantities, discount type, discount value, and sort order
+ */
 export function parseQuantityBreaksCSV(csv: string): QuantityBreak[] {
   const breaks: QuantityBreak[] = []
 
@@ -253,7 +268,12 @@ export function formatQuantityBreaksDisplay(breaks: QuantityBreak[]): string {
     .join('; ')
 }
 
-// Transform import data
+/**
+ * Transforms imported pricing rule data into a partial PricingRule object and parses quantity breaks if provided.
+ *
+ * @param data - The imported pricing rule data conforming to the pricingRuleImportSchema
+ * @returns An object containing the partial PricingRule and an optional array of parsed quantity breaks
+ */
 export function transformPricingRuleImport(
   data: z.infer<typeof pricingRuleImportSchema>
 ): {
@@ -282,6 +302,11 @@ export function transformPricingRuleImport(
   return { rule, quantity_breaks: quantity_breaks }
 }
 
+/**
+ * Converts imported product pricing data into a partial ProductPricing object, applying default values for margin percent, currency, pricing unit, and unit quantity if not provided.
+ *
+ * @returns A partial ProductPricing object with mapped and defaulted fields.
+ */
 export function transformProductPricingImport(
   data: z.infer<typeof productPricingImportSchema>
 ): Partial<ProductPricing> {
