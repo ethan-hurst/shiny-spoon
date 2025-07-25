@@ -5,6 +5,16 @@ import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
 import { Address } from '@/types/warehouse.types'
 
+/**
+ * Server-rendered page component that displays a list of warehouses for the authenticated user's organization.
+ *
+ * Authenticates the user, retrieves their organization, fetches all associated warehouses with inventory counts,
+ * extracts unique state values for filtering, and renders the warehouses table with relevant data.
+ *
+ * @returns The JSX layout for the warehouses management page
+ *
+ * @throws Error if the user is not authenticated, the user profile is missing, or warehouse data cannot be loaded.
+ */
 export default async function WarehousesPage() {
   const supabase = await createClient()
 

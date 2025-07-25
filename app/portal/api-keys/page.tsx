@@ -7,6 +7,11 @@ import { ApiDocumentation } from '@/components/portal/api-keys/api-documentation
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { InfoIcon } from 'lucide-react'
 
+/**
+ * Server component for the API Keys page, displaying and managing API keys and usage statistics for the authenticated user's organization.
+ *
+ * Redirects to the login page if the user is not authenticated, or to the dashboard if the user's organization is not found. Fetches API keys, subscription plan, and API usage statistics for the organization, and renders key management controls, usage stats, and API documentation.
+ */
 export default async function ApiKeysPage() {
   const supabase = await createClient()
 

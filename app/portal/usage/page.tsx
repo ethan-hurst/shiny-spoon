@@ -6,6 +6,11 @@ import { UsageChart } from '@/components/portal/usage/usage-chart'
 import { UsageBreakdown } from '@/components/portal/usage/usage-breakdown'
 import { UsageAlerts } from '@/components/portal/usage/usage-alerts'
 
+/**
+ * Renders the usage and analytics dashboard for the authenticated user's organization.
+ *
+ * Ensures the user is authenticated and associated with an organization, then retrieves subscription details, current and historical usage metrics, and API call breakdowns. Displays usage alerts, overview, charts, and top API endpoints.
+ */
 export default async function UsagePage() {
   const supabase = await createClient()
 

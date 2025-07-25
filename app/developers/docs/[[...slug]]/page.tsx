@@ -11,12 +11,24 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { Lock, Unlock } from 'lucide-react'
 
+/**
+ * Loads and parses the OpenAPI specification from the local `openapi.yaml` file.
+ *
+ * @returns The parsed OpenAPI specification object.
+ */
 async function loadOpenAPISpec() {
   const specPath = path.join(process.cwd(), 'public', 'openapi.yaml')
   const fileContent = await fs.readFile(specPath, 'utf8')
   return parseOpenAPISpec(fileContent)
 }
 
+/**
+ * Generates page metadata for the API documentation based on the requested endpoint.
+ *
+ * If an `operationId` is provided in the route parameters and matches an endpoint in the OpenAPI spec, returns metadata with the endpoint's summary and description. Otherwise, returns default metadata for the API documentation overview page.
+ *
+ * @returns Metadata for the API documentation page or a specific endpoint.
+ */
 export async function generateMetadata(props: {
   params: Promise<{ slug?: string[] }>
 }): Promise<Metadata> {
@@ -40,6 +52,11 @@ export async function generateMetadata(props: {
   }
 }
 
+/**
+ * Renders the API documentation page, displaying either an overview of all endpoints or detailed documentation for a specific endpoint based on the route parameters.
+ *
+ * If no endpoint is specified in the route, shows an overview with getting started information and a categorized list of available endpoints. If an endpoint is specified, displays detailed documentation including parameters, request body, responses, code examples, and an interactive playground.
+ */
 export default async function ApiDocsPage(props: {
   params: Promise<{ slug?: string[] }>
 }) {

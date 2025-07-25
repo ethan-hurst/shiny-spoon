@@ -7,6 +7,14 @@ import { BillingDetails } from '@/components/portal/billing/billing-details'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 
+/**
+ * Renders the billing page for an authenticated user, displaying subscription details, payment methods, and invoice history.
+ *
+ * Redirects to the login page if the user is not authenticated, or to the dashboard if the user lacks an associated organization.
+ * Shows an alert if there are overdue invoices and conditionally displays billing details based on the user's subscription status.
+ *
+ * @returns The JSX layout for the billing and invoices page.
+ */
 export default async function BillingPage() {
   const supabase = await createClient()
 

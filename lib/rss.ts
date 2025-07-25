@@ -4,6 +4,11 @@ import { allPosts } from 'contentlayer2/generated'
 import RSS from 'rss'
 import path from 'path'
 
+/**
+ * Generates an RSS feed XML file for the blog, including up to 20 of the most recent published posts with valid metadata.
+ *
+ * Validates the site URL, filters and sorts posts, and writes the resulting RSS feed to `public/rss.xml`. Throws an error if the site URL is invalid or if writing the file fails.
+ */
 export async function generateRssFeed() {
   try {
     // Validate and get site URL

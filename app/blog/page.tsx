@@ -11,6 +11,13 @@ export const metadata = {
 
 const POSTS_PER_PAGE = 12
 
+/**
+ * Renders the paginated blog listing page with filtering by category and tag.
+ *
+ * Awaits search parameters, filters and sorts published blog posts, applies category and tag filters if specified, paginates the results, and displays the posts along with filter and pagination controls.
+ *
+ * @returns The JSX for the blog listing page, including filters, posts, and pagination.
+ */
 export default async function BlogPage(props: {
   searchParams: Promise<{ page?: string; category?: string; tag?: string }>
 }) {

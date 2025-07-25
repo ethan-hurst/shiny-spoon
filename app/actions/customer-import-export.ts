@@ -123,6 +123,16 @@ export async function validateCustomerImport(csvData: string) {
   }
 }
 
+/**
+ * Imports customer data from a CSV string into the database for a given organization.
+ *
+ * Parses and validates each row of the CSV data, checks for duplicates, maps customer tiers, and inserts valid customers and their contacts in batches. Optionally reports progress via a callback. Returns counts of imported and skipped records, along with any validation or insertion errors. If authentication fails, returns an "Unauthorized" error.
+ *
+ * @param organizationId - The ID of the organization to import customers into
+ * @param csvData - The CSV string containing customer data
+ * @param onProgress - Optional callback invoked with the current and total row count during import
+ * @returns An object containing the number of imported and skipped records, and any errors encountered, or an error message on failure
+ */
 export async function importCustomers(
   organizationId: string,
   csvData: string,
@@ -305,6 +315,14 @@ export async function importCustomers(
   }
 }
 
+/**
+ * Exports all customers for the specified organization as a CSV string.
+ *
+ * Retrieves customer records, including associated tiers and primary contact details, transforms them into a flat structure, and serializes the data to CSV format. Returns the CSV string and the number of exported customers, or an error message if the operation fails.
+ *
+ * @param organizationId - The unique identifier of the organization whose customers will be exported.
+ * @returns An object containing the CSV data and customer count, or an error message if export fails.
+ */
 export async function exportCustomers(organizationId: string) {
   const supabase = await createClient()
 

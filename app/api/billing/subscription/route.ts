@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getSubscription } from '@/lib/billing'
 
+/**
+ * Handles GET requests to retrieve the current user's organization's billing subscription details.
+ *
+ * Returns a JSON response containing the subscription data if the user is authenticated and associated with an organization. Responds with appropriate error messages and status codes if the user is unauthorized, no organization is found, or an unexpected error occurs.
+ */
 export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()

@@ -20,6 +20,13 @@ interface TeamMember {
   }
 }
 
+/**
+ * Renders the team management page for the authenticated user's organization.
+ *
+ * Redirects unauthenticated users to the login page and users without an organization to the dashboard. Fetches team members, pending invites, and subscription details for the user's organization. Computes team statistics and determines access permissions based on the user's role. Displays team information, member list, pending invites (for admins), and relevant alerts.
+ *
+ * @returns The JSX layout for the team management interface.
+ */
 export default async function TeamPage() {
   const supabase = await createClient()
 

@@ -38,6 +38,11 @@ import {
   PricingRuleRecord,
 } from '@/types/pricing.types'
 
+/**
+ * Displays a calendar interface for viewing and managing promotional pricing rules by date.
+ *
+ * Fetches and displays promotions from the database, grouping them by day within the selected month. Allows navigation between months, viewing promotions for specific days via popovers, and quick access to promotion details or creation. Includes a summary of active promotions for the current month.
+ */
 export function PromotionCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [promotions, setPromotions] = useState<PricingRuleRecord[]>([])

@@ -5,6 +5,13 @@ import { ProfileSettings } from '@/components/portal/settings/profile-settings'
 import { SecuritySettings } from '@/components/portal/settings/security-settings'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
+/**
+ * Renders the user settings page, displaying profile, notification, and security settings for the authenticated user.
+ *
+ * Redirects to the login page if the user is not authenticated, or to the dashboard if the user lacks an associated organization. Ensures notification preferences exist for the user, creating defaults if necessary.
+ *
+ * @returns The settings page JSX layout with tabbed navigation for profile, notifications, and security settings.
+ */
 export default async function SettingsPage() {
   const supabase = await createClient()
 

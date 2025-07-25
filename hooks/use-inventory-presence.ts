@@ -11,6 +11,15 @@ interface UseInventoryPresenceOptions {
   currentView: 'list' | 'item'
 }
 
+/**
+ * React hook for real-time tracking of user presence in inventory list or item views.
+ *
+ * Establishes a Supabase real-time presence channel to monitor which users are currently viewing an inventory list or a specific inventory item. Returns active presence data, helper functions to filter users by view context, and the total count of active users.
+ *
+ * @param inventoryId - Optional inventory item ID to scope presence tracking to a specific item
+ * @param currentView - Indicates whether the user is viewing the inventory list or a specific item ('list' or 'item')
+ * @returns An object containing active presence data, functions to get users on a specific item or list, and the total number of active users
+ */
 export function useInventoryPresence({
   inventoryId,
   currentView,

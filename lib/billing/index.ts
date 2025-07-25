@@ -23,7 +23,14 @@ export interface UsageStats {
 // Re-export types for backward compatibility
 export type { SubscriptionData, Invoice, PaymentMethod } from '@/types/billing.types'
 
-// Get subscription data for an organization
+/**
+ * Retrieves the subscription details for a given organization.
+ *
+ * If the organization does not have a Stripe subscription, returns default free tier subscription data. Otherwise, fetches the subscription from Stripe, determines the plan, and returns subscription information including plan limits.
+ *
+ * @param organizationId - The unique identifier of the organization
+ * @returns The organization's subscription data, or `null` if an error occurs while fetching from Stripe
+ */
 export async function getSubscription(organizationId: string): Promise<SubscriptionData | null> {
   const supabase = await createClient()
 
@@ -82,7 +89,14 @@ export async function getSubscription(organizationId: string): Promise<Subscript
   }
 }
 
-// Get usage statistics for an organization
+/**
+ * Retrieves usage statistics for products, warehouses, and API calls for a given organization.
+ *
+ * Calculates current usage counts and usage percentages relative to the organization's subscription plan limits for the current billing period.
+ *
+ * @param organizationId - The unique identifier of the organization whose usage stats are being retrieved.
+ * @returns An object containing current usage, plan limits, and usage percentages for products, warehouses, and API calls.
+ */
 export async function getUsageStats(organizationId: string): Promise<UsageStats> {
   const supabase = await createClient()
 
@@ -138,7 +152,13 @@ export async function getUsageStats(organizationId: string): Promise<UsageStats>
   }
 }
 
-// Get recent activity for an organization
+/**
+ * Retrieves recent API call activity for the specified organization.
+ *
+ * @param organizationId - The unique identifier of the organization
+ * @param limit - The maximum number of activity records to return (default is 10)
+ * @returns An array of recent activity objects representing API calls, each including id, type, description, timestamp, and metadata
+ */
 export async function getRecentActivity(organizationId: string, limit = 10) {
   const supabase = await createClient()
 
@@ -165,7 +185,14 @@ export async function getRecentActivity(organizationId: string, limit = 10) {
   return activity
 }
 
-// Get invoices for an organization
+/**
+ * Retrieves a list of invoices for the specified organization.
+ *
+ * Returns up to 100 invoices from Stripe associated with the organization's customer billing record. If no Stripe customer ID is found or an error occurs, returns an empty array.
+ *
+ * @param organizationId - The unique identifier of the organization
+ * @returns An array of invoice objects containing status, amounts, currency, period, creation date, and invoice URLs
+ */
 export async function getInvoices(organizationId: string): Promise<Invoice[]> {
   const supabase = await createClient()
 
@@ -203,7 +230,11 @@ export async function getInvoices(organizationId: string): Promise<Invoice[]> {
   }
 }
 
-// Get payment methods for an organization
+/**
+ * Retrieves the list of card payment methods associated with an organization's Stripe customer account.
+ *
+ * Returns an array of payment methods, each containing card brand, last four digits, and expiration details. If no Stripe customer is found or an error occurs, returns an empty array.
+ */
 export async function getPaymentMethods(organizationId: string): Promise<PaymentMethod[]> {
   const supabase = await createClient()
 
@@ -236,7 +267,12 @@ export async function getPaymentMethods(organizationId: string): Promise<Payment
   }
 }
 
-// Get team members for an organization
+/**
+ * Retrieves the list of team members associated with the specified organization.
+ *
+ * @param organizationId - The unique identifier of the organization whose team members are to be fetched.
+ * @returns An array of team member profiles, or an empty array if none are found.
+ */
 export async function getTeamMembers(organizationId: string) {
   const supabase = await createClient()
 
@@ -249,7 +285,14 @@ export async function getTeamMembers(organizationId: string) {
   return members || []
 }
 
-// Get pending invitations for an organization
+/**
+ * Retrieves pending team invitations for the specified organization.
+ *
+ * Returns invitations that have not been accepted and have not expired.
+ *
+ * @param organizationId - The unique identifier of the organization
+ * @returns An array of pending invitation objects, or an empty array if none exist
+ */
 export async function getPendingInvites(organizationId: string) {
   const supabase = await createClient()
 
@@ -264,7 +307,9 @@ export async function getPendingInvites(organizationId: string) {
   return invites || []
 }
 
-// Get team activity
+/**
+ * Returns an empty array as team activity tracking is not yet implemented.
+ */
 export async function getTeamActivity(_organizationId: string, _limit = 20) {
   const _supabase = await createClient()
 

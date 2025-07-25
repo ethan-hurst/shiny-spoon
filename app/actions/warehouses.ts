@@ -5,7 +5,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { warehouseSchema } from '@/lib/validations/warehouse'
 
-// Helper function for authentication and organization fetching
+/**
+ * Authenticates the current user and retrieves their organization ID and user ID.
+ *
+ * @returns An object containing the Supabase client, the user's organization ID, and user ID.
+ * @throws If the user is not authenticated or their profile is not found.
+ */
 async function getAuthenticatedOrgId() {
   const supabase = await createClient()
 

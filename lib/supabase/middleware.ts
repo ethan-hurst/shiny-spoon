@@ -6,6 +6,13 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/supabase/types/database'
 
+/**
+ * Middleware to manage Supabase authentication session and route access in a Next.js application.
+ *
+ * Refreshes the user's session if needed, redirects unauthenticated users away from protected routes to the login page, and redirects authenticated users away from authentication pages to the dashboard. Updates cookies as necessary to maintain session state.
+ *
+ * @returns A NextResponse object that may include updated cookies or a redirect, depending on authentication status and route.
+ */
 export async function updateSession(request: NextRequest) {
   // Validate environment variables
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -94,7 +101,15 @@ export async function updateSession(request: NextRequest) {
   return supabaseResponse
 }
 
-// Helper to check if user has specific role
+/**
+ * Determines whether the authenticated user has at least the specified role.
+ *
+ * Checks the user's role from the `user_profiles` table and compares it to the required role using a predefined hierarchy (owner > admin > member).
+ *
+ * @param request - The incoming Next.js request containing authentication cookies
+ * @param requiredRole - The minimum role required for access ('owner', 'admin', or 'member')
+ * @returns `true` if the user is authenticated and their role meets or exceeds the required role; otherwise, `false`
+ */
 export async function checkUserRole(
   request: NextRequest,
   requiredRole: 'owner' | 'admin' | 'member'

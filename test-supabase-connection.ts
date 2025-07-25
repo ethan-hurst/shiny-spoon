@@ -6,7 +6,11 @@ import { createClient } from '@supabase/supabase-js'
 // import dotenv from 'dotenv'
 import { Database } from './supabase/types/database'
 
-// dotenv.config({ path: '.env.local' })
+/**
+ * Verifies Supabase project connectivity, authentication, and table structure using environment variables.
+ *
+ * Performs a series of checks: ensures required environment variables are set, tests database connectivity, verifies the authentication system, and confirms the existence of key tables. Logs results and provides guidance for next setup steps.
+ */
 
 async function testConnection() {
   console.log('🔍 Testing Supabase connection...\n')

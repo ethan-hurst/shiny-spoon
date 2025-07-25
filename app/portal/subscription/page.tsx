@@ -13,6 +13,14 @@ interface SubscriptionPageProps {
   }>
 }
 
+/**
+ * Renders the subscription and billing management page for authenticated users.
+ *
+ * Displays the current subscription plan, allows eligible users to select or change plans, and shows relevant alerts based on subscription status or recent updates. Redirects unauthenticated users to the login page and users without an organization to the dashboard.
+ *
+ * @param props - Contains a promise resolving to search parameters, which may include a success indicator for subscription updates.
+ * @returns The subscription management page as a React server component.
+ */
 export default async function SubscriptionPage(props: SubscriptionPageProps) {
   const searchParams = await props.searchParams
   const supabase = await createClient()

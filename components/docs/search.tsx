@@ -15,6 +15,11 @@ import {
 import { allDocs } from 'contentlayer2/generated'
 import { Button } from '@/components/ui/button'
 
+/**
+ * Renders a searchable documentation command dialog with fuzzy search and keyboard shortcut support.
+ *
+ * Provides an interactive interface for searching and navigating documentation pages using fuzzy matching on titles, descriptions, and content. Users can open the dialog with a button or the Cmd+K/Ctrl+K keyboard shortcut, enter a query, and select from up to five matching results to navigate directly to the chosen document.
+ */
 export function DocsSearch() {
   const router = useRouter()
   const [open, setOpen] = useState(false)

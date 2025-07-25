@@ -6,6 +6,13 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { PricingRuleRecord } from '@/types/pricing.types'
 
+/**
+ * Subscribes to real-time pricing-related changes and updates React Query caches and browser cache accordingly.
+ *
+ * When enabled, listens for changes to pricing rules, product pricing, and customer pricing for the current user's organization using Supabase real-time channels. Automatically invalidates relevant React Query caches, clears the browser 'pricing-cache', and displays toast notifications to inform users of updates.
+ *
+ * @param enabled - Whether to enable real-time pricing updates (default: true)
+ */
 export function usePricingRealtime(enabled: boolean = true) {
   const supabase = createClient()
   const queryClient = useQueryClient()

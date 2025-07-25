@@ -28,6 +28,11 @@ interface ProductFormProps {
   product?: Product
 }
 
+/**
+ * Renders a form for creating or editing a product, handling validation, file uploads, and submission to the appropriate API endpoint.
+ *
+ * If a product is provided, the form is prefilled for editing; otherwise, it is set up for creating a new product. Displays validation and API errors, and provides user feedback on success or failure.
+ */
 export function ProductForm({ product }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()

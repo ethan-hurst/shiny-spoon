@@ -92,7 +92,16 @@ export interface ParseResult<T> {
   warnings: string[]
 }
 
-// Generic CSV parser with validation
+/**
+ * Parses and validates CSV content against a provided schema, applying column mappings and security checks.
+ *
+ * Each row is mapped to target columns, sanitized to prevent formula injection, and validated for dangerous content and schema compliance. Errors and warnings are collected for missing or invalid data. Only rows passing all checks are included in the result.
+ *
+ * @param csvContent - The raw CSV string to parse and validate.
+ * @param schema - The Zod schema used to validate each mapped row.
+ * @param columnMappings - Optional mapping of target column names to possible CSV header variants.
+ * @returns An object containing arrays of valid data, parse errors, and warnings.
+ */
 export function parseCSV<T>(
   csvContent: string,
   schema: z.ZodSchema<T>,
@@ -201,7 +210,14 @@ export function parseCSV<T>(
   return { data: validData, errors, warnings }
 }
 
-// Specific parser for inventory imports
+/**
+ * Parses and validates CSV content for inventory imports using a predefined schema and column mappings.
+ *
+ * The function checks for required fields (`sku`, `warehouse_code`, `quantity`), applies default values, and ensures data integrity for inventory import rows.
+ *
+ * @param csvContent - The CSV data as a string to be parsed and validated
+ * @returns The parsed inventory import data, including valid rows, errors, and warnings
+ */
 export function parseInventoryCSV(
   csvContent: string
 ): ParseResult<InventoryImportRow> {

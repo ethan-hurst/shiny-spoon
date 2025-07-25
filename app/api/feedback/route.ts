@@ -8,6 +8,11 @@ const feedbackSchema = z.object({
   feedback: z.string().optional(),
 })
 
+/**
+ * Handles POST requests to submit feedback for an article.
+ *
+ * Validates the request body, associates feedback with the current user if available, and stores it in the database. Returns a success or error response based on the outcome.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

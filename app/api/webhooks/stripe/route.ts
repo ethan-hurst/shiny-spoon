@@ -6,6 +6,14 @@ import Stripe from 'stripe'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
+/**
+ * Handles incoming Stripe webhook POST requests and synchronizes billing and subscription data with the backend.
+ *
+ * Validates the Stripe webhook signature and processes supported event types, including subscription creation, updates, cancellations, invoice payments, and customer updates. Updates relevant records in the Supabase database to reflect the latest billing and subscription status. Returns appropriate HTTP responses for success or error conditions.
+ *
+ * @param request - The incoming Next.js API request containing the Stripe webhook event
+ * @returns A JSON response indicating success or error status
+ */
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const headersList = await headers()

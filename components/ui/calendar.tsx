@@ -8,6 +8,13 @@ import { cn } from '@/lib/utils'
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
+/**
+ * Renders a styled calendar component with customizable appearance and behavior.
+ *
+ * Wraps the `DayPicker` component, applying custom class names, navigation icons, and default settings for displaying outside days. Accepts all props supported by `DayPicker` for further customization.
+ *
+ * @returns The rendered calendar UI component.
+ */
 function Calendar({
   className,
   classNames,

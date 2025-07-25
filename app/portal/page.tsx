@@ -6,6 +6,13 @@ import { QuickActions } from '@/components/portal/quick-actions'
 import { UsageSummary } from '@/components/portal/usage-summary'
 import { RecentActivity } from '@/components/portal/recent-activity'
 
+/**
+ * Renders the customer portal page for authenticated users, displaying account, billing, usage, and recent activity information.
+ *
+ * Redirects unauthenticated users to the login page and users without an associated organization to the dashboard.
+ *
+ * @returns The JSX layout for the customer portal page.
+ */
 export default async function CustomerPortalPage() {
   const supabase = await createClient()
 

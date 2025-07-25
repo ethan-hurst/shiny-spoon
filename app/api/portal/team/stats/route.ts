@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Handles GET requests to retrieve team statistics for the authenticated user's organization.
+ *
+ * Returns aggregated statistics including total members, number of admins, active members today, pending invitations, API calls made today, and new members joined this month. Responds with appropriate error messages if the user is unauthorized or not associated with any organization.
+ */
 export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()

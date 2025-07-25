@@ -28,6 +28,14 @@ const changePasswordSchema = z.object({
   path: ["confirmPassword"],
 })
 
+/**
+ * Updates the authenticated user's profile with a new display name and bio.
+ *
+ * Validates the input fields and updates the corresponding user profile record in the database. Throws an error if the user is not authenticated, validation fails, or the database update encounters an error.
+ *
+ * @param formData - Form data containing optional `displayName` and `bio` fields
+ * @returns An object indicating success
+ */
 export async function updateProfile(formData: FormData) {
   try {
     const supabase = await createClient()
@@ -67,6 +75,14 @@ export async function updateProfile(formData: FormData) {
   }
 }
 
+/**
+ * Updates the authenticated user's notification preferences.
+ *
+ * Validates and saves the user's notification settings to the database. Throws an error if the user is not authenticated, input is invalid, or a database error occurs.
+ *
+ * @param formData - Form data containing notification preference values
+ * @returns An object indicating success
+ */
 export async function updateNotificationPreferences(formData: FormData) {
   try {
     const supabase = await createClient()
@@ -115,6 +131,14 @@ export async function updateNotificationPreferences(formData: FormData) {
   }
 }
 
+/**
+ * Changes the authenticated user's password after verifying the current password.
+ *
+ * Validates the provided passwords, ensures the current password is correct, and updates the user's password. Throws an error if validation fails, the current password is incorrect, or the update operation fails.
+ *
+ * @param formData - Form data containing `currentPassword`, `newPassword`, and `confirmPassword` fields
+ * @returns An object indicating success if the password was changed
+ */
 export async function changePassword(formData: FormData) {
   try {
     const supabase = await createClient()
@@ -167,6 +191,11 @@ export async function changePassword(formData: FormData) {
   }
 }
 
+/**
+ * Throws an error indicating that two-factor authentication setup is not yet implemented.
+ *
+ * This function checks for an authenticated user and is intended as a placeholder for future two-factor authentication setup logic.
+ */
 export async function enableTwoFactor() {
   const supabase = await createClient()
   
@@ -178,6 +207,12 @@ export async function enableTwoFactor() {
   throw new Error('Two-factor authentication setup not implemented yet')
 }
 
+/**
+ * Throws an error indicating that disabling two-factor authentication is not yet implemented.
+ *
+ * This function requires the user to be authenticated.
+ * @throws If the user is not authenticated or if the feature is not implemented.
+ */
 export async function disableTwoFactor() {
   const supabase = await createClient()
   
@@ -189,6 +224,13 @@ export async function disableTwoFactor() {
   throw new Error('Two-factor authentication disable not implemented yet')
 }
 
+/**
+ * Exports the authenticated user's account data as a downloadable JSON file.
+ *
+ * Retrieves the user's profile, API keys, and recent API activity, packaging them into a JSON string with an export timestamp and a generated filename. Throws an error if the user is unauthorized or if any data retrieval fails.
+ *
+ * @returns An object containing the JSON string of account data and a filename for download.
+ */
 export async function downloadAccountData() {
   try {
     const supabase = await createClient()

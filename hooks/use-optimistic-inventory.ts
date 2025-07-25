@@ -30,6 +30,14 @@ interface InventoryUpdate {
   [key: string]: any
 }
 
+/**
+ * React hook for managing inventory data with optimistic UI updates, offline queuing, rollback on failure, and real-time synchronization.
+ *
+ * Provides inventory state, update functions, and status helpers to enable seamless user experience even during network disruptions.
+ *
+ * @param initialData - Optional initial inventory data to populate the state
+ * @returns An object containing the current inventory array, functions for updating inventory (single and batch), status helpers, and the list of pending optimistic updates
+ */
 export function useOptimisticInventory(initialData?: InventoryItem[]) {
   const [data, setData] = useState<InventoryItem[]>(initialData || [])
   const [pendingUpdates, setPendingUpdates] = useState<

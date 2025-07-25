@@ -48,6 +48,15 @@ class SimpleCache {
 
 export const cache = new SimpleCache()
 
+/**
+ * Generates a cache key string for a price entry based on product ID and optional customer ID, quantity, and date.
+ *
+ * @param productId - The unique identifier for the product
+ * @param customerId - Optional customer identifier to further scope the cache key
+ * @param quantity - Optional quantity value to distinguish cache entries
+ * @param date - Optional date string to differentiate cache keys by date
+ * @returns A colon-delimited cache key string incorporating the provided parameters
+ */
 export function generateCacheKey(
   productId: string,
   customerId?: string,

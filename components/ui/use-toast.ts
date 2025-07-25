@@ -165,6 +165,11 @@ function toast({ ...props }: Toast) {
   }
 }
 
+/**
+ * React hook for accessing and managing toast notifications.
+ *
+ * Returns the current toast state, a function to create new toasts, and a function to dismiss toasts by ID or all toasts if no ID is provided.
+ */
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 

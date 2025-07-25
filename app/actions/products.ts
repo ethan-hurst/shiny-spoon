@@ -25,7 +25,15 @@ interface ProductFilters {
   lowStock?: boolean
 }
 
-// Helper function to validate and upload image
+/**
+ * Validates an image file and uploads it to Supabase storage under the organization's directory.
+ *
+ * Checks file size and MIME type, ensures a valid file extension, generates a unique filename, and uploads the image to the 'products' bucket. Returns the public URL of the uploaded image on success, or an error message on failure.
+ *
+ * @param file - The image file to validate and upload
+ * @param organizationId - The ID of the organization for namespacing the image path
+ * @returns An object indicating success, with the image URL if successful or an error message if validation or upload fails
+ */
 async function validateAndUploadImage(
   file: File,
   organizationId: string,
@@ -92,7 +100,11 @@ async function validateAndUploadImage(
   return { success: true, imageUrl: publicUrl }
 }
 
-// Helper function to safely delete image
+/**
+ * Deletes an image from the 'products' storage bucket in Supabase based on its public URL.
+ *
+ * If the URL cannot be parsed or the deletion fails, errors are logged to the console.
+ */
 async function deleteImage(imageUrl: string, supabase: any): Promise<void> {
   try {
     // More robust URL parsing to extract storage path
@@ -116,6 +128,14 @@ async function deleteImage(imageUrl: string, supabase: any): Promise<void> {
   }
 }
 
+/**
+ * Creates a new product for the authenticated user's organization using data from a form submission.
+ *
+ * Validates product data, checks SKU uniqueness, handles optional image upload, and inserts the product into the database. Returns an error if authentication fails, validation fails, or the SKU already exists.
+ *
+ * @param formData - The form data containing product fields and an optional image file
+ * @returns An object with either `{ success: true, data: product }` on success or `{ error: message }` on failure
+ */
 export async function createProduct(formData: FormData) {
   const supabase = await createClient()
 
@@ -210,6 +230,14 @@ export async function createProduct(formData: FormData) {
   return { success: true, data: product }
 }
 
+/**
+ * Updates an existing product with new data and optional image upload, ensuring user authentication and organization ownership.
+ *
+ * Validates input fields, handles image replacement if a new image is provided, and updates the product record in the database. Triggers cache revalidation for product listing and edit pages.
+ *
+ * @param formData - Form data containing updated product fields and optional image file
+ * @returns An object indicating success with updated product data, or an error message if the update fails
+ */
 export async function updateProduct(formData: FormData) {
   const supabase = await createClient()
 
@@ -313,6 +341,12 @@ export async function updateProduct(formData: FormData) {
   return { success: true, data: product }
 }
 
+/**
+ * Performs a soft delete of a product by marking it as inactive for the authenticated user's organization.
+ *
+ * @param id - The unique identifier of the product to delete
+ * @returns An object indicating success or containing an error message
+ */
 export async function deleteProduct(id: string) {
   const supabase = await createClient()
 
@@ -353,6 +387,13 @@ export async function deleteProduct(id: string) {
   return { success: true }
 }
 
+/**
+ * Placeholder for bulk importing products from a CSV file.
+ *
+ * Authenticates the user and verifies organization membership, but does not yet implement CSV parsing or product insertion.
+ *
+ * @returns An object indicating that bulk import is not yet implemented, or an error if authentication or organization lookup fails.
+ */
 export async function bulkImportProducts(_csvData: string) {
   // TODO: Implement CSV parsing and bulk import
   const supabase = await createClient()
@@ -382,6 +423,11 @@ export async function bulkImportProducts(_csvData: string) {
   return { error: 'Bulk import not yet implemented' }
 }
 
+/**
+ * Placeholder for exporting products with optional filters.
+ *
+ * Authenticates the user and retrieves their organization. Currently not implemented and always returns an error.
+ */
 export async function exportProducts(_filters?: ProductFilters) {
   // TODO: Implement export with filters
   const supabase = await createClient()

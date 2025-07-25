@@ -14,6 +14,11 @@ interface EditPricingRulePageProps {
   }>
 }
 
+/**
+ * Server component for editing an existing pricing rule.
+ *
+ * Retrieves the specified pricing rule for the authenticated user's organization, enforcing access control and handling missing data with redirects or 404 responses. Renders a form pre-populated with the rule's details for editing.
+ */
 export default async function EditPricingRulePage(
   props: EditPricingRulePageProps
 ) {

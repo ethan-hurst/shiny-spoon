@@ -17,7 +17,14 @@ import {
 import { createClient } from '@/lib/supabase/server'
 import type { QuantityBreak } from '@/types/pricing.types'
 
-// Product Pricing Actions
+/**
+ * Creates a new product pricing entry using validated form data.
+ *
+ * Authenticates the user, parses and validates pricing details from the provided form data, and inserts a new record into the `product_pricing` table. Clears the pricing cache for the affected product and revalidates relevant paths upon success.
+ *
+ * @param formData - Form data containing product pricing information
+ * @throws If the user is unauthorized, validation fails, or the database operation encounters an error
+ */
 export async function createProductPricing(formData: FormData) {
   const supabase = await createClient()
 
@@ -60,6 +67,11 @@ export async function createProductPricing(formData: FormData) {
   revalidatePath(`/products/${parsed.product_id}`)
 }
 
+/**
+ * Updates an existing product pricing record with new values.
+ *
+ * Validates and applies updates to the specified product pricing entry. Clears the pricing cache for the affected product and revalidates related paths.
+ */
 export async function updateProductPricing(formData: FormData) {
   const supabase = await createClient()
 
@@ -100,7 +112,14 @@ export async function updateProductPricing(formData: FormData) {
   revalidatePath(`/products/${productId}`)
 }
 
-// Pricing Rule Actions
+/**
+ * Creates a new pricing rule and optionally associated quantity breaks.
+ *
+ * Authenticates the user, inserts a new record into the `pricing_rules` table, and, if provided, adds related quantity breaks. Clears all pricing cache and revalidates the pricing path.
+ *
+ * @param data - The pricing rule details, optionally including quantity breaks
+ * @returns The created pricing rule record
+ */
 export async function createPricingRule(
   data: z.infer<typeof createPricingRuleSchema>
 ) {
@@ -147,6 +166,11 @@ export async function createPricingRule(
   return rule
 }
 
+/**
+ * Updates an existing pricing rule and its associated quantity breaks.
+ *
+ * If quantity breaks are provided, processes each to create, update, or delete as specified. Clears all pricing cache and revalidates relevant paths after the update.
+ */
 export async function updatePricingRule(
   data: z.infer<typeof updatePricingRuleSchema>
 ) {
@@ -196,6 +220,11 @@ export async function updatePricingRule(
   revalidatePath(`/pricing/rules/${id}`)
 }
 
+/**
+ * Deletes a pricing rule by its ID.
+ *
+ * Throws an error if the user is unauthorized or if the deletion fails. Clears all pricing cache and revalidates the pricing page after deletion.
+ */
 export async function deletePricingRule(ruleId: string) {
   const supabase = await createClient()
 
@@ -217,7 +246,11 @@ export async function deletePricingRule(ruleId: string) {
   revalidatePath('/pricing')
 }
 
-// Customer Pricing Actions
+/**
+ * Creates a new customer-specific pricing entry using data from a form submission.
+ *
+ * Validates the input, associates the entry with the authenticated user, inserts it into the database, clears relevant pricing cache, and revalidates affected paths.
+ */
 export async function createCustomerPricing(formData: FormData) {
   const supabase = await createClient()
 
@@ -256,6 +289,11 @@ export async function createCustomerPricing(formData: FormData) {
   revalidatePath(`/customers/${parsed.customer_id}`)
 }
 
+/**
+ * Updates an existing customer pricing record with new values from form data.
+ *
+ * Validates and applies updates to the specified customer pricing entry. Clears the pricing cache for the associated product and revalidates the pricing page.
+ */
 export async function updateCustomerPricing(formData: FormData) {
   const supabase = await createClient()
 
@@ -295,6 +333,11 @@ export async function updateCustomerPricing(formData: FormData) {
   revalidatePath('/pricing')
 }
 
+/**
+ * Marks a customer pricing record as approved by the current user.
+ *
+ * Updates the specified customer pricing entry to set the approver and approval timestamp. Throws an error if the user is not authenticated or if the update fails. Triggers revalidation of the pricing page.
+ */
 export async function approveCustomerPricing(pricingId: string) {
   const supabase = await createClient()
 
@@ -316,7 +359,15 @@ export async function approveCustomerPricing(pricingId: string) {
   revalidatePath('/pricing')
 }
 
-// Bulk update customer prices
+/**
+ * Performs a bulk update of customer-specific product prices using data from a form submission.
+ *
+ * Parses and validates the provided updates, then executes a transactional stored procedure to apply all changes for the specified customer. Clears all pricing cache and revalidates the pricing path upon success.
+ *
+ * @param formData - Form data containing `customer_id`, a JSON string of updates, and an optional flag for applying to all warehouses
+ * @returns The result of the bulk update operation from the database
+ * @throws Error if authentication fails, required fields are missing, updates JSON is invalid, or the database transaction fails
+ */
 export async function bulkUpdateCustomerPrices(formData: FormData) {
   const supabase = await createClient()
 
@@ -376,7 +427,14 @@ export async function bulkUpdateCustomerPrices(formData: FormData) {
   }
 }
 
-// Price Calculation Actions
+/**
+ * Calculates the price for a product based on provided criteria using a Supabase RPC call.
+ *
+ * Authenticates the user and computes the product price considering customer, quantity, and date. Throws an error if unauthorized, if the RPC call fails, or if no pricing data is returned.
+ *
+ * @param data - The price calculation request parameters, including product ID, optional customer ID, quantity, and optional requested date
+ * @returns The calculated pricing result for the specified product and criteria
+ */
 export async function calculatePrice(
   data: z.infer<typeof priceCalculationRequestSchema>
 ) {
@@ -405,7 +463,14 @@ export async function calculatePrice(
   return result[0]
 }
 
-// Bulk Import Actions
+/**
+ * Imports pricing rules from a CSV file, validates and inserts each rule, and returns the results.
+ *
+ * The CSV must include headers and at least one data row. Each row is parsed, transformed, and passed to the pricing rule creation logic. Successes and errors are collected per row and returned.
+ *
+ * @param file - The CSV file containing pricing rules to import
+ * @returns An object with arrays of success and error messages for each processed row
+ */
 export async function importPricingRules(file: File) {
   const supabase = await createClient()
 
@@ -505,6 +570,13 @@ export async function importPricingRules(file: File) {
   return { successes, errors }
 }
 
+/**
+ * Exports all pricing rules as a CSV string with headers.
+ *
+ * The CSV includes the fields: name, description, rule_type, priority, discount_type, discount_value, is_active, start_date, and end_date. Fields containing commas, quotes, or newlines are properly escaped.
+ *
+ * @returns A CSV-formatted string representing all pricing rules.
+ */
 export async function exportPricingRules() {
   const supabase = await createClient()
 

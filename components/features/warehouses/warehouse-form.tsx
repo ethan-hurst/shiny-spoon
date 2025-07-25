@@ -40,6 +40,13 @@ interface WarehouseFormProps {
 
 type FormValues = z.infer<typeof warehouseSchema>
 
+/**
+ * Renders a form for creating or editing a warehouse, including fields for basic information, address, contacts, and settings.
+ *
+ * If a `warehouse` is provided, the form is pre-filled for editing; otherwise, it initializes for creating a new warehouse. Handles form validation, dynamic contact management, and submission with success and error notifications.
+ *
+ * @param warehouse - Optional warehouse object to edit; if omitted, the form creates a new warehouse.
+ */
 export function WarehouseForm({ warehouse }: WarehouseFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)

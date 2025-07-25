@@ -31,6 +31,13 @@ const changePlanSchema = z.object({
   interval: z.enum(['month', 'year']),
 })
 
+/**
+ * Changes the subscription plan for the authenticated user's organization and redirects to the Stripe checkout session.
+ *
+ * Validates the selected plan and billing interval, ensures the user is authenticated and associated with an organization, and creates or retrieves a Stripe customer as needed. Initiates a Stripe checkout session for the new plan and redirects the user to complete payment.
+ *
+ * @param formData - The form data containing the selected plan and billing interval.
+ */
 export async function changePlan(formData: FormData) {
   try {
     const supabase = await createClient()
@@ -131,6 +138,13 @@ export async function changePlan(formData: FormData) {
   }
 }
 
+/**
+ * Cancels the current organization's Stripe subscription at the end of the current billing period.
+ *
+ * Authenticates the user, verifies organization and subscription existence, updates the Stripe subscription to cancel at period end, and marks the local subscription status as "canceling".
+ *
+ * @throws If the user is not authenticated, the organization or subscription cannot be found, or if updating local records fails.
+ */
 export async function cancelSubscription() {
   try {
     const supabase = await createClient()
@@ -189,6 +203,11 @@ export async function cancelSubscription() {
   }
 }
 
+/**
+ * Resumes a canceled subscription for the authenticated user's organization.
+ *
+ * Reactivates the organization's Stripe subscription by disabling cancellation at period end and updates the local subscription status to "active". Throws an error if authentication fails, the organization or subscription cannot be found, or if updating local records fails.
+ */
 export async function resumeSubscription() {
   try {
     const supabase = await createClient()
@@ -247,6 +266,11 @@ export async function resumeSubscription() {
   }
 }
 
+/**
+ * Redirects the authenticated user to the Stripe billing portal for their organization.
+ *
+ * Authenticates the user, retrieves their organization's Stripe customer ID, creates a billing portal session, and redirects to the portal. Throws an error if authentication, organization lookup, or billing setup fails.
+ */
 export async function openBillingPortal() {
   try {
     const supabase = await createClient()
@@ -303,6 +327,11 @@ const addPaymentMethodSchema = z.object({
   setAsDefault: z.boolean().optional(),
 })
 
+/**
+ * Adds a payment method to the organization's Stripe customer account.
+ *
+ * Validates the provided payment method data, attaches the payment method to the organization's Stripe customer, and optionally sets it as the default payment method for invoices. Throws user-friendly errors for invalid input, authentication issues, or Stripe-specific problems.
+ */
 export async function addPaymentMethod(data: z.infer<typeof addPaymentMethodSchema>) {
   try {
     // Validate input
@@ -370,6 +399,11 @@ export async function addPaymentMethod(data: z.infer<typeof addPaymentMethodSche
   }
 }
 
+/**
+ * Removes a payment method from the authenticated user's organization's Stripe account.
+ *
+ * Validates the payment method ID, ensures the user is authenticated and belongs to an organization, verifies ownership of the payment method, and detaches it from Stripe. Throws user-friendly errors if validation fails or the payment method cannot be removed.
+ */
 export async function removePaymentMethod(paymentMethodId: string) {
   try {
     if (!paymentMethodId || typeof paymentMethodId !== 'string') {

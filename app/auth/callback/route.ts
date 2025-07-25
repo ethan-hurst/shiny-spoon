@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Handles the OAuth authentication callback by exchanging the authorization code for a session and redirecting the user.
+ *
+ * If the code exchange is successful, the user is redirected to a validated next URL or a default dashboard. If the code is missing or the exchange fails, the user is redirected to the login page with an error indicator.
+ *
+ * @param request - The incoming Next.js request containing OAuth callback parameters.
+ * @returns A redirect response to the appropriate page based on authentication outcome.
+ */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')

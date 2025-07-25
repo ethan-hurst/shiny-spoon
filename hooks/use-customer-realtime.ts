@@ -12,6 +12,15 @@ interface UseCustomerRealtimeOptions {
   enabled?: boolean
 }
 
+/**
+ * Subscribes to real-time updates for customers, contacts, activities, and tiers within a specified organization, and optionally for a specific customer.
+ *
+ * Sets up Supabase real-time channels to listen for changes in customer-related tables. Automatically invalidates relevant React Query caches and displays toast notifications for updates, insertions, and deletions. Redirects to the customer list if a tracked customer is deleted.
+ *
+ * @param customerId - Optional ID of a specific customer to track for real-time updates
+ * @param organizationId - ID of the organization whose customer data should be synchronized
+ * @param enabled - Whether to enable the real-time subscription (default: true)
+ */
 export function useCustomerRealtime({
   customerId,
   organizationId,

@@ -5,6 +5,11 @@ import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
+/**
+ * Handles incoming Stripe webhook POST requests and routes them for processing.
+ *
+ * Validates required Supabase environment variables, initializes a Supabase server client with cookie support, reads the raw request body, and delegates processing to the webhook handler. Returns a 500 error response if Supabase configuration is missing.
+ */
 export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
 
@@ -167,6 +172,14 @@ async function handleInvoiceEvent(
   })
 }
 
+/**
+ * Handles a Stripe checkout.session.completed event by updating subscription or payment records in Supabase.
+ *
+ * For subscription sessions, updates the Stripe subscription metadata, associates invoices with the user, and updates the user's subscription status. For one-time payments, records the payment, updates the user's credits, and returns the updated user data.
+ *
+ * @param event - The Stripe event containing the checkout session data
+ * @returns A NextResponse with status and message or error details
+ */
 async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
   supabase: any
@@ -251,6 +264,12 @@ async function handleCheckoutSessionCompleted(
   }
 }
 
+/**
+ * Processes a Stripe webhook event and routes it to the appropriate handler based on event type.
+ *
+ * @param reqText - The raw request body as a string, used for Stripe event verification
+ * @returns A NextResponse with the result of the event handling or an error response if the event is unhandled or invalid
+ */
 async function webhooksHandler(
   reqText: string,
   _request: NextRequest,

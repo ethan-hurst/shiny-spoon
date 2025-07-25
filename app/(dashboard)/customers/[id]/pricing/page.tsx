@@ -34,6 +34,13 @@ interface CustomerPricingPageProps {
   }>
 }
 
+/**
+ * Generates dynamic metadata for the customer pricing page based on the customer's name.
+ *
+ * Retrieves the customer's display or company name from the database and constructs the page title and description accordingly. Falls back to a generic label if customer data is unavailable.
+ *
+ * @returns Metadata object containing the page title and description.
+ */
 export async function generateMetadata(
   props: CustomerPricingPageProps
 ): Promise<Metadata> {
@@ -55,6 +62,14 @@ export async function generateMetadata(
   }
 }
 
+/**
+ * Retrieves detailed customer information and related pricing statistics.
+ *
+ * Fetches customer details, associated tier information, pricing statistics, the count of pending price approvals, and the number of active contracts expiring within 30 days. Returns `null` if the customer is not found or an error occurs.
+ *
+ * @param customerId - The unique identifier of the customer to retrieve data for.
+ * @returns An object containing the customer data and pricing statistics, or `null` if not found.
+ */
 async function getCustomerData(customerId: string) {
   const supabase = await createClient()
 
@@ -113,6 +128,11 @@ async function getCustomerData(customerId: string) {
   }
 }
 
+/**
+ * Renders the customer pricing management page, displaying pricing statistics, contracts, and approval workflows for a specific customer.
+ *
+ * Awaits the customer ID from the provided props, fetches customer data and related statistics, and displays a dashboard with summary cards and tabbed sections for price lists, contracts, history, and approvals. If the customer is not found, triggers a 404 page.
+ */
 export default async function CustomerPricingPage(
   props: CustomerPricingPageProps
 ) {

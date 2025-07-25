@@ -8,6 +8,14 @@ interface PageProps {
   }>
 }
 
+/**
+ * Server component for editing a customer within the authenticated user's organization.
+ *
+ * Retrieves the customer record and available customer tiers for the user's organization, ensuring access control. Renders a form pre-filled with the customer's data for editing. Triggers a 404 response if the customer does not exist or is inaccessible.
+ *
+ * @param props - Contains a promise resolving to route parameters with the customer ID.
+ * @returns A React element rendering the customer edit form.
+ */
 export default async function EditCustomerPage(props: PageProps) {
   const params = await props.params
   const supabase = await createClient()

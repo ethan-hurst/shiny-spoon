@@ -22,6 +22,13 @@ export const metadata: Metadata = {
   description: 'Manage your product catalog',
 }
 
+/**
+ * Renders the Products page, displaying a list of products with inventory statistics for the authenticated user's organization.
+ *
+ * Performs authentication and organization checks, fetches products with associated inventory data, computes inventory statistics, and provides category filtering options. Returns appropriate messages if the user is unauthorized, the profile is missing, or data fetching fails.
+ *
+ * @returns The JSX for the products management page, or an error message if authentication or data retrieval fails.
+ */
 export default async function ProductsPage() {
   const supabase = await createClient()
 

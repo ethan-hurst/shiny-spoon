@@ -12,6 +12,13 @@ type SitemapEntry = {
   priority?: number
 }
 
+/**
+ * Generates and returns a sitemap containing static and dynamic site entries.
+ *
+ * Combines static page definitions with dynamically imported blog posts, documentation, and help articles to produce a comprehensive sitemap. Each entry includes its URL, last modification date, change frequency, and priority.
+ *
+ * @returns A promise that resolves to an array of sitemap entries for all relevant site pages.
+ */
 export default async function sitemap(): Promise<SitemapEntry[]> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://truthsource.io'
 

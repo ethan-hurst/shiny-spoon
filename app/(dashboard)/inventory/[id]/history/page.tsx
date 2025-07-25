@@ -35,7 +35,14 @@ import type {
 //   created_by: string
 //   user_full_name: string | null
 //   user_email: string
-// }
+/**
+ * Renders the inventory adjustment history page for a specific inventory item.
+ *
+ * Authenticates the user, verifies organization membership, and fetches the inventory item and its adjustment history. Redirects to appropriate pages if the user is not authenticated, not associated with an organization, or if the inventory item is not found. Displays product details and a chronological list of all adjustments made to the inventory item.
+ *
+ * @param props - Contains a promise resolving to route parameters with the inventory item ID.
+ * @returns The React component for the inventory history page.
+ */
 
 export default async function InventoryHistoryPage(props: {
   params: Promise<{ id: string }>
