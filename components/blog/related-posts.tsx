@@ -1,4 +1,4 @@
-import { allPosts, type Post } from 'contentlayer/generated'
+import { allPosts, type Post } from 'contentlayer2/generated'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'

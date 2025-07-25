@@ -17,11 +17,10 @@ async function loadOpenAPISpec() {
   return parseOpenAPISpec(fileContent)
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { slug?: string[] }
+export async function generateMetadata(props: {
+  params: Promise<{ slug?: string[] }>
 }): Promise<Metadata> {
+  const params = await props.params
   const spec = await loadOpenAPISpec()
   const operationId = params.slug?.[0]
 
@@ -41,11 +40,10 @@ export async function generateMetadata({
   }
 }
 
-export default async function ApiDocsPage({
-  params,
-}: {
-  params: { slug?: string[] }
+export default async function ApiDocsPage(props: {
+  params: Promise<{ slug?: string[] }>
 }) {
+  const params = await props.params
   const spec = await loadOpenAPISpec()
   const endpoints = getEndpointsByTag(spec)
   const operationId = params.slug?.[0]

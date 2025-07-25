@@ -7,7 +7,7 @@ import {
   getQuickPrice,
   validatePriceMargin,
 } from '@/lib/pricing/calculate-price'
-import { PricingEngine } from '@/lib/pricing/pricing-engine'
+// PricingEngine is mocked in this test
 import { PriceCalculationRequest } from '@/types/pricing.types'
 
 // Mock the pricing engine
@@ -219,9 +219,9 @@ describe('Price Calculation Utilities', () => {
     it('should compare prices across different scenarios', async () => {
       const productId = 'test-product'
       const scenarios = [
-        { customerId: undefined, quantity: 1, label: 'Regular Price' },
+        { quantity: 1, label: 'Regular Price' },
         { customerId: 'vip-customer', quantity: 1, label: 'VIP Price' },
-        { customerId: undefined, quantity: 100, label: 'Bulk Price' },
+        { quantity: 100, label: 'Bulk Price' },
       ]
 
       mockEngine.calculatePrice
@@ -253,10 +253,10 @@ describe('Price Calculation Utilities', () => {
       const results = await comparePrices(productId, scenarios)
 
       expect(results).toHaveLength(3)
-      expect(results[0].savings).toBe(0)
-      expect(results[1].savings).toBe(15)
-      expect(results[2].savings).toBe(20)
-      expect(results[2].savingsPercent).toBe(20)
+      expect(results[0]?.savings).toBe(0)
+      expect(results[1]?.savings).toBe(15)
+      expect(results[2]?.savings).toBe(20)
+      expect(results[2]?.savingsPercent).toBe(20)
     })
   })
 
@@ -306,11 +306,11 @@ describe('Price Calculation Utilities', () => {
       )
 
       expect(results).toHaveLength(4)
-      expect(results[0].unitPrice).toBe(100)
-      expect(results[1].unitPrice).toBe(95)
-      expect(results[2].unitPrice).toBe(90)
-      expect(results[3].unitPrice).toBe(85)
-      expect(results[3].savingsPercent).toBe(15)
+      expect(results[0]?.unitPrice).toBe(100)
+      expect(results[1]?.unitPrice).toBe(95)
+      expect(results[2]?.unitPrice).toBe(90)
+      expect(results[3]?.unitPrice).toBe(85)
+      expect(results[3]?.savingsPercent).toBe(15)
     })
 
     it('should use default quantities if not provided', async () => {

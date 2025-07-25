@@ -3,13 +3,14 @@ import { CustomerForm } from '@/components/features/customers/customer-form'
 import { createClient } from '@/lib/supabase/server'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default async function EditCustomerPage({ params }: PageProps) {
-  const supabase = createClient()
+export default async function EditCustomerPage(props: PageProps) {
+  const params = await props.params
+  const supabase = await createClient()
 
   // Get user's organization
   const {

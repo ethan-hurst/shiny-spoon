@@ -1,5 +1,4 @@
-import { z } from 'zod'
-import { Database } from '@/types/database.types'
+import { Database } from '@/supabase/types/database'
 
 export type Product = Database['public']['Tables']['products']['Row']
 export type ProductInsert = Database['public']['Tables']['products']['Insert']

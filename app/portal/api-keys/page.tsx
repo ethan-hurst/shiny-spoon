@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getSubscription } from '@/lib/billing'
 import { ApiKeysList } from '@/components/portal/api-keys/api-keys-list'
 import { ApiKeyStats } from '@/components/portal/api-keys/api-key-stats'
@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { InfoIcon } from 'lucide-react'
 
 export default async function ApiKeysPage() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

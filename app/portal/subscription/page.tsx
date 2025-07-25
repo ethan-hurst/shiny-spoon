@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getSubscription } from '@/lib/billing'
 import { SUBSCRIPTION_PLANS } from '@/lib/billing/stripe'
 import { CurrentPlan } from '@/components/portal/subscription/current-plan'
@@ -8,13 +8,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle } from 'lucide-react'
 
 interface SubscriptionPageProps {
-  searchParams: {
+  searchParams: Promise<{
     success?: string
-  }
+  }>
 }
 
-export default async function SubscriptionPage({ searchParams }: SubscriptionPageProps) {
-  const supabase = createServerClient()
+export default async function SubscriptionPage(props: SubscriptionPageProps) {
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

@@ -3,7 +3,7 @@ import { CustomerForm } from '@/components/features/customers/customer-form'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function NewCustomerPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get user's organization for tier options
   const {

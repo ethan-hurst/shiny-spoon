@@ -34,7 +34,7 @@ interface CustomerActivityTimelineProps {
 }
 
 export function CustomerActivityTimeline({
-  customerId,
+  customerId: _customerId,
   activities,
 }: CustomerActivityTimelineProps) {
   const getActivityColor = (type: CustomerActivity['type']) => {

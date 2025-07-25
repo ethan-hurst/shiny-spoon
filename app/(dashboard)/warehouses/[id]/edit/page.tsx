@@ -3,15 +3,16 @@ import { WarehouseForm } from '@/components/features/warehouses/warehouse-form'
 import { createClient } from '@/lib/supabase/server'
 
 interface EditWarehousePageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default async function EditWarehousePage({
-  params,
-}: EditWarehousePageProps) {
-  const supabase = createClient()
+export default async function EditWarehousePage(
+  props: EditWarehousePageProps
+) {
+  const params = await props.params
+  const supabase = await createClient()
 
   // Validate UUID format
   const uuidRegex =

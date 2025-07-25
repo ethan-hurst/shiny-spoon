@@ -128,7 +128,7 @@ export async function importCustomers(
   csvData: string,
   onProgress?: (current: number, total: number) => void
 ) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -306,7 +306,7 @@ export async function importCustomers(
 }
 
 export async function exportCustomers(organizationId: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

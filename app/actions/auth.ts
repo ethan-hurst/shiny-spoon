@@ -24,7 +24,7 @@ export async function signIn(formData: FormData) {
     }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Attempt to sign in
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -71,7 +71,7 @@ export async function signUp(formData: FormData) {
     }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Sign up with metadata for trigger function
   const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -112,7 +112,7 @@ export async function signUp(formData: FormData) {
 }
 
 export async function signOut() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase.auth.signOut()
 
@@ -137,7 +137,7 @@ export async function resetPassword(formData: FormData) {
     }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
@@ -170,7 +170,7 @@ export async function updatePassword(formData: FormData) {
     }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase.auth.updateUser({
     password: parsed.data.password,

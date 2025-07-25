@@ -38,12 +38,11 @@ interface WarehouseResult {
   code: string
 }
 
-export default async function InventoryPage({
-  searchParams,
-}: {
-  searchParams: { warehouse_id?: string; search?: string; low_stock?: string }
+export default async function InventoryPage(props: {
+  searchParams: Promise<{ warehouse_id?: string; search?: string; low_stock?: string }>
 }) {
-  const supabase = createClient()
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
 
   // Check authentication
   const {
@@ -195,8 +194,8 @@ export default async function InventoryPage({
           <InventoryFilters
             warehouses={warehouses || []}
             currentFilters={{
-              warehouse_id: searchParams.warehouse_id,
-              search: searchParams.search,
+              ...(searchParams.warehouse_id && { warehouse_id: searchParams.warehouse_id }),
+              ...(searchParams.search && { search: searchParams.search }),
               low_stock_only: searchParams.low_stock === 'true',
             }}
           />

@@ -38,7 +38,7 @@ function parseTierFormData(formData: FormData) {
 }
 
 export async function createTier(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const parsed = parseTierFormData(formData)
 
@@ -89,7 +89,7 @@ export async function createTier(formData: FormData) {
 }
 
 export async function updateTier(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const id = formData.get('id') as string
   if (!id) {
@@ -153,7 +153,7 @@ export async function updateTier(formData: FormData) {
 }
 
 export async function deleteTier(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

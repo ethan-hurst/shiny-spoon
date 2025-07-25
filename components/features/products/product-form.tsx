@@ -32,7 +32,9 @@ export function ProductForm({ product }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
 
-  const form = useForm<z.infer<typeof productSchema>>({
+  type FormData = z.input<typeof productSchema>
+
+  const form = useForm<FormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       sku: product?.sku || '',
@@ -46,7 +48,7 @@ export function ProductForm({ product }: ProductFormProps) {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof productSchema>) {
+  async function onSubmit(values: FormData) {
     setIsSubmitting(true)
 
     try {

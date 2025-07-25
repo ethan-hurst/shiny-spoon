@@ -9,13 +9,14 @@ export const metadata: Metadata = {
 }
 
 interface EditProductPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default async function EditProductPage({ params }: EditProductPageProps) {
-  const supabase = createClient()
+export default async function EditProductPage(props: EditProductPageProps) {
+  const params = await props.params
+  const supabase = await createClient()
 
   // Auth check
   const {

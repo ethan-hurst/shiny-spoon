@@ -1,9 +1,9 @@
-import { vi } from '@jest/globals'
+import { jest } from '@jest/globals'
 
 // Mock Supabase client
 export const mockSupabaseClient = {
   auth: {
-    getUser: vi.fn(() =>
+    getUser: jest.fn(() =>
       Promise.resolve({
         data: {
           user: {
@@ -14,7 +14,7 @@ export const mockSupabaseClient = {
         error: null,
       })
     ),
-    getSession: vi.fn(() =>
+    getSession: jest.fn(() =>
       Promise.resolve({
         data: {
           session: {
@@ -28,61 +28,61 @@ export const mockSupabaseClient = {
         error: null,
       })
     ),
-    signInWithPassword: vi.fn(),
-    signUp: vi.fn(),
-    signOut: vi.fn(),
+    signInWithPassword: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
   },
-  from: vi.fn(() => ({
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    neq: vi.fn().mockReturnThis(),
-    gt: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockReturnThis(),
-    lt: vi.fn().mockReturnThis(),
-    lte: vi.fn().mockReturnThis(),
-    like: vi.fn().mockReturnThis(),
-    ilike: vi.fn().mockReturnThis(),
-    is: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    contains: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    single: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+  from: jest.fn(() => ({
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    neq: jest.fn().mockReturnThis(),
+    gt: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lt: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
+    like: jest.fn().mockReturnThis(),
+    ilike: jest.fn().mockReturnThis(),
+    is: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    contains: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+    maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
   })),
-  rpc: vi.fn(),
-  channel: vi.fn(() => ({
-    on: vi.fn().mockReturnThis(),
-    subscribe: vi.fn().mockReturnThis(),
+  rpc: jest.fn(),
+  channel: jest.fn(() => ({
+    on: jest.fn().mockReturnThis(),
+    subscribe: jest.fn().mockReturnThis(),
   })),
-  removeChannel: vi.fn(),
+  removeChannel: jest.fn(),
   functions: {
-    invoke: vi.fn(),
+    invoke: jest.fn(),
   },
 }
 
 // Mock createClient functions
-export const mockCreateClient = vi.fn(() => mockSupabaseClient)
-export const mockCreateServerClient = vi.fn(() => mockSupabaseClient)
-export const mockCreateBrowserClient = vi.fn(() => mockSupabaseClient)
-export const mockCreateAdminClient = vi.fn(() => mockSupabaseClient)
+export const mockCreateClient = jest.fn(() => mockSupabaseClient)
+export const mockCreateServerClient = jest.fn(() => mockSupabaseClient)
+export const mockCreateBrowserClient = jest.fn(() => mockSupabaseClient)
+export const mockCreateAdminClient = jest.fn(() => mockSupabaseClient)
 
 // Helper to set up Supabase mocks
 export const setupSupabaseMocks = () => {
-  vi.mock('@/lib/supabase/client', () => ({
+  jest.mock('@/lib/supabase/client', () => ({
     createClient: mockCreateBrowserClient,
     createBrowserClient: mockCreateBrowserClient,
   }))
 
-  vi.mock('@/lib/supabase/server', () => ({
+  jest.mock('@/lib/supabase/server', () => ({
     createClient: mockCreateServerClient,
     createServerClient: mockCreateServerClient,
   }))
 
-  vi.mock('@/lib/supabase/admin', () => ({
+  jest.mock('@/lib/supabase/admin', () => ({
     createAdminClient: mockCreateAdminClient,
   }))
 }
@@ -90,26 +90,25 @@ export const setupSupabaseMocks = () => {
 // Helper to create a mock query builder
 export const createMockQueryBuilder = (data: any = null, error: any = null) => {
   const queryBuilder = {
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    delete: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    neq: vi.fn().mockReturnThis(),
-    gt: vi.fn().mockReturnThis(),
-    gte: vi.fn().mockReturnThis(),
-    lt: vi.fn().mockReturnThis(),
-    lte: vi.fn().mockReturnThis(),
-    like: vi.fn().mockReturnThis(),
-    ilike: vi.fn().mockReturnThis(),
-    is: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    contains: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    single: vi.fn(() => Promise.resolve({ data, error })),
-    maybeSingle: vi.fn(() => Promise.resolve({ data, error })),
-    then: vi.fn((callback) => callback({ data, error })),
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    neq: jest.fn().mockReturnThis(),
+    gt: jest.fn().mockReturnThis(),
+    gte: jest.fn().mockReturnThis(),
+    lt: jest.fn().mockReturnThis(),
+    lte: jest.fn().mockReturnThis(),
+    like: jest.fn().mockReturnThis(),
+    ilike: jest.fn().mockReturnThis(),
+    is: jest.fn().mockReturnThis(),
+    in: jest.fn().mockReturnThis(),
+    contains: jest.fn().mockReturnThis(),
+    order: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
+    single: jest.fn(() => Promise.resolve({ data, error })),
+    maybeSingle: jest.fn(() => Promise.resolve({ data, error })),
   }
   return queryBuilder
 }

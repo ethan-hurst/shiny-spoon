@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
-import { allDocs } from 'contentlayer/generated'
-import { getMDXComponent } from 'next-contentlayer/hooks'
+import { allDocs } from 'contentlayer2/generated'
+import { getMDXComponent } from 'next-contentlayer2/hooks'
 import { MDXComponents } from '@/components/mdx'
 import { TableOfContents } from '@/components/docs/table-of-contents'
 import { DocsPagination } from '@/components/docs/pagination'
@@ -11,7 +11,8 @@ export async function generateStaticParams() {
   }))
 }
 
-export async function generateMetadata({ params }: { params: { slug: string[] } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
+  const params = await props.params
   const doc = allDocs.find((doc) => doc.slug === params.slug.join('/'))
   if (!doc) return {}
 
@@ -21,7 +22,8 @@ export async function generateMetadata({ params }: { params: { slug: string[] } 
   }
 }
 
-export default function DocPage({ params }: { params: { slug: string[] } }) {
+export default async function DocPage(props: { params: Promise<{ slug: string[] }> }) {
+  const params = await props.params
   const doc = allDocs.find((doc) => doc.slug === params.slug.join('/'))
 
   if (!doc) {

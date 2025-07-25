@@ -3,10 +3,10 @@
 
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
-import type { Database } from '@/types/database.types'
+import type { Database } from '@/supabase/types/database'
 
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -33,10 +33,10 @@ export function createClient() {
     supabaseAnonKey,
     {
       cookies: {
-        getAll() {
+        async getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
+        async setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options)

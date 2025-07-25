@@ -181,10 +181,11 @@ export function useOptimisticInventory(initialData?: InventoryItem[]) {
           toast.success('Inventory updated successfully')
         } else {
           // Offline - queue the operation
+          const { id: _id, ...updatesWithoutId } = updates
           await offlineQueue.addToQueue({
             type: 'UPDATE',
             table: 'inventory',
-            data: { id: itemId, ...updates },
+            data: { id: itemId, ...updatesWithoutId },
           })
 
           // Mark as queued

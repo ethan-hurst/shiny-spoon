@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
-import type { InventoryWithRelations } from '@/types/inventory.types'
+// import type { InventoryWithRelations } from '@/types/inventory.types' // Not currently used
 
 interface UseInventoryOptions {
   organizationId: string
@@ -106,7 +106,7 @@ export function useInventoryRealtime({
           table: 'inventory_adjustments',
           filter: `organization_id=eq.${organizationId}`,
         },
-        (payload: RealtimePostgresChangesPayload<any>) => {
+        () => {
           // Refresh when adjustments are made
           router.refresh()
         }
@@ -164,8 +164,7 @@ export function useInventoryRealtime({
 
 // Hook for optimistic updates
 export function useOptimisticInventory(
-  initialData: InventoryWithRelations[],
-  organizationId: string
+  _organizationId: string
 ) {
   const router = useRouter()
   const { toast } = useToast()
@@ -175,8 +174,8 @@ export function useOptimisticInventory(
 
   const updateInventoryOptimistically = useCallback(
     async (
-      inventoryId: string,
-      newQuantity: number,
+      _inventoryId: string,
+      _newQuantity: number,
       onSuccess?: () => void,
       onError?: (error: Error) => void
     ) => {

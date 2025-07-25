@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Address } from '@/types/warehouse.types'
 
 export default async function WarehousesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get current user and organization
   const {

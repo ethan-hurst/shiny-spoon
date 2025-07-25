@@ -36,7 +36,7 @@ export function useCustomerRealtime({
           : `organization_id=eq.${organizationId}`,
       },
       (payload: any) => {
-        const { eventType, new: newRecord, old: oldRecord } = payload
+        const { eventType } = payload
 
         // Handle specific customer updates
         if (customerId && payload.new?.id === customerId) {
@@ -97,7 +97,7 @@ export function useCustomerRealtime({
             ? `customer_id=eq.${customerId}`
             : `organization_id=eq.${organizationId}`,
         },
-        (payload: any) => {
+        () => {
           if (customerId) {
             queryClient.invalidateQueries({
               queryKey: ['customer-activities', customerId],

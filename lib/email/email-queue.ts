@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 export interface EmailMessage {
   to: string | string[]
@@ -29,7 +29,7 @@ export interface EmailQueueItem {
  */
 export async function queueEmail(message: EmailMessage): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const queueItem: Omit<EmailQueueItem, 'id' | 'created_at' | 'updated_at'> = {
       message,
@@ -59,7 +59,7 @@ export async function queueEmail(message: EmailMessage): Promise<{ success: bool
  * This would be called by a cron job or edge function
  */
 export async function processEmailQueue(): Promise<void> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
   
   // Get pending emails
   const { data: pendingEmails, error } = await supabase
@@ -84,7 +84,7 @@ export async function processEmailQueue(): Promise<void> {
  * Process a single email
  */
 async function processEmail(queueItem: EmailQueueItem): Promise<void> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
   
   // Update status to processing
   await supabase

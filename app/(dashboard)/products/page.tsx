@@ -1,11 +1,11 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { Plus, Upload, Download } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ProductsTable } from '@/components/features/products/products-table'
 import { BulkImportDialog } from '@/components/features/products/bulk-import-dialog'
 import { createClient } from '@/lib/supabase/server'
-import { generateProductCSVTemplate } from '@/lib/csv/product-import'
+// import { generateProductCSVTemplate } from '@/lib/csv/product-import'
 import { Product } from '@/types/product.types'
 
 interface InventoryItem {
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ProductsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {

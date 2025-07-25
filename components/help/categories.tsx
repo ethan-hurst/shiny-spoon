@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowRight, FileQuestion, Settings, Shield, Zap } from 'lucide-react'
-import type { HelpArticle } from 'contentlayer/generated'
+import type { HelpArticle } from 'contentlayer2/generated'
 
 interface HelpCategoriesProps {
   categories: Record<string, HelpArticle[]>

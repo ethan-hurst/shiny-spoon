@@ -105,18 +105,7 @@ interface PriceApprovalRow {
   created_at: string
 }
 
-interface PricingApprovalRuleRow {
-  id: string
-  organization_id: string
-  discount_threshold_percent: number | null
-  price_reduction_threshold: number | null
-  margin_threshold_percent: number | null
-  requires_manager_approval: boolean
-  requires_finance_approval: boolean
-  auto_approve_under_threshold: boolean
-  created_at: string
-  updated_at: string
-}
+// Pricing approval rules are handled via database functions
 
 // Enums
 export const ApprovalStatus = {

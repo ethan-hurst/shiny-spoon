@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getSubscription, getTeamMembers, getPendingInvites } from '@/lib/billing'
 import { TeamMembersList } from '@/components/portal/team/team-members-list'
 import { PendingInvites } from '@/components/portal/team/pending-invites'
@@ -7,8 +7,17 @@ import { TeamStats } from '@/components/portal/team/team-stats'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users } from 'lucide-react'
 
+interface TeamMember {
+  role: string
+  auth?: {
+    users?: {
+      last_sign_in_at?: string
+    }
+  }
+}
+
 export default async function TeamPage() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -41,8 +50,8 @@ export default async function TeamPage() {
   // Calculate team stats
   const stats = {
     totalMembers: members.length,
-    admins: members.filter(m => m.role === 'admin').length,
-    activeToday: members.filter(m => {
+    admins: members.filter((m: TeamMember) => m.role === 'admin').length,
+    activeToday: members.filter((m: TeamMember) => {
       if (!m.auth?.users?.last_sign_in_at) return false
       const lastSignIn = new Date(m.auth.users.last_sign_in_at)
       const today = new Date()

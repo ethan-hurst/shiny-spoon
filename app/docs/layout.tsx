@@ -1,4 +1,4 @@
-import { allDocs } from 'contentlayer/generated'
+import { allDocs } from 'contentlayer2/generated'
 import { DocsSidebar } from '@/components/docs/sidebar'
 import { DocsSearch } from '@/components/docs/search'
 import { VersionSelector } from '@/components/docs/version-selector'

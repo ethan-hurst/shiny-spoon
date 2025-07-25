@@ -1,11 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import {
-  AlertCircle,
   AlertTriangle,
-  Calculator,
-  FileDown,
-  FileUp,
   Plus,
   TrendingDown,
   TrendingUp,
@@ -27,7 +23,6 @@ import {
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/server'
-import { formatCurrency } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Pricing Management',
@@ -35,7 +30,7 @@ export const metadata: Metadata = {
 }
 
 export default async function PricingPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   try {
     // Fetch pricing stats

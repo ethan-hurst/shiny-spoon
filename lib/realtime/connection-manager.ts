@@ -1,4 +1,4 @@
-import { RealtimeChannel, RealtimeClient } from '@supabase/supabase-js'
+import { RealtimeChannel } from '@supabase/supabase-js'
 import {
   ConnectionMetrics,
   ConnectionQuality,
@@ -234,12 +234,12 @@ export class RealtimeConnectionManager {
 
   public registerChannel(name: string, channel: RealtimeChannel): void {
     this.channels.set(name, channel)
-    this.metrics.subscriptionCount = this.channels.size
+    // Note: subscription count is tracked in PerformanceMonitor, not ConnectionMetrics
   }
 
   public unregisterChannel(name: string): void {
     this.channels.delete(name)
-    this.metrics.subscriptionCount = this.channels.size
+    // Note: subscription count is tracked in PerformanceMonitor, not ConnectionMetrics
   }
 
   public getHealthScore(): number {

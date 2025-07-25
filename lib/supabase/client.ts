@@ -2,8 +2,9 @@
 // This client is safe to use in browser/client components
 
 import { createBrowserClient } from '@supabase/ssr'
-import type { Database } from '@/types/database.types'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/supabase/types/database'
+
+// import type { SupabaseClient } from '@supabase/supabase-js' // Not currently used
 
 // Create a singleton instance
 let client: ReturnType<typeof createBrowserClient<Database>> | undefined
@@ -11,20 +12,22 @@ let client: ReturnType<typeof createBrowserClient<Database>> | undefined
 // Mock client interface for when environment variables are missing
 interface MockSupabaseClient {
   auth: {
-    getUser: () => Promise<{ data: { user: null }, error: null }>
+    getUser: () => Promise<{ data: { user: null }; error: null }>
     onAuthStateChange: (callback: (event: string, session: any) => void) => {
       data: { subscription: { unsubscribe: () => void } }
     }
     signOut: () => Promise<{ error: null }>
-    signInWithPassword: (credentials: any) => Promise<{ data: { user: null, session: null }, error: Error }>
+    signInWithPassword: (
+      credentials: any
+    ) => Promise<{ data: { user: null; session: null }; error: Error }>
   }
   from: (table: string) => {
-    select: (columns?: string) => Promise<{ data: any[], error: null }>
-    insert: (values: any) => Promise<{ data: any[], error: null }>
-    update: (values: any) => Promise<{ data: any[], error: null }>
-    delete: () => Promise<{ data: any[], error: null }>
+    select: (columns?: string) => Promise<{ data: any[]; error: null }>
+    insert: (values: any) => Promise<{ data: any[]; error: null }>
+    update: (values: any) => Promise<{ data: any[]; error: null }>
+    delete: () => Promise<{ data: any[]; error: null }>
     eq: (column: string, value: any) => any
-    single: () => Promise<{ data: null, error: Error }>
+    single: () => Promise<{ data: null; error: Error }>
   }
   channel: (name: string) => {
     on: (event: string, config: any, callback: Function) => any
@@ -40,36 +43,43 @@ export function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not set. Some features will be unavailable.')
+    console.warn(
+      'Supabase environment variables not set. Some features will be unavailable.'
+    )
     // Return a properly typed mock client during build time
     const mockClient: MockSupabaseClient = {
       auth: {
         getUser: async () => ({ data: { user: null }, error: null }),
-        onAuthStateChange: (callback: (event: string, session: any) => void) => ({ 
-          data: { subscription: { unsubscribe: () => {} } } 
+        onAuthStateChange: (
+          _callback: (event: string, session: any) => void
+        ) => ({
+          data: { subscription: { unsubscribe: () => {} } },
         }),
         signOut: async () => ({ error: null }),
-        signInWithPassword: async (credentials: any) => ({ 
-          data: { user: null, session: null }, 
-          error: new Error('Mock client - authentication not available') 
+        signInWithPassword: async (_credentials: any) => ({
+          data: { user: null, session: null },
+          error: new Error('Mock client - authentication not available'),
         }),
       },
-      from: (table: string) => {
+      from: (_table: string) => {
         const mockQueryBuilder = {
-          select: async (columns?: string) => ({ data: [], error: null }),
-          insert: async (values: any) => ({ data: [], error: null }),
-          update: async (values: any) => ({ data: [], error: null }),
+          select: async (_columns?: string) => ({ data: [], error: null }),
+          insert: async (_values: any) => ({ data: [], error: null }),
+          update: async (_values: any) => ({ data: [], error: null }),
           delete: async () => ({ data: [], error: null }),
-          eq: (column: string, value: any) => mockQueryBuilder,
-          single: async () => ({ data: null, error: new Error('Mock client - no data available') }),
+          eq: (_column: string, _value: any) => mockQueryBuilder,
+          single: async () => ({
+            data: null,
+            error: new Error('Mock client - no data available'),
+          }),
         }
         return mockQueryBuilder
       },
-      channel: (name: string) => ({
-        on: (event: string, config: any, callback: Function) => ({}),
+      channel: (_name: string) => ({
+        on: (_event: string, _config: any, _callback: Function) => ({}),
         subscribe: () => ({}),
       }),
-      removeChannel: (channel: any) => {},
+      removeChannel: (_channel: any) => {},
     }
     return mockClient as any
   }

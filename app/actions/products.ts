@@ -1,8 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { productSchema } from '@/lib/validations/product'
 
@@ -75,7 +73,7 @@ async function validateAndUploadImage(
 
   const fileName = `${organizationId}/${generateUUID()}.${fileExt}`
 
-  const { error: uploadError, data: uploadData } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from('products')
     .upload(fileName, file)
 
@@ -119,7 +117,7 @@ async function deleteImage(imageUrl: string, supabase: any): Promise<void> {
 }
 
 export async function createProduct(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {
@@ -213,7 +211,7 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const id = formData.get('id') as string
   if (!id) {
@@ -316,7 +314,7 @@ export async function updateProduct(formData: FormData) {
 }
 
 export async function deleteProduct(id: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {
@@ -355,9 +353,9 @@ export async function deleteProduct(id: string) {
   return { success: true }
 }
 
-export async function bulkImportProducts(csvData: string) {
+export async function bulkImportProducts(_csvData: string) {
   // TODO: Implement CSV parsing and bulk import
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {
@@ -384,9 +382,9 @@ export async function bulkImportProducts(csvData: string) {
   return { error: 'Bulk import not yet implemented' }
 }
 
-export async function exportProducts(filters?: ProductFilters) {
+export async function exportProducts(_filters?: ProductFilters) {
   // TODO: Implement export with filters
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {

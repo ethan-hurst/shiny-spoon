@@ -27,12 +27,10 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { warehouseSchema } from '@/lib/validations/warehouse'
 import {
-  createWarehouse,
   createWarehouseTyped,
-  updateWarehouse,
   updateWarehouseTyped,
 } from '@/app/actions/warehouses'
-import { Warehouse } from '@/types/warehouse.types'
+import { Warehouse, Address, Contact } from '@/types/warehouse.types'
 import { AddressFields } from './address-fields'
 import { ContactList } from './contact-list'
 
@@ -51,22 +49,30 @@ export function WarehouseForm({ warehouse }: WarehouseFormProps) {
     defaultValues: {
       name: warehouse?.name || '',
       code: warehouse?.code || '',
-      address: warehouse?.address || {
-        street: '',
-        city: '',
-        state: '',
-        postalCode: '',
-        country: 'USA',
-      },
-      contacts: warehouse?.contact || [
-        {
-          name: '',
-          role: 'Manager',
-          email: '',
-          phone: '',
-          isPrimary: true,
-        },
-      ],
+      address:
+        warehouse?.address &&
+        typeof warehouse.address === 'object' &&
+        !Array.isArray(warehouse.address)
+          ? (warehouse.address as Address)
+          : {
+              street: '',
+              city: '',
+              state: '',
+              postalCode: '',
+              country: 'USA',
+            },
+      contacts:
+        warehouse?.contact && Array.isArray(warehouse.contact)
+          ? (warehouse.contact as Contact[])
+          : [
+              {
+                name: '',
+                role: 'Manager',
+                email: '',
+                phone: '',
+                isPrimary: true,
+              },
+            ],
       is_default: warehouse?.is_default || false,
       active: warehouse?.active ?? true,
     },

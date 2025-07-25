@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Fuse from 'fuse.js'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { allHelpArticles } from 'contentlayer/generated'
+import { allHelpArticles } from 'contentlayer2/generated'
 
 export function HelpSearch() {
   const router = useRouter()

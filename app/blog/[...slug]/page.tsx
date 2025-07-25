@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
-import { allPosts } from 'contentlayer/generated'
-import { getMDXComponent } from 'next-contentlayer/hooks'
+import { allPosts } from 'contentlayer2/generated'
+import { getMDXComponent } from 'next-contentlayer2/hooks'
 import { format } from 'date-fns'
 import Image from 'next/image'
 import { BlogAuthor } from '@/components/blog/blog-author'
@@ -15,7 +15,8 @@ export async function generateStaticParams() {
   }))
 }
 
-export async function generateMetadata({ params }: { params: { slug: string[] } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
+  const params = await props.params
   const post = allPosts.find((post) => post.slug === params.slug.join('/'))
   if (!post) return {}
 
@@ -39,7 +40,8 @@ export async function generateMetadata({ params }: { params: { slug: string[] } 
   }
 }
 
-export default function BlogPost({ params }: { params: { slug: string[] } }) {
+export default async function BlogPost(props: { params: Promise<{ slug: string[] }> }) {
+  const params = await props.params
   const post = allPosts.find((post) => post.slug === params.slug.join('/'))
 
   if (!post || !post.published) {

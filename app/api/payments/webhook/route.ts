@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     })
   }
   
-  const supabase = createServerClient(
+  const supabase = await createServerClient(
     supabaseUrl,
     supabaseServiceKey,
     {
@@ -224,7 +224,7 @@ async function handleCheckoutSessionCompleted(
         currency: session.currency,
       }
 
-      const { data: paymentsData, error: paymentsError } = await supabase
+      const { data: _paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .insert([paymentData])
       if (paymentsError) throw new Error('Error inserting payment')
@@ -253,10 +253,10 @@ async function handleCheckoutSessionCompleted(
 
 async function webhooksHandler(
   reqText: string,
-  request: NextRequest,
+  _request: NextRequest,
   supabase: any
 ): Promise<NextResponse> {
-  const sig = request.headers.get('Stripe-Signature')
+  const sig = _request.headers.get('Stripe-Signature')
 
   try {
     const event = await stripe.webhooks.constructEventAsync(

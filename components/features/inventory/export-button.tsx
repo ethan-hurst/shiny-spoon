@@ -9,10 +9,9 @@ import { exportInventory } from '@/app/actions/inventory'
 
 interface ExportButtonProps {
   filters?: ColumnFiltersState
-  organizationId: string
 }
 
-export function ExportButton({ filters, organizationId }: ExportButtonProps) {
+export function ExportButton({ filters }: ExportButtonProps) {
   const { toast } = useToast()
   const [isExporting, setIsExporting] = useState(false)
 

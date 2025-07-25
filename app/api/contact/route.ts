@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { contactSchema } from '@/lib/schemas/contact'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 import { queueEmail } from '@/lib/email/email-queue'
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const validatedData = contactSchema.parse(body)
     
     // Get supabase client
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     // Store contact submission in database
     const { error: dbError } = await supabase

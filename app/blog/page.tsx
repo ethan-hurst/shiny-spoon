@@ -1,4 +1,4 @@
-import { allPosts } from 'contentlayer/generated'
+import { allPosts } from 'contentlayer2/generated'
 import { compareDesc } from 'date-fns'
 import { BlogCard } from '@/components/blog/blog-card'
 import { BlogFilters } from '@/components/blog/blog-filters'
@@ -11,11 +11,10 @@ export const metadata = {
 
 const POSTS_PER_PAGE = 12
 
-export default async function BlogPage({
-  searchParams,
-}: {
-  searchParams: { page?: string; category?: string; tag?: string }
+export default async function BlogPage(props: {
+  searchParams: Promise<{ page?: string; category?: string; tag?: string }>
 }) {
+  const searchParams = await props.searchParams
   // Parse and validate search params
   const rawPage = Number(searchParams.page) || 1
   const selectedCategory = typeof searchParams.category === 'string' ? searchParams.category : undefined

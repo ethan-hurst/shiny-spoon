@@ -12,7 +12,7 @@ import {
 } from '@/types/inventory.types'
 
 export async function adjustInventory(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {
@@ -121,7 +121,7 @@ export async function adjustInventory(formData: FormData) {
 }
 
 export async function bulkUpdateInventory(csvData: string) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {
@@ -303,7 +303,7 @@ export async function exportInventory(filters?: {
   search?: string
   low_stock_only?: boolean
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Auth check
   const {

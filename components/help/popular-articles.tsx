@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { allHelpArticles } from 'contentlayer/generated'
+import { allHelpArticles } from 'contentlayer2/generated'
 import { Card, CardContent } from '@/components/ui/card'
 import { TrendingUp, ArrowRight } from 'lucide-react'
 

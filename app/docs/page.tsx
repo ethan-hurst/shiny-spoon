@@ -1,4 +1,4 @@
-import { allDocs } from 'contentlayer/generated'
+import { allDocs } from 'contentlayer2/generated'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowRight, Book, Code, Settings, Zap } from 'lucide-react'

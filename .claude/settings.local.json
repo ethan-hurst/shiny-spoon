@@ -20,7 +20,27 @@
       "Bash(npx supabase db reset)",
       "Bash(npx supabase gen types)",
       "Bash(mkdir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git --version)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(true)",
+      "Bash(echo $CODESPACES)",
+      "Bash(code:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx contentlayer:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx --package=typescript tsc --noEmit --pretty)",
+      "Bash(./node_modules/.bin/tsc:*)",
+      "Bash(npx typescript:*)",
+      "Bash(node_modules/.bin/tsc:*)",
+      "Bash(grep:*)",
+      "Bash(npm view:*)",
+      "Bash(npm search:*)"
     ],
     "deny": []
   }

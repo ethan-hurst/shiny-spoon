@@ -1,4 +1,4 @@
-import { allHelpArticles } from 'contentlayer/generated'
+import { allHelpArticles } from 'contentlayer2/generated'
 import { HelpSearch } from '@/components/help/search'
 import { HelpCategories } from '@/components/help/categories'
 import { PopularArticles } from '@/components/help/popular-articles'

@@ -371,6 +371,17 @@ export function useInventory(warehouseId?: string) {
 4. **Test critical paths** - E2E tests for core workflows
 5. **Document complex logic** - Future you will thank you
 
+### 🔒 TYPE SAFETY REQUIREMENTS
+
+1. **STRICT TypeScript** - All code must pass strict TypeScript checks
+2. **NO any types** - Never use `any` - use `unknown` if type is truly unknown
+3. **EXPLICIT types** - All function parameters and return values must be typed
+4. **TYPE imports** - Import types from correct locations (e.g., `@/supabase/types/database`)
+5. **COMPLETE implementations** - No partial implementations or placeholders
+6. **TYPE guards** - Use type guards for runtime type checking
+7. **GENERIC types** - Use generics for reusable components/hooks
+8. **VALIDATE inputs** - Use Zod schemas for all user inputs and API responses
+
 ### 🚫 NO MOCK IMPLEMENTATIONS
 
 1. **NO setTimeout for fake progress** - Use real progress tracking
@@ -451,6 +462,45 @@ try {
   toast.error(error.message)
   await logError(error, { context: 'processOrder' })
   throw error
+}
+
+// ❌ BAD - Using any types
+function processData(data: any) {
+  return data.map((item: any) => item.value)
+}
+
+// ✅ GOOD - Properly typed
+interface DataItem {
+  id: string
+  value: number
+}
+
+function processData(data: DataItem[]): number[] {
+  return data.map((item) => item.value)
+}
+
+// ❌ BAD - Missing return types
+async function fetchUser(id: string) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', id)
+    .single()
+  
+  if (error) throw error
+  return data
+}
+
+// ✅ GOOD - Explicit return type
+async function fetchUser(id: string): Promise<User> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', id)
+    .single()
+  
+  if (error) throw error
+  return data
 }
 ```
 
@@ -1148,6 +1198,15 @@ Before marking any implementation as complete:
 - [ ] Performance meets requirements
 - [ ] Security policies are enforced
 
+### Type Safety
+
+- [ ] All code passes `npm run type-check` with zero errors
+- [ ] No `any` types used anywhere in the codebase
+- [ ] All functions have explicit return types
+- [ ] All API responses are properly typed
+- [ ] Form inputs are validated with Zod schemas
+- [ ] Database queries use generated types
+
 ---
 
-**Remember**: You're building a system handling critical B2B data. Prioritize data accuracy, security (RLS), and user experience. When in doubt, choose reliability over complexity. **NEVER use mock implementations or simulated behavior in production code.**
+**Remember**: You're building a system handling critical B2B data. Prioritize data accuracy, security (RLS), type safety, and user experience. When in doubt, choose reliability over complexity. **NEVER use mock implementations, simulated behavior, or untyped code in production.**

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+// @ts-ignore - undici types not available in test environment
 import { FormData } from 'undici'
 import {
   bulkUpdateCustomerPrices,
@@ -6,13 +6,14 @@ import {
   createCustomerPricing,
   createPricingRule,
   createProductPricing,
-  updateCustomerPricing,
-  updatePricingRule,
-  updateProductPricing,
 } from '@/app/actions/pricing'
-
-// Enhanced test setup with improved mocks for reliable CI execution
-const describeWithSupabase = describe
+import {
+  createMockSupabaseClient,
+  createMockQueryBuilder,
+  setupAuthenticatedUser,
+  setupUnauthenticatedUser,
+  setupQueryResult,
+} from '@/__tests__/utils/supabase-mock'
 
 // Mock Next.js modules
 jest.mock('next/cache', () => ({
@@ -23,24 +24,8 @@ jest.mock('next/navigation', () => ({
   redirect: jest.fn(),
 }))
 
-// Mock Supabase client
-const mockSupabase = {
-  auth: {
-    getUser: jest.fn().mockResolvedValue({
-      data: { user: { id: 'test-user-id' } },
-      error: null,
-    }),
-  },
-  from: jest.fn(() => ({
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    select: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-  })),
-  rpc: jest.fn(),
-}
+// Create mock Supabase client
+const mockSupabase = createMockSupabaseClient()
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabase),
@@ -50,6 +35,7 @@ jest.mock('@/lib/supabase/server', () => ({
 describe('Pricing Server Actions', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    setupAuthenticatedUser(mockSupabase)
   })
 
   describe('createProductPricing', () => {
@@ -63,14 +49,13 @@ describe('Pricing Server Actions', () => {
       formData.append('pricing_unit', 'EACH')
       formData.append('unit_quantity', '1')
 
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      })
+      const mockQueryBuilder = createMockQueryBuilder()
+      mockSupabase.from.mockReturnValue(mockQueryBuilder)
 
       await createProductPricing(formData as any)
 
       expect(mockSupabase.from).toHaveBeenCalledWith('product_pricing')
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         product_id: 'test-product-id',
         cost: 50,
         base_price: 100,
@@ -90,13 +75,12 @@ describe('Pricing Server Actions', () => {
       formData.append('cost', 'invalid')
       formData.append('base_price', 'invalid')
 
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      })
+      const mockQueryBuilder = createMockQueryBuilder()
+      mockSupabase.from.mockReturnValue(mockQueryBuilder)
 
       await createProductPricing(formData as any)
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           cost: 0,
           base_price: 0,
@@ -105,10 +89,7 @@ describe('Pricing Server Actions', () => {
     })
 
     it('should throw error when unauthorized', async () => {
-      mockSupabase.auth.getUser.mockResolvedValueOnce({
-        data: { user: null },
-        error: null,
-      })
+      setupUnauthenticatedUser(mockSupabase)
 
       const formData = new FormData()
       formData.append('product_id', 'test-product-id')
@@ -146,19 +127,21 @@ describe('Pricing Server Actions', () => {
         ])
       )
 
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { id: 'new-rule-id' },
-          error: null,
-        }),
-      })
+      const mockRulesBuilder = createMockQueryBuilder()
+      const mockBreaksBuilder = createMockQueryBuilder()
+      
+      // Set up the response for the pricing rule creation
+      setupQueryResult(mockRulesBuilder, { id: 'new-rule-id' })
+      
+      // Mock the from calls
+      mockSupabase.from
+        .mockReturnValueOnce(mockRulesBuilder) // For pricing_rules
+        .mockReturnValueOnce(mockBreaksBuilder) // For quantity_breaks
 
       await createPricingRule(formData as any)
 
       expect(mockSupabase.from).toHaveBeenCalledWith('pricing_rules')
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockRulesBuilder.insert).toHaveBeenCalledWith({
         name: 'Bulk Discount',
         description: 'Discount for bulk orders',
         rule_type: 'quantity',
@@ -189,18 +172,17 @@ describe('Pricing Server Actions', () => {
       formData.append('start_date', '2024-06-01')
       formData.append('end_date', '2024-08-31')
 
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { id: 'promo-rule-id' },
-          error: null,
-        }),
-      })
+      const mockRulesBuilder = createMockQueryBuilder()
+      
+      // Set up the response for the pricing rule creation
+      setupQueryResult(mockRulesBuilder, { id: 'promo-rule-id' })
+      
+      // Mock the from call
+      mockSupabase.from.mockReturnValueOnce(mockRulesBuilder)
 
       await createPricingRule(formData as any)
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      expect(mockRulesBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Summer Sale',
           rule_type: 'promotion',
@@ -220,14 +202,13 @@ describe('Pricing Server Actions', () => {
       formData.append('product_id', 'test-product-id')
       formData.append('override_price', '85.00')
 
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      })
+      const mockQueryBuilder = createMockQueryBuilder()
+      mockSupabase.from.mockReturnValue(mockQueryBuilder)
 
       await createCustomerPricing(formData as any)
 
       expect(mockSupabase.from).toHaveBeenCalledWith('customer_pricing')
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         customer_id: 'test-customer-id',
         product_id: 'test-product-id',
         override_price: 85,
@@ -247,13 +228,12 @@ describe('Pricing Server Actions', () => {
       formData.append('product_id', 'test-product-id')
       formData.append('override_discount_percent', '15')
 
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ error: null }),
-      })
+      const mockQueryBuilder = createMockQueryBuilder()
+      mockSupabase.from.mockReturnValue(mockQueryBuilder)
 
       await createCustomerPricing(formData as any)
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           override_price: undefined,
           override_discount_percent: 15,
@@ -276,51 +256,37 @@ describe('Pricing Server Actions', () => {
       formData.append('apply_to_all_warehouses', 'true')
 
       // Mock product lookups
+      const productQuery1 = createMockQueryBuilder()
+      setupQueryResult(productQuery1, {
+        id: 'product-1-id',
+        product_pricing: { base_price: 100, cost: 50 },
+      })
+      
+      const productQuery2 = createMockQueryBuilder()
+      setupQueryResult(productQuery2, null)
+      
+      const insertQuery1 = createMockQueryBuilder()
+      insertQuery1.insert.mockResolvedValue({ error: null })
+      
+      const insertQuery2 = createMockQueryBuilder()
+      insertQuery2.insert.mockResolvedValue({ error: null })
+      
+      const productQuery3 = createMockQueryBuilder()
+      setupQueryResult(productQuery3, {
+        id: 'product-2-id',
+        product_pricing: { base_price: 200, cost: 100 },
+      })
+      
+      const productQuery4 = createMockQueryBuilder()
+      setupQueryResult(productQuery4, null)
+      
       mockSupabase.from
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: {
-              id: 'product-1-id',
-              product_pricing: { base_price: 100, cost: 50 },
-            },
-            error: null,
-          }),
-        })
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: null,
-          }),
-        })
-        .mockReturnValueOnce({
-          insert: jest.fn().mockResolvedValue({ error: null }),
-        })
-        .mockReturnValueOnce({
-          insert: jest.fn().mockResolvedValue({ error: null }),
-        })
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: {
-              id: 'product-2-id',
-              product_pricing: { base_price: 200, cost: 100 },
-            },
-            error: null,
-          }),
-        })
-        .mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: null,
-            error: null,
-          }),
-        })
+        .mockReturnValueOnce(productQuery1)
+        .mockReturnValueOnce(productQuery2)
+        .mockReturnValueOnce(insertQuery1)
+        .mockReturnValueOnce(insertQuery2)
+        .mockReturnValueOnce(productQuery3)
+        .mockReturnValueOnce(productQuery4)
       // Mock the new RPC call for bulk updates
       mockSupabase.rpc.mockResolvedValueOnce({
         data: {
@@ -331,6 +297,9 @@ describe('Pricing Server Actions', () => {
           bulk_update_id: 'bulk-update-123',
         },
         error: null,
+        count: null,
+        status: 200,
+        statusText: 'OK',
       })
 
       const result: any = await bulkUpdateCustomerPrices(formData as any)
@@ -372,6 +341,9 @@ describe('Pricing Server Actions', () => {
           bulk_update_id: 'bulk-update-456',
         },
         error: null,
+        count: null,
+        status: 200,
+        statusText: 'OK',
       })
 
       const result: any = await bulkUpdateCustomerPrices(formData as any)
@@ -417,6 +389,9 @@ describe('Pricing Server Actions', () => {
           },
         ],
         error: null,
+        count: null,
+        status: 200,
+        statusText: 'OK',
       })
 
       const result = await calculatePrice(data)
@@ -459,6 +434,9 @@ describe('Pricing Server Actions', () => {
           },
         ],
         error: null,
+        count: null,
+        status: 200,
+        statusText: 'OK',
       })
 
       await calculatePrice(data)
@@ -474,7 +452,16 @@ describe('Pricing Server Actions', () => {
     it('should handle calculation errors', async () => {
       mockSupabase.rpc.mockResolvedValue({
         data: null,
-        error: { message: 'Product not found' },
+        error: { 
+          message: 'Product not found',
+          details: '',
+          hint: '',
+          code: '404',
+          name: 'PostgrestError'
+        },
+        count: null,
+        status: 404,
+        statusText: 'Not Found',
       })
 
       await expect(

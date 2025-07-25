@@ -4,7 +4,7 @@ import * as crypto from 'crypto'
 import { Resend } from 'resend'
 import { z } from 'zod'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import type { Organization, UserProfile } from '@/types/auth.types'
 
 // Validate Resend API key
@@ -47,7 +47,7 @@ function generateInvitationToken(): string {
 }
 
 export async function inviteTeamMember(formData: FormData) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -172,7 +172,7 @@ export async function inviteTeamMember(formData: FormData) {
 }
 
 export async function updateTeamMember(formData: FormData) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -218,7 +218,7 @@ export async function updateTeamMember(formData: FormData) {
 }
 
 export async function removeTeamMember(formData: FormData) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -300,7 +300,7 @@ interface TeamInvitation {
 }
 
 export async function resendInvitation(invitationId: string) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -376,7 +376,7 @@ export async function resendInvitation(invitationId: string) {
 }
 
 export async function cancelInvitation(invitationId: string) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const {
     data: { user },

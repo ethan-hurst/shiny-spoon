@@ -9,17 +9,18 @@ import { createClient } from '@/lib/supabase/server'
 import { CustomerWithStats } from '@/types/customer.types'
 
 interface PageProps {
-  searchParams: {
+  searchParams: Promise<{
     search?: string
     status?: string
     tier_id?: string
     customer_type?: string
     page?: string
-  }
+  }>
 }
 
-export default async function CustomersPage({ searchParams }: PageProps) {
-  const supabase = createClient()
+export default async function CustomersPage(props: PageProps) {
+  const searchParams = await props.searchParams
+  const supabase = await createClient()
 
   // Get user's organization
   const {

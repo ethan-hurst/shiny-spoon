@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
-import { allHelpArticles } from 'contentlayer/generated'
-import { getMDXComponent } from 'next-contentlayer/hooks'
+import { allHelpArticles } from 'contentlayer2/generated'
+import { getMDXComponent } from 'next-contentlayer2/hooks'
 import Link from 'next/link'
 import { ArrowLeft, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -14,7 +14,8 @@ export async function generateStaticParams() {
   }))
 }
 
-export async function generateMetadata({ params }: { params: { slug: string[] } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
+  const params = await props.params
   const article = allHelpArticles.find(
     (article) => article.slug === params.slug.join('/')
   )
@@ -26,7 +27,8 @@ export async function generateMetadata({ params }: { params: { slug: string[] } 
   }
 }
 
-export default function HelpArticlePage({ params }: { params: { slug: string[] } }) {
+export default async function HelpArticlePage(props: { params: Promise<{ slug: string[] }> }) {
+  const params = await props.params
   const article = allHelpArticles.find(
     (article) => article.slug === params.slug.join('/')
   )

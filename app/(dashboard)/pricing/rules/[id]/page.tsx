@@ -9,15 +9,16 @@ export const metadata: Metadata = {
 }
 
 interface EditPricingRulePageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default async function EditPricingRulePage({
-  params,
-}: EditPricingRulePageProps) {
-  const supabase = createClient()
+export default async function EditPricingRulePage(
+  props: EditPricingRulePageProps
+) {
+  const params = await props.params
+  const supabase = await createClient()
 
   // Get user's organization for security
   const {

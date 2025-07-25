@@ -7,12 +7,10 @@ import {
   eachDayOfInterval,
   endOfMonth,
   format,
-  isSameDay,
   startOfMonth,
   subMonths,
 } from 'date-fns'
 import {
-  Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -37,14 +35,8 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import {
   formatDiscountDisplay,
-  getRuleTypeColor,
   PricingRuleRecord,
 } from '@/types/pricing.types'
-
-interface PromotionDay {
-  date: Date
-  rules: PricingRuleRecord[]
-}
 
 export function PromotionCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -248,7 +240,6 @@ export function PromotionCalendar() {
                         <button
                           {...props}
                           className={cn(
-                            props.className,
                             hasPromotions && 'relative',
                             'hover:bg-accent focus:bg-accent'
                           )}

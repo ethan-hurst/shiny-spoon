@@ -1,4 +1,4 @@
-import { ConnectionQuality, ConnectionState, ConnectionStatus } from './types'
+import { ConnectionQuality, ConnectionStatus } from './types'
 
 /**
  * Check if the browser is online

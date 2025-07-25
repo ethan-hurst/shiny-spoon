@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { getSubscription, getInvoices, getPaymentMethods } from '@/lib/billing'
 import { PaymentMethods } from '@/components/portal/billing/payment-methods'
 import { InvoiceHistory } from '@/components/portal/billing/invoice-history'
@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 
 export default async function BillingPage() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')

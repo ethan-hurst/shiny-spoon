@@ -4,8 +4,14 @@ import {
   clearPricingCache,
   getQuickPrice,
 } from '@/lib/pricing/calculate-price'
-import { PricingEngine } from '@/lib/pricing/pricing-engine'
+// PricingEngine is mocked in this test file
 import { perfReporter, logPerformance, logComparison, logMemory } from '../utils/performance-reporter'
+
+interface PricingRequest {
+  product_id: string
+  customer_id?: string
+  quantity: number
+}
 
 // Skip performance tests in CI by default
 const describePerformance = process.env.RUN_PERF_TESTS
@@ -15,7 +21,7 @@ const describePerformance = process.env.RUN_PERF_TESTS
 // Mock the pricing engine for consistent benchmarks
 jest.mock('@/lib/pricing/pricing-engine', () => ({
   getPricingEngine: jest.fn(() => ({
-    calculatePrice: jest.fn().mockImplementation(async (request) => {
+    calculatePrice: jest.fn().mockImplementation(async () => {
       // Simulate database query time (2-5ms)
       await new Promise((resolve) => setTimeout(resolve, 2 + Math.random() * 3))
 
@@ -42,7 +48,7 @@ jest.mock('@/lib/pricing/pricing-engine', () => ({
       await new Promise((resolve) => setTimeout(resolve, 5 + Math.random() * 5))
 
       const results = new Map()
-      requests.forEach((req) => {
+      requests.forEach((req: PricingRequest) => {
         results.set(req.product_id, {
           base_price: 100,
           final_price: 85 + Math.random() * 10,

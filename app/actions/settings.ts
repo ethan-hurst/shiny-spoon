@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
@@ -30,7 +30,7 @@ const changePasswordSchema = z.object({
 
 export async function updateProfile(formData: FormData) {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -69,7 +69,7 @@ export async function updateProfile(formData: FormData) {
 
 export async function updateNotificationPreferences(formData: FormData) {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -117,7 +117,7 @@ export async function updateNotificationPreferences(formData: FormData) {
 
 export async function changePassword(formData: FormData) {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -168,7 +168,7 @@ export async function changePassword(formData: FormData) {
 }
 
 export async function enableTwoFactor() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
@@ -179,7 +179,7 @@ export async function enableTwoFactor() {
 }
 
 export async function disableTwoFactor() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
@@ -191,7 +191,7 @@ export async function disableTwoFactor() {
 
 export async function downloadAccountData() {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')

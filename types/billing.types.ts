@@ -1,4 +1,4 @@
-import type { Stripe } from 'stripe'
+// Billing types for subscription management
 
 // Subscription data returned from our billing functions
 export interface SubscriptionData {
@@ -10,6 +10,11 @@ export interface SubscriptionData {
   currentPeriodEnd: Date
   cancelAtPeriodEnd: boolean
   trialEnd?: Date
+  limits?: {
+    products: number
+    warehouses: number
+    apiCalls: number
+  }
 }
 
 // Organization billing information
