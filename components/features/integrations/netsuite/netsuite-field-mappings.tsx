@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import { Plus, X, ArrowRight, Save, Loader2 } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -124,6 +125,8 @@ interface ExtendedFieldMapping extends FieldMapping {
 }
 
 export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteFieldMappingsProps) {
+  const queryClient = useQueryClient()
+  
   const [fieldMappings, setFieldMappings] = useState<ExtendedFieldMapping[]>(() => {
     // Convert existing mappings to array format
     const mappingArray: ExtendedFieldMapping[] = []
@@ -140,8 +143,42 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
     })
     return mappingArray
   })
-  
-  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // React Query mutation for updating field mappings
+  const updateFieldMappingsMutation = useMutation({
+    mutationFn: async (mappingsByEntity: Record<string, Record<string, string>>) => {
+      const formData = new FormData()
+      formData.append('id', integrationId)
+      
+      const config = {
+        field_mappings: mappingsByEntity,
+      }
+      formData.append('config', JSON.stringify(config))
+      
+      return await updateIntegration(formData)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Mappings saved',
+        description: 'Field mappings have been updated successfully.',
+      })
+      
+      // Invalidate integration cache to refetch updated data
+      queryClient.invalidateQueries({ queryKey: ['integration', integrationId] })
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+    },
+    onError: (error) => {
+      console.error('Failed to save field mappings:', error)
+      toast({
+        title: 'Save failed',
+        description: error instanceof Error ? error.message : 'Failed to save mappings',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // Get loading state from mutation
+  const isSubmitting = updateFieldMappingsMutation.isPending
 
   function addMapping() {
     setFieldMappings([
@@ -164,54 +201,28 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
     setFieldMappings(updated)
   }
 
-  async function saveFieldMappings() {
-    setIsSubmitting(true)
-
-    try {
-      // Convert array back to nested object format
-      const mappingsByEntity: Record<string, Record<string, string>> = {
-        product: {},
-        inventory: {},
-        pricing: {},
-        customer: {},
-        order: {},
-      }
-
-      fieldMappings.forEach(mapping => {
-        // Use custom fields if they were entered, otherwise use selected values
-        const sourceField = mapping.sourceField === 'custom' ? mapping.customSourceField : mapping.sourceField
-        const targetField = mapping.targetField === 'metadata' ? mapping.customTargetField : mapping.targetField
-        
-        if (sourceField && targetField) {
-          mappingsByEntity[mapping.entityType][sourceField] = targetField
-        }
-      })
-
-      // Update NetSuite config with field mappings
-      const formData = new FormData()
-      formData.append('id', integrationId)
-      
-      const config = {
-        field_mappings: mappingsByEntity,
-      }
-      formData.append('config', JSON.stringify(config))
-      
-      await updateIntegration(formData)
-      
-      toast({
-        title: 'Mappings saved',
-        description: 'Field mappings have been updated successfully.',
-      })
-    } catch (error) {
-      console.error('Failed to save field mappings:', error)
-      toast({
-        title: 'Save failed',
-        description: error instanceof Error ? error.message : 'Failed to save mappings',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsSubmitting(false)
+  function saveFieldMappings() {
+    // Convert array back to nested object format
+    const mappingsByEntity: Record<string, Record<string, string>> = {
+      product: {},
+      inventory: {},
+      pricing: {},
+      customer: {},
+      order: {},
     }
+
+    fieldMappings.forEach(mapping => {
+      // Use custom fields if they were entered, otherwise use selected values
+      const sourceField = mapping.sourceField === 'custom' ? mapping.customSourceField : mapping.sourceField
+      const targetField = mapping.targetField === 'metadata' ? mapping.customTargetField : mapping.targetField
+      
+      if (sourceField && targetField) {
+        mappingsByEntity[mapping.entityType][sourceField] = targetField
+      }
+    })
+
+    // Trigger the mutation with the prepared data
+    updateFieldMappingsMutation.mutate(mappingsByEntity)
   }
 
   return (
