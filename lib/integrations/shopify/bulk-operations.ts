@@ -274,6 +274,7 @@ export class BulkOperationManager {
         input: {
           reason: "correction"
           name: "Sync from TruthSource"
+          referenceDocumentUri: "https://app.truthsource.com/sync/job/${Date.now()}"
           changes: [{
             inventoryItemId: "${adj.inventoryItemId}"
             locationId: "${adj.locationId}"
@@ -284,6 +285,7 @@ export class BulkOperationManager {
         inventoryAdjustmentGroup {
           createdAt
           reason
+          referenceDocumentUri
           changes {
             name
             delta
