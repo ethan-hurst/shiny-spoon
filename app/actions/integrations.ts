@@ -69,16 +69,22 @@ export async function createIntegration(formData: FormData) {
     if (error) throw error
 
     // Store credentials if provided
-    const credentialType = formData.get('credential_type') as CredentialTypeEnum
+    const credentialTypeRaw = formData.get('credential_type') as string
     const credentials = formData.get('credentials')
     
-    if (credentialType && credentials) {
+    // Validate credential type
+    const validCredentialTypes: CredentialTypeEnum[] = ['oauth2', 'api_key', 'basic_auth', 'custom']
+    
+    if (credentialTypeRaw && credentials && validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)) {
+      const credentialType = credentialTypeRaw as CredentialTypeEnum
       const authManager = new AuthManager(integration.id, profile.organization_id)
       const parsedCredentials = safeJsonParse(credentials as string) as CredentialData
       
       if (parsedCredentials && Object.keys(parsedCredentials).length > 0) {
         await authManager.storeCredentials(credentialType, parsedCredentials)
       }
+    } else if (credentialTypeRaw && !validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)) {
+      console.warn(`Invalid credential type provided: ${credentialTypeRaw}`)
     }
 
     // Log creation
@@ -154,16 +160,22 @@ export async function updateIntegration(formData: FormData) {
     if (error) throw error
 
     // Update credentials if provided
-    const credentialType = formData.get('credential_type') as CredentialTypeEnum
+    const credentialTypeRaw = formData.get('credential_type') as string
     const credentials = formData.get('credentials')
     
-    if (credentialType && credentials) {
+    // Validate credential type
+    const validCredentialTypes: CredentialTypeEnum[] = ['oauth2', 'api_key', 'basic_auth', 'custom']
+    
+    if (credentialTypeRaw && credentials && validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)) {
+      const credentialType = credentialTypeRaw as CredentialTypeEnum
       const authManager = new AuthManager(id, profile.organization_id)
       const parsedCredentials = safeJsonParse(credentials as string) as CredentialData
       
       if (parsedCredentials && Object.keys(parsedCredentials).length > 0) {
         await authManager.storeCredentials(credentialType, parsedCredentials)
       }
+    } else if (credentialTypeRaw && !validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)) {
+      console.warn(`Invalid credential type provided: ${credentialTypeRaw}`)
     }
 
     // Log update
