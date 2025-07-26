@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -31,13 +31,14 @@ const getCSRFToken = () => {
 }
 
 // API functions
-const syncIntegration = async (id: string) => {
+const syncIntegration = async (id: string, signal?: AbortSignal) => {
   const csrfToken = getCSRFToken()
   const response = await fetch(`/api/integrations/${id}/sync`, {
     method: 'POST',
     headers: {
       'x-csrf-token': csrfToken || '',
     },
+    signal, // Add abort signal support
   })
 
   if (!response.ok) {
@@ -92,10 +93,24 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  
+  // Ref to store abort controller for sync requests
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Abort any in-flight sync request when component unmounts
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   // Sync mutation
   const syncMutation = useMutation({
-    mutationFn: syncIntegration,
+    mutationFn: ({ id, signal }: { id: string; signal: AbortSignal }) => 
+      syncIntegration(id, signal),
     onSuccess: (data) => {
       toast.success(data.message || 'Sync started successfully')
       // Invalidate and refetch integrations
@@ -103,7 +118,14 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
       router.refresh()
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to start sync')
+      // Don't show error toast for aborted requests
+      if (error.name !== 'AbortError') {
+        toast.error(error.message || 'Failed to start sync')
+      }
+    },
+    onSettled: () => {
+      // Clear the abort controller reference
+      abortControllerRef.current = null
     },
   })
 
@@ -141,7 +163,17 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
   })
 
   const handleSync = (id: string) => {
-    syncMutation.mutate(id)
+    // Cancel any existing sync request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
+    // Create new abort controller for this request
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+    
+    // Start the sync with the abort signal
+    syncMutation.mutate({ id, signal: abortController.signal })
   }
 
   const handleToggleStatus = (id: string, currentStatus: string) => {
