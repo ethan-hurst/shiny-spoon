@@ -172,7 +172,7 @@ export async function POST(
       p_payload: {
         webhook_id: webhookConfig.id,
         event_type: payload.event_type,
-        payload: payload.data,
+        payload: payload.payload,
         received_at: new Date().toISOString(),
         platform,
       },
