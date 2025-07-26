@@ -219,17 +219,23 @@ export class NetSuiteSyncOrchestrator {
       switch (entityType) {
         case 'products':
           return await this.connector.syncProducts({
-            signal: this.abortController?.signal
+            signal: this.abortController?.signal,
+            limit: batchSize,
+            dryRun: dryRun
           })
         
         case 'inventory':
           return await this.connector.syncInventory({
-            signal: this.abortController?.signal
+            signal: this.abortController?.signal,
+            limit: batchSize,
+            dryRun: dryRun
           })
         
         case 'pricing':
           return await this.connector.syncPricing({
-            signal: this.abortController?.signal
+            signal: this.abortController?.signal,
+            limit: batchSize,
+            dryRun: dryRun
           })
       
       case 'customers':
