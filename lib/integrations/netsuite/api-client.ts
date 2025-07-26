@@ -29,7 +29,6 @@ export class NetSuiteApiClient {
   
   constructor(
     private auth: NetSuiteAuth,
-    private accountId: string,
     datacenterUrl: string,
     private rateLimiter?: RateLimiter
   ) {
