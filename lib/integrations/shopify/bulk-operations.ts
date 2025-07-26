@@ -270,15 +270,24 @@ export class BulkOperationManager {
     available: number
   }>): string {
     const mutations = adjustments.map((adj, index) => `
-      adjust${index}: inventoryAdjustQuantity(
+      adjust${index}: inventoryAdjustQuantities(
         input: {
-          inventoryLevelId: "gid://shopify/InventoryLevel?inventory_item_id=${adj.inventoryItemId}&location_id=${adj.locationId}"
-          availableDelta: ${adj.available}
+          reason: "correction"
+          name: "Sync from TruthSource"
+          changes: [{
+            inventoryItemId: "${adj.inventoryItemId}"
+            locationId: "${adj.locationId}"
+            delta: ${adj.available}
+          }]
         }
       ) {
-        inventoryLevel {
-          id
-          available
+        inventoryAdjustmentGroup {
+          createdAt
+          reason
+          changes {
+            name
+            delta
+          }
         }
         userErrors {
           field
