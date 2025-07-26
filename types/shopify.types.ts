@@ -421,7 +421,11 @@ export function isShopifyProduct(obj: unknown): obj is ShopifyProduct {
   if (product.descriptionHtml !== undefined && typeof product.descriptionHtml !== 'string') return false
   if (product.vendor !== undefined && typeof product.vendor !== 'string') return false
   if (product.productType !== undefined && typeof product.productType !== 'string') return false
-  if (product.tags !== undefined && !Array.isArray(product.tags)) return false
+  // fix-60: proper type guard for tags array
+  if (product.tags !== undefined) {
+    if (!Array.isArray(product.tags)) return false
+    if (!product.tags.every(tag => typeof tag === 'string')) return false
+  }
   if (product.updatedAt !== undefined && typeof product.updatedAt !== 'string') return false
   if (product.createdAt !== undefined && typeof product.createdAt !== 'string') return false
   
@@ -493,7 +497,9 @@ export function isShopifyCustomer(obj: unknown): obj is ShopifyCustomer {
   if (typeof customer.id !== 'string' || !customer.id) return false
   if (typeof customer.email !== 'string' || !customer.email) return false
   if (typeof customer.taxExempt !== 'boolean') return false
+  // fix-60: proper type guard for tags array
   if (!Array.isArray(customer.tags)) return false
+  if (!customer.tags.every(tag => typeof tag === 'string')) return false
   if (typeof customer.createdAt !== 'string' || !customer.createdAt) return false
   if (typeof customer.updatedAt !== 'string' || !customer.updatedAt) return false
   if (!Array.isArray(customer.addresses)) return false
