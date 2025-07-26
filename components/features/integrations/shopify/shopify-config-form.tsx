@@ -97,7 +97,12 @@ export function ShopifyConfigForm({
       // Convert form values to FormData
       const formData = new FormData()
       Object.entries(values).forEach(([key, value]) => {
-        formData.append(key, value.toString())
+        // Handle boolean values explicitly
+        if (typeof value === 'boolean') {
+          formData.append(key, value ? 'true' : 'false')
+        } else {
+          formData.append(key, value.toString())
+        }
       })
 
       let result
