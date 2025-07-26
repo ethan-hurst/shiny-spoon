@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
@@ -8,6 +8,7 @@ import { CalendarIcon, FileText, Plus, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { useProductsQuery } from '@/hooks/use-products-query'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -64,7 +65,8 @@ interface ContractItemForm {
   notes?: string
 }
 
-export function ContractDialog({
+// Inner component that uses the products data
+function ContractDialogInner({
   customerId,
   contract,
   children,
@@ -73,12 +75,13 @@ export function ContractDialog({
   const supabase = createBrowserClient()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [products, setProducts] = useState<Array<{
-    id: string
-    sku: string
-    name: string
-    base_price: number
-  }>>([])
+  // Use React Query for products
+  const { data: products = [], isError: productsError } = useProductsQuery()
+  
+  // Handle error state
+  if (productsError) {
+    toast.error('Failed to load products')
+  }
   const [contractItems, setContractItems] = useState<ContractItemForm[]>([])
 
   const form = useForm<z.infer<typeof contractSchema>>({
@@ -99,32 +102,7 @@ export function ContractDialog({
     },
   })
 
-  // Load products
-  useEffect(() => {
-    const loadProducts = async () => {
-      const { data } = await supabase
-        .from('products')
-        .select(`
-          id,
-          sku,
-          name,
-          product_pricing (
-            base_price
-          )
-        `)
-        .order('sku')
-
-      if (data) {
-        setProducts(data.map(p => ({
-          id: p.id,
-          sku: p.sku,
-          name: p.name,
-          base_price: p.product_pricing?.[0]?.base_price || 0
-        })))
-      }
-    }
-    loadProducts()
-  }, [supabase])
+  // Products are now loaded via React Query hook
 
   // Load contract items if editing
   useEffect(() => {
@@ -158,7 +136,11 @@ export function ContractDialog({
     setContractItems(contractItems.filter((_, i) => i !== index))
   }
 
-  const updateContractItem = (index: number, field: keyof ContractItemForm, value: any) => {
+  const updateContractItem = <K extends keyof ContractItemForm>(
+    index: number,
+    field: K,
+    value: ContractItemForm[K]
+  ) => {
     const updated = [...contractItems]
     updated[index] = { ...updated[index], [field]: value }
     setContractItems(updated)
@@ -463,7 +445,13 @@ export function ContractDialog({
                             min="1"
                             max="60"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              const numValue = parseInt(value, 10)
+                              if (!isNaN(numValue) && numValue >= 1 && numValue <= 60) {
+                                field.onChange(numValue)
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -630,13 +618,17 @@ export function ContractDialog({
                               type="number"
                               min="0"
                               value={item.min_quantity}
-                              onChange={(e) =>
-                                updateContractItem(
-                                  index,
-                                  'min_quantity',
-                                  parseInt(e.target.value)
-                                )
-                              }
+                              onChange={(e) => {
+                                const value = e.target.value
+                                if (value === '') {
+                                  updateContractItem(index, 'min_quantity', 0)
+                                  return
+                                }
+                                const numValue = parseInt(value, 10)
+                                if (!isNaN(numValue) && numValue >= 0 && numValue <= 999999) {
+                                  updateContractItem(index, 'min_quantity', numValue)
+                                }
+                              }}
                             />
                           </div>
 
@@ -648,13 +640,17 @@ export function ContractDialog({
                               type="number"
                               min="0"
                               value={item.max_quantity || ''}
-                              onChange={(e) =>
-                                updateContractItem(
-                                  index,
-                                  'max_quantity',
-                                  e.target.value ? parseInt(e.target.value) : undefined
-                                )
-                              }
+                              onChange={(e) => {
+                                const value = e.target.value
+                                if (value === '') {
+                                  updateContractItem(index, 'max_quantity', undefined)
+                                  return
+                                }
+                                const numValue = parseInt(value, 10)
+                                if (!isNaN(numValue) && numValue >= 0 && numValue <= 999999) {
+                                  updateContractItem(index, 'max_quantity', numValue)
+                                }
+                              }}
                             />
                           </div>
                         </div>
@@ -713,5 +709,26 @@ export function ContractDialog({
         </Form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// Loading component for Suspense fallback
+function ContractDialogSkeleton() {
+  return (
+    <div className="flex items-center justify-center p-6">
+      <div className="animate-pulse space-y-4">
+        <div className="h-4 bg-gray-200 rounded w-48"></div>
+        <div className="h-4 bg-gray-200 rounded w-64"></div>
+      </div>
+    </div>
+  )
+}
+
+// Main exported component with Suspense boundary
+export function ContractDialog(props: ContractDialogProps) {
+  return (
+    <Suspense fallback={<ContractDialogSkeleton />}>
+      <ContractDialogInner {...props} />
+    </Suspense>
   )
 }

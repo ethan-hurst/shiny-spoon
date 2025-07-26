@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { createBrowserClient } from '@/lib/supabase/client'
-import { RealtimeChannel } from '@supabase/supabase-js'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface UseCustomerPricingRealtimeProps {
   customerId: string
@@ -144,7 +145,7 @@ export function useContractExpiryNotifications({
     const interval = setInterval(checkExpiring, 24 * 60 * 60 * 1000)
 
     return () => clearInterval(interval)
-  }, [customerId, enabled])
+  }, [customerId, enabled, supabase, queryClient])
 }
 
 // Hook for approval notifications
@@ -171,8 +172,17 @@ export function usePriceApprovalNotifications(organizationId?: string) {
             queryKey: ['pending-approvals'],
           })
           
-          // You could show a toast notification here
-          console.log('New price approval request', payload.new)
+          // Show toast notification for new approval request
+          const approval = payload.new
+          toast.info(`New price approval request for ${approval.product_id}`, {
+            description: 'Click to review approval requests',
+            action: {
+              label: 'Review',
+              onClick: () => {
+                window.location.href = '/pricing/approvals'
+              },
+            },
+          })
         }
       )
       .subscribe()

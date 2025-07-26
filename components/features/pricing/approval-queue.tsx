@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -45,50 +46,59 @@ interface ApprovalQueueProps {
 }
 
 export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [selectedApproval, setSelectedApproval] =
     useState<PriceApprovalWithDetails | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [showRejectDialog, setShowRejectDialog] = useState(false)
-  const [loading, setLoading] = useState<string | null>(null)
 
   // Filter approvals by customer if customerId provided
   const filteredApprovals = customerId
     ? approvals.filter((a) => a.customer_id === customerId)
     : approvals
 
-  const handleApprove = async (approval: PriceApprovalWithDetails) => {
-    setLoading(approval.id)
-    try {
-      await approvePriceChange(approval.id)
+  // Approve mutation
+  const approveMutation = useMutation({
+    mutationFn: (approvalId: string) => approvePriceChange(approvalId),
+    onSuccess: () => {
       toast.success('Price change approved successfully')
-      router.refresh()
-    } catch (error) {
-      toast.error('Failed to approve price change')
-    } finally {
-      setLoading(null)
-    }
+      queryClient.invalidateQueries({ queryKey: ['approvals'] })
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to approve price change')
+    },
+  })
+
+  // Reject mutation
+  const rejectMutation = useMutation({
+    mutationFn: ({ approvalId, reason }: { approvalId: string; reason: string }) =>
+      rejectPriceChange(approvalId, reason),
+    onSuccess: () => {
+      toast.success('Price change rejected')
+      queryClient.invalidateQueries({ queryKey: ['approvals'] })
+      setShowRejectDialog(false)
+      setRejectionReason('')
+      setSelectedApproval(null)
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to reject price change')
+    },
+  })
+
+  const handleApprove = (approval: PriceApprovalWithDetails) => {
+    approveMutation.mutate(approval.id)
   }
 
-  const handleReject = async () => {
+  const handleReject = () => {
     if (!selectedApproval || !rejectionReason.trim()) {
       toast.error('Please provide a rejection reason')
       return
     }
 
-    setLoading(selectedApproval.id)
-    try {
-      await rejectPriceChange(selectedApproval.id, rejectionReason)
-      toast.success('Price change rejected')
-      setShowRejectDialog(false)
-      setRejectionReason('')
-      setSelectedApproval(null)
-      router.refresh()
-    } catch (error) {
-      toast.error('Failed to reject price change')
-    } finally {
-      setLoading(null)
-    }
+    rejectMutation.mutate({
+      approvalId: selectedApproval.id,
+      reason: rejectionReason,
+    })
   }
 
   if (filteredApprovals.length === 0) {
@@ -190,7 +200,7 @@ export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
               <Button
                 size="sm"
                 onClick={() => handleApprove(approval)}
-                disabled={loading === approval.id}
+                disabled={approveMutation.isPending && approveMutation.variables === approval.id}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Approve
@@ -202,7 +212,7 @@ export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
                   setSelectedApproval(approval)
                   setShowRejectDialog(true)
                 }}
-                disabled={loading === approval.id}
+                disabled={rejectMutation.isPending}
               >
                 <X className="h-4 w-4 mr-2" />
                 Reject
@@ -258,7 +268,7 @@ export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
             <Button
               variant="destructive"
               onClick={handleReject}
-              disabled={!rejectionReason.trim() || loading === selectedApproval?.id}
+              disabled={!rejectionReason.trim() || rejectMutation.isPending}
             >
               Reject Price Change
             </Button>

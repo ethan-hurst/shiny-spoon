@@ -35,6 +35,47 @@ interface PriceComparisonViewProps {
   products: CustomerPriceWithProduct[]
 }
 
+// Helper functions for price calculations
+function getBasePrice(product: CustomerPriceWithProduct): number {
+  return product.product_pricing?.base_price || 0
+}
+
+function getCustomerPrice(product: CustomerPriceWithProduct): number {
+  const basePrice = getBasePrice(product)
+  
+  if (product.override_price !== null) {
+    return product.override_price
+  }
+  
+  if (product.override_discount_percent !== null) {
+    return basePrice * (1 - product.override_discount_percent / 100)
+  }
+  
+  return basePrice
+}
+
+function getDiscountPercentage(product: CustomerPriceWithProduct): number {
+  const basePrice = getBasePrice(product)
+  const customerPrice = getCustomerPrice(product)
+  
+  if (basePrice === 0) return 0
+  
+  return ((basePrice - customerPrice) / basePrice) * 100
+}
+
+function getCost(product: CustomerPriceWithProduct): number {
+  return product.product_pricing?.cost || 0
+}
+
+function getMarginPercentage(product: CustomerPriceWithProduct): number {
+  const customerPrice = getCustomerPrice(product)
+  const cost = getCost(product)
+  
+  if (customerPrice === 0) return 0
+  
+  return ((customerPrice - cost) / customerPrice) * 100
+}
+
 export function PriceComparisonView({
   products,
 }: PriceComparisonViewProps) {
@@ -50,25 +91,15 @@ export function PriceComparisonView({
     )
 
     const totalValue = products.reduce((sum, p) => {
-      const basePrice = p.product_pricing?.base_price || 0
-      const customerPrice =
-        p.override_price !== null
-          ? p.override_price
-          : p.override_discount_percent !== null
-            ? basePrice * (1 - p.override_discount_percent / 100)
-            : basePrice
+      const basePrice = getBasePrice(p)
+      const customerPrice = getCustomerPrice(p)
       return sum + (basePrice - customerPrice)
     }, 0)
 
     const avgDiscount =
       productsWithCustomPrice.length > 0
         ? productsWithCustomPrice.reduce((sum, p) => {
-            const basePrice = p.product_pricing?.base_price || 0
-            const customerPrice =
-              p.override_price !== null
-                ? p.override_price
-                : basePrice * (1 - (p.override_discount_percent || 0) / 100)
-            return sum + ((basePrice - customerPrice) / basePrice) * 100
+            return sum + getDiscountPercentage(p)
           }, 0) / productsWithCustomPrice.length
         : 0
 
@@ -95,63 +126,38 @@ export function PriceComparisonView({
 
     // Discount filter
     if (discountFilter !== 'all') {
-      const basePrice = (p: CustomerPriceWithProduct) =>
-        p.product_pricing?.base_price || 0
-      const customerPrice = (p: CustomerPriceWithProduct) =>
-        p.override_price !== null
-          ? p.override_price
-          : p.override_discount_percent !== null
-            ? basePrice(p) * (1 - p.override_discount_percent / 100)
-            : basePrice(p)
-      const discount = (p: CustomerPriceWithProduct) =>
-        basePrice(p) > 0
-          ? ((basePrice(p) - customerPrice(p)) / basePrice(p)) * 100
-          : 0
-
       switch (discountFilter) {
         case 'none':
-          filtered = filtered.filter((p) => discount(p) === 0)
+          filtered = filtered.filter((p) => getDiscountPercentage(p) === 0)
           break
         case 'low':
-          filtered = filtered.filter((p) => discount(p) > 0 && discount(p) <= 10)
+          filtered = filtered.filter((p) => {
+            const discount = getDiscountPercentage(p)
+            return discount > 0 && discount <= 10
+          })
           break
         case 'medium':
-          filtered = filtered.filter((p) => discount(p) > 10 && discount(p) <= 20)
+          filtered = filtered.filter((p) => {
+            const discount = getDiscountPercentage(p)
+            return discount > 10 && discount <= 20
+          })
           break
         case 'high':
-          filtered = filtered.filter((p) => discount(p) > 20)
+          filtered = filtered.filter((p) => getDiscountPercentage(p) > 20)
           break
       }
     }
 
     // Sort
     filtered.sort((a, b) => {
-      const aBase = a.product_pricing?.base_price || 0
-      const bBase = b.product_pricing?.base_price || 0
-      
-      const aCustomer =
-        a.override_price !== null
-          ? a.override_price
-          : a.override_discount_percent !== null
-            ? aBase * (1 - a.override_discount_percent / 100)
-            : aBase
-      
-      const bCustomer =
-        b.override_price !== null
-          ? b.override_price
-          : b.override_discount_percent !== null
-            ? bBase * (1 - b.override_discount_percent / 100)
-            : bBase
-
-      const aDiscount = aBase > 0 ? ((aBase - aCustomer) / aBase) * 100 : 0
-      const bDiscount = bBase > 0 ? ((bBase - bCustomer) / bBase) * 100 : 0
-      const aValue = aBase - aCustomer
-      const bValue = bBase - bCustomer
-
       let comparison = 0
+      
       if (sortBy === 'discount') {
-        comparison = aDiscount - bDiscount
+        comparison = getDiscountPercentage(a) - getDiscountPercentage(b)
       } else {
+        // Sort by value (savings)
+        const aValue = getBasePrice(a) - getCustomerPrice(a)
+        const bValue = getBasePrice(b) - getCustomerPrice(b)
         comparison = aValue - bValue
       }
 
@@ -284,26 +290,14 @@ export function PriceComparisonView({
                   </TableRow>
                 ) : (
                   filteredProducts.map((product) => {
-                    const basePrice = product.product_pricing?.base_price || 0
-                    const cost = product.product_pricing?.cost || 0
-                    const customerPrice =
-                      product.override_price !== null
-                        ? product.override_price
-                        : product.override_discount_percent !== null
-                          ? basePrice * (1 - product.override_discount_percent / 100)
-                          : basePrice
-                    // Calculate discount percentage, returning 0 if basePrice is 0 to avoid division by zero
-                    const discount =
-                      basePrice > 0
-                        ? ((basePrice - customerPrice) / basePrice) * 100
-                        : 0
+                    const basePrice = getBasePrice(product)
+                    const cost = getCost(product)
+                    const customerPrice = getCustomerPrice(product)
+                    const discount = getDiscountPercentage(product)
                     const savings = basePrice - customerPrice
                     const baseMargin =
                       basePrice > 0 ? ((basePrice - cost) / basePrice) * 100 : 0
-                    const customerMargin =
-                      customerPrice > 0
-                        ? ((customerPrice - cost) / customerPrice) * 100
-                        : 0
+                    const customerMargin = getMarginPercentage(product)
                     const marginDiff = customerMargin - baseMargin
 
                     return (
@@ -368,15 +362,9 @@ export function PriceComparisonView({
         <TabsContent value="visual" className="space-y-4">
           <div className="grid gap-4">
             {filteredProducts.slice(0, 20).map((product) => {
-              const basePrice = product.product_pricing?.base_price || 0
-              const customerPrice =
-                product.override_price !== null
-                  ? product.override_price
-                  : product.override_discount_percent !== null
-                    ? basePrice * (1 - product.override_discount_percent / 100)
-                    : basePrice
-              const discount =
-                basePrice > 0 ? ((basePrice - customerPrice) / basePrice) * 100 : 0
+              const basePrice = getBasePrice(product)
+              const customerPrice = getCustomerPrice(product)
+              const discount = getDiscountPercentage(product)
 
               return (
                 <div

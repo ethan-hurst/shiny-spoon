@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import {
   AlertCircle,
   Calendar,
-  Clock,
   Edit,
   FileText,
   MoreHorizontal,
@@ -45,16 +44,14 @@ import {
   getContractStatusColor,
   isContractExpiring,
 } from '@/types/customer-pricing.types'
-import { CustomerRecord } from '@/types/customer.types'
 import { cancelContract, renewContract } from '@/app/actions/customer-pricing'
 
 interface ContractListProps {
   customerId: string
   contracts: ContractWithItems[]
-  customer: CustomerRecord
 }
 
-export function ContractList({ customerId, contracts, customer }: ContractListProps) {
+export function ContractList({ customerId, contracts }: ContractListProps) {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
@@ -77,7 +74,8 @@ export function ContractList({ customerId, contracts, customer }: ContractListPr
       toast.success('Contract cancelled successfully')
       router.refresh()
     } catch (error) {
-      toast.error('Failed to cancel contract')
+      console.error('Failed to cancel contract:', error)
+      toast.error(`Failed to cancel contract: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(null)
       setContractToCancel(null)
@@ -95,7 +93,8 @@ export function ContractList({ customerId, contracts, customer }: ContractListPr
       toast.success('Contract renewed successfully')
       router.refresh()
     } catch (error) {
-      toast.error('Failed to renew contract')
+      console.error('Failed to renew contract:', error)
+      toast.error(`Failed to renew contract: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(null)
     }

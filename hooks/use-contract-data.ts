@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database.types'
 
@@ -14,43 +14,44 @@ interface UseContractDataReturn {
   products: Product[]
   loading: boolean
   error: Error | null
+  refetch: () => void
+}
+
+async function fetchProducts() {
+  const supabase = createBrowserClient()
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      *,
+      product_pricing (
+        base_price
+      )
+    `)
+    .eq('is_active', true)
+    .order('name')
+
+  if (error) {
+    throw new Error(error.message || 'Failed to fetch products')
+  }
+
+  return data || []
 }
 
 export function useContractData(): UseContractDataReturn {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const supabase = createBrowserClient()
+  const { data: products = [], isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['contract-products'],
+    queryFn: fetchProducts,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  })
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const { data, error: fetchError } = await supabase
-          .from('products')
-          .select(`
-            *,
-            product_pricing (
-              base_price
-            )
-          `)
-          .eq('is_active', true)
-          .order('name')
-
-        if (fetchError) throw fetchError
-
-        setProducts(data || [])
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch products'))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchProducts()
-  }, [supabase])
-
-  return { products, loading, error }
+  return { 
+    products, 
+    loading, 
+    error: error instanceof Error ? error : null,
+    refetch: () => { refetch() }
+  }
 }

@@ -148,9 +148,11 @@ export function ContractItemsSection({
                       type="number"
                       min="1"
                       value={item.min_quantity}
-                      onChange={(e) =>
-                        onUpdateItem(index, 'min_quantity', parseInt(e.target.value) || 1)
-                      }
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value, 10)
+                        const validatedValue = isNaN(value) || value < 1 ? 1 : value
+                        onUpdateItem(index, 'min_quantity', validatedValue)
+                      }}
                     />
                   </div>
 

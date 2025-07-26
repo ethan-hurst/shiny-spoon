@@ -7,6 +7,8 @@ import {
   priceApprovalSchema,
   ContractItem,
 } from '@/types/customer-pricing.types'
+import { sendApprovalEmail } from '@/lib/email/price-approval-notification'
+import { queueEmail } from '@/lib/email/email-queue'
 
 // Contract Actions
 export async function createContract(formData: FormData) {
@@ -16,6 +18,19 @@ export async function createContract(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
+
+  // Get user's organization_id
+  const { data: userProfile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError || !userProfile?.organization_id) {
+    throw new Error('User profile not found or not associated with an organization')
+  }
+
+  const organizationId = userProfile.organization_id
 
   // Parse contract data
   const contractData = contractSchema.parse({
@@ -37,44 +52,37 @@ export async function createContract(formData: FormData) {
     document_url: formData.get('document_url') || undefined,
   })
 
+  // Verify customer belongs to user's organization
+  const { data: customer, error: customerError } = await supabase
+    .from('customers')
+    .select('id')
+    .eq('id', contractData.customer_id)
+    .eq('organization_id', organizationId)
+    .single()
+
+  if (customerError || !customer) {
+    throw new Error('Customer not found or access denied')
+  }
+
   // Parse contract items
   const contractItemsJson = formData.get('contract_items') as string
   const contractItems = contractItemsJson ? JSON.parse(contractItemsJson) : []
 
-  // Insert contract
-  const { data: contract, error: contractError } = await supabase
-    .from('customer_contracts')
-    .insert({
-      ...contractData,
-      created_by: user.id,
+  // Use RPC to create contract and items atomically in a single transaction
+  const { data: contract, error: rpcError } = await supabase
+    .rpc('create_contract_with_items', {
+      p_contract_data: contractData,
+      p_contract_items: contractItems,
+      p_user_id: user.id,
+      p_organization_id: organizationId,
     })
-    .select()
-    .single()
 
-  if (contractError) throw contractError
+  if (rpcError) {
+    throw new Error(`Failed to create contract: ${rpcError.message}`)
+  }
 
-  // Insert contract items within try-catch to rollback on failure
-  if (contractItems.length > 0) {
-    try {
-      const { error: itemsError } = await supabase
-        .from('contract_items')
-        .insert(
-          contractItems.map((item: ContractItem) => ({
-            ...item,
-            contract_id: contract.id,
-          }))
-        )
-
-      if (itemsError) throw itemsError
-    } catch (error) {
-      // Rollback: delete the contract if items insertion fails
-      await supabase
-        .from('customer_contracts')
-        .delete()
-        .eq('id', contract.id)
-      
-      throw new Error(`Failed to create contract items: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
+  if (!contract) {
+    throw new Error('Contract creation failed: No data returned')
   }
 
   revalidatePath(`/customers/${contractData.customer_id}/pricing`)
@@ -300,7 +308,62 @@ export async function createPriceApproval(formData: FormData) {
 
   if (error) throw error
 
-  // TODO: Send notification email to approvers
+  // Get the full approval details with related data for the email
+  const { data: approvalWithDetails, error: fetchError } = await supabase
+    .from('price_approvals')
+    .select(`
+      *,
+      customers (
+        display_name,
+        company_name
+      ),
+      products (
+        name,
+        sku
+      ),
+      requested_by_user:users!requested_by (
+        email,
+        full_name
+      )
+    `)
+    .eq('id', data.id)
+    .single()
+
+  if (fetchError || !approvalWithDetails) {
+    throw new Error('Failed to fetch approval details for notification')
+  }
+
+  // Get approvers from the organization
+  const { data: approvers, error: approversError } = await supabase
+    .from('user_profiles')
+    .select('user_id, users!inner(email)')
+    .eq('organization_id', approvalWithDetails.organization_id)
+    .eq('role', 'approver')
+
+  if (approversError) {
+    console.error('Failed to fetch approvers:', approversError)
+  }
+
+  // Send notification emails to all approvers
+  if (approvers && approvers.length > 0) {
+    const emailPromises = approvers.map(async (approver) => {
+      const approverEmail = approver.users?.email
+      if (approverEmail) {
+        try {
+          const actionUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pricing/approvals/${data.id}`
+          await sendApprovalEmail({
+            to: approverEmail,
+            approval: approvalWithDetails,
+            actionUrl,
+          })
+        } catch (err) {
+          console.error(`Failed to send email to ${approverEmail}:`, err)
+        }
+      }
+    })
+
+    await Promise.allSettled(emailPromises)
+  }
 
   revalidatePath('/pricing/approvals')
   return data
