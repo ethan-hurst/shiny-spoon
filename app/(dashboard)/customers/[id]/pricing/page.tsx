@@ -4,13 +4,13 @@ import {
   AlertCircle,
   Clock,
   DollarSign,
-  Download,
   FileText,
   Plus,
   Upload,
 } from 'lucide-react'
 // Components
 import { CustomerPriceList } from '@/components/features/pricing/customer-price-list'
+import { ApprovalQueue } from '@/components/features/pricing/approval-queue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,8 +25,8 @@ import { createClient } from '@/lib/supabase/server'
 import { formatPercent } from '@/lib/utils'
 import { CustomerPricingStats } from '@/types/customer-pricing.types'
 
-// import { BulkPriceUpdate } from '@/components/features/pricing/bulk-price-update'
-// import { PriceExportButton } from '@/components/features/pricing/price-export-button'
+import { BulkPriceUpdateDialog } from '@/components/features/pricing/bulk-price-update-dialog'
+import { PriceExportButton } from '@/components/features/pricing/price-export-button'
 
 interface CustomerPricingPageProps {
   params: Promise<{
@@ -82,12 +82,35 @@ async function getCustomerData(customerId: string) {
     p_customer_id: customerId,
   })
 
-  // Get pending approvals count
-  const { count: pendingApprovals } = await supabase
+  // Get pending approvals
+  const { data: approvals, count: pendingApprovalsCount } = await supabase
     .from('price_approvals')
-    .select('*', { count: 'exact', head: true })
+    .select(`
+      *,
+      customers (
+        id,
+        company_name,
+        display_name
+      ),
+      products (
+        id,
+        sku,
+        name
+      ),
+      requested_by_user:requested_by (
+        id,
+        email,
+        full_name
+      ),
+      approved_by_user:approved_by (
+        id,
+        email,
+        full_name
+      )
+    `, { count: 'exact' })
     .eq('customer_id', customerId)
     .eq('status', 'pending')
+    .order('requested_at', { ascending: false })
 
   // Get expiring contracts
   const thirtyDaysFromNow = new Date()
@@ -107,9 +130,10 @@ async function getCustomerData(customerId: string) {
       custom_prices: 0,
       contract_prices: 0,
       average_discount: 0,
-      pending_approvals: pendingApprovals || 0,
+      pending_approvals: pendingApprovalsCount || 0,
       expiring_contracts: expiringContracts || 0,
     },
+    pendingApprovals: approvals || [],
   }
 }
 
@@ -123,7 +147,7 @@ export default async function CustomerPricingPage(
     notFound()
   }
 
-  const { customer, stats } = data
+  const { customer, stats, pendingApprovals } = data
 
   return (
     <div className="space-y-6">
@@ -138,16 +162,16 @@ export default async function CustomerPricingPage(
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* <BulkPriceUpdate customerId={params.id} /> */}
-          <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Bulk Update
-          </Button>
-          {/* <PriceExportButton customerId={params.id} /> */}
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
+          <BulkPriceUpdateDialog customerId={params.id}>
+            <Button variant="outline" size="sm">
+              <Upload className="h-4 w-4 mr-2" />
+              Bulk Update
+            </Button>
+          </BulkPriceUpdateDialog>
+          <PriceExportButton 
+            customerId={params.id} 
+            customerName={customer.display_name || customer.company_name}
+          />
           <Button size="sm">
             <Plus className="h-4 w-4 mr-2" />
             New Contract
@@ -296,9 +320,7 @@ export default async function CustomerPricingPage(
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-96 text-muted-foreground">
-                Approval queue will be implemented
-              </div>
+              <ApprovalQueue approvals={pendingApprovals} customerId={params.id} />
             </CardContent>
           </Card>
         </TabsContent>
