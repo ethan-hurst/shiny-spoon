@@ -375,10 +375,11 @@ export class NetSuiteTransformers {
 
   /**
    * Parse NetSuite date format
+   * @throws Error if the date string is invalid or cannot be parsed
    */
   private parseNetSuiteDate(dateString: string): string {
     if (!dateString) {
-      return new Date().toISOString()
+      throw new Error('NetSuite date is empty or undefined - this indicates missing data in the source system')
     }
     
     try {
@@ -397,13 +398,16 @@ export class NetSuiteTransformers {
           }
         }
         
-        // If all else fails, return current date
-        return new Date().toISOString()
+        // If all else fails, throw an error with the invalid date string
+        throw new Error(`Invalid NetSuite date format: "${dateString}" - expected format: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601`)
       }
       
       return date.toISOString()
-    } catch {
-      return new Date().toISOString()
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error
+      }
+      throw new Error(`Failed to parse NetSuite date: "${dateString}" - ${error}`)
     }
   }
 
