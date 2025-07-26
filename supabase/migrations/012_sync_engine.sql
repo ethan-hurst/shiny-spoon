@@ -334,6 +334,9 @@ ALTER TABLE sync_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_conflicts ENABLE ROW LEVEL SECURITY;
+-- fix-58: Enable RLS on sync_queue but no policies needed
+-- The sync_queue table is only accessed by service role (background workers)
+-- No user-level access is required, so no RLS policies are defined
 ALTER TABLE sync_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_metrics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sync_notifications ENABLE ROW LEVEL SECURITY;
