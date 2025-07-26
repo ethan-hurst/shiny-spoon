@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Form,
   FormControl,
@@ -77,7 +78,7 @@ export function NetSuiteConfigForm({
   config 
 }: NetSuiteConfigFormProps) {
   const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const queryClient = useQueryClient()
   const [redirectUri, setRedirectUri] = useState('')
 
   // Set redirect URI after component mounts to avoid SSR issues
@@ -115,76 +116,130 @@ export function NetSuiteConfigForm({
     },
   })
 
-  async function onSubmit(values: NetSuiteConfigFormValues) {
-    setIsSubmitting(true)
-
-    try {
-      if (integration) {
-        // Update existing integration
-        const formData = new FormData()
-        formData.append('id', integration.id)
-        formData.append('name', values.name)
-        formData.append('description', values.description || '')
-        
-        const config = {
-          account_id: values.account_id,
-          datacenter_url: values.datacenter_url,
-        }
-        formData.append('config', JSON.stringify(config))
-
-        // If OAuth credentials provided, store them separately
-        if (values.client_id && values.client_secret) {
-          await storeOAuthCredentials(integration.id, values.client_id, values.client_secret)
-        }
-
-        await updateIntegration(formData)
-        
-        toast({
-          title: 'Configuration updated',
-          description: 'NetSuite configuration has been updated successfully.',
-        })
-        
-        router.refresh()
-      } else {
-        // Create new integration
-        const formData = new FormData()
-        formData.append('platform', 'netsuite')
-        formData.append('name', values.name)
-        formData.append('description', values.description || '')
-        formData.append('organization_id', organizationId)
-        
-        const config = {
-          account_id: values.account_id,
-          datacenter_url: values.datacenter_url,
-        }
-        formData.append('config', JSON.stringify(config))
-
-        const result = await createIntegration(formData)
-        
-        // If OAuth credentials provided, store them
-        if (values.client_id && values.client_secret && result.data?.id) {
-          await storeOAuthCredentials(result.data.id, values.client_id, values.client_secret)
-        }
-
-        toast({
-          title: 'Integration created',
-          description: 'NetSuite integration has been created successfully.',
-        })
-        
-        // Redirect to integration page
-        router.push(`/integrations/netsuite?id=${result.data?.id}`)
+  // React Query mutation for creating integrations
+  const createIntegrationMutation = useMutation({
+    mutationFn: async (values: NetSuiteConfigFormValues) => {
+      const formData = new FormData()
+      formData.append('platform', 'netsuite')
+      formData.append('name', values.name)
+      formData.append('description', values.description || '')
+      formData.append('organization_id', organizationId)
+      
+      const config = {
+        account_id: values.account_id,
+        datacenter_url: values.datacenter_url,
       }
-    } catch (error) {
-      console.error('NetSuite configuration error:', error)
+      formData.append('config', JSON.stringify(config))
+
+      const result = await createIntegration(formData)
+      
+      // Store OAuth credentials if provided
+      if (values.client_id && values.client_secret && result.data?.id) {
+        await storeOAuthCredentials(result.data.id, values.client_id, values.client_secret)
+      }
+      
+      return result
+    },
+    onSuccess: (result) => {
       toast({
-        title: 'Configuration failed',
-        description: error instanceof Error ? error.message : 'Failed to save configuration',
+        title: 'Integration created',
+        description: 'NetSuite integration has been created successfully.',
+      })
+      
+      // Invalidate integrations cache
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      queryClient.invalidateQueries({ queryKey: ['integration', result.data?.id] })
+      
+      // Navigate to integration page
+      router.push(`/integrations/netsuite?id=${result.data?.id}`)
+    },
+    onError: (error) => {
+      console.error('NetSuite integration creation error:', error)
+      toast({
+        title: 'Integration creation failed',
+        description: error instanceof Error ? error.message : 'Failed to create integration',
         variant: 'destructive',
       })
-    } finally {
-      setIsSubmitting(false)
+    },
+  })
+
+  // React Query mutation for updating integrations
+  const updateIntegrationMutation = useMutation({
+    mutationFn: async (values: NetSuiteConfigFormValues) => {
+      if (!integration) throw new Error('No integration to update')
+      
+      const formData = new FormData()
+      formData.append('id', integration.id)
+      formData.append('name', values.name)
+      formData.append('description', values.description || '')
+      
+      const config = {
+        account_id: values.account_id,
+        datacenter_url: values.datacenter_url,
+      }
+      formData.append('config', JSON.stringify(config))
+
+      // Store OAuth credentials if provided
+      if (values.client_id && values.client_secret) {
+        await storeOAuthCredentials(integration.id, values.client_id, values.client_secret)
+      }
+
+      return await updateIntegration(formData)
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Configuration updated',
+        description: 'NetSuite configuration has been updated successfully.',
+      })
+      
+      // Invalidate integrations cache
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      queryClient.invalidateQueries({ queryKey: ['integration', integration?.id] })
+      
+      // Refresh the page to show updated data
+      router.refresh()
+    },
+    onError: (error) => {
+      console.error('NetSuite configuration update error:', error)
+      toast({
+        title: 'Configuration update failed',
+        description: error instanceof Error ? error.message : 'Failed to update configuration',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  // React Query mutation for storing OAuth credentials separately
+  const storeCredentialsMutation = useMutation({
+    mutationFn: async ({ integrationId, clientId, clientSecret }: {
+      integrationId: string
+      clientId: string
+      clientSecret: string
+    }) => {
+      return await storeOAuthCredentials(integrationId, clientId, clientSecret)
+    },
+    onError: (error) => {
+      console.error('OAuth credentials storage error:', error)
+      toast({
+        title: 'Credential storage failed',
+        description: error instanceof Error ? error.message : 'Failed to store OAuth credentials',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  function onSubmit(values: NetSuiteConfigFormValues) {
+    if (integration) {
+      // Update existing integration
+      updateIntegrationMutation.mutate(values)
+    } else {
+      // Create new integration
+      createIntegrationMutation.mutate(values)
     }
   }
+
+  // Get loading state from mutations
+  const isSubmitting = createIntegrationMutation.isPending || updateIntegrationMutation.isPending
 
   return (
     <Form {...form}>
