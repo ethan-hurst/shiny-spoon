@@ -8,6 +8,14 @@ import type { IntegrationPlatformType } from '@/types/integration.types'
 // Disable body parsing to access raw body for signature verification
 export const runtime = 'edge'
 
+// Priority levels for sync jobs
+const PRIORITY_LEVELS = {
+  CRITICAL: 1,
+  HIGH: 3,
+  MEDIUM: 5,
+  LOW: 7,
+} as const
+
 // Platform validation
 const VALID_PLATFORMS: IntegrationPlatformType[] = [
   'shopify',
@@ -17,6 +25,66 @@ const VALID_PLATFORMS: IntegrationPlatformType[] = [
   'dynamics365',
   'custom',
 ]
+
+// Helper function to get integration context based on platform
+async function getIntegrationContext(
+  platform: string,
+  headersList: Headers,
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<{ id: string; organization_id: string } | null> {
+  try {
+    switch (platform) {
+      case 'shopify': {
+        const shopifyShop = headersList.get('x-shopify-shop-domain')
+        if (!shopifyShop) return null
+
+        const { data: integration } = await supabase
+          .from('integrations')
+          .select('id, organization_id')
+          .eq('platform', platform)
+          .eq('config->shop_domain', shopifyShop)
+          .single()
+
+        return integration
+      }
+      
+      case 'netsuite': {
+        const accountId = headersList.get('x-netsuite-account-id')
+        if (!accountId) return null
+
+        const { data: integration } = await supabase
+          .from('integrations')
+          .select('id, organization_id')
+          .eq('platform', platform)
+          .eq('config->account_id', accountId)
+          .single()
+
+        return integration
+      }
+      
+      case 'quickbooks': {
+        const realmId = headersList.get('x-intuit-realm-id')
+        if (!realmId) return null
+
+        const { data: integration } = await supabase
+          .from('integrations')
+          .select('id, organization_id')
+          .eq('platform', platform)
+          .eq('config->realm_id', realmId)
+          .single()
+
+        return integration
+      }
+      
+      // Add more platform-specific logic as needed
+      default:
+        return null
+    }
+  } catch (error) {
+    console.error('Error fetching integration context:', error)
+    return null
+  }
+}
 
 export async function POST(
   request: NextRequest,
@@ -108,7 +176,7 @@ export async function POST(
         received_at: new Date().toISOString(),
         platform,
       },
-      p_priority: 3, // High priority for webhooks
+      p_priority: PRIORITY_LEVELS.HIGH, // High priority for webhooks
     })
 
     if (jobError) {
@@ -144,32 +212,23 @@ export async function POST(
     try {
       const supabase = createAdminClient()
       const platform = params.platform
-      
-      // Attempt to find integration by platform header clues
       const headersList = headers()
-      const shopifyShop = headersList.get('x-shopify-shop-domain')
       
-      if (shopifyShop) {
-        const { data: integration } = await supabase
-          .from('integrations')
-          .select('id, organization_id')
-          .eq('platform', platform)
-          .eq('config->shop_domain', shopifyShop)
-          .single()
+      // Get integration context using helper function
+      const integration = await getIntegrationContext(platform, headersList, supabase)
 
-        if (integration) {
-          await supabase.rpc('log_integration_activity', {
-            p_integration_id: integration.id,
-            p_organization_id: integration.organization_id,
-            p_log_type: 'webhook',
-            p_severity: 'critical',
-            p_message: 'Webhook processing failed',
-            p_details: {
-              error: error instanceof Error ? error.message : String(error),
-              platform,
-            },
-          })
-        }
+      if (integration) {
+        await supabase.rpc('log_integration_activity', {
+          p_integration_id: integration.id,
+          p_organization_id: integration.organization_id,
+          p_log_type: 'webhook',
+          p_severity: 'critical',
+          p_message: 'Webhook processing failed',
+          p_details: {
+            error: error instanceof Error ? error.message : String(error),
+            platform,
+          },
+        })
       }
     } catch {
       // Ignore logging errors
