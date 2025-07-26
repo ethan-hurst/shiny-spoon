@@ -46,6 +46,33 @@ export class WebhookHandler {
     platform: IntegrationPlatformType,
     headers: Headers
   ): Promise<WebhookConfig | null> {
+    // Debug logging: capture input parameters
+    const debugInfo = {
+      platform,
+      headers: {} as Record<string, string | null>,
+      timestamp: new Date().toISOString(),
+    }
+
+    // Extract relevant headers for debugging
+    const relevantHeaders = [
+      'x-shopify-shop-domain',
+      'x-shopify-topic',
+      'x-shopify-webhook-id',
+      'intuit-company-id',
+      'x-netsuite-account-id',
+      'x-webhook-id',
+      'user-agent',
+    ]
+
+    relevantHeaders.forEach((header) => {
+      const value = headers.get(header)
+      if (value) {
+        debugInfo.headers[header] = value
+      }
+    })
+
+    console.log('[WebhookHandler] getWebhookConfig - Starting query:', debugInfo)
+
     try {
       // Platform-specific webhook identification
       let query = this.supabase
@@ -63,12 +90,19 @@ export class WebhookHandler {
         .eq('integrations.platform', platform)
         .eq('is_active', true)
 
+      // Track query filters for debugging
+      const queryFilters: Record<string, any> = {
+        platform,
+        is_active: true,
+      }
+
       // Add platform-specific filters
       switch (platform) {
         case 'shopify':
           const shopDomain = headers.get('x-shopify-shop-domain')
           if (shopDomain) {
             query = query.eq('integrations.config->shop_domain', shopDomain)
+            queryFilters.shop_domain = shopDomain
           }
           break
 
@@ -76,6 +110,7 @@ export class WebhookHandler {
           const companyId = headers.get('intuit-company-id')
           if (companyId) {
             query = query.eq('integrations.config->company_id', companyId)
+            queryFilters.company_id = companyId
           }
           break
 
@@ -84,20 +119,52 @@ export class WebhookHandler {
           break
       }
 
+      console.log('[WebhookHandler] getWebhookConfig - Query filters:', queryFilters)
+
       const { data, error } = await query.single()
 
-      if (error || !data) {
+      if (error) {
+        console.error('[WebhookHandler] getWebhookConfig - Database error:', {
+          error: error.message,
+          code: error.code,
+          details: error.details,
+          platform,
+          filters: queryFilters,
+        })
         return null
       }
 
-      return {
+      if (!data) {
+        console.warn('[WebhookHandler] getWebhookConfig - No webhook config found:', {
+          platform,
+          filters: queryFilters,
+        })
+        return null
+      }
+
+      const webhookConfig = {
         ...data,
         integration_id: data.integrations.id,
         organization_id: data.integrations.organization_id,
         platform: data.integrations.platform,
       } as WebhookConfig
+
+      console.log('[WebhookHandler] getWebhookConfig - Success:', {
+        webhook_id: webhookConfig.id,
+        integration_id: webhookConfig.integration_id,
+        organization_id: webhookConfig.organization_id,
+        platform: webhookConfig.platform,
+        endpoint_url: webhookConfig.endpoint_url,
+        events: webhookConfig.events,
+      })
+
+      return webhookConfig
     } catch (error) {
-      console.error('Failed to get webhook config:', error)
+      console.error('[WebhookHandler] getWebhookConfig - Unexpected error:', {
+        error: error instanceof Error ? error.message : String(error),
+        platform,
+        headers: debugInfo.headers,
+      })
       return null
     }
   }
