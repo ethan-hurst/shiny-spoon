@@ -80,7 +80,15 @@ export class BulkOperationManager {
 
     try {
       // Fetch JSONL file with streaming
-      const response = await fetch(url)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout for bulk downloads
+      
+      const response = await fetch(url, {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
       if (!response.ok) {
         throw new Error(`Failed to fetch bulk operation results: ${response.statusText}`)
       }
@@ -151,6 +159,9 @@ export class BulkOperationManager {
         }))
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Bulk operation download timeout after 60 seconds')
+      }
       throw new Error(`Bulk operation processing failed: ${error}`)
     }
   }
