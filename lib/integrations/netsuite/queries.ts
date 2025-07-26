@@ -244,7 +244,7 @@ export class NetSuiteQueries {
       : ''
     
     const statusFilter = options.status?.length
-      ? `AND so.orderstatus IN (${options.status.map(s => `'${s}'`).join(', ')})`
+      ? `AND so.orderstatus IN (${options.status.map(s => `'${this.sanitizeSqlValue(s)}'`).join(', ')})`
       : ''
 
     return `
