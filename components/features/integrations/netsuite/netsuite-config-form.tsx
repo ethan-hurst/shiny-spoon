@@ -343,7 +343,7 @@ export function NetSuiteConfigForm({
                 <Info className="h-4 w-4" />
                 <AlertTitle>OAuth Setup Required</AlertTitle>
                 <AlertDescription>
-                  You'll need to create an OAuth 2.0 Integration Record in NetSuite:
+                  You&apos;ll need to create an OAuth 2.0 Integration Record in NetSuite:
                   <ol className="list-decimal list-inside mt-2 space-y-1">
                     <li>Go to Setup → Integration → Manage Integrations</li>
                     <li>Create a new integration with OAuth 2.0 enabled</li>
