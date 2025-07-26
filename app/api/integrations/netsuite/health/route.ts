@@ -295,6 +295,52 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     
+    // Authentication required - verify API key or user session
+    const authHeader = request.headers.get('authorization')
+    const apiKey = request.headers.get('x-api-key')
+    
+    // Method 1: API Key authentication for monitoring systems
+    if (apiKey) {
+      const validApiKey = process.env.MONITORING_API_KEY
+      if (!validApiKey || apiKey !== validApiKey) {
+        return NextResponse.json(
+          { error: 'Invalid API key' },
+          { status: 401 }
+        )
+      }
+    }
+    // Method 2: Bearer token authentication for authenticated users
+    else if (authHeader?.startsWith('Bearer ')) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Invalid or expired token' },
+          { status: 401 }
+        )
+      }
+      
+      // Verify user has monitoring permissions (admin role)
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (!profile || profile.role !== 'admin') {
+        return NextResponse.json(
+          { error: 'Insufficient permissions' },
+          { status: 403 }
+        )
+      }
+    }
+    // No authentication provided
+    else {
+      return NextResponse.json(
+        { error: 'Authentication required. Provide X-API-Key or Authorization header.' },
+        { status: 401 }
+      )
+    }
+    
     // This endpoint is meant to be called by monitoring systems
     // It checks all active NetSuite integrations
     const { data: integrations } = await supabase
