@@ -85,7 +85,7 @@ export class PricingManager {
         errors: errors.map(e => ({ message: e.message, code: 'PRICING_SYNC_ERROR' }))
       }
     } catch (error) {
-      throw new Error(`Catalog sync failed: ${error}`)
+      throw new Error(`Catalog sync failed: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -523,8 +523,17 @@ export class PricingManager {
   }
 
   private async saveCatalogGroup(group: ShopifyCatalogGroup): Promise<void> {
-    // Save catalog group mapping
-    // Implementation depends on specific requirements
+    const supabase = await createClient()
+    
+    await supabase
+      .from('shopify_catalog_groups')
+      .upsert({
+        integration_id: this.integrationId,
+        shopify_group_id: group.id,
+        catalog_id: group.catalogId,
+        name: group.name,
+        updated_at: new Date().toISOString()
+      })
   }
 
   private async getOrCreatePriceList(catalogId: string): Promise<string> {
@@ -628,20 +637,33 @@ export class PricingManager {
     const supabase = await createClient()
     const mapped = []
 
+    // Get all product IDs that need mapping
+    const productIds = prices
+      .filter(price => price.product?.external_id)
+      .map(price => price.product_id)
+
+    if (productIds.length === 0) return mapped
+
+    // Fetch all mappings in a single query
+    const { data: mappings } = await supabase
+      .from('shopify_product_mapping')
+      .select('shopify_variant_id, internal_product_id')
+      .eq('integration_id', this.integrationId)
+      .in('internal_product_id', productIds)
+
+    // Create a map for quick lookup
+    const mappingMap = new Map(
+      (mappings || []).map(m => [m.internal_product_id, m.shopify_variant_id])
+    )
+
+    // Map prices using the lookup map
     for (const price of prices) {
       if (!price.product?.external_id) continue
 
-      // Look up Shopify variant ID from product mapping
-      const { data: mapping } = await supabase
-        .from('shopify_product_mapping')
-        .select('shopify_variant_id')
-        .eq('integration_id', this.integrationId)
-        .eq('internal_product_id', price.product_id)
-        .single()
-
-      if (mapping?.shopify_variant_id) {
+      const variantId = mappingMap.get(price.product_id)
+      if (variantId) {
         mapped.push({
-          variantId: mapping.shopify_variant_id,
+          variantId,
           price: parseFloat(price.price),
           compareAtPrice: price.original_price ? parseFloat(price.original_price) : undefined
         })

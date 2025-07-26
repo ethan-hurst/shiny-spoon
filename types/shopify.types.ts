@@ -297,7 +297,7 @@ export type ShopifyWebhookTopic = typeof ShopifyWebhookTopics[number]
 // Configuration Types
 // ===============================
 
-export interface ShopifyIntegrationConfig {
+export interface ShopifyIntegrationSettings {
   shop_domain: string // mystore.myshopify.com
   access_token: string
   webhook_secret: string

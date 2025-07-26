@@ -19,11 +19,16 @@ export default async function ShopifySetupPage() {
   }
 
   // Get user's organization
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('organization_id, role')
     .eq('user_id', user.id)
     .single()
+
+  if (profileError) {
+    console.error('Error fetching user profile:', profileError)
+    redirect('/onboarding')
+  }
 
   if (!profile) {
     redirect('/onboarding')

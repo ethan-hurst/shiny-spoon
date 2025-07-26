@@ -13,7 +13,7 @@ import { PricingManager } from './pricing-manager'
 import { ShopifyTransformers } from './transformers'
 import { incrementalSyncProducts } from './connector-helpers'
 import type { 
-  ShopifyIntegrationConfig,
+  ShopifyIntegrationSettings,
   ShopifyProduct,
   ShopifyInventoryLevel,
   ShopifyWebhookTopic,
@@ -38,7 +38,7 @@ export class ShopifyConnector extends BaseConnector {
 
     // Decrypt and extract credentials
     const credentials = this.parseCredentials(config.credentials)
-    const settings = config.settings as ShopifyIntegrationConfig
+    const settings = config.settings as ShopifyIntegrationSettings
 
     this.shopDomain = settings.shop_domain
     this.webhookSecret = credentials.webhook_secret
@@ -52,7 +52,7 @@ export class ShopifyConnector extends BaseConnector {
     })
 
     // Initialize helpers
-    this.transformers = new ShopifyTransformers(settings.location_mappings)
+    this.transformers = new ShopifyTransformers()
     this.bulkManager = new BulkOperationManager(this.client, this.config.integrationId)
     this.pricingManager = new PricingManager(
       this.client, 
@@ -73,22 +73,19 @@ export class ShopifyConnector extends BaseConnector {
     // Decrypt credentials if encrypted
     if (credentials.encrypted && process.env.ENCRYPTION_KEY) {
       try {
-        // Extract IV and encrypted data
+        // Extract IV and auth tag from the encrypted data
         const encryptedData = Buffer.from(credentials.data, 'base64')
         const iv = encryptedData.subarray(0, 16)
-        const authTag = encryptedData.subarray(16, 32)
-        const ciphertext = encryptedData.subarray(32)
-        
-        // Create key from ENCRYPTION_KEY
-        const key = crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32)
+        const authTag = encryptedData.subarray(encryptedData.length - 16)
+        const encrypted = encryptedData.subarray(16, encryptedData.length - 16)
         
         // Create decipher with IV
+        const key = crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32)
         const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
         decipher.setAuthTag(authTag)
         
-        // Decrypt
         const decrypted = JSON.parse(
-          decipher.update(ciphertext, undefined, 'utf8') + decipher.final('utf8')
+          decipher.update(encrypted, undefined, 'utf8') + decipher.final('utf8')
         )
         return {
           access_token: decrypted.access_token,
@@ -247,7 +244,7 @@ export class ShopifyConnector extends BaseConnector {
         await this.authenticate()
 
         // Get location mappings
-        const settings = this.config.settings as ShopifyIntegrationConfig
+        const settings = this.config.settings as ShopifyIntegrationSettings
         const locationMappings = settings.location_mappings || {}
 
         if (Object.keys(locationMappings).length === 0) {
@@ -514,7 +511,7 @@ export class ShopifyConnector extends BaseConnector {
 
   private async processInventoryWebhook(webhookId: string, inventory: any): Promise<void> {
     try {
-      const settings = this.config.settings as ShopifyIntegrationConfig
+      const settings = this.config.settings as ShopifyIntegrationSettings
       const locationMappings = settings.location_mappings || {}
       
       // Extract location ID from webhook payload (fix-44)

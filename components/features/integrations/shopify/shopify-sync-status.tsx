@@ -1,7 +1,8 @@
 'use client'
 
 // PRP-014: Shopify Sync Status Component
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -63,6 +64,21 @@ const entityConfig = {
   }
 }
 
+// Query function for fetching sync status
+async function fetchSyncStatus(integrationId: string): Promise<SyncStatus[]> {
+  const supabase = createBrowserClient()
+  
+  const { data, error } = await supabase
+    .from('shopify_sync_state')
+    .select('*')
+    .eq('integration_id', integrationId)
+    .order('entity_type')
+
+  if (error) throw error
+
+  return data || []
+}
+
 /**
  * Displays real-time synchronization status for Shopify integration entities.
  *
@@ -72,45 +88,29 @@ const entityConfig = {
  */
 export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
   const supabase = createBrowserClient()
+  const queryClient = useQueryClient()
   const { toast } = useToast()
-  const [syncStatuses, setSyncStatuses] = useState<SyncStatus[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+
+  // Use React Query for fetching sync status
+  const { data: syncStatuses = [], isLoading, error } = useQuery({
+    queryKey: ['sync-status', integrationId],
+    queryFn: () => fetchSyncStatus(integrationId),
+    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 10000, // Consider data stale after 10 seconds
+  })
 
   useEffect(() => {
-    async function fetchSyncStatus() {
-      try {
-        const { data, error } = await supabase
-          .from('shopify_sync_state')
-          .select('*')
-          .eq('integration_id', integrationId)
-          .order('entity_type')
-
-        if (error) {
-          console.error('Failed to fetch sync status:', error)
-          // Add user notification for fetch errors (fix-25)
-          toast({
-            title: 'Sync status error',
-            description: 'Failed to load sync status. Please refresh the page.',
-            variant: 'destructive'
-          })
-          return
-        }
-
-        setSyncStatuses(data || [])
-      } catch (error) {
-        console.error('Failed to fetch sync status:', error)
-        toast({
-          title: 'Connection error',
-          description: 'Unable to connect to sync service. Please check your connection.',
-          variant: 'destructive'
-        })
-      } finally {
-        setIsLoading(false)
-      }
+    if (error) {
+      console.error('Failed to fetch sync status:', error)
+      toast({
+        title: 'Sync status error',
+        description: 'Failed to load sync status. Please refresh the page.',
+        variant: 'destructive'
+      })
     }
+  }, [error, toast])
 
-    fetchSyncStatus()
-
+  useEffect(() => {
     // Subscribe to real-time updates
     const channel = supabase
       .channel(`shopify-sync-${integrationId}`)
@@ -123,19 +123,16 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
           filter: `integration_id=eq.${integrationId}`
         },
         () => {
-          fetchSyncStatus()
+          // Invalidate query to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ['sync-status', integrationId] })
         }
       )
       .subscribe()
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchSyncStatus, 30000)
-
     return () => {
       supabase.removeChannel(channel)
-      clearInterval(interval)
     }
-  }, [integrationId, supabase, toast])
+  }, [integrationId, queryClient, supabase])
 
   function getStatusIcon(status: string) {
     switch (status) {
@@ -235,7 +232,14 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
                 )}
 
                 {status.sync_status === 'in_progress' && (
-                  <Progress className="h-1.5" value={status.records_synced > 0 ? Math.min(90, (status.records_synced / (status.records_synced + 100)) * 100) : 25} />
+                  <Progress 
+                    className="h-1.5" 
+                    value={
+                      status.records_synced && status.records_synced > 0
+                        ? Math.min(90, (status.records_synced / (status.records_synced + 100)) * 100)
+                        : 20
+                    } 
+                  />
                 )}
 
                 {status.error_message && (

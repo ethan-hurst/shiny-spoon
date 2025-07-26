@@ -260,7 +260,7 @@ export class BulkOperationManager {
     const mutations = adjustments.map((adj, index) => `
       adjust${index}: inventoryAdjustQuantity(
         input: {
-          inventoryLevelId: "gid://shopify/InventoryLevel/${adj.inventoryItemId}?inventory_item_id=${adj.inventoryItemId}&location_id=${adj.locationId}"
+          inventoryLevelId: "gid://shopify/InventoryLevel?inventory_item_id=${adj.inventoryItemId}&location_id=${adj.locationId}"
           availableDelta: ${adj.available}
         }
       ) {

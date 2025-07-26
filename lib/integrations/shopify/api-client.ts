@@ -48,7 +48,7 @@ export class ShopifyApiClient {
     variables?: Record<string, any>
   ): Promise<ShopifyGraphQLResponse<T>> {
     // Estimate query cost before execution
-    const estimatedCost = this.estimateQueryCost(query, variables)
+    const estimatedCost = this.estimateQueryCost(query)
     
     // Acquire rate limit tokens
     if (this.rateLimiter) {
@@ -232,7 +232,7 @@ export class ShopifyApiClient {
    * Estimate the cost of a GraphQL query
    * This is a simplified estimation - real cost depends on actual data returned
    */
-  private estimateQueryCost(query: string, variables?: Record<string, any>): number {
+  private estimateQueryCost(query: string): number {
     let cost = 1 // Base cost
 
     // Count connections (first/last parameters)

@@ -16,7 +16,6 @@ import {
   ExternalLink,
   Loader2
 } from 'lucide-react'
-import { createBrowserClient } from '@/lib/supabase/client'
 import { ShopifyConfigForm } from './shopify-config-form'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
