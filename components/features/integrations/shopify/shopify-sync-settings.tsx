@@ -3,6 +3,7 @@
 // PRP-014: Shopify Sync Settings Component
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -19,6 +20,86 @@ interface ShopifySyncSettingsProps {
   syncSettings: ShopifySyncSettings
 }
 
+interface SaveSettingsData {
+  integrationId: string
+  settings: {
+    sync_products: boolean
+    sync_inventory: boolean
+    sync_orders: boolean
+    sync_customers: boolean
+    b2b_catalog_enabled: boolean
+    sync_frequency: number
+    batch_size: number
+  }
+  currentSyncSettings: ShopifySyncSettings
+}
+
+// Mutation function for saving settings
+async function saveSettingsRequest(data: SaveSettingsData) {
+  const supabase = createBrowserClient()
+  
+  // Update integration config
+  const { error: integrationError } = await supabase
+    .from('integrations')
+    .update({
+      config: {
+        ...data.currentSyncSettings,
+        sync_frequency: data.settings.sync_frequency,
+        batch_size: data.settings.batch_size
+      },
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', data.integrationId)
+
+  if (integrationError) throw integrationError
+
+  // Update Shopify config
+  const { error: configError } = await supabase
+    .from('shopify_config')
+    .update({
+      sync_products: data.settings.sync_products,
+      sync_inventory: data.settings.sync_inventory,
+      sync_orders: data.settings.sync_orders,
+      sync_customers: data.settings.sync_customers,
+      b2b_catalog_enabled: data.settings.b2b_catalog_enabled,
+      updated_at: new Date().toISOString()
+    })
+    .eq('integration_id', data.integrationId)
+
+  if (configError) throw configError
+
+  return { success: true }
+}
+
+interface TriggerSyncData {
+  integrationId: string
+  entityType: string
+  force?: boolean
+}
+
+// Mutation function for triggering sync
+async function triggerSyncRequest(data: TriggerSyncData) {
+  const response = await fetch('/api/integrations/shopify/sync', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      integrationId: data.integrationId,
+      entityType: data.entityType,
+      force: data.force ?? true
+    })
+  })
+
+  const result = await response.json()
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || 'Sync failed')
+  }
+
+  return result
+}
+
 export function ShopifySyncSettings({
   integrationId,
   config,
@@ -26,10 +107,8 @@ export function ShopifySyncSettings({
 }: ShopifySyncSettingsProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createBrowserClient()
+  const queryClient = useQueryClient()
   
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
   const [settings, setSettings] = useState({
     sync_products: config.sync_products ?? true,
     sync_inventory: config.sync_inventory ?? true,
@@ -40,94 +119,63 @@ export function ShopifySyncSettings({
     batch_size: syncSettings?.batch_size ?? 100
   })
 
-  async function saveSettings() {
-    setIsLoading(true)
-
-    try {
-      // Update integration config
-      const { error: integrationError } = await supabase
-        .from('integrations')
-        .update({
-          config: {
-            ...syncSettings,
-            sync_frequency: settings.sync_frequency,
-            batch_size: settings.batch_size
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', integrationId)
-
-      if (integrationError) throw integrationError
-
-      // Update Shopify config
-      const { error: configError } = await supabase
-        .from('shopify_config')
-        .update({
-          sync_products: settings.sync_products,
-          sync_inventory: settings.sync_inventory,
-          sync_orders: settings.sync_orders,
-          sync_customers: settings.sync_customers,
-          b2b_catalog_enabled: settings.b2b_catalog_enabled,
-          updated_at: new Date().toISOString()
-        })
-        .eq('integration_id', integrationId)
-
-      if (configError) throw configError
-
+  // Save settings mutation
+  const saveSettingsMutation = useMutation({
+    mutationFn: () => saveSettingsRequest({
+      integrationId,
+      settings,
+      currentSyncSettings: syncSettings
+    }),
+    onSuccess: () => {
       toast({
         title: 'Settings saved',
         description: 'Your sync settings have been updated successfully.'
       })
-
+      
+      // Invalidate related queries
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      queryClient.invalidateQueries({ queryKey: ['shopify-integrations'] })
+      queryClient.invalidateQueries({ queryKey: ['integration', integrationId] })
+      
       router.refresh()
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Failed to save settings:', error)
       toast({
         title: 'Error',
         description: 'Failed to save settings. Please try again.',
         variant: 'destructive'
       })
-    } finally {
-      setIsLoading(false)
     }
-  }
+  })
 
-  async function triggerSync(entityType: string) {
-    setIsSyncing(true)
-
-    try {
-      const response = await fetch('/api/integrations/shopify/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          integrationId,
-          entityType,
-          force: true
-        })
+  // Trigger sync mutation
+  const triggerSyncMutation = useMutation({
+    mutationFn: (entityType: string) => triggerSyncRequest({
+      integrationId,
+      entityType,
+      force: true
+    }),
+    onSuccess: (_, entityType) => {
+      toast({
+        title: 'Sync started',
+        description: `${entityType} sync has been initiated.`
       })
-
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        toast({
-          title: 'Sync started',
-          description: `${entityType} sync has been initiated.`
-        })
-      } else {
-        throw new Error(result.error || 'Sync failed')
-      }
-    } catch (error) {
+      
+      // Invalidate sync status queries
+      queryClient.invalidateQueries({ queryKey: ['sync-status', integrationId] })
+    },
+    onError: (error) => {
       toast({
         title: 'Sync failed',
         description: error instanceof Error ? error.message : 'Failed to start sync',
         variant: 'destructive'
       })
-    } finally {
-      setIsSyncing(false)
     }
-  }
+  })
+
+  const isLoading = saveSettingsMutation.isPending
+  const isSyncing = triggerSyncMutation.isPending
 
   return (
     <div className="space-y-6">
@@ -152,7 +200,7 @@ export function ShopifySyncSettings({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => triggerSync('products')}
+                onClick={() => triggerSyncMutation.mutate('products')}
                 disabled={!settings.sync_products || isSyncing}
               >
                 <RefreshCw className="h-4 w-4" />
@@ -179,7 +227,7 @@ export function ShopifySyncSettings({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => triggerSync('inventory')}
+                onClick={() => triggerSyncMutation.mutate('inventory')}
                 disabled={!settings.sync_inventory || isSyncing}
               >
                 <RefreshCw className="h-4 w-4" />
@@ -206,7 +254,7 @@ export function ShopifySyncSettings({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => triggerSync('orders')}
+                onClick={() => triggerSyncMutation.mutate('orders')}
                 disabled={!settings.sync_orders || isSyncing}
               >
                 <RefreshCw className="h-4 w-4" />
@@ -233,7 +281,7 @@ export function ShopifySyncSettings({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => triggerSync('customers')}
+                onClick={() => triggerSyncMutation.mutate('customers')}
                 disabled={!settings.sync_customers || isSyncing}
               >
                 <RefreshCw className="h-4 w-4" />
@@ -321,7 +369,7 @@ export function ShopifySyncSettings({
       <div className="flex justify-between items-center">
         <Button
           variant="outline"
-          onClick={() => triggerSync('all')}
+          onClick={() => triggerSyncMutation.mutate('all')}
           disabled={isSyncing}
         >
           {isSyncing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -329,7 +377,7 @@ export function ShopifySyncSettings({
           Sync All Now
         </Button>
 
-        <Button onClick={saveSettings} disabled={isLoading}>
+        <Button onClick={() => saveSettingsMutation.mutate()} disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />
           Save Settings
