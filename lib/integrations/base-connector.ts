@@ -1,13 +1,12 @@
 // PRP-012: Base Connector Class for Integration Framework
 import { EventEmitter } from 'events'
+
 import {
   IntegrationError,
   RateLimitError,
-  type Integration,
-  type SyncResult,
-  type IntegrationPlatformType,
-  type LogSeverityEnum,
   type CredentialData,
+  type IntegrationPlatformType,
+  type SyncResult,
 } from '@/types/integration.types'
 
 // Logger interface
