@@ -211,29 +211,41 @@ export async function updateShopifyIntegration(integrationId: string, formData: 
 
   // Update credentials if provided
   if (validatedData.access_token || validatedData.webhook_secret) {
-    const updateCredentials: Record<string, string> = {}
+    // First fetch existing credentials to preserve data
+    const { data: existingCreds, error: fetchError } = await supabase
+      .from('integration_credentials')
+      .select('credentials')
+      .eq('integration_id', integrationId)
+      .single()
     
-    // Only include fields with actual values
+    if (fetchError) {
+      throw new Error(`Failed to fetch existing credentials: ${fetchError.message}`)
+    }
+    
+    // Merge existing credentials with new ones
+    const updatedCredentials = {
+      ...(existingCreds?.credentials || {}),
+    }
+    
+    // Only update fields that have new values
     if (validatedData.access_token) {
-      updateCredentials.access_token = validatedData.access_token
+      updatedCredentials.access_token = validatedData.access_token
     }
     if (validatedData.webhook_secret) {
-      updateCredentials.webhook_secret = validatedData.webhook_secret
+      updatedCredentials.webhook_secret = validatedData.webhook_secret
     }
     
-    // Only update if there are fields to update
-    if (Object.keys(updateCredentials).length > 0) {
-      const { error: credError } = await supabase
-        .from('integration_credentials')
-        .update({
-          credentials: updateCredentials,
-          updated_at: new Date().toISOString()
-        })
-        .eq('integration_id', integrationId)
+    // Update with merged credentials
+    const { error: credError } = await supabase
+      .from('integration_credentials')
+      .update({
+        credentials: updatedCredentials,
+        updated_at: new Date().toISOString()
+      })
+      .eq('integration_id', integrationId)
 
-      if (credError) {
-        throw new Error(`Failed to update credentials: ${credError.message}`)
-      }
+    if (credError) {
+      throw new Error(`Failed to update credentials: ${credError.message}`)
     }
   }
 
