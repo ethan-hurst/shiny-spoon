@@ -13,7 +13,7 @@ import { PricingManager } from './pricing-manager'
 import { ShopifyTransformers } from './transformers'
 import { incrementalSyncProducts } from './connector-helpers'
 import type { 
-  ShopifyIntegrationConfig,
+  ShopifyIntegrationSettings,
   ShopifyProduct,
   ShopifyInventoryLevel,
   ShopifyWebhookTopic,
@@ -38,7 +38,7 @@ export class ShopifyConnector extends BaseConnector {
 
     // Decrypt and extract credentials
     const credentials = this.parseCredentials(config.credentials)
-    const settings = config.settings as ShopifyIntegrationConfig
+    const settings = config.settings as ShopifyIntegrationSettings
 
     this.shopDomain = settings.shop_domain
     this.webhookSecret = credentials.webhook_secret
@@ -244,7 +244,7 @@ export class ShopifyConnector extends BaseConnector {
         await this.authenticate()
 
         // Get location mappings
-        const settings = this.config.settings as ShopifyIntegrationConfig
+        const settings = this.config.settings as ShopifyIntegrationSettings
         const locationMappings = settings.location_mappings || {}
 
         if (Object.keys(locationMappings).length === 0) {
@@ -511,7 +511,7 @@ export class ShopifyConnector extends BaseConnector {
 
   private async processInventoryWebhook(webhookId: string, inventory: any): Promise<void> {
     try {
-      const settings = this.config.settings as ShopifyIntegrationConfig
+      const settings = this.config.settings as ShopifyIntegrationSettings
       const locationMappings = settings.location_mappings || {}
       const warehouseId = locationMappings[inventory.location_id]
 
