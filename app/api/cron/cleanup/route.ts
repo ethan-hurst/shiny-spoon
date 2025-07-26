@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
           .from('sync_queue')
           .select('job_id')
           .eq('organization_id', org.id)
-          .filter('job_id', 'not.in', '(SELECT id FROM sync_jobs WHERE organization_id = \'' + org.id + '\'')')
+          .filter('job_id', 'not.in', `(SELECT id FROM sync_jobs WHERE organization_id = '${org.id}')`)
         
         if (orphanedItems && orphanedItems.length > 0) {
           // Delete orphaned items
