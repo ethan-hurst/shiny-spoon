@@ -486,8 +486,9 @@ export class AuthManager {
         return key.length > 0
       
       default:
-        // Generic validation - at least 16 characters
-        return key.length >= 16
+        // Generic validation - at least 16 characters and valid characters
+        // Allow alphanumeric, dashes, underscores, and dots (common in API keys)
+        return key.length >= 16 && /^[a-zA-Z0-9_\-\.]+$/.test(key)
     }
   }
 
