@@ -285,6 +285,7 @@ export class PricingManager {
         )
       `)
       .eq('customer_id', customerId)
+      .eq('organization_id', this.organizationId)
       .eq('is_active', true)
 
     if (!customerPrices || customerPrices.length === 0) {
@@ -519,6 +520,7 @@ export class PricingManager {
       .from('shopify_b2b_catalogs')
       .upsert({
         integration_id: this.integrationId,
+        organization_id: this.organizationId,
         shopify_catalog_id: catalog.id,
         name: catalog.title,
         status: catalog.status.toLowerCase(),
@@ -534,6 +536,7 @@ export class PricingManager {
       .from('shopify_catalog_groups')
       .upsert({
         integration_id: this.integrationId,
+        organization_id: this.organizationId,
         shopify_group_id: group.id,
         catalog_id: group.catalogId,
         name: group.name,
@@ -605,6 +608,7 @@ export class PricingManager {
       .from('shopify_b2b_catalogs')
       .select('shopify_catalog_id')
       .eq('integration_id', this.integrationId)
+      .eq('organization_id', this.organizationId)
       .filter('metadata->customer_id', 'eq', customerId)
       .filter('metadata->tier_key', 'eq', tierKey)
       .single()
@@ -624,6 +628,7 @@ export class PricingManager {
       .from('shopify_b2b_catalogs')
       .insert({
         integration_id: this.integrationId,
+        organization_id: this.organizationId,
         shopify_catalog_id: catalog.id,
         name: catalog.title,
         status: catalog.status.toLowerCase(),
@@ -654,6 +659,7 @@ export class PricingManager {
       .from('shopify_product_mapping')
       .select('shopify_variant_id, internal_product_id')
       .eq('integration_id', this.integrationId)
+      .eq('organization_id', this.organizationId)
       .in('internal_product_id', productIds)
 
     // Create a map for quick lookup
