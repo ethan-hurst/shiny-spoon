@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ShopifyConfigForm } from '@/components/features/integrations/shopify/shopify-config-form'
 import { ShopifySyncSettings } from '@/components/features/integrations/shopify/shopify-sync-settings'
@@ -39,29 +38,38 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
   // Check if integration exists
   let integration = null
   if (searchParams.id) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('integrations')
       .select(`
         *,
-        shopify_config!inner(*)
+        shopify_config(*)
       `)
       .eq('id', searchParams.id)
       .eq('organization_id', profile.organization_id)
       .single()
 
-    integration = data
+    if (error) {
+      console.error('Error fetching integration:', error)
+      // Continue with null integration - form will handle new integration
+    } else {
+      integration = data
+    }
   } else {
     // Try to find existing Shopify integration
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('integrations')
       .select(`
         *,
-        shopify_config!inner(*)
+        shopify_config(*)
       `)
       .eq('platform', 'shopify')
       .eq('organization_id', profile.organization_id)
       .single()
 
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error fetching Shopify integration:', error)
+    }
+    
     integration = data
   }
 
