@@ -3,7 +3,16 @@ export class NetSuiteQueries {
   /**
    * Safely format date for NetSuite SuiteQL
    */
-  private formatDate(date: Date): string {
+  private formatDate(date: Date | null | undefined): string {
+    // Validate date parameter
+    if (!date) {
+      throw new Error('Invalid date: date parameter is null or undefined')
+    }
+    
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      throw new Error('Invalid date: parameter must be a valid Date object')
+    }
+    
     // Format date as YYYY-MM-DD HH:MM:SS
     const year = date.getUTCFullYear()
     const month = String(date.getUTCMonth() + 1).padStart(2, '0')
