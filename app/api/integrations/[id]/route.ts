@@ -1,12 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { updateIntegration, deleteIntegration } from '@/app/actions/integrations'
+import { headers } from 'next/headers'
+import crypto from 'crypto'
+
+// CSRF token validation helper
+async function validateCSRFToken(request: NextRequest): Promise<boolean> {
+  try {
+    const headersList = headers()
+    
+    // Get CSRF token from header and cookie
+    const csrfTokenFromHeader = headersList.get('x-csrf-token')
+    const csrfTokenFromCookie = request.cookies.get('csrf-token')?.value
+    
+    // Both tokens must exist
+    if (!csrfTokenFromHeader || !csrfTokenFromCookie) {
+      return false
+    }
+    
+    // Use timing-safe comparison to prevent timing attacks
+    return crypto.timingSafeEqual(
+      Buffer.from(csrfTokenFromHeader),
+      Buffer.from(csrfTokenFromCookie)
+    )
+  } catch {
+    return false
+  }
+}
 
 // Update integration
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // CSRF Protection
+  const isValidCSRF = await validateCSRFToken(request)
+  if (!isValidCSRF) {
+    return NextResponse.json(
+      { error: 'Invalid or missing CSRF token' },
+      { status: 403 }
+    )
+  }
+
   let user: { id: string; email?: string } | null = null
   let body: any = null
   
@@ -61,6 +96,15 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // CSRF Protection
+  const isValidCSRF = await validateCSRFToken(request)
+  if (!isValidCSRF) {
+    return NextResponse.json(
+      { error: 'Invalid or missing CSRF token' },
+      { status: 403 }
+    )
+  }
+
   let user: { id: string; email?: string } | null = null
   
   try {
