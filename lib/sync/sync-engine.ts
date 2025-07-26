@@ -399,13 +399,27 @@ export class SyncEngine extends EventEmitter {
         throw new Error(`Unsupported platform: ${platform}`)
     }
 
-    // Initialize connector
-    await connector.initialize()
-    
-    // Cache connector
-    this.connectorCache.set(cacheKey, connector)
-    
-    return connector
+    // Initialize connector (fix-52: don't cache on failure)
+    try {
+      await connector.initialize()
+      
+      // Only cache if initialization succeeded
+      this.connectorCache.set(cacheKey, connector)
+      
+      return connector
+    } catch (error) {
+      // Don't cache failed connectors
+      console.error(`Failed to initialize connector for ${platform}:${integrationId}`, error)
+      
+      // Try to disconnect if partially initialized
+      try {
+        await connector.disconnect()
+      } catch (disconnectError) {
+        // Ignore disconnect errors
+      }
+      
+      throw error
+    }
   }
 
   /**
