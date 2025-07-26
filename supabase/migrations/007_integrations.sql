@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS rate_limit_buckets (
 
 -- Create indexes for performance
 CREATE INDEX idx_integrations_org_status ON integrations(organization_id, status);
+CREATE INDEX idx_integration_credentials_integration ON integration_credentials(integration_id);
 CREATE INDEX idx_integration_logs_integration ON integration_logs(integration_id, created_at DESC);
 CREATE INDEX idx_sync_jobs_status ON sync_jobs(status, scheduled_for)
   WHERE status IN ('pending', 'running');
