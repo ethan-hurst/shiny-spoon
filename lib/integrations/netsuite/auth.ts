@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { AuthManager } from '@/lib/integrations/auth-manager'
 import { 
-  IntegrationError, 
   AuthenticationError,
   type OAuthCredentials 
 } from '@/types/integration.types'
