@@ -1,7 +1,6 @@
 // PRP-015: Sync Health Monitor Component
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -14,10 +13,10 @@ import {
   XCircle,
   Activity,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
   Clock
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { getSyncHealthData } from '@/app/actions/sync-engine'
 import type { SyncHealthStatus } from '@/types/sync-engine.types'
 
 interface SyncHealthMonitorProps {
@@ -28,148 +27,23 @@ interface SyncHealthMonitorProps {
   }[]
 }
 
-interface HealthData {
-  integration_health: (SyncHealthStatus & {
-    integration: {
-      id: string
-      name: string
-      platform: string
-    }
-  })[]
-  system_health: {
-    status: 'healthy' | 'degraded' | 'unhealthy'
-    metrics: {
-      total_queue_depth: number
-      stuck_jobs: number
-    }
-    issues: string[]
-  }
-  engine_health: {
-    status: 'healthy' | 'degraded' | 'unhealthy'
-    activeJobs: number
-    maxJobs: number
-    connectors: number
-    issues: string[]
-  } | null
-}
-
 /**
  * Displays a real-time dashboard of system and integration health statuses, including sync engine, queue metrics, and individual integration details.
  *
- * Accepts a list of integrations and simulates periodic health checks, presenting visual indicators, metrics, and alerts for degraded or unhealthy states. Supports manual and automatic refresh, and summarizes overall system health with detailed breakdowns for each integration.
+ * Uses React Query to fetch real health data from the server, presenting visual indicators, metrics, and alerts for degraded or unhealthy states. Supports manual refresh and auto-refresh every 30 seconds, and summarizes overall system health with detailed breakdowns for each integration.
  *
  * @param integrations - The list of integrations to monitor and display health information for.
  */
 export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
-  const [healthData, setHealthData] = useState<HealthData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+  const { data: healthData, isLoading, refetch, isFetching } = useQuery({
+    queryKey: ['sync-health'],
+    queryFn: getSyncHealthData,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    staleTime: 10000, // Consider data stale after 10 seconds
+  })
 
-  useEffect(() => {
-    const loadHealthData = async () => {
-      // Fix race condition (fix-28) - use functional state update
-      setRefreshing(prev => {
-        if (prev) return true // Already refreshing, skip
-        return true
-      })
-      
-      try {
-      // Simulate health check API call
-      // In real implementation, this would call an API endpoint
-      const mockHealthData: HealthData = {
-        integration_health: integrations.map(integration => ({
-          integration_id: integration.id,
-          status: Math.random() > 0.8 ? 'degraded' : 'healthy',
-          last_check_at: new Date().toISOString(),
-          metrics: {
-            success_rate: 0.85 + Math.random() * 0.15,
-            average_duration_ms: Math.floor(5000 + Math.random() * 10000),
-            error_rate: Math.random() * 0.1,
-            queue_depth: Math.floor(Math.random() * 20),
-            oldest_pending_job_age_ms: Math.random() > 0.7 ? Math.floor(Math.random() * 3600000) : undefined,
-          },
-          issues: Math.random() > 0.8 ? ['High error rate detected'] : undefined,
-          integration: integration,
-        })),
-        system_health: {
-          status: 'healthy',
-          metrics: {
-            total_queue_depth: Math.floor(Math.random() * 50),
-            stuck_jobs: Math.floor(Math.random() * 3),
-          },
-          issues: [],
-        },
-        engine_health: {
-          status: 'healthy',
-          activeJobs: Math.floor(Math.random() * 5),
-          maxJobs: 10,
-          connectors: integrations.length,
-          issues: [],
-        },
-      }
-
-        setHealthData(mockHealthData)
-      } catch (error) {
-        console.error('Failed to load health data:', error)
-      } finally {
-        setLoading(false)
-        setRefreshing(false)
-      }
-    }
-
-    loadHealthData()
-    // Set up auto-refresh every 30 seconds
-    const interval = setInterval(loadHealthData, 30000)
-    return () => clearInterval(interval)
-  }, [integrations]) // Fix useEffect dependencies (fix-27)
-
-  const handleRefresh = async () => {
-    // Prevent multiple simultaneous refreshes
-    setRefreshing(prev => {
-      if (prev) return true
-      return true
-    })
-    
-    try {
-      // Reuse the same health data loading logic
-      const mockHealthData: HealthData = {
-        integration_health: integrations.map(integration => ({
-          integration_id: integration.id,
-          status: Math.random() > 0.8 ? 'degraded' : 'healthy',
-          last_check_at: new Date().toISOString(),
-          metrics: {
-            success_rate: 0.85 + Math.random() * 0.15,
-            average_duration_ms: Math.floor(5000 + Math.random() * 10000),
-            error_rate: Math.random() * 0.1,
-            queue_depth: Math.floor(Math.random() * 20),
-            oldest_pending_job_age_ms: Math.random() > 0.7 ? Math.floor(Math.random() * 3600000) : undefined,
-          },
-          issues: Math.random() > 0.8 ? ['High error rate detected'] : undefined,
-          integration: integration,
-        })),
-        system_health: {
-          status: 'healthy',
-          metrics: {
-            total_queue_depth: Math.floor(Math.random() * 50),
-            stuck_jobs: Math.floor(Math.random() * 3),
-          },
-          issues: [],
-        },
-        engine_health: {
-          status: 'healthy',
-          activeJobs: Math.floor(Math.random() * 5),
-          maxJobs: 10,
-          connectors: integrations.length,
-          issues: [],
-        },
-      }
-
-      setHealthData(mockHealthData)
-    } catch (error) {
-      console.error('Failed to refresh health data:', error)
-    } finally {
-      setRefreshing(false)
-    }
+  const handleRefresh = () => {
+    refetch()
   }
 
   const getStatusIcon = (status: string) => {
@@ -222,7 +96,7 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
     return 'healthy'
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -260,9 +134,9 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
           variant="outline"
           size="sm"
           onClick={handleRefresh}
-          disabled={refreshing}
+          disabled={isFetching}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
