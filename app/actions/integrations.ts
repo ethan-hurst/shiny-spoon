@@ -356,7 +356,7 @@ export async function testConnection(integrationId: string) {
 
     try {
       switch (integration.platform) {
-        case 'shopify':
+        case 'shopify': {
           // Test Shopify connection with a simple API call
           const shopDomain = integration.config?.shop_domain
           const apiVersion = integration.config?.api_version || '2024-01'
@@ -391,8 +391,9 @@ export async function testConnection(integrationId: string) {
             }
           }
           break
+        }
         
-        case 'netsuite':
+        case 'netsuite': {
           // Test NetSuite connection with REST API
           const accountId = integration.config?.account_id
           const restUrl = integration.config?.rest_url
@@ -415,8 +416,9 @@ export async function testConnection(integrationId: string) {
             throw new Error('Invalid NetSuite credentials')
           }
           break
+        }
 
-        case 'quickbooks':
+        case 'quickbooks': {
           // Test QuickBooks connection
           const companyId = integration.config?.company_id
           const sandbox = integration.config?.sandbox || false
@@ -455,6 +457,7 @@ export async function testConnection(integrationId: string) {
             }
           }
           break
+        }
         
         default:
           testDetails = { 
