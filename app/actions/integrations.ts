@@ -12,6 +12,17 @@ import type {
   CredentialData,
 } from '@/types/integration.types'
 
+// Helper function for safe JSON parsing
+const safeJsonParse = (value: string | null, defaultValue: any = {}) => {
+  if (!value) return defaultValue
+  try {
+    return JSON.parse(value)
+  } catch (error) {
+    console.warn('Invalid JSON provided:', error)
+    return defaultValue
+  }
+}
+
 // Create a new integration
 export async function createIntegration(formData: FormData) {
   try {
@@ -31,16 +42,6 @@ export async function createIntegration(formData: FormData) {
     if (!profile) throw new Error('User profile not found')
 
     // Parse and validate input with safe JSON parsing
-    const safeJsonParse = (value: string | null, defaultValue: any = {}) => {
-      if (!value) return defaultValue
-      try {
-        return JSON.parse(value)
-      } catch (error) {
-        console.warn('Invalid JSON provided:', error)
-        return defaultValue
-      }
-    }
-
     const input = {
       name: formData.get('name'),
       platform: formData.get('platform'),
@@ -120,17 +121,6 @@ export async function updateIntegration(formData: FormData) {
       .single()
 
     if (!profile) throw new Error('User profile not found')
-
-    // Safe JSON parsing helper
-    const safeJsonParse = (value: string | null, defaultValue: any = {}) => {
-      if (!value) return defaultValue
-      try {
-        return JSON.parse(value)
-      } catch (error) {
-        console.warn('Invalid JSON provided:', error)
-        return defaultValue
-      }
-    }
 
     // Build update data with type safety
     const updateData: IntegrationUpdate = {}
