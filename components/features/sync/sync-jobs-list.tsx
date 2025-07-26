@@ -47,6 +47,13 @@ interface SyncJobsListProps {
   })[]
 }
 
+/**
+ * Displays a table of synchronization jobs with their statuses, progress, and available actions.
+ *
+ * Renders job details including integration, type, entities, status, progress, duration, and start time. Provides controls to view job details, cancel running jobs, or retry failed jobs. UI elements are dynamically updated based on job state and user actions.
+ *
+ * @param jobs - Array of synchronization job objects with integration details to display in the list.
+ */
 export function SyncJobsList({ jobs }: SyncJobsListProps) {
   const router = useRouter()
   const [processingJobs, setProcessingJobs] = useState<Set<string>>(new Set())

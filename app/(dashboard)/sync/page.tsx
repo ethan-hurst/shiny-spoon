@@ -13,6 +13,11 @@ import { SyncHealthMonitor } from '@/components/features/sync/sync-health-monito
 import { ManualSyncTrigger } from '@/components/features/sync/manual-sync-trigger'
 import type { SyncJob, SyncSchedule, SyncHealthStatus } from '@/types/sync-engine.types'
 
+/**
+ * Renders the Sync Dashboard page, providing an authenticated user with an overview and management interface for data synchronization across their organization's integrations.
+ *
+ * Displays summary metrics, manual sync controls, and tabbed sections for recent sync jobs, schedules, statistics, and system health. Redirects to a 404 page if the user is not authenticated or lacks an associated organization.
+ */
 export default async function SyncDashboardPage() {
   const supabase = await createClient()
 

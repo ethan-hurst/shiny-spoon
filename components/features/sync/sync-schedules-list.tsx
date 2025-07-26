@@ -38,6 +38,13 @@ interface SyncSchedulesListProps {
   })[]
 }
 
+/**
+ * Displays a table of synchronization schedules with controls to enable, disable, edit, or delete each schedule.
+ *
+ * Renders integration details, frequency, entities, active hours, last and next run times, and provides UI for managing each schedule. Supports inline editing, deletion with confirmation, and visual indicators for overdue schedules.
+ *
+ * @param schedules - The list of synchronization schedules to display, each including integration details.
+ */
 export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
   const router = useRouter()
   const [processingSchedules, setProcessingSchedules] = useState<Set<string>>(new Set())

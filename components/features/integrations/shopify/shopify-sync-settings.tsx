@@ -19,6 +19,15 @@ interface ShopifySyncSettingsProps {
   syncSettings: ShopifySyncSettings
 }
 
+/**
+ * Renders a settings panel for configuring and managing Shopify integration sync options.
+ *
+ * Provides toggles for enabling or disabling sync of products, inventory, orders, customers, and B2B catalogs, as well as controls for sync frequency and batch size. Allows users to trigger immediate syncs for individual entities or all entities, and to save updated settings. Displays loading indicators and disables controls during ongoing operations.
+ *
+ * @param integrationId - The unique identifier for the Shopify integration.
+ * @param config - The initial Shopify integration configuration.
+ * @param syncSettings - The initial sync frequency and batch size settings.
+ */
 export function ShopifySyncSettings({
   integrationId,
   config,

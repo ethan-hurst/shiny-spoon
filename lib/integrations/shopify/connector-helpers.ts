@@ -18,6 +18,15 @@ export interface IncrementalSyncHelperOptions {
   withRateLimit: <T>(fn: () => Promise<T>) => Promise<T>
 }
 
+/**
+ * Performs an incremental synchronization of Shopify products using pagination and injected helper functions.
+ *
+ * Fetches products from Shopify in pages, transforms and saves each product, and maintains sync state with resume capability. Supports dry run mode, progress reporting, error accumulation, and respects an optional processing limit and abort signal.
+ *
+ * @param syncState - The current sync state object, expected to contain a `sync_cursor` for pagination.
+ * @param options - Optional settings for the sync, including `limit` (maximum products to process), `dryRun` (simulate without saving), and `signal` (abort signal).
+ * @returns An object summarizing the number of processed and failed products, along with any encountered errors.
+ */
 export async function incrementalSyncProducts(
   helpers: IncrementalSyncHelperOptions,
   syncState: any,

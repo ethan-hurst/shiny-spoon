@@ -83,6 +83,15 @@ const ENTITY_TYPES = [
   { value: 'orders', label: 'Orders' },
 ]
 
+/**
+ * Displays a dialog for creating or editing a synchronization schedule for an integration.
+ *
+ * Allows users to enable or disable the schedule, select sync frequency, choose entity types to sync, and optionally set active hours. Supports both creating a new schedule and editing or deleting an existing one. Provides form validation, submission, and user feedback.
+ *
+ * @param integrationId - The unique identifier of the integration to configure.
+ * @param schedule - The existing schedule data to edit, or undefined to create a new schedule.
+ * @param onClose - Callback invoked when the dialog is closed.
+ */
 export function SyncScheduleDialog({ integrationId, schedule, onClose }: SyncScheduleDialogProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)

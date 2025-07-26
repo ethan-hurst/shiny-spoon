@@ -20,7 +20,11 @@ const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
 const RATE_LIMIT_MAX = 100 // 100 requests per minute per shop
 const MAX_RATE_LIMIT_ENTRIES = 1000 // Prevent memory leak
 
-// Cleanup old entries periodically (fix-40)
+/**
+ * Removes expired and excess entries from the in-memory rate limit map to prevent memory leaks.
+ *
+ * Deletes entries whose reset time has passed and, if the map still exceeds the maximum allowed entries, removes the oldest entries by reset time.
+ */
 function cleanupRateLimits() {
   const now = Date.now()
   const entriesToDelete: string[] = []
@@ -47,6 +51,11 @@ function cleanupRateLimits() {
   }
 }
 
+/**
+ * Checks and updates the rate limit for a given shop domain.
+ *
+ * Returns `true` if the shop is under the allowed request limit for the current window, or `false` if the rate limit has been exceeded.
+ */
 function checkRateLimit(shopDomain: string): boolean {
   const now = Date.now()
   const key = `shopify-webhook:${shopDomain}`
@@ -70,6 +79,13 @@ function checkRateLimit(shopDomain: string): boolean {
   return true
 }
 
+/**
+ * Handles incoming Shopify webhook POST requests, performing validation, rate limiting, signature verification, payload parsing, and processing.
+ *
+ * Validates required headers and enforces a per-shop rate limit. Retrieves the Shopify integration configuration from Supabase and verifies the webhook signature. Parses and validates the webhook payload according to the topic. Processes the webhook asynchronously and logs the outcome. Handles recoverable errors by returning a 500 status to trigger Shopify retries, and stores non-recoverable errors for manual reprocessing.
+ *
+ * @returns A JSON response indicating success, error, or warning, with appropriate HTTP status codes.
+ */
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const headers = request.headers
@@ -304,7 +320,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Webhook registration endpoint (optional - for programmatic registration)
+/**
+ * Returns webhook registration and configuration details for a given Shopify shop domain.
+ *
+ * Responds with the webhook endpoint URL, supported topics, and verification method if the shop exists; otherwise, returns an error.
+ */
 export async function GET(request: NextRequest) {
   // This endpoint can be used to verify webhook configuration
   // or list registered webhooks

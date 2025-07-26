@@ -63,6 +63,13 @@ const entityConfig = {
   }
 }
 
+/**
+ * Displays real-time synchronization status for Shopify integration entities.
+ *
+ * Shows sync progress, last sync time, record counts, errors, and next scheduled sync for each entity type associated with the given integration ID. Data is fetched from Supabase and updated in real time and at regular intervals.
+ *
+ * @param integrationId - The unique identifier for the Shopify integration whose sync status should be displayed.
+ */
 export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
   const supabase = createBrowserClient()
   const { toast } = useToast()

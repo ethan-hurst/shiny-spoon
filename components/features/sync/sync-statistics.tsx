@@ -28,6 +28,13 @@ const COLORS = {
   orders: '#8dd1e1',
 }
 
+/**
+ * Displays synchronization statistics for one or more integrations over selectable time periods.
+ *
+ * Provides filters for integration and time period, and presents aggregated or individual sync metrics including total syncs, success rate, records synced, average duration, and detailed breakdowns by entity type. Visualizes data using summary cards, bar and pie charts, and entity-specific details.
+ *
+ * @param integrations - List of available integrations to display statistics for
+ */
 export function SyncStatistics({ integrations }: SyncStatisticsProps) {
   const [selectedIntegration, setSelectedIntegration] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<'hour' | 'day' | 'week' | 'month'>('day')
