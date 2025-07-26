@@ -18,12 +18,11 @@ import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/use-toast'
 import { 
   Clock, 
-  Play,
   Settings,
   Calendar,
-  AlertCircle,
-  CheckCircle2
+  AlertCircle
 } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
 import { updateSyncSchedule, deleteSyncSchedule } from '@/app/actions/sync-engine'
 import { SyncScheduleDialog } from './sync-schedule-dialog'
 import type { SyncSchedule } from '@/types/sync-engine.types'
@@ -47,7 +46,6 @@ interface SyncSchedulesListProps {
  */
 export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
   const router = useRouter()
-  const [processingSchedules, setProcessingSchedules] = useState<Set<string>>(new Set())
   const [editingSchedule, setEditingSchedule] = useState<string | null>(null)
 
   const getFrequencyLabel = (frequency: string) => {
@@ -69,13 +67,14 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
     return <Calendar className="h-4 w-4" />
   }
 
-  const handleToggleEnabled = async (
-    schedule: SyncSchedule & { integrations: { id: string; name: string; platform: string } }, 
-    enabled: boolean
-  ) => {
-    setProcessingSchedules(prev => new Set(prev).add(schedule.id))
-    
-    try {
+  const updateScheduleMutation = useMutation({
+    mutationFn: async ({
+      schedule,
+      enabled,
+    }: {
+      schedule: SyncSchedule & { integrations: { id: string; name: string; platform: string } }
+      enabled: boolean
+    }) => {
       const formData = new FormData()
       formData.append('integration_id', schedule.integration_id)
       formData.append('enabled', enabled.toString())
@@ -93,53 +92,51 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
         formData.append('active_hours_end', schedule.active_hours.end)
       }
       
-      await updateSyncSchedule(formData)
-      
+      return updateSyncSchedule(formData)
+    },
+    onSuccess: (_, { enabled }) => {
       toast({
         title: enabled ? 'Schedule enabled' : 'Schedule disabled',
         description: `Sync schedule has been ${enabled ? 'enabled' : 'disabled'}.`,
       })
-      
       router.refresh()
-    } catch (error) {
+    },
+    onError: (error) => {
       toast({
         title: 'Update failed',
         description: error instanceof Error ? error.message : 'Failed to update schedule',
         variant: 'destructive',
       })
-    } finally {
-      setProcessingSchedules(prev => {
-        const next = new Set(prev)
-        next.delete(schedule.id)
-        return next
-      })
-    }
-  }
+    },
+  })
 
-  const handleDelete = async (integrationId: string) => {
-    if (!confirm('Are you sure you want to delete this schedule?')) {
-      return
-    }
-    
-    try {
+  const deleteScheduleMutation = useMutation({
+    mutationFn: async (integrationId: string) => {
       const formData = new FormData()
       formData.append('integration_id', integrationId)
-      
-      await deleteSyncSchedule(formData)
-      
+      return deleteSyncSchedule(formData)
+    },
+    onSuccess: () => {
       toast({
         title: 'Schedule deleted',
         description: 'The sync schedule has been deleted.',
       })
-      
       router.refresh()
-    } catch (error) {
+    },
+    onError: (error) => {
       toast({
         title: 'Delete failed',
         description: error instanceof Error ? error.message : 'Failed to delete schedule',
         variant: 'destructive',
       })
+    },
+  })
+
+  const handleDelete = (integrationId: string) => {
+    if (!confirm('Are you sure you want to delete this schedule?')) {
+      return
     }
+    deleteScheduleMutation.mutate(integrationId)
   }
 
   return (
@@ -159,7 +156,6 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
         </TableHeader>
         <TableBody>
           {schedules.map((schedule) => {
-            const isProcessing = processingSchedules.has(schedule.id)
             const isOverdue = schedule.next_run_at && 
               new Date(schedule.next_run_at) < new Date()
             
@@ -227,8 +223,10 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
                 <TableCell>
                   <Switch
                     checked={schedule.enabled}
-                    onCheckedChange={(checked) => handleToggleEnabled(schedule, checked)}
-                    disabled={isProcessing}
+                    onCheckedChange={(checked) => 
+                      updateScheduleMutation.mutate({ schedule, enabled: checked })
+                    }
+                    disabled={updateScheduleMutation.isPending}
                   />
                 </TableCell>
                 <TableCell>
