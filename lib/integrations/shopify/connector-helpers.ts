@@ -1,6 +1,6 @@
 // Helper methods for ShopifyConnector to reduce class size
 
-import type { SyncOptions, SyncResult } from '@/lib/integrations/base-connector'
+import type { SyncOptions } from '@/lib/integrations/base-connector'
 import type { ShopifyApiClient } from './api-client'
 import type { ShopifyTransformers } from './transformers'
 import type { BaseLogger } from '@/lib/integrations/base-connector'
@@ -75,7 +75,11 @@ export async function incrementalSyncProducts(
 
         // Emit progress
         if (totalProcessed % 10 === 0) {
-          helpers.emitProgress(totalProcessed, totalProcessed + (hasNextPage ? 50 : 0))
+          // Estimate total based on current progress and pagination
+          const estimatedTotal = hasNextPage 
+            ? totalProcessed + Math.max(products.edges.length, 50)
+            : totalProcessed
+          helpers.emitProgress(totalProcessed, estimatedTotal)
         }
       } catch (error) {
         totalFailed++
