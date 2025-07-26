@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { AuthManager } from '@/lib/integrations/auth-manager'
-import { integrationSchema, credentialSchema } from '@/types/integration.types'
+import { integrationSchema } from '@/types/integration.types'
 import type { 
   IntegrationInsert, 
   IntegrationUpdate,
@@ -46,7 +46,7 @@ const updateIntegrationSchema = z.object({
 // Create a new integration
 export async function createIntegration(formData: FormData) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get authenticated user
     const { data: { user } } = await supabase.auth.getUser()
@@ -74,7 +74,11 @@ export async function createIntegration(formData: FormData) {
 
     // Create integration
     const integrationData: IntegrationInsert = {
-      ...validated,
+      name: validated.name,
+      platform: validated.platform,
+      description: validated.description ?? null,
+      config: validated.config ?? {},
+      sync_settings: validated.sync_settings ?? {},
       organization_id: profile.organization_id,
       created_by: user.id,
       status: 'configuring',
@@ -131,7 +135,7 @@ export async function createIntegration(formData: FormData) {
 // Update an integration
 export async function updateIntegration(formData: FormData) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -161,7 +165,13 @@ export async function updateIntegration(formData: FormData) {
     const validated = updateIntegrationSchema.parse(rawData)
     
     // Use validated data as update data
-    const updateData: IntegrationUpdate = validated
+    const updateData: IntegrationUpdate = {}
+    
+    if (validated.name !== undefined) updateData.name = validated.name
+    if (validated.description !== undefined) updateData.description = validated.description ?? null
+    if (validated.status !== undefined) updateData.status = validated.status
+    if (validated.config !== undefined) updateData.config = validated.config
+    if (validated.sync_settings !== undefined) updateData.sync_settings = validated.sync_settings
 
     // Update integration
     const { data: integration, error } = await supabase
@@ -218,7 +228,7 @@ export async function updateIntegration(formData: FormData) {
 // Delete an integration
 export async function deleteIntegration(id: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -272,9 +282,17 @@ export async function deleteIntegration(id: string) {
 const ALLOWED_ENTITY_TYPES = ['products', 'inventory', 'orders', 'customers', 'pricing'] as const
 
 // Trigger manual sync
-export async function triggerSync(integrationId: string, entityType?: string) {
+export async function triggerSync(formData: FormData) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
+    
+    const integrationId = formData.get('integrationId') as string
+    const entityType = formData.get('entityType') as string | undefined
+    
+    // Validate required fields
+    if (!integrationId || integrationId.trim() === '') {
+      throw new Error('Integration ID is required')
+    }
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -347,7 +365,7 @@ export async function triggerSync(integrationId: string, entityType?: string) {
 // Test integration connection
 export async function testConnection(integrationId: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -421,30 +439,20 @@ export async function testConnection(integrationId: string) {
         }
         
         case 'netsuite': {
-          // Test NetSuite connection with REST API
-          const accountId = integration.config?.account_id
-          const restUrl = integration.config?.rest_url
+          // NetSuite connection test is handled by a dedicated endpoint
+          const response = await fetch('/api/integrations/netsuite/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ integration_id: integrationId }),
+          })
           
-          if (!accountId || !restUrl || !credentials) {
-            throw new Error('Missing NetSuite configuration')
-          }
-
-          // NetSuite uses OAuth 1.0a, so we need to build the auth header
-          // For now, we'll check if credentials exist
-          if (
-            credentials.consumer_key &&
-            credentials.consumer_secret &&
-            credentials.token_id &&
-            credentials.token_secret
-          ) {
-            testPassed = true
-            testDetails = {
-              account_id: accountId,
-              rest_url: restUrl,
-              auth_method: 'OAuth 1.0a',
-            }
+          if (response.ok) {
+            const result = await response.json()
+            testPassed = result.overall_status === 'success'
+            testDetails = result
           } else {
-            throw new Error('Invalid NetSuite credentials')
+            testPassed = false
+            testDetails = { error: 'Test endpoint failed' }
           }
           break
         }

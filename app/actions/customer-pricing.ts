@@ -8,7 +8,6 @@ import {
   ContractItem,
 } from '@/types/customer-pricing.types'
 import { sendApprovalEmail } from '@/lib/email/price-approval-notification'
-import { queueEmail } from '@/lib/email/email-queue'
 
 // Contract Actions
 export async function createContract(formData: FormData) {
@@ -346,7 +345,7 @@ export async function createPriceApproval(formData: FormData) {
 
   // Send notification emails to all approvers
   if (approvers && approvers.length > 0) {
-    const emailPromises = approvers.map(async (approver) => {
+    const emailPromises = approvers.map(async (approver: any) => {
       const approverEmail = approver.users?.email
       if (approverEmail) {
         try {
