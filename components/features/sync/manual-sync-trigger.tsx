@@ -88,7 +88,7 @@ export function ManualSyncTrigger({ integrations }: ManualSyncTriggerProps) {
       formData.append('sync_mode', values.sync_mode)
       formData.append('priority', values.priority)
 
-      const result = await createManualSyncJob(formData)
+      await createManualSyncJob(formData)
 
       toast({
         title: 'Sync started',
