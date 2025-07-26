@@ -586,13 +586,13 @@ export class PricingManager {
   ): Promise<string> {
     const supabase = await createClient()
     
-    // Check if catalog exists for this customer/tier
+    // Check if catalog exists for this customer/tier (fix-57: correct JSON path syntax)
     const { data: existing } = await supabase
       .from('shopify_b2b_catalogs')
       .select('shopify_catalog_id')
       .eq('integration_id', this.integrationId)
-      .eq('metadata->>customer_id', customerId)
-      .eq('metadata->>tier_key', tierKey)
+      .filter('metadata->customer_id', 'eq', customerId)
+      .filter('metadata->tier_key', 'eq', tierKey)
       .single()
 
     if (existing?.shopify_catalog_id) {
