@@ -5,8 +5,6 @@ import {
   type IntegrationCredential,
   type CredentialTypeEnum,
   type OAuthCredentials,
-  type ApiKeyCredentials,
-  type BasicAuthCredentials,
   type CredentialData,
 } from '@/types/integration.types'
 
