@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ShopifyConfigForm } from '@/components/features/integrations/shopify/shopify-config-form'
-import { ShopifySyncSettings } from '@/components/features/integrations/shopify/shopify-sync-settings'
+import { ShopifySyncSettingsForm } from '@/components/features/integrations/shopify/shopify-sync-settings'
 import { ShopifySyncStatus } from '@/components/features/integrations/shopify/shopify-sync-status'
 import { AlertCircle, CheckCircle, XCircle, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
@@ -218,7 +218,7 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ShopifySyncSettings 
+              <ShopifySyncSettingsForm 
                 integrationId={integration.id}
                 config={integration.shopify_config?.[0] || {}}
                 syncSettings={integration.config}

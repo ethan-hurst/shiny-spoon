@@ -123,7 +123,7 @@ async function triggerSyncRequest(data: TriggerSyncData) {
  * @param config - The initial Shopify integration configuration.
  * @param syncSettings - The initial sync frequency and batch size settings.
  */
-export function ShopifySyncSettings({
+export function ShopifySyncSettingsForm({
   integrationId,
   config,
   syncSettings
