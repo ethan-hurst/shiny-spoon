@@ -108,8 +108,6 @@ export class NetSuiteApiClient {
         totalResults: validated.totalResults,
         links: validated.links,
       }
-    } catch (error) {
-      throw error
     } finally {
       // Always release rate limit token
       if (this.rateLimiter && rateLimitToken > 0) {
