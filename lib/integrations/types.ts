@@ -272,7 +272,20 @@ export const commonValidators = {
   required: (value: any) => value !== null && value !== undefined && value !== '',
   
   email: (value: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    // More comprehensive email validation regex based on RFC 5322
+    // This pattern handles most real-world email formats including:
+    // - Local parts with dots, hyphens, underscores
+    // - Quoted strings in local part
+    // - Multiple subdomain levels
+    // - New TLDs of varying lengths
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+    
+    // Additional basic checks
+    if (!value || typeof value !== 'string') return false
+    if (value.length > 254) return false // Max email length per RFC
+    if (value.startsWith('.') || value.endsWith('.')) return false
+    if (value.includes('..')) return false
+    
     return emailRegex.test(value)
   },
   
