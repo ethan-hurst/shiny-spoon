@@ -73,9 +73,19 @@ export class ShopifyConnector extends BaseConnector {
     // Decrypt credentials if encrypted
     if (credentials.encrypted && process.env.ENCRYPTION_KEY) {
       try {
-        const decipher = crypto.createDecipher('aes-256-gcm', process.env.ENCRYPTION_KEY)
+        // Extract IV and auth tag from the encrypted data
+        const encryptedData = Buffer.from(credentials.data, 'base64')
+        const iv = encryptedData.subarray(0, 16)
+        const authTag = encryptedData.subarray(encryptedData.length - 16)
+        const encrypted = encryptedData.subarray(16, encryptedData.length - 16)
+        
+        // Create decipher with IV
+        const key = crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32)
+        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
+        decipher.setAuthTag(authTag)
+        
         const decrypted = JSON.parse(
-          decipher.update(credentials.data, 'base64', 'utf8') + decipher.final('utf8')
+          decipher.update(encrypted, undefined, 'utf8') + decipher.final('utf8')
         )
         return {
           access_token: decrypted.access_token,
