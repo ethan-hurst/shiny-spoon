@@ -23,6 +23,26 @@ const safeJsonParse = (value: string | null, defaultValue: any = {}) => {
   }
 }
 
+// Update schema - all fields optional for partial updates
+const updateIntegrationSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'error', 'configuring', 'suspended']).optional(),
+  config: z.record(z.any()).optional(),
+  sync_settings: z.object({
+    sync_products: z.boolean().optional(),
+    sync_inventory: z.boolean().optional(),
+    sync_pricing: z.boolean().optional(),
+    sync_customers: z.boolean().optional(),
+    sync_orders: z.boolean().optional(),
+    sync_direction: z.enum(['push', 'pull', 'bidirectional']).optional(),
+    sync_frequency_minutes: z.number().min(5).max(1440).optional(),
+    batch_size: z.number().min(1).max(1000).optional(),
+    field_mappings: z.record(z.string()).optional(),
+    filters: z.record(z.any()).optional(),
+  }).optional(),
+})
+
 // Create a new integration
 export async function createIntegration(formData: FormData) {
   try {
@@ -128,25 +148,20 @@ export async function updateIntegration(formData: FormData) {
 
     if (!profile) throw new Error('User profile not found')
 
-    // Build update data with type safety
-    const updateData: IntegrationUpdate = {}
+    // Parse and validate update data with Zod schema
+    const rawData: Record<string, any> = {}
     
-    if (formData.has('name')) updateData.name = formData.get('name') as string
-    if (formData.has('description')) updateData.description = formData.get('description') as string
+    if (formData.has('name')) rawData.name = formData.get('name')
+    if (formData.has('description')) rawData.description = formData.get('description')
+    if (formData.has('status')) rawData.status = formData.get('status')
+    if (formData.has('config')) rawData.config = safeJsonParse(formData.get('config') as string)
+    if (formData.has('sync_settings')) rawData.sync_settings = safeJsonParse(formData.get('sync_settings') as string)
     
-    // Type-safe status update
-    if (formData.has('status')) {
-      const status = formData.get('status') as string
-      const validStatuses = ['active', 'inactive', 'error', 'configuring', 'suspended'] as const
-      if (validStatuses.includes(status as any)) {
-        updateData.status = status as typeof validStatuses[number]
-      } else {
-        throw new Error(`Invalid status: ${status}`)
-      }
-    }
+    // Validate with Zod schema
+    const validated = updateIntegrationSchema.parse(rawData)
     
-    if (formData.has('config')) updateData.config = safeJsonParse(formData.get('config') as string)
-    if (formData.has('sync_settings')) updateData.sync_settings = safeJsonParse(formData.get('sync_settings') as string)
+    // Use validated data as update data
+    const updateData: IntegrationUpdate = validated
 
     // Update integration
     const { data: integration, error } = await supabase
