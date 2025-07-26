@@ -6,7 +6,6 @@ import { NextResponse } from 'next/server'
 import type {
   WebhookEndpoint,
   WebhookEvent,
-  WebhookVerification,
   IntegrationPlatformType,
 } from '@/types/integration.types'
 
