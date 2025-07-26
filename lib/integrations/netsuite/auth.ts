@@ -393,11 +393,20 @@ export class NetSuiteAuth {
     const expiresAt = new Date()
     expiresAt.setMinutes(expiresAt.getMinutes() + 10)
 
-    await supabase.from('oauth_states').insert({
+    const { error } = await supabase.from('oauth_states').insert({
       state,
       integration_id: integrationId,
       expires_at: expiresAt.toISOString(),
     })
+
+    if (error) {
+      console.error('Failed to store OAuth state:', {
+        error: error.message,
+        code: error.code,
+        integrationId,
+      })
+      throw new Error(`Failed to store OAuth state: ${error.message}`)
+    }
   }
 
   /**
