@@ -1,4 +1,5 @@
 // PRP-014: Shopify Data Transformers
+import crypto from 'crypto'
 import type {
   ShopifyProduct,
   ShopifyVariant,
@@ -321,9 +322,13 @@ export class ShopifyTransformers {
   }
 
   private generateInternalId(input: string): string {
+    // Validate input
+    if (!input || typeof input !== 'string' || input.trim() === '') {
+      throw new Error('generateInternalId: input must be a non-empty string')
+    }
+    
     // Generate a deterministic ID using SHA-256 hash
-    const crypto = require('crypto')
-    const hash = crypto.createHash('sha256').update(input).digest('hex')
+    const hash = crypto.createHash('sha256').update(input.trim()).digest('hex')
     return `shopify_${hash.substring(0, 16)}` // Use first 16 chars of hash
   }
 
