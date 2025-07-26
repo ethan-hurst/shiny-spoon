@@ -713,15 +713,37 @@ export class SyncEngine extends EventEmitter {
       issues.push('Maximum concurrent jobs reached')
     }
     
-    // Check connector health
-    for (const [key, connector] of this.connectorCache) {
+    // Check connector health in parallel with timeout (fix-55)
+    const healthCheckTimeout = 5000 // 5 seconds per connector
+    const healthChecks = Array.from(this.connectorCache.entries()).map(async ([key, connector]) => {
       try {
-        const healthy = await connector.testConnection()
+        // Create a timeout promise
+        const timeoutPromise = new Promise<boolean>((_, reject) => {
+          setTimeout(() => reject(new Error('Health check timed out')), healthCheckTimeout)
+        })
+        
+        // Race between health check and timeout
+        const healthy = await Promise.race([
+          connector.testConnection(),
+          timeoutPromise
+        ])
+        
         if (!healthy) {
-          issues.push(`Connector ${key} is unhealthy`)
+          return `Connector ${key} is unhealthy`
         }
+        return null
       } catch (error) {
-        issues.push(`Connector ${key} test failed: ${error}`)
+        return `Connector ${key} test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }
+    })
+    
+    // Wait for all health checks to complete
+    const healthResults = await Promise.all(healthChecks)
+    
+    // Add non-null results to issues
+    for (const result of healthResults) {
+      if (result) {
+        issues.push(result)
       }
     }
     
