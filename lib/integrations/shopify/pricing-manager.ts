@@ -126,7 +126,11 @@ export class PricingManager {
       throw new Error(`Failed to create catalog: ${response.data.catalogCreate.userErrors[0].message}`)
     }
 
-    const catalog = response.data?.catalogCreate.catalog
+    const catalog = response.data?.catalogCreate?.catalog
+    
+    if (!catalog) {
+      throw new Error('Failed to create catalog: No catalog returned in response')
+    }
     
     // Associate with customer groups
     if (customerTierIds.length > 0) {
@@ -351,11 +355,11 @@ export class PricingManager {
       const response = await this.client.query(query, { cursor })
       const data = response.data?.catalogs
 
-      if (!data) break
+      if (!data || !data.edges) break
 
       catalogs.push(...data.edges.map((e: any) => e.node))
-      hasNextPage = data.pageInfo.hasNextPage
-      cursor = data.pageInfo.endCursor
+      hasNextPage = data.pageInfo?.hasNextPage || false
+      cursor = data.pageInfo?.endCursor || null
     }
 
     return catalogs
@@ -407,11 +411,12 @@ export class PricingManager {
         const response = await this.client.query(query, { cursor })
         const data = response.data?.companies
 
-        if (!data) break
+        if (!data || !data.edges) break
 
         // Transform companies and their locations into catalog groups
         for (const edge of data.edges) {
-          const company = edge.node
+          const company = edge?.node
+          if (!company) continue
           
           // Add company as a group
           groups.push({
@@ -440,8 +445,8 @@ export class PricingManager {
           }
         }
 
-        hasNextPage = data.pageInfo.hasNextPage
-        cursor = data.pageInfo.endCursor
+        hasNextPage = data.pageInfo?.hasNextPage || false
+        cursor = data.pageInfo?.endCursor || null
       }
     } catch (error) {
       console.error('Failed to fetch catalog groups:', error)
