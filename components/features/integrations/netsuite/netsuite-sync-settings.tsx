@@ -370,14 +370,7 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
                       <Input 
                         type="number"
                         {...field}
-                        onChange={e => {
-                          const value = parseInt(e.target.value, 10)
-                          if (!isNaN(value) && value >= 10 && value <= 1000) {
-                            field.onChange(value)
-                          } else if (e.target.value === '') {
-                            field.onChange(100) // Default value
-                          }
-                        }}
+                        onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                       />
                     </FormControl>
                     <FormDescription>
