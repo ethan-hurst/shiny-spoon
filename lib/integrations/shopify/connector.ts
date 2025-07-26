@@ -52,7 +52,7 @@ export class ShopifyConnector extends BaseConnector {
     })
 
     // Initialize helpers
-    this.transformers = new ShopifyTransformers(settings.location_mappings)
+    this.transformers = new ShopifyTransformers()
     this.bulkManager = new BulkOperationManager(this.client, this.config.integrationId)
     this.pricingManager = new PricingManager(
       this.client, 

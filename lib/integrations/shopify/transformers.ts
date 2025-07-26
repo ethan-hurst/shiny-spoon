@@ -18,9 +18,7 @@ type Customer = Database['public']['Tables']['customers']['Insert']
 type CustomerContact = Database['public']['Tables']['customer_contacts']['Insert']
 
 export class ShopifyTransformers {
-  constructor(
-    private locationMappings: Record<string, string> = {}
-  ) {}
+  constructor() {}
 
   /**
    * Transform Shopify product to internal format
@@ -105,15 +103,13 @@ export class ShopifyTransformers {
       updated_at: string
     },
     warehouseId: string
-  ): Inventory & { product_id: string; sku: string } {
-    // In webhook context, the SKU and product_id need to be resolved by the connector
-    // since webhook data only contains inventory_item_id
+  ): Partial<Inventory> & { shopify_inventory_item_id: string } {
+    // Return partial inventory data that will be merged with product lookup
     return {
-      product_id: `temp-${webhookData.inventory_item_id}`, // Will be resolved by connector
       warehouse_id: warehouseId,
       quantity: webhookData.available,
       reserved_quantity: 0,
-      sku: '', // Will be resolved by connector
+      shopify_inventory_item_id: webhookData.inventory_item_id.toString(),
       metadata: {
         shopify_inventory_item_id: webhookData.inventory_item_id.toString(),
         shopify_location_id: webhookData.location_id.toString(),
@@ -125,7 +121,22 @@ export class ShopifyTransformers {
   /**
    * Transform Shopify order to internal format
    */
-  transformOrder(shopifyOrder: ShopifyOrder): any {
+  transformOrder(shopifyOrder: ShopifyOrder): {
+    external_id: string
+    order_number: string
+    customer_email: string | null
+    total_amount: number
+    subtotal_amount: number
+    tax_amount: number
+    currency: string
+    status: string
+    line_items: any[]
+    shipping_address: any
+    billing_address: any
+    customer: { external_id: string; email: string; name: string } | null
+    created_at: string
+    updated_at: string
+  } {
     return {
       external_id: shopifyOrder.id,
       order_number: shopifyOrder.name,
