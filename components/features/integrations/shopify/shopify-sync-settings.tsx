@@ -79,27 +79,50 @@ interface TriggerSyncData {
 
 // Mutation function for triggering sync
 async function triggerSyncRequest(data: TriggerSyncData) {
-  const response = await fetch('/api/integrations/shopify/sync', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      integrationId: data.integrationId,
-      entityType: data.entityType,
-      force: data.force ?? true
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+  
+  try {
+    const response = await fetch('/api/integrations/shopify/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        integrationId: data.integrationId,
+        entityType: data.entityType,
+        force: data.force ?? true
+      }),
+      signal: controller.signal
     })
-  })
+    
+    clearTimeout(timeoutId)
 
-  const result = await response.json()
+    const result = await response.json()
 
-  if (!response.ok || !result.success) {
-    throw new Error(result.error || 'Sync failed')
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || 'Sync failed')
+    }
+
+    return result
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout - please try again')
+    }
+    throw error
   }
-
-  return result
 }
 
+/**
+ * Renders a settings panel for configuring and managing Shopify integration sync options.
+ *
+ * Provides toggles for enabling or disabling sync of products, inventory, orders, customers, and B2B catalogs, as well as controls for sync frequency and batch size. Allows users to trigger immediate syncs for individual entities or all entities, and to save updated settings. Displays loading indicators and disables controls during ongoing operations.
+ *
+ * @param integrationId - The unique identifier for the Shopify integration.
+ * @param config - The initial Shopify integration configuration.
+ * @param syncSettings - The initial sync frequency and batch size settings.
+ */
 export function ShopifySyncSettings({
   integrationId,
   config,

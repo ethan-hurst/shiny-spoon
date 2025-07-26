@@ -15,21 +15,35 @@ interface PageProps {
   }
 }
 
+/**
+ * Renders the Shopify Integration configuration page, handling authentication, organization lookup, and integration setup for the current user.
+ *
+ * Redirects unauthenticated users to the login page and users without a profile to onboarding. Fetches the user's organization and attempts to load an existing Shopify integration, either by ID from the query string or by organization. Displays setup instructions if no integration exists, and renders forms and controls for configuring, updating, and managing the Shopify integration, including sync settings, status, and helpful resources.
+ */
 export default async function ShopifyIntegrationPage({ searchParams }: PageProps) {
   const supabase = await createClient()
   
   // Get user and validate
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError) {
+    console.error('Authentication error:', authError)
+    redirect('/login')
+  }
   if (!user) {
     redirect('/login')
   }
 
   // Get user's organization
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('organization_id, role')
     .eq('user_id', user.id)
     .single()
+
+  if (profileError) {
+    console.error('Error fetching user profile:', profileError)
+    redirect('/login')
+  }
 
   if (!profile) {
     redirect('/onboarding')
@@ -134,8 +148,16 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
                 Add the following webhook URL to your app:
               </p>
               <code className="block p-3 bg-muted rounded text-xs">
-                {process.env.NEXT_PUBLIC_URL}/api/webhooks/shopify
+                {process.env.NEXT_PUBLIC_URL 
+                  ? `${process.env.NEXT_PUBLIC_URL}/api/webhooks/shopify`
+                  : '[NEXT_PUBLIC_URL not configured]/api/webhooks/shopify'
+                }
               </code>
+              {!process.env.NEXT_PUBLIC_URL && (
+                <p className="text-sm text-destructive mt-2">
+                  Warning: NEXT_PUBLIC_URL environment variable is not set. Please configure it in your deployment settings.
+                </p>
+              )}
             </div>
 
             <div className="space-y-3">

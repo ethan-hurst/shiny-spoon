@@ -302,6 +302,10 @@ export class IntegrationError extends Error {
   ) {
     super(message)
     this.name = 'IntegrationError'
+    // Preserve stack trace in V8 engines (fix-59)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, IntegrationError)
+    }
   }
 }
 
@@ -313,6 +317,10 @@ export class RateLimitError extends IntegrationError {
   ) {
     super(message, 'RATE_LIMIT_EXCEEDED', details, true)
     this.name = 'RateLimitError'
+    // Preserve stack trace in V8 engines
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, RateLimitError)
+    }
   }
 }
 
@@ -320,6 +328,10 @@ export class AuthenticationError extends IntegrationError {
   constructor(message: string, details?: any) {
     super(message, 'AUTHENTICATION_FAILED', details, false)
     this.name = 'AuthenticationError'
+    // Preserve stack trace in V8 engines
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, AuthenticationError)
+    }
   }
 }
 

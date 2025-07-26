@@ -175,6 +175,17 @@ async function updateIntegration(
   return { id: data.integrationId }
 }
 
+/**
+ * Renders a form for configuring a Shopify integration, supporting both creation and update modes.
+ *
+ * The form allows users to enter Shopify credentials, set sync options, enable B2B catalog features (if available), and specify sync frequency. It validates input, handles form submission to create or update integration records in the backend, and provides a "Test Connection" feature to verify Shopify credentials and detect Shopify Plus status. Success and error notifications are displayed as appropriate. On successful creation, an optional callback is invoked or the user is redirected to the integration detail page.
+ *
+ * @param integrationId - Optional ID of an existing integration to update; if omitted, a new integration is created.
+ * @param organizationId - The ID of the organization for which the integration is being configured.
+ * @param initialData - Optional initial values to prefill the form fields.
+ * @param onSuccess - Optional callback invoked with the integration ID after successful creation.
+ * @returns A React component rendering the Shopify configuration form.
+ */
 export function ShopifyConfigForm({
   integrationId,
   organizationId,
@@ -288,7 +299,10 @@ export function ShopifyConfigForm({
     setTestingConnection(true)
 
     try {
-      // Test the connection by making a simple API call
+      // Test the connection by making a simple API call with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      
       const response = await fetch('/api/integrations/shopify/test', {
         method: 'POST',
         headers: {
@@ -297,8 +311,11 @@ export function ShopifyConfigForm({
         body: JSON.stringify({
           shop_domain: values.shop_domain,
           access_token: values.access_token
-        })
+        }),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
 
       const data = await response.json()
 
@@ -320,10 +337,20 @@ export function ShopifyConfigForm({
         throw new Error(data.error || 'Connection test failed')
       }
     } catch (error) {
+      let errorMessage = 'Failed to connect to Shopify'
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Connection timeout - please try again'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       console.error('Connection test failed:', error)
       toast({
         title: 'Connection failed',
-        description: error instanceof Error ? error.message : 'Failed to connect to Shopify. Please check your credentials.',
+        description: errorMessage,
         variant: 'destructive'
       })
     } finally {

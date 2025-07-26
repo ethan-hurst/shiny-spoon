@@ -513,11 +513,28 @@ export class ShopifyConnector extends BaseConnector {
     try {
       const settings = this.config.settings as ShopifyIntegrationSettings
       const locationMappings = settings.location_mappings || {}
-      const warehouseId = locationMappings[inventory.location_id]
+      
+      // Extract location ID from webhook payload (fix-44)
+      // Inventory webhooks may have location_id at different paths
+      const locationId = inventory.location_id || 
+                        inventory.inventory_level?.location_id ||
+                        (inventory.admin_graphql_api_id?.includes('Location/') 
+                          ? this.extractIdFromGid(inventory.admin_graphql_api_id)
+                          : null)
+      
+      if (!locationId) {
+        this.logger.error('No location ID found in inventory webhook', {
+          webhookId,
+          inventoryKeys: Object.keys(inventory)
+        })
+        throw new Error('Missing location ID in inventory webhook')
+      }
+      
+      const warehouseId = locationMappings[locationId]
 
       if (!warehouseId) {
         this.logger.warn('No warehouse mapping for location', {
-          locationId: inventory.location_id
+          locationId: locationId
         })
         return
       }
@@ -599,13 +616,29 @@ export class ShopifyConnector extends BaseConnector {
 
   private async updateSyncState(entityType: string, updates: Record<string, any>): Promise<void> {
     const supabase = await createClient()
-    await supabase
+    
+    // Add cursor to sync state update (fix-42)
+    const stateUpdate = {
+      integration_id: this.config.integrationId,
+      entity_type: entityType,
+      last_sync_at: new Date().toISOString(),
+      sync_version: updates.sync_version || 0,
+      ...updates
+    }
+    
+    // Include cursor if provided
+    if ('cursor' in updates || 'last_cursor' in updates) {
+      stateUpdate.last_cursor = updates.cursor || updates.last_cursor
+    }
+    
+    const { error } = await supabase
       .from('shopify_sync_state')
-      .upsert({
-        integration_id: this.config.integrationId,
-        entity_type: entityType,
-        ...updates
-      })
+      .upsert(stateUpdate)
+      
+    if (error) {
+      this.logger.error(`Failed to update sync state for ${entityType}`, error)
+      throw new Error(`Failed to update sync state: ${error.message}`)
+    }
   }
 
   private async saveProduct(product: any): Promise<void> {

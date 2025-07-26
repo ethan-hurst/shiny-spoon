@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/use-toast'
 import { 
   Package, 
   Warehouse, 
@@ -78,17 +79,36 @@ async function fetchSyncStatus(integrationId: string): Promise<SyncStatus[]> {
   return data || []
 }
 
+/**
+ * Displays real-time synchronization status for Shopify integration entities.
+ *
+ * Shows sync progress, last sync time, record counts, errors, and next scheduled sync for each entity type associated with the given integration ID. Data is fetched from Supabase and updated in real time and at regular intervals.
+ *
+ * @param integrationId - The unique identifier for the Shopify integration whose sync status should be displayed.
+ */
 export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
   const supabase = createBrowserClient()
   const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   // Use React Query for fetching sync status
-  const { data: syncStatuses = [], isLoading } = useQuery({
+  const { data: syncStatuses = [], isLoading, error } = useQuery({
     queryKey: ['sync-status', integrationId],
     queryFn: () => fetchSyncStatus(integrationId),
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 10000, // Consider data stale after 10 seconds
   })
+
+  useEffect(() => {
+    if (error) {
+      console.error('Failed to fetch sync status:', error)
+      toast({
+        title: 'Sync status error',
+        description: 'Failed to load sync status. Please refresh the page.',
+        variant: 'destructive'
+      })
+    }
+  }, [error, toast])
 
   useEffect(() => {
     // Subscribe to real-time updates

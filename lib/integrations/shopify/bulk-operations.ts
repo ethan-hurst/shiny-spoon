@@ -67,7 +67,7 @@ export class BulkOperationManager {
   }
 
   /**
-   * Process bulk operation results
+   * Process bulk operation results with streaming (fix-41)
    */
   async processResults<T>(
     url: string,
@@ -79,25 +79,58 @@ export class BulkOperationManager {
     const errors: Error[] = []
 
     try {
-      // Fetch JSONL file
+      // Fetch JSONL file with streaming
       const response = await fetch(url)
       if (!response.ok) {
         throw new Error(`Failed to fetch bulk operation results: ${response.statusText}`)
       }
 
-      const text = await response.text()
-      const lines = text.trim().split('\n').filter(line => line.trim())
+      // Stream processing implementation
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('Response body is not readable')
+      }
 
-      // Process each line
-      for (const line of lines) {
-        try {
-          const item = JSON.parse(line) as T
-          await processor(item)
-          totalProcessed++
+      const decoder = new TextDecoder()
+      let buffer = ''
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) {
+          // Process any remaining data in buffer
+          if (buffer.trim()) {
+            try {
+              const item = JSON.parse(buffer) as T
+              await processor(item)
+              totalProcessed++
+            } catch (error) {
+              totalFailed++
+              errors.push(error as Error)
+            }
+          }
+          break
+        }
 
-          // Emit progress periodically
-          if (totalProcessed % 100 === 0) {
-            await this.emitProgress(totalProcessed, lines.length)
+        // Decode chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true })
+        
+        // Process complete lines
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || '' // Keep incomplete line in buffer
+        
+        // Process each complete line
+        for (const line of lines) {
+          if (!line.trim()) continue
+          
+          try {
+            const item = JSON.parse(line) as T
+            await processor(item)
+            totalProcessed++
+
+            // Emit progress periodically
+            if (totalProcessed % 100 === 0) {
+              await this.emitProgress(totalProcessed, totalProcessed + 1000) // Estimate total
           }
         } catch (error) {
           totalFailed++
