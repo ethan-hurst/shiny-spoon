@@ -4,6 +4,11 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShopifySetupWizard } from '@/components/features/integrations/shopify/shopify-setup-wizard'
 
+/**
+ * Renders the Shopify integration setup page, guiding authenticated users through connecting their Shopify store.
+ *
+ * Redirects to the login page if the user is not authenticated, to onboarding if the user profile or organization is missing, or to the main Shopify integration page if an integration already exists. Otherwise, displays a setup wizard for new Shopify integrations.
+ */
 export default async function ShopifySetupPage() {
   const supabase = await createClient()
   

@@ -50,7 +50,14 @@ interface ShopifyConfigFormProps {
   onSuccess?: (integrationId: string) => void
 }
 
-// Mutation for creating integration
+/**
+ * Creates a new Shopify integration with configuration and credentials in the database.
+ *
+ * Inserts a new integration record, associated Shopify configuration, and credentials for the specified organization. Throws an error if any insertion fails.
+ *
+ * @param data - Contains the organization ID and validated form values for the integration
+ * @returns The created integration record
+ */
 async function createIntegration(
   supabase: ReturnType<typeof createBrowserClient>,
   data: {
@@ -108,7 +115,14 @@ async function createIntegration(
   return integration
 }
 
-// Mutation for updating integration
+/**
+ * Updates an existing Shopify integration's configuration, Shopify-specific settings, and credentials in the database.
+ *
+ * Throws an error if any update operation fails.
+ *
+ * @param data - Contains the integration ID and updated form values for the integration.
+ * @returns An object containing the updated integration's ID.
+ */
 async function updateIntegration(
   supabase: ReturnType<typeof createBrowserClient>,
   data: {
@@ -175,6 +189,17 @@ async function updateIntegration(
   return { id: data.integrationId }
 }
 
+/**
+ * Renders a form for configuring a Shopify integration, supporting both creation and update modes.
+ *
+ * Allows users to input Shopify credentials, test the connection, and configure sync options such as products, inventory, orders, customers, B2B catalog (for Shopify Plus stores), and sync frequency. Handles form validation, credential management, and provides user feedback on success or failure. On successful submission, either creates a new integration or updates an existing one.
+ *
+ * @param integrationId - The ID of the integration to update, if editing an existing integration.
+ * @param organizationId - The organization ID for which the integration is being configured.
+ * @param initialData - Optional initial values to populate the form for editing.
+ * @param onSuccess - Optional callback invoked with the integration ID after successful creation.
+ * @returns The Shopify configuration form component.
+ */
 export function ShopifyConfigForm({
   integrationId,
   organizationId,
