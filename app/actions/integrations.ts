@@ -268,6 +268,9 @@ export async function deleteIntegration(id: string) {
   }
 }
 
+// Allowed entity types for sync operations
+const ALLOWED_ENTITY_TYPES = ['products', 'inventory', 'orders', 'customers', 'pricing'] as const
+
 // Trigger manual sync
 export async function triggerSync(integrationId: string, entityType?: string) {
   try {
@@ -284,6 +287,13 @@ export async function triggerSync(integrationId: string, entityType?: string) {
       .single()
 
     if (!profile) throw new Error('User profile not found')
+
+    // Validate entityType if provided
+    if (entityType && entityType !== 'all') {
+      if (!ALLOWED_ENTITY_TYPES.includes(entityType as any)) {
+        throw new Error(`Invalid entityType: must be one of ${ALLOWED_ENTITY_TYPES.join(', ')} or 'all'`)
+      }
+    }
 
     // Verify integration belongs to user's organization
     const { data: integration } = await supabase
