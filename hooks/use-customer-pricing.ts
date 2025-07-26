@@ -21,21 +21,6 @@ export function useCustomerPricingRealtime({
     let channel: RealtimeChannel
 
     const setupRealtimeSubscription = async () => {
-      // Get user's organization for filtering
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      
-      if (!user) return
-
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!profile?.organization_id) return
-
       // Subscribe to customer pricing changes
       channel = supabase
         .channel(`customer-pricing-${customerId}`)
@@ -123,12 +108,13 @@ export function useContractExpiryNotifications({
   customerId,
   enabled = true,
 }: UseCustomerPricingRealtimeProps) {
+  const supabase = createBrowserClient()
+  const queryClient = useQueryClient()
+
   useEffect(() => {
     if (!enabled || !customerId) return
 
     const checkExpiring = async () => {
-      const supabase = createBrowserClient()
-      
       // Check for contracts expiring in the next 30 days
       const thirtyDaysFromNow = new Date()
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
@@ -142,9 +128,12 @@ export function useContractExpiryNotifications({
         .gte('end_date', new Date().toISOString().split('T')[0])
 
       if (expiringContracts && expiringContracts.length > 0) {
-        // You could trigger notifications here
-        // For now, we'll just log
-        console.log(`${expiringContracts.length} contracts expiring soon`)
+        // Trigger proper notification instead of console.log
+        // This could emit an event, update state, or call a notification service
+        queryClient.setQueryData(['contract-expiry-notifications', customerId], {
+          count: expiringContracts.length,
+          contracts: expiringContracts,
+        })
       }
     }
 

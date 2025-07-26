@@ -32,12 +32,10 @@ import { formatCurrency, formatPercent } from '@/lib/utils'
 import { CustomerPriceWithProduct } from '@/types/customer-pricing.types'
 
 interface PriceComparisonViewProps {
-  customerId: string
   products: CustomerPriceWithProduct[]
 }
 
 export function PriceComparisonView({
-  customerId: _customerId,
   products,
 }: PriceComparisonViewProps) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -294,6 +292,7 @@ export function PriceComparisonView({
                         : product.override_discount_percent !== null
                           ? basePrice * (1 - product.override_discount_percent / 100)
                           : basePrice
+                    // Calculate discount percentage, returning 0 if basePrice is 0 to avoid division by zero
                     const discount =
                       basePrice > 0
                         ? ((basePrice - customerPrice) / basePrice) * 100

@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PriceHistoryTimeline } from '@/components/features/pricing/price-history-timeline'
-import { Button } from '@/components/ui/button'
+import { PriceExportButton } from '@/components/features/pricing/price-export-button'
 import {
   Card,
   CardContent,
@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
-import { Download } from 'lucide-react'
 import { getPriceHistory } from '@/app/actions/customer-pricing'
 
 interface PriceHistoryPageProps {
@@ -85,10 +84,10 @@ export default async function PriceHistoryPage(props: PriceHistoryPageProps) {
             Track all price changes and approvals over time
           </p>
         </div>
-        <Button variant="outline">
-          <Download className="h-4 w-4 mr-2" />
-          Export History
-        </Button>
+        <PriceExportButton 
+          customerId={params.id} 
+          customerName={customer.display_name || customer.company_name}
+        />
       </div>
 
       <Card>

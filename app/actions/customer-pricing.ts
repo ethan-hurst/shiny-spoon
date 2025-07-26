@@ -41,7 +41,7 @@ export async function createContract(formData: FormData) {
   const contractItemsJson = formData.get('contract_items') as string
   const contractItems = contractItemsJson ? JSON.parse(contractItemsJson) : []
 
-  // Start transaction
+  // Insert contract
   const { data: contract, error: contractError } = await supabase
     .from('customer_contracts')
     .insert({
@@ -53,18 +53,28 @@ export async function createContract(formData: FormData) {
 
   if (contractError) throw contractError
 
-  // Insert contract items
+  // Insert contract items within try-catch to rollback on failure
   if (contractItems.length > 0) {
-    const { error: itemsError } = await supabase
-      .from('contract_items')
-      .insert(
-        contractItems.map((item: ContractItem) => ({
-          ...item,
-          contract_id: contract.id,
-        }))
-      )
+    try {
+      const { error: itemsError } = await supabase
+        .from('contract_items')
+        .insert(
+          contractItems.map((item: ContractItem) => ({
+            ...item,
+            contract_id: contract.id,
+          }))
+        )
 
-    if (itemsError) throw itemsError
+      if (itemsError) throw itemsError
+    } catch (error) {
+      // Rollback: delete the contract if items insertion fails
+      await supabase
+        .from('customer_contracts')
+        .delete()
+        .eq('id', contract.id)
+      
+      throw new Error(`Failed to create contract items: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   revalidatePath(`/customers/${contractData.customer_id}/pricing`)
@@ -154,6 +164,15 @@ export async function cancelContract(formData: FormData) {
 
   const contractId = formData.get('id') as string
 
+  // Get customer_id from the contract before updating
+  const { data: contract, error: fetchError } = await supabase
+    .from('customer_contracts')
+    .select('customer_id')
+    .eq('id', contractId)
+    .single()
+
+  if (fetchError || !contract) throw new Error('Contract not found')
+
   const { error } = await supabase
     .from('customer_contracts')
     .update({
@@ -164,7 +183,7 @@ export async function cancelContract(formData: FormData) {
 
   if (error) throw error
 
-  revalidatePath('/customers/[id]/pricing/contracts')
+  revalidatePath(`/customers/${contract.customer_id}/pricing/contracts`)
 }
 
 export async function renewContract(formData: FormData) {
@@ -203,7 +222,7 @@ export async function renewContract(formData: FormData) {
 
   if (error) throw error
 
-  revalidatePath('/customers/[id]/pricing/contracts')
+  revalidatePath(`/customers/${contract.customer_id}/pricing/contracts`)
 }
 
 // Price History Actions
@@ -429,7 +448,7 @@ export async function exportCustomerPrices(customerId: string) {
     const basePrice = product.product_pricing?.[0]?.base_price || 0
     const customerPricing = product.customer_pricing?.[0]
     const customerPrice = customerPricing?.override_price || basePrice
-    const discount = ((basePrice - customerPrice) / basePrice) * 100
+    const discount = basePrice > 0 ? ((basePrice - customerPrice) / basePrice) * 100 : 0
 
     return [
       product.sku,

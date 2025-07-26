@@ -1,4 +1,5 @@
 import { PriceApprovalWithDetails } from '@/types/customer-pricing.types'
+import { queueEmail } from '@/lib/email/email-queue'
 
 interface ApprovalEmailParams {
   to: string
@@ -6,12 +7,34 @@ interface ApprovalEmailParams {
   actionUrl: string
 }
 
+// HTML escape function to prevent XSS
+function escapeHtml(text: string | undefined | null): string {
+  if (!text) return ''
+  
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+  }
+  
+  return text.replace(/[&<>"'\/]/g, (char) => map[char] || char)
+}
+
+// Configuration for thresholds
+const APPROVAL_THRESHOLDS = {
+  DISCOUNT_HIGH: 20, // Discount percentage considered high
+  MARGIN_LOW: 15,    // Margin percentage considered low
+}
+
 export function generateApprovalEmailHtml({
   approval,
   actionUrl,
 }: Omit<ApprovalEmailParams, 'to'>): string {
-  const discountClass = (approval.discount_percent || 0) > 20 ? 'high' : 'normal'
-  const marginClass = (approval.margin_percent || 0) < 15 ? 'low' : 'normal'
+  const discountClass = (approval.discount_percent || 0) > APPROVAL_THRESHOLDS.DISCOUNT_HIGH ? 'high' : 'normal'
+  const marginClass = (approval.margin_percent || 0) < APPROVAL_THRESHOLDS.MARGIN_LOW ? 'low' : 'normal'
 
   return `
 <!DOCTYPE html>
@@ -196,15 +219,15 @@ export function generateApprovalEmailHtml({
     <div class="details">
       <div class="detail-row">
         <span class="detail-label">Customer</span>
-        <span class="detail-value">${approval.customers?.display_name || approval.customers?.company_name || 'Unknown Customer'}</span>
+        <span class="detail-value">${escapeHtml(approval.customers?.display_name || approval.customers?.company_name || 'Unknown Customer')}</span>
       </div>
       <div class="detail-row">
         <span class="detail-label">Product</span>
-        <span class="detail-value">${approval.products?.name || 'Unknown Product'}</span>
+        <span class="detail-value">${escapeHtml(approval.products?.name || 'Unknown Product')}</span>
       </div>
       <div class="detail-row">
         <span class="detail-label">SKU</span>
-        <span class="detail-value">${approval.products?.sku || 'N/A'}</span>
+        <span class="detail-value">${escapeHtml(approval.products?.sku || 'N/A')}</span>
       </div>
     </div>
 
@@ -232,12 +255,19 @@ export function generateApprovalEmailHtml({
 
     <div class="reason">
       <div class="reason-label">Reason for Change</div>
-      <p class="reason-text">${approval.change_reason}</p>
+      <p class="reason-text">${escapeHtml(approval.change_reason)}</p>
     </div>
 
     <div class="requested-by">
-      Requested by: <strong>${approval.requested_by_user?.email || 'Unknown User'}</strong><br>
-      ${new Date(approval.requested_at).toLocaleString()}
+      Requested by: <strong>${escapeHtml(approval.requested_by_user?.email || 'Unknown User')}</strong><br>
+      ${(() => {
+        try {
+          const date = new Date(approval.requested_at)
+          return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleString()
+        } catch {
+          return 'Invalid date'
+        }
+      })()}
     </div>
 
     <div style="text-align: center;">
@@ -291,17 +321,39 @@ export async function sendApprovalEmail({
   approval,
   actionUrl,
 }: ApprovalEmailParams) {
+  // Validate email address
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(to)) {
+    throw new Error('Invalid email address')
+  }
+
   const htmlContent = generateApprovalEmailHtml({ approval, actionUrl })
   const textContent = generateApprovalEmailText({ approval, actionUrl })
-
-  // In a real implementation, this would use a service like SendGrid, Resend, or Supabase Email
-  // For now, we'll just return the email content
-  console.log(`Sending approval email to ${to}`)
   
-  return {
-    to,
-    subject: `Price Approval Required - ${approval.customers?.company_name || 'Customer'}`,
-    html: htmlContent,
-    text: textContent,
+  const subject = `Price Approval Required - ${escapeHtml(approval.customers?.company_name || 'Customer')}`
+  
+  try {
+    // Queue the email for sending
+    const result = await queueEmail({
+      to,
+      from: 'noreply@truthsource.ai',
+      subject,
+      html: htmlContent,
+      text: textContent,
+    })
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to queue email')
+    }
+    
+    return {
+      success: true,
+      message: 'Email queued for sending',
+      to,
+      subject,
+    }
+  } catch (error) {
+    console.error('Error sending approval email:', error)
+    throw new Error(`Failed to send approval email: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }

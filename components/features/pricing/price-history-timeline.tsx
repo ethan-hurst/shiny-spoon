@@ -278,30 +278,32 @@ export function PriceHistoryTimeline({ history }: PriceHistoryTimelineProps) {
                       <div className="flex items-center">
                         {entry.old_price && entry.new_price && (
                           <>
-                            {entry.new_price > entry.old_price ? (
-                              <div className="flex items-center gap-1 text-red-600">
-                                <TrendingUp className="h-4 w-4" />
-                                <span className="text-sm font-medium">
-                                  +
-                                  {formatPercent(
-                                    ((entry.new_price - entry.old_price) /
-                                      entry.old_price) *
-                                      100
-                                  )}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1 text-green-600">
-                                <TrendingDown className="h-4 w-4" />
-                                <span className="text-sm font-medium">
-                                  {formatPercent(
-                                    ((entry.new_price - entry.old_price) /
-                                      entry.old_price) *
-                                      100
-                                  )}
-                                </span>
-                              </div>
-                            )}
+                            {(() => {
+                              // Calculate percentage change safely
+                              const percentageChange = entry.old_price > 0 
+                                ? ((entry.new_price - entry.old_price) / entry.old_price) * 100
+                                : 0
+                              
+                              if (entry.new_price > entry.old_price) {
+                                return (
+                                  <div className="flex items-center gap-1 text-red-600">
+                                    <TrendingUp className="h-4 w-4" />
+                                    <span className="text-sm font-medium">
+                                      +{formatPercent(percentageChange)}
+                                    </span>
+                                  </div>
+                                )
+                              } else {
+                                return (
+                                  <div className="flex items-center gap-1 text-green-600">
+                                    <TrendingDown className="h-4 w-4" />
+                                    <span className="text-sm font-medium">
+                                      {formatPercent(percentageChange)}
+                                    </span>
+                                  </div>
+                                )
+                              }
+                            })()}
                           </>
                         )}
                       </div>

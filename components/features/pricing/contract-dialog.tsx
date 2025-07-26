@@ -567,13 +567,19 @@ export function ContractDialog({
                                   min="0"
                                   className="pl-8"
                                   value={item.contract_price}
-                                  onChange={(e) =>
-                                    updateContractItem(
-                                      index,
-                                      'contract_price',
-                                      parseFloat(e.target.value)
-                                    )
-                                  }
+                                  onChange={(e) => {
+                                    const value = e.target.value
+                                    const numValue = parseFloat(value)
+                                    
+                                    // Validate the input
+                                    if (value === '' || (!isNaN(numValue) && numValue >= 0)) {
+                                      updateContractItem(
+                                        index,
+                                        'contract_price',
+                                        value === '' ? 0 : numValue
+                                      )
+                                    }
+                                  }}
                                 />
                               </div>
                               {selectedProduct && (

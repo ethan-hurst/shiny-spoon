@@ -44,12 +44,13 @@ import {
   getContractStatusColor,
   isContractExpiring,
 } from '@/types/customer-pricing.types'
+import { CustomerRecord } from '@/types/customer.types'
 import { cancelContract, renewContract } from '@/app/actions/customer-pricing'
 
 interface ContractListProps {
   customerId: string
   contracts: ContractWithItems[]
-  customer: any
+  customer: CustomerRecord
 }
 
 export function ContractList({ customerId, contracts, customer }: ContractListProps) {
@@ -152,10 +153,24 @@ export function ContractList({ customerId, contracts, customer }: ContractListPr
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm">
-                        {format(new Date(contract.start_date), 'MMM d, yyyy')}
+                        {(() => {
+                          try {
+                            const date = new Date(contract.start_date)
+                            return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy')
+                          } catch {
+                            return 'Invalid date'
+                          }
+                        })()}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        to {format(new Date(contract.end_date), 'MMM d, yyyy')}
+                        to {(() => {
+                          try {
+                            const date = new Date(contract.end_date)
+                            return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy')
+                          } catch {
+                            return 'Invalid date'
+                          }
+                        })()}
                       </p>
                     </div>
                   </div>
