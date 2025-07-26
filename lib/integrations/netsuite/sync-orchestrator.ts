@@ -438,24 +438,13 @@ export class NetSuiteSyncOrchestrator {
       integration.netsuite_config[0]
     )
 
-    const connectorConfig: ConnectorConfig = {
-      integrationId: integrationId,
-      organizationId: integration.organization_id,
-      credentials: {} as any, // Credentials will be loaded by the connector
-      settings: integration.netsuite_config[0],
-    }
-    
-    const connector = new NetSuiteConnector(connectorConfig)
-
-    await connector.initialize()
-
     let processed = 0
     let failed = 0
     const errors: any[] = []
 
     switch (operation) {
       case 'import':
-        // Bulk import from NetSuite
+        // Bulk import from NetSuite - uses orchestrator which creates its own connector
         const syncResult = await orchestrator.executeSyncJob({
           integration_id: integrationId,
           entity_types: [entityType as any],
@@ -473,10 +462,20 @@ export class NetSuiteSyncOrchestrator {
 
       case 'export':
         // Bulk export to NetSuite (not implemented yet)
+        // When implemented, will need to create a connector directly:
+        // const connectorConfig: ConnectorConfig = {
+        //   integrationId: integrationId,
+        //   organizationId: integration.organization_id,
+        //   credentials: {} as any,
+        //   settings: integration.netsuite_config[0],
+        // }
+        // const connector = new NetSuiteConnector(connectorConfig)
+        // await connector.initialize()
         throw new Error('Bulk export not implemented')
 
       case 'delete':
         // Bulk delete (not implemented yet)
+        // Will also need direct connector initialization when implemented
         throw new Error('Bulk delete not implemented')
     }
 
