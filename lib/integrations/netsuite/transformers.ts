@@ -1,9 +1,6 @@
 // PRP-013: NetSuite Data Transformers
 import { z } from 'zod'
 import type {
-  NetSuiteItem,
-  NetSuiteInventoryBalance,
-  NetSuiteItemPrice,
   ProductTransformResult,
   InventoryTransformResult,
   PricingTransformResult,
