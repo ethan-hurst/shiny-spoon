@@ -57,7 +57,6 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
   // Get or check for existing NetSuite integration
   let integration = null
   let netsuiteConfig = null
-  let syncStates = null
 
   if (searchParams.id) {
     // Get specific integration
@@ -65,8 +64,7 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
       .from('integrations')
       .select(`
         *,
-        netsuite_config (*),
-        netsuite_sync_state (*)
+        netsuite_config (*)
       `)
       .eq('id', searchParams.id)
       .eq('organization_id', profile.organization_id)
@@ -76,7 +74,6 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
     integration = data
     if (integration) {
       netsuiteConfig = integration.netsuite_config?.[0]
-      syncStates = integration.netsuite_sync_state
     }
   } else {
     // Check for existing NetSuite integration
@@ -84,8 +81,7 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
       .from('integrations')
       .select(`
         *,
-        netsuite_config (*),
-        netsuite_sync_state (*)
+        netsuite_config (*)
       `)
       .eq('organization_id', profile.organization_id)
       .eq('platform', 'netsuite')
@@ -94,23 +90,9 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
     if (data) {
       integration = data
       netsuiteConfig = data.netsuite_config?.[0]
-      syncStates = data.netsuite_sync_state
       // Redirect to specific integration page
       redirect(`/integrations/netsuite?id=${data.id}`)
     }
-  }
-
-  // Get recent sync logs if integration exists
-  let recentLogs = null
-  if (integration) {
-    const { data } = await supabase
-      .from('integration_logs')
-      .select('*')
-      .eq('integration_id', integration.id)
-      .order('created_at', { ascending: false })
-      .limit(10)
-    
-    recentLogs = data
   }
 
   const isConfigured = integration && integration.status === 'active'
@@ -314,8 +296,6 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
           <TabsContent value="status" className="space-y-4">
             <NetSuiteSyncStatus 
               integrationId={integration.id}
-              syncStates={syncStates}
-              recentLogs={recentLogs}
             />
           </TabsContent>
         </Tabs>

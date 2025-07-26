@@ -3,6 +3,9 @@
 
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
+import { useQueryClient } from '@tanstack/react-query'
+import { useNetSuiteSyncStatus, useNetSuiteLogs } from '@/hooks/use-netsuite-sync'
+import type { SyncState, IntegrationLog } from '@/hooks/use-netsuite-sync'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,32 +37,8 @@ import {
 import { triggerSync } from '@/app/actions/integrations'
 import { toast } from '@/components/ui/use-toast'
 
-interface SyncState {
-  id: string
-  entity_type: string
-  sync_status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped'
-  last_sync_at: string | null
-  sync_duration: number | null
-  total_records: number | null
-  records_processed: number | null
-  error_count: number | null
-  created_at: string
-  updated_at: string
-}
-
-interface IntegrationLog {
-  id: string
-  severity: 'info' | 'warning' | 'error' | 'critical' | 'debug'
-  log_type: string
-  message: string
-  details?: Record<string, any> | null
-  created_at: string
-}
-
 interface NetSuiteSyncStatusProps {
   integrationId: string
-  syncStates: SyncState[] | null
-  recentLogs: IntegrationLog[] | null
 }
 
 const entityIcons = {
@@ -86,12 +65,15 @@ const statusColors = {
 } as const
 
 export function NetSuiteSyncStatus({ 
-  integrationId, 
-  syncStates, 
-  recentLogs 
+  integrationId
 }: NetSuiteSyncStatusProps) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const queryClient = useQueryClient()
+
+  // Use React Query hooks to fetch data
+  const { data: syncStates, isLoading: isLoadingStates, error: statesError } = useNetSuiteSyncStatus(integrationId)
+  const { data: recentLogs, isLoading: isLoadingLogs, error: logsError } = useNetSuiteLogs(integrationId)
 
   async function handleResync(entityType: string) {
     setIsSyncing(true)
@@ -102,6 +84,10 @@ export function NetSuiteSyncStatus({
       formData.append('entityType', entityType)
       
       await triggerSync(formData)
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['netsuite-sync-status', integrationId] })
+      queryClient.invalidateQueries({ queryKey: ['netsuite-logs', integrationId] })
       
       toast({
         title: 'Sync started',
@@ -119,15 +105,38 @@ export function NetSuiteSyncStatus({
     }
   }
 
+  // Show loading state
+  if (isLoadingStates || isLoadingLogs) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Show error state
+  if (statesError || logsError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          Failed to load sync status: {statesError?.message || logsError?.message}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
   // Group sync states by entity type
   const syncStatesByEntity = (syncStates || []).reduce((acc, state) => {
     if (!acc[state.entity_type]) {
       acc[state.entity_type] = state
-    } else if (new Date(state.last_sync_at) > new Date(acc[state.entity_type].last_sync_at)) {
+    } else if (state.last_sync_at && (!acc[state.entity_type].last_sync_at || 
+              new Date(state.last_sync_at) > new Date(acc[state.entity_type].last_sync_at))) {
       acc[state.entity_type] = state
     }
     return acc
-  }, {} as Record<string, any>)
+  }, {} as Record<string, SyncState>)
 
   // Calculate overall sync health
   const activeSyncs = Object.values(syncStatesByEntity).filter(
