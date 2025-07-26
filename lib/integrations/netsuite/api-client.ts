@@ -389,8 +389,38 @@ export class NetSuiteApiClient {
           return `${validatedField} = ${value}`
         } else if (typeof value === 'boolean') {
           return `${validatedField} = '${value ? 'T' : 'F'}'`
+        } else if (Array.isArray(value)) {
+          // Handle arrays for IN clauses
+          if (value.length === 0) {
+            throw new IntegrationError(
+              `Empty array provided for field "${field}" - IN clause requires at least one value`,
+              'INVALID_QUERY_CONDITION'
+            )
+          }
+          const values = value.map(v => {
+            if (typeof v === 'string') {
+              return `'${v.replace(/'/g, "''")}'`
+            } else if (typeof v === 'number') {
+              return v.toString()
+            } else {
+              throw new IntegrationError(
+                `Unsupported array element type "${typeof v}" for field "${field}" - arrays can only contain strings or numbers`,
+                'INVALID_QUERY_CONDITION'
+              )
+            }
+          }).join(', ')
+          return `${validatedField} IN (${values})`
+        } else if (value === undefined) {
+          throw new IntegrationError(
+            `Undefined value provided for field "${field}" - use null for NULL conditions or provide a valid value`,
+            'INVALID_QUERY_CONDITION'
+          )
+        } else {
+          throw new IntegrationError(
+            `Unsupported data type "${typeof value}" for field "${field}" with value "${JSON.stringify(value)}" - supported types are: null, string, number, boolean, and array`,
+            'INVALID_QUERY_CONDITION'
+          )
         }
-        return ''
       })
       .filter(Boolean)
       .join(' AND ')
