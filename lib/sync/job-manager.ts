@@ -1,6 +1,7 @@
 // PRP-015: Sync Job Manager with Queue Processing
 import { createClient } from '@/lib/supabase/server'
 import { SyncEngine } from './sync-engine'
+import { calculateNextRun } from './utils/schedule-helpers'
 import type { 
   SyncJob, 
   SyncJobConfig, 
@@ -385,7 +386,7 @@ export class SyncJobManager {
     console.log(`Created scheduled job ${job.id} for integration ${schedule.integration_id}`)
 
     // Update schedule with last run time and calculate next run
-    const nextRun = this.calculateNextRun(schedule.frequency, new Date())
+    const nextRun = calculateNextRun(schedule.frequency, new Date())
     
     await supabase
       .from('sync_schedules')
@@ -396,43 +397,6 @@ export class SyncJobManager {
       .eq('id', schedule.id)
   }
 
-  /**
-   * Calculate next run time based on frequency
-   */
-  private calculateNextRun(frequency: string, from: Date): Date {
-    const next = new Date(from)
-    
-    switch (frequency) {
-      case 'every_5_min':
-        next.setMinutes(next.getMinutes() + 5)
-        break
-      case 'every_15_min':
-        next.setMinutes(next.getMinutes() + 15)
-        break
-      case 'every_30_min':
-        next.setMinutes(next.getMinutes() + 30)
-        break
-      case 'hourly':
-        next.setHours(next.getHours() + 1)
-        next.setMinutes(0)
-        next.setSeconds(0)
-        break
-      case 'daily':
-        next.setDate(next.getDate() + 1)
-        next.setHours(0)
-        next.setMinutes(0)
-        next.setSeconds(0)
-        break
-      case 'weekly':
-        next.setDate(next.getDate() + 7)
-        next.setHours(0)
-        next.setMinutes(0)
-        next.setSeconds(0)
-        break
-    }
-    
-    return next
-  }
 
   /**
    * Clean up stale locks in the queue

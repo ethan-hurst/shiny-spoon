@@ -126,7 +126,11 @@ export class PricingManager {
       throw new Error(`Failed to create catalog: ${response.data.catalogCreate.userErrors[0].message}`)
     }
 
-    const catalog = response.data?.catalogCreate.catalog
+    const catalog = response.data?.catalogCreate?.catalog
+    
+    if (!catalog) {
+      throw new Error('Failed to create catalog: No catalog returned in response')
+    }
     
     // Associate with customer groups
     if (customerTierIds.length > 0) {
@@ -281,6 +285,7 @@ export class PricingManager {
         )
       `)
       .eq('customer_id', customerId)
+      .eq('organization_id', this.organizationId)
       .eq('is_active', true)
 
     if (!customerPrices || customerPrices.length === 0) {
@@ -351,11 +356,11 @@ export class PricingManager {
       const response = await this.client.query(query, { cursor })
       const data = response.data?.catalogs
 
-      if (!data) break
+      if (!data || !data.edges) break
 
       catalogs.push(...data.edges.map((e: any) => e.node))
-      hasNextPage = data.pageInfo.hasNextPage
-      cursor = data.pageInfo.endCursor
+      hasNextPage = data.pageInfo?.hasNextPage || false
+      cursor = data.pageInfo?.endCursor || null
     }
 
     return catalogs
@@ -407,11 +412,12 @@ export class PricingManager {
         const response = await this.client.query(query, { cursor })
         const data = response.data?.companies
 
-        if (!data) break
+        if (!data || !data.edges) break
 
         // Transform companies and their locations into catalog groups
         for (const edge of data.edges) {
-          const company = edge.node
+          const company = edge?.node
+          if (!company) continue
           
           // Add company as a group
           groups.push({
@@ -440,8 +446,8 @@ export class PricingManager {
           }
         }
 
-        hasNextPage = data.pageInfo.hasNextPage
-        cursor = data.pageInfo.endCursor
+        hasNextPage = data.pageInfo?.hasNextPage || false
+        cursor = data.pageInfo?.endCursor || null
       }
     } catch (error) {
       console.error('Failed to fetch catalog groups:', error)
@@ -514,6 +520,7 @@ export class PricingManager {
       .from('shopify_b2b_catalogs')
       .upsert({
         integration_id: this.integrationId,
+        organization_id: this.organizationId,
         shopify_catalog_id: catalog.id,
         name: catalog.title,
         status: catalog.status.toLowerCase(),
@@ -529,6 +536,7 @@ export class PricingManager {
       .from('shopify_catalog_groups')
       .upsert({
         integration_id: this.integrationId,
+        organization_id: this.organizationId,
         shopify_group_id: group.id,
         catalog_id: group.catalogId,
         name: group.name,
@@ -600,6 +608,7 @@ export class PricingManager {
       .from('shopify_b2b_catalogs')
       .select('shopify_catalog_id')
       .eq('integration_id', this.integrationId)
+      .eq('organization_id', this.organizationId)
       .filter('metadata->customer_id', 'eq', customerId)
       .filter('metadata->tier_key', 'eq', tierKey)
       .single()
@@ -619,6 +628,7 @@ export class PricingManager {
       .from('shopify_b2b_catalogs')
       .insert({
         integration_id: this.integrationId,
+        organization_id: this.organizationId,
         shopify_catalog_id: catalog.id,
         name: catalog.title,
         status: catalog.status.toLowerCase(),
@@ -649,6 +659,7 @@ export class PricingManager {
       .from('shopify_product_mapping')
       .select('shopify_variant_id, internal_product_id')
       .eq('integration_id', this.integrationId)
+      .eq('organization_id', this.organizationId)
       .in('internal_product_id', productIds)
 
     // Create a map for quick lookup

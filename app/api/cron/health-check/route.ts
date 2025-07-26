@@ -168,7 +168,6 @@ async function checkIntegrationHealth(
   integrationId: string
 ): Promise<SyncHealthStatus> {
   const now = new Date()
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   
   // Get sync statistics for the last 24 hours
   const { data: stats } = await supabase.rpc('get_sync_statistics', {

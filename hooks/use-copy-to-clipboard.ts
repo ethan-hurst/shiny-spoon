@@ -16,7 +16,7 @@ interface UseCopyToClipboardOptions {
 export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
   const [isCopied, setIsCopied] = useState(false)
   const { toast } = useToast()
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Clean up timeout on unmount
   useEffect(() => {

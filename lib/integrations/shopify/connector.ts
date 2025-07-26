@@ -80,7 +80,9 @@ export class ShopifyConnector extends BaseConnector {
         const encrypted = encryptedData.subarray(16, encryptedData.length - 16)
         
         // Create decipher with IV
-        const key = crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32)
+        // Use a deterministic salt derived from the organization ID for consistency
+        const salt = crypto.createHash('sha256').update(`shopify-${this.config.organizationId}`).digest()
+        const key = crypto.scryptSync(process.env.ENCRYPTION_KEY, salt, 32)
         const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
         decipher.setAuthTag(authTag)
         
@@ -409,6 +411,7 @@ export class ShopifyConnector extends BaseConnector {
       .from('shopify_webhook_events')
       .insert({
         integration_id: this.config.integrationId,
+        organization_id: this.config.organizationId,
         event_id: body.webhook_id || body.id || crypto.randomUUID(),
         topic,
         shop_domain: this.shopDomain,

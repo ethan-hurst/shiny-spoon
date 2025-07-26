@@ -8,7 +8,7 @@ import type {
   ShopifyIntegrationConfig,
   ShopifySyncSettings as ShopifySyncSettingsType,
 } from '@/types/shopify-integration.types'
-import { ShopifySyncSettings } from './shopify-sync-settings'
+import { ShopifySyncSettingsForm } from './shopify-sync-settings'
 
 // Mock dependencies - using Jest as the testing framework based on project structure
 jest.mock('next/navigation', () => ({
@@ -110,7 +110,7 @@ jest.mock('lucide-react', () => ({
 // Mock fetch globally
 global.fetch = jest.fn()
 
-describe('ShopifySyncSettings', () => {
+describe('ShopifySyncSettingsForm', () => {
   const mockRouter = {
     refresh: jest.fn(),
   }
@@ -152,7 +152,7 @@ describe('ShopifySyncSettings', () => {
 
   describe('Component Rendering', () => {
     it('renders all sync option switches with correct initial values', () => {
-      render(<ShopifySyncSettings {...defaultProps} />)
+      render(<ShopifySyncSettingsForm {...defaultProps} />)
 
       expect(screen.getByLabelText('Products')).toBeInTheDocument()
       expect(screen.getByLabelText('Inventory')).toBeInTheDocument()
@@ -169,7 +169,7 @@ describe('ShopifySyncSettings', () => {
     })
 
     it('renders descriptive text for each sync option', () => {
-      render(<ShopifySyncSettings {...defaultProps} />)
+      render(<ShopifySyncSettingsForm {...defaultProps} />)
 
       expect(
         screen.getByText('Sync product catalog including variants and metafields')
@@ -191,7 +191,7 @@ describe('ShopifySyncSettings', () => {
     })
 
     it('renders sync frequency and batch size selects with labels', () => {
-      render(<ShopifySyncSettings {...defaultProps} />)
+      render(<ShopifySyncSettingsForm {...defaultProps} />)
 
       expect(screen.getByLabelText('Sync Frequency')).toBeInTheDocument()
       expect(screen.getByLabelText('Batch Size')).toBeInTheDocument()
@@ -204,7 +204,7 @@ describe('ShopifySyncSettings', () => {
     })
 
     it('renders action buttons with correct labels', () => {
-      render(<ShopifySyncSettings {...defaultProps} />)
+      render(<ShopifySyncSettingsForm {...defaultProps} />)
 
       expect(
         screen.getByRole('button', { name: /sync all now/i })
@@ -215,14 +215,14 @@ describe('ShopifySyncSettings', () => {
     })
 
     it('renders individual sync buttons for each entity type', () => {
-      render(<ShopifySyncSettings {...defaultProps} />)
+      render(<ShopifySyncSettingsForm {...defaultProps} />)
 
       const refreshButtons = screen.getAllByTestId('refresh-icon')
       expect(refreshButtons).toHaveLength(4) // One for each sync entity type (products, inventory, orders, customers)
     })
 
     it('renders card structure for frequency and batch size settings', () => {
-      render(<ShopifySyncSettings {...defaultProps} />)
+      render(<ShopifySyncSettingsForm {...defaultProps} />)
 
       expect(screen.getByTestId('card')).toBeInTheDocument()
       expect(screen.getByTestId('card-content')).toBeInTheDocument()

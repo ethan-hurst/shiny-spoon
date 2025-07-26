@@ -590,3 +590,181 @@ function getDateForPeriod(period: string): string {
   
   return now.toISOString()
 }
+
+export async function getSyncHealthData() {
+  const supabase = await createClient()
+
+  // Get user session
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('Unauthorized')
+  }
+
+  // Get user's organization
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile) {
+    throw new Error('User profile not found')
+  }
+
+  // Get integrations for the organization
+  const { data: integrations } = await supabase
+    .from('integrations')
+    .select('id, name, platform')
+    .eq('organization_id', profile.organization_id)
+    .eq('status', 'active')
+
+  if (!integrations) {
+    return {
+      integration_health: [],
+      system_health: {
+        status: 'healthy' as const,
+        metrics: {
+          total_queue_depth: 0,
+          stuck_jobs: 0,
+        },
+        issues: [],
+      },
+      engine_health: null,
+    }
+  }
+
+  // Get health metrics for each integration
+  const healthPromises = integrations.map(async (integration) => {
+    // Get recent job statistics
+    const now = new Date()
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+
+    const { data: jobs } = await supabase
+      .from('sync_jobs')
+      .select('status, started_at, completed_at, error')
+      .eq('integration_id', integration.id)
+      .gte('created_at', oneHourAgo.toISOString())
+
+    const totalJobs = jobs?.length || 0
+    const successfulJobs = jobs?.filter(j => j.status === 'completed').length || 0
+    const failedJobs = jobs?.filter(j => j.status === 'failed').length || 0
+    const pendingJobs = jobs?.filter(j => j.status === 'pending').length || 0
+
+    // Calculate metrics
+    const successRate = totalJobs > 0 ? successfulJobs / totalJobs : 1
+    const errorRate = totalJobs > 0 ? failedJobs / totalJobs : 0
+    
+    // Calculate average duration from completed jobs
+    const completedJobs = jobs?.filter(j => j.status === 'completed' && j.started_at && j.completed_at) || []
+    const averageDuration = completedJobs.length > 0
+      ? completedJobs.reduce((sum, job) => {
+          const duration = new Date(job.completed_at!).getTime() - new Date(job.started_at!).getTime()
+          return sum + duration
+        }, 0) / completedJobs.length
+      : 0
+
+    // Get oldest pending job
+    const { data: oldestPending } = await supabase
+      .from('sync_jobs')
+      .select('created_at')
+      .eq('integration_id', integration.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .single()
+
+    const oldestPendingAge = oldestPending
+      ? now.getTime() - new Date(oldestPending.created_at).getTime()
+      : undefined
+
+    // Determine health status
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy'
+    const issues: string[] = []
+
+    if (errorRate > 0.5) {
+      status = 'unhealthy'
+      issues.push('High error rate detected')
+    } else if (errorRate > 0.2) {
+      status = 'degraded'
+      issues.push('Elevated error rate')
+    }
+
+    if (pendingJobs > 10) {
+      status = status === 'healthy' ? 'degraded' : status
+      issues.push(`${pendingJobs} jobs queued`)
+    }
+
+    if (oldestPendingAge && oldestPendingAge > 3600000) { // 1 hour
+      status = 'unhealthy'
+      issues.push('Jobs stuck in queue')
+    }
+
+    return {
+      integration_id: integration.id,
+      status,
+      last_check_at: now.toISOString(),
+      metrics: {
+        success_rate: successRate,
+        average_duration_ms: averageDuration,
+        error_rate: errorRate,
+        queue_depth: pendingJobs,
+        oldest_pending_job_age_ms: oldestPendingAge,
+      },
+      issues: issues.length > 0 ? issues : undefined,
+      integration,
+    }
+  })
+
+  const integrationHealth = await Promise.all(healthPromises)
+
+  // Calculate system health
+  const totalQueueDepth = integrationHealth.reduce((sum, h) => sum + h.metrics.queue_depth, 0)
+  const stuckJobs = integrationHealth.filter(h => 
+    h.metrics.oldest_pending_job_age_ms && h.metrics.oldest_pending_job_age_ms > 3600000
+  ).length
+
+  const unhealthyIntegrations = integrationHealth.filter(h => h.status === 'unhealthy').length
+  const degradedIntegrations = integrationHealth.filter(h => h.status === 'degraded').length
+
+  let systemStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy'
+  const systemIssues: string[] = []
+
+  if (unhealthyIntegrations > 0) {
+    systemStatus = 'unhealthy'
+    systemIssues.push(`${unhealthyIntegrations} unhealthy integrations`)
+  } else if (degradedIntegrations > integrations.length / 2) {
+    systemStatus = 'degraded'
+    systemIssues.push('Multiple integrations degraded')
+  }
+
+  if (totalQueueDepth > 100) {
+    systemStatus = systemStatus === 'healthy' ? 'degraded' : systemStatus
+    systemIssues.push('High queue depth')
+  }
+
+  // Get active jobs count for engine health
+  const { count: activeJobsCount } = await supabase
+    .from('sync_jobs')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'running')
+    .eq('organization_id', profile.organization_id)
+
+  return {
+    integration_health: integrationHealth,
+    system_health: {
+      status: systemStatus,
+      metrics: {
+        total_queue_depth: totalQueueDepth,
+        stuck_jobs: stuckJobs,
+      },
+      issues: systemIssues,
+    },
+    engine_health: {
+      status: activeJobsCount && activeJobsCount > 10 ? 'degraded' : 'healthy',
+      activeJobs: activeJobsCount || 0,
+      maxJobs: 10,
+      connectors: integrations.length,
+      issues: activeJobsCount && activeJobsCount > 10 ? ['High concurrent job count'] : [],
+    },
+  }
+}

@@ -3,12 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Activity, AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { Activity, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { SyncJobsList } from '@/components/features/sync/sync-jobs-list'
 import { SyncSchedulesList } from '@/components/features/sync/sync-schedules-list'
-import { SyncStatistics } from '@/components/features/sync/sync-statistics'
+import { SyncStatisticsPanel } from '@/components/features/sync/sync-statistics'
 import { SyncHealthMonitor } from '@/components/features/sync/sync-health-monitor'
 import { ManualSyncTrigger } from '@/components/features/sync/manual-sync-trigger'
 import type { SyncJob, SyncSchedule, SyncHealthStatus } from '@/types/sync-engine.types'
@@ -195,7 +193,13 @@ export default async function SyncDashboardPage() {
             </CardHeader>
             <CardContent>
               {recentJobs && recentJobs.length > 0 ? (
-                <SyncJobsList jobs={recentJobs as any} />
+                <SyncJobsList jobs={recentJobs as (SyncJob & {
+                  integrations: {
+                    id: string
+                    name: string
+                    platform: string
+                  }
+                })[]} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No sync jobs found. Create an integration and trigger a sync to get started.
@@ -215,7 +219,13 @@ export default async function SyncDashboardPage() {
             </CardHeader>
             <CardContent>
               {schedules && schedules.length > 0 ? (
-                <SyncSchedulesList schedules={schedules as any} />
+                <SyncSchedulesList schedules={schedules as (SyncSchedule & {
+                  integrations: {
+                    id: string
+                    name: string
+                    platform: string
+                  }
+                })[]} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No schedules configured. Set up automatic syncing for your integrations.
@@ -235,7 +245,7 @@ export default async function SyncDashboardPage() {
             </CardHeader>
             <CardContent>
               {integrations && integrations.length > 0 ? (
-                <SyncStatistics integrations={integrations} />
+                <SyncStatisticsPanel integrations={integrations} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No integrations found. Add integrations to view statistics.

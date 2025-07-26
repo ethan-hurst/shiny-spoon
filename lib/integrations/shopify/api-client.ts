@@ -56,11 +56,18 @@ export class ShopifyApiClient {
     }
 
     try {
+      // Add timeout support with AbortController
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: this.headers,
-        body: JSON.stringify({ query, variables })
+        body: JSON.stringify({ query, variables }),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
 
       // Handle rate limiting
       if (response.status === 429) {
@@ -95,6 +102,15 @@ export class ShopifyApiClient {
       if (error instanceof ShopifyAPIError) {
         throw error
       }
+      
+      // Handle timeout errors specifically
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new ShopifyAPIError(
+          'Shopify API request timeout after 30 seconds',
+          'TIMEOUT_ERROR'
+        )
+      }
+      
       throw new ShopifyAPIError(
         `Shopify API request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'NETWORK_ERROR'

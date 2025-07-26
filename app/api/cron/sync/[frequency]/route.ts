@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SyncEngine } from '@/lib/sync/sync-engine'
-import { SyncJobManager } from '@/lib/sync/job-manager'
+import { calculateNextRun } from '@/lib/sync/utils/schedule-helpers'
 import type { SyncJobConfig } from '@/types/sync-engine.types'
 
 // Vercel Cron job secret for authentication
@@ -85,15 +85,10 @@ export async function GET(
 
     console.log(`[CRON] Found ${schedules.length} schedules to process`)
 
-    // Initialize sync engine and job manager
+    // Initialize sync engine
     const syncEngine = new SyncEngine({
       max_concurrent_jobs: 10,
       enable_notifications: false, // Disable for cron jobs
-    })
-
-    const jobManager = new SyncJobManager(syncEngine, {
-      worker_id: `cron-${frequency}-${Date.now()}`,
-      enable_scheduling: false, // We're already in a scheduled context
     })
 
     const results = []
@@ -206,44 +201,3 @@ export async function GET(
   }
 }
 
-/**
- * Returns the next scheduled run time by advancing the given date according to the specified frequency.
- *
- * @param frequency - The schedule frequency (e.g., 'every_5_min', 'hourly', 'daily', 'weekly')
- * @param from - The starting date and time to calculate from
- * @returns A new Date representing the next run time for the given frequency
- */
-function calculateNextRun(frequency: string, from: Date): Date {
-  const next = new Date(from)
-  
-  switch (frequency) {
-    case 'every_5_min':
-      next.setMinutes(next.getMinutes() + 5)
-      break
-    case 'every_15_min':
-      next.setMinutes(next.getMinutes() + 15)
-      break
-    case 'every_30_min':
-      next.setMinutes(next.getMinutes() + 30)
-      break
-    case 'hourly':
-      next.setHours(next.getHours() + 1)
-      next.setMinutes(0)
-      next.setSeconds(0)
-      break
-    case 'daily':
-      next.setDate(next.getDate() + 1)
-      next.setHours(0)
-      next.setMinutes(0)
-      next.setSeconds(0)
-      break
-    case 'weekly':
-      next.setDate(next.getDate() + 7)
-      next.setHours(0)
-      next.setMinutes(0)
-      next.setSeconds(0)
-      break
-  }
-  
-  return next
-}

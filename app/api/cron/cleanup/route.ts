@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
       stale_locks_released: 0,
       old_notifications_deleted: 0,
       old_metrics_deleted: 0,
+      organizations_processed: 0,
       errors: [] as string[],
     }
 
@@ -69,131 +70,176 @@ export async function GET(request: NextRequest) {
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays)
     const cutoffDateStr = cutoffDate.toISOString()
 
-    // 1. Clean up old sync jobs
-    try {
-      const { count: deletedJobs } = await supabase
-        .from('sync_jobs')
-        .delete()
-        .lt('created_at', cutoffDateStr)
-        .in('status', ['completed', 'failed', 'cancelled'])
-        .select('id', { count: 'exact', head: true })
+    // Get all organizations for cleanup
+    const { data: organizations } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('active', true)
 
-      results.old_jobs_deleted = deletedJobs || 0
-      console.log(`[CRON] Deleted ${results.old_jobs_deleted} old sync jobs`)
-    } catch (error) {
-      console.error('[CRON] Error deleting old jobs:', error)
-      results.errors.push(`Failed to delete old jobs: ${error}`)
+    if (!organizations || organizations.length === 0) {
+      console.log('[CRON] No active organizations found')
+      return NextResponse.json({
+        success: true,
+        results,
+        retention_days: retentionDays,
+      })
     }
 
-    // 2. Release stale locks in sync queue
-    try {
-      // Find stale locks (locked for more than 1 hour)
-      const staleLockTime = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-      
-      const { data: staleLocks } = await supabase
-        .from('sync_queue')
-        .select('job_id')
-        .not('locked_by', 'is', null)
-        .lt('locked_at', staleLockTime)
+    // Process cleanup for each organization
+    for (const org of organizations) {
+      console.log(`[CRON] Processing cleanup for organization: ${org.id}`)
+      results.organizations_processed++
 
-      if (staleLocks && staleLocks.length > 0) {
-        for (const { job_id } of staleLocks) {
-          await supabase.rpc('release_sync_job', {
-            p_job_id: job_id,
-            p_retry_delay_seconds: 0,
-          })
-        }
-        results.stale_locks_released = staleLocks.length
-        console.log(`[CRON] Released ${results.stale_locks_released} stale locks`)
-      }
-    } catch (error) {
-      console.error('[CRON] Error releasing stale locks:', error)
-      results.errors.push(`Failed to release stale locks: ${error}`)
-    }
-
-    // 3. Clean up old notifications
-    try {
-      const { count: deletedNotifications } = await supabase
-        .from('sync_notifications')
-        .delete()
-        .lt('created_at', cutoffDateStr)
-        .not('sent_at', 'is', null) // Only delete sent notifications
-        .select('id', { count: 'exact', head: true })
-
-      results.old_notifications_deleted = deletedNotifications || 0
-      console.log(`[CRON] Deleted ${results.old_notifications_deleted} old notifications`)
-    } catch (error) {
-      console.error('[CRON] Error deleting old notifications:', error)
-      results.errors.push(`Failed to delete old notifications: ${error}`)
-    }
-
-    // 4. Clean up old performance metrics
-    try {
-      // Keep metrics for a shorter period (7 days)
-      const metricsRetentionDays = 7
-      const metricsCutoffDate = new Date()
-      metricsCutoffDate.setDate(metricsCutoffDate.getDate() - metricsRetentionDays)
-      
-      const { count: deletedMetrics } = await supabase
-        .from('sync_metrics')
-        .delete()
-        .lt('created_at', metricsCutoffDate.toISOString())
-        .select('id', { count: 'exact', head: true })
-
-      results.old_metrics_deleted = deletedMetrics || 0
-      console.log(`[CRON] Deleted ${results.old_metrics_deleted} old metrics`)
-    } catch (error) {
-      console.error('[CRON] Error deleting old metrics:', error)
-      results.errors.push(`Failed to delete old metrics: ${error}`)
-    }
-
-    // 5. Clean up orphaned queue items
-    try {
-      // First get orphaned queue items
-      const { data: orphanedItems } = await supabase
-        .from('sync_queue')
-        .select('job_id')
-        .filter('job_id', 'not.in', '(SELECT id FROM sync_jobs)')
-      
-      if (orphanedItems && orphanedItems.length > 0) {
-        // Delete orphaned items
-        const { error: deleteError } = await supabase
-          .from('sync_queue')
+      // 1. Clean up old sync jobs for this organization
+      try {
+        const { count: deletedJobs } = await supabase
+          .from('sync_jobs')
           .delete()
-          .in('job_id', orphanedItems.map(item => item.job_id))
-        
-        if (deleteError) {
-          throw deleteError
-        }
-        console.log(`[CRON] Cleaned up ${orphanedItems.length} orphaned queue items`)
-      } else {
-        console.log('[CRON] No orphaned queue items found')
+          .eq('organization_id', org.id)
+          .lt('created_at', cutoffDateStr)
+          .in('status', ['completed', 'failed', 'cancelled'])
+          .select('id', { count: 'exact', head: true })
+
+        results.old_jobs_deleted += deletedJobs || 0
+        console.log(`[CRON] Deleted ${deletedJobs || 0} old sync jobs for org ${org.id}`)
+      } catch (error) {
+        console.error(`[CRON] Error deleting old jobs for org ${org.id}:`, error)
+        results.errors.push(`Failed to delete old jobs for org ${org.id}: ${error}`)
       }
-    } catch (error) {
-      console.error('[CRON] Error cleaning orphaned queue items:', error)
-      results.errors.push(`Failed to clean orphaned queue items: ${error}`)
-    }
 
-    // 6. Update sync state versions for stale integrations
-    try {
-      // Reset sync state for integrations that haven't synced in 90 days
-      const staleIntegrationDate = new Date()
-      staleIntegrationDate.setDate(staleIntegrationDate.getDate() - 90)
-      
-      await supabase
-        .from('sync_state')
-        .update({
-          sync_version: 0,
-          last_cursor: null,
-          metadata: {},
-        })
-        .lt('last_sync_at', staleIntegrationDate.toISOString())
+      // 2. Release stale locks in sync queue for this organization
+      try {
+        // Find stale locks (locked for more than 1 hour)
+        const staleLockTime = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+        
+        const { data: staleLocks } = await supabase
+          .from('sync_queue')
+          .select('job_id')
+          .eq('organization_id', org.id)
+          .not('locked_by', 'is', null)
+          .lt('locked_at', staleLockTime)
 
-      console.log('[CRON] Reset stale integration sync states')
-    } catch (error) {
-      console.error('[CRON] Error resetting stale sync states:', error)
-      results.errors.push(`Failed to reset stale sync states: ${error}`)
-    }
+        if (staleLocks && staleLocks.length > 0) {
+          for (const { job_id } of staleLocks) {
+            await supabase.rpc('release_sync_job', {
+              p_job_id: job_id,
+              p_retry_delay_seconds: 0,
+            })
+          }
+          results.stale_locks_released += staleLocks.length
+          console.log(`[CRON] Released ${staleLocks.length} stale locks for org ${org.id}`)
+        }
+      } catch (error) {
+        console.error(`[CRON] Error releasing stale locks for org ${org.id}:`, error)
+        results.errors.push(`Failed to release stale locks for org ${org.id}: ${error}`)
+      }
+
+      // 3. Clean up old notifications for this organization
+      try {
+        const { count: deletedNotifications } = await supabase
+          .from('sync_notifications')
+          .delete()
+          .eq('organization_id', org.id)
+          .lt('created_at', cutoffDateStr)
+          .not('sent_at', 'is', null) // Only delete sent notifications
+          .select('id', { count: 'exact', head: true })
+
+        results.old_notifications_deleted += deletedNotifications || 0
+        console.log(`[CRON] Deleted ${deletedNotifications || 0} old notifications for org ${org.id}`)
+      } catch (error) {
+        console.error(`[CRON] Error deleting old notifications for org ${org.id}:`, error)
+        results.errors.push(`Failed to delete old notifications for org ${org.id}: ${error}`)
+      }
+
+      // 4. Clean up old performance metrics for this organization
+      try {
+        // Keep metrics for a shorter period (7 days)
+        const metricsRetentionDays = 7
+        const metricsCutoffDate = new Date()
+        metricsCutoffDate.setDate(metricsCutoffDate.getDate() - metricsRetentionDays)
+        
+        const { count: deletedMetrics } = await supabase
+          .from('sync_metrics')
+          .delete()
+          .eq('organization_id', org.id)
+          .lt('created_at', metricsCutoffDate.toISOString())
+          .select('id', { count: 'exact', head: true })
+
+        results.old_metrics_deleted += deletedMetrics || 0
+        console.log(`[CRON] Deleted ${deletedMetrics || 0} old metrics for org ${org.id}`)
+      } catch (error) {
+        console.error(`[CRON] Error deleting old metrics for org ${org.id}:`, error)
+        results.errors.push(`Failed to delete old metrics for org ${org.id}: ${error}`)
+      }
+
+      // 5. Clean up orphaned queue items for this organization
+      try {
+        // First get all sync jobs for this organization
+        const { data: syncJobs } = await supabase
+          .from('sync_jobs')
+          .select('id')
+          .eq('organization_id', org.id)
+        
+        const syncJobIds = syncJobs?.map(job => job.id) || []
+        
+        // Get orphaned queue items (those without corresponding sync job)
+        const { data: allQueueItems } = await supabase
+          .from('sync_queue')
+          .select('job_id')
+          .eq('organization_id', org.id)
+        
+        const orphanedItems = allQueueItems?.filter(
+          item => !syncJobIds.includes(item.job_id)
+        ) || []
+        
+        if (orphanedItems.length > 0) {
+          // Delete orphaned items
+          const { error: deleteError } = await supabase
+            .from('sync_queue')
+            .delete()
+            .eq('organization_id', org.id)
+            .in('job_id', orphanedItems.map(item => item.job_id))
+          
+          if (deleteError) {
+            throw deleteError
+          }
+          console.log(`[CRON] Cleaned up ${orphanedItems.length} orphaned queue items for org ${org.id}`)
+        }
+      } catch (error) {
+        console.error(`[CRON] Error cleaning orphaned queue items for org ${org.id}:`, error)
+        results.errors.push(`Failed to clean orphaned queue items for org ${org.id}: ${error}`)
+      }
+
+      // 6. Update sync state versions for stale integrations in this organization
+      try {
+        // Reset sync state for integrations that haven't synced in 90 days
+        const staleIntegrationDate = new Date()
+        staleIntegrationDate.setDate(staleIntegrationDate.getDate() - 90)
+        
+        // Get integration IDs for this organization
+        const { data: integrations } = await supabase
+          .from('integrations')
+          .select('id')
+          .eq('organization_id', org.id)
+        
+        if (integrations && integrations.length > 0) {
+          await supabase
+            .from('sync_state')
+            .update({
+              sync_version: 0,
+              last_cursor: null,
+              metadata: {},
+            })
+            .in('integration_id', integrations.map(i => i.id))
+            .lt('last_sync_at', staleIntegrationDate.toISOString())
+
+          console.log(`[CRON] Reset stale integration sync states for org ${org.id}`)
+        }
+      } catch (error) {
+        console.error(`[CRON] Error resetting stale sync states for org ${org.id}:`, error)
+        results.errors.push(`Failed to reset stale sync states for org ${org.id}: ${error}`)
+      }
+    } // End of organization loop
 
     console.log('[CRON] Cleanup job completed', results)
 

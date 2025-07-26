@@ -80,7 +80,15 @@ export class BulkOperationManager {
 
     try {
       // Fetch JSONL file with streaming
-      const response = await fetch(url)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout for bulk downloads
+      
+      const response = await fetch(url, {
+        signal: controller.signal
+      })
+      
+      clearTimeout(timeoutId)
+      
       if (!response.ok) {
         throw new Error(`Failed to fetch bulk operation results: ${response.statusText}`)
       }
@@ -131,11 +139,12 @@ export class BulkOperationManager {
             // Emit progress periodically
             if (totalProcessed % 100 === 0) {
               await this.emitProgress(totalProcessed, totalProcessed + 1000) // Estimate total
+            }
+          } catch (error) {
+            totalFailed++
+            errors.push(error as Error)
+            console.error('Failed to process bulk operation item:', error)
           }
-        } catch (error) {
-          totalFailed++
-          errors.push(error as Error)
-          console.error('Failed to process bulk operation item:', error)
         }
       }
 
@@ -151,6 +160,9 @@ export class BulkOperationManager {
         }))
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Bulk operation download timeout after 60 seconds')
+      }
       throw new Error(`Bulk operation processing failed: ${error}`)
     }
   }
@@ -258,15 +270,26 @@ export class BulkOperationManager {
     available: number
   }>): string {
     const mutations = adjustments.map((adj, index) => `
-      adjust${index}: inventoryAdjustQuantity(
+      adjust${index}: inventoryAdjustQuantities(
         input: {
-          inventoryLevelId: "gid://shopify/InventoryLevel?inventory_item_id=${adj.inventoryItemId}&location_id=${adj.locationId}"
-          availableDelta: ${adj.available}
+          reason: "correction"
+          name: "Sync from TruthSource"
+          referenceDocumentUri: "https://app.truthsource.com/sync/job/${Date.now()}"
+          changes: [{
+            inventoryItemId: "${adj.inventoryItemId}"
+            locationId: "${adj.locationId}"
+            delta: ${adj.available}
+          }]
         }
       ) {
-        inventoryLevel {
-          id
-          available
+        inventoryAdjustmentGroup {
+          createdAt
+          reason
+          referenceDocumentUri
+          changes {
+            name
+            delta
+          }
         }
         userErrors {
           field

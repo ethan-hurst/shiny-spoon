@@ -144,7 +144,6 @@ export class SyncEngine extends EventEmitter {
    */
   async executeJob(jobId: string): Promise<SyncResult> {
     const supabase = await createClient()
-    const startTime = Date.now()
     
     // Check concurrent job limit
     if (this.activeJobs.size >= this.config.max_concurrent_jobs) {
@@ -587,7 +586,7 @@ export class SyncEngine extends EventEmitter {
       case 'target_wins':
         return targetValue
         
-      case 'newest_wins':
+      case 'newest_wins': {
         // Implement proper timestamp comparison (fix-48)
         if (!sourceTimestamp || !targetTimestamp) {
           // If timestamps are missing, log warning and default to source
@@ -609,6 +608,7 @@ export class SyncEngine extends EventEmitter {
         
         // Return the value with the newer timestamp
         return sourceTime > targetTime ? sourceValue : targetValue
+      }
         
       case 'manual':
         // Manual resolution required
