@@ -156,7 +156,7 @@ export async function POST(
     // Check if this event type is configured
     if (
       webhookConfig.events.length > 0 &&
-      !webhookConfig.events.includes(payload.event)
+      !webhookConfig.events.includes(payload.event_type)
     ) {
       return NextResponse.json(
         { message: 'Event type not configured' },
@@ -171,8 +171,8 @@ export async function POST(
       p_job_type: 'webhook',
       p_payload: {
         webhook_id: webhookConfig.id,
-        event_type: payload.event,
-        event_data: payload.data,
+        event_type: payload.event_type,
+        payload: payload.data,
         received_at: new Date().toISOString(),
         platform,
       },
@@ -195,10 +195,10 @@ export async function POST(
       p_organization_id: webhookConfig.organization_id,
       p_log_type: 'webhook',
       p_severity: 'info',
-      p_message: `Webhook received: ${payload.event}`,
+      p_message: `Webhook received: ${payload.event_type}`,
       p_details: {
         job_id: job,
-        event: payload.event,
+        event: payload.event_type,
         payload_size: body.length,
       },
     })
