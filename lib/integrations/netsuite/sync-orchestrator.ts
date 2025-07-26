@@ -194,8 +194,8 @@ export class NetSuiteSyncOrchestrator {
       message: `Starting full ${entityType} sync`,
     }
 
-    // Create a progress callback
-    const onProgress = async (p: SyncProgress) => {
+    // Set up progress event listener
+    const progressHandler = async (p: SyncProgress) => {
       progress.current = p.current
       progress.total = p.total
       progress.message = p.message
@@ -208,24 +208,25 @@ export class NetSuiteSyncOrchestrator {
       })
     }
 
-    switch (entityType) {
-      case 'products':
-        return await this.connector.syncProducts({
-          signal: this.abortController?.signal,
-          ...onProgress
-        })
-      
-      case 'inventory':
-        return await this.connector.syncInventory({
-          signal: this.abortController?.signal,
-          ...onProgress
-        })
-      
-      case 'pricing':
-        return await this.connector.syncPricing({
-          signal: this.abortController?.signal,
-          ...onProgress
-        })
+    // Listen to progress events from the connector
+    this.connector.on('sync:progress', progressHandler)
+
+    try {
+      switch (entityType) {
+        case 'products':
+          return await this.connector.syncProducts({
+            signal: this.abortController?.signal
+          })
+        
+        case 'inventory':
+          return await this.connector.syncInventory({
+            signal: this.abortController?.signal
+          })
+        
+        case 'pricing':
+          return await this.connector.syncPricing({
+            signal: this.abortController?.signal
+          })
       
       case 'customers':
         // Customer sync (if implemented)
@@ -245,8 +246,12 @@ export class NetSuiteSyncOrchestrator {
           duration: 0,
         }
       
-      default:
-        throw new Error(`Unknown entity type: ${entityType}`)
+        default:
+          throw new Error(`Unknown entity type: ${entityType}`)
+      }
+    } finally {
+      // Clean up event listener
+      this.connector.off('sync:progress', progressHandler)
     }
   }
 
