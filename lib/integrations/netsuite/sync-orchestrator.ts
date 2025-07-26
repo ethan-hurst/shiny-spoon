@@ -443,7 +443,7 @@ export class NetSuiteSyncOrchestrator {
     const errors: any[] = []
 
     switch (operation) {
-      case 'import':
+      case 'import': {
         // Bulk import from NetSuite - uses orchestrator which creates its own connector
         const syncResult = await orchestrator.executeSyncJob({
           integration_id: integrationId,
@@ -459,6 +459,7 @@ export class NetSuiteSyncOrchestrator {
         failed = syncResult.summary.failed
         errors.push(...syncResult.errors)
         break
+      }
 
       case 'export':
         // Bulk export to NetSuite (not implemented yet)
