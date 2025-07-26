@@ -225,20 +225,28 @@ export const encryptionUtils = {
     encrypted2: string
   ): Promise<boolean> {
     try {
+      // First check if the encrypted strings are identical
+      if (encrypted1 === encrypted2) {
+        return true
+      }
+
+      // Decrypt both values
       const decrypted1 = await encryption.decrypt(encrypted1)
       const decrypted2 = await encryption.decrypt(encrypted2)
       
-      // Use timing-safe comparison
-      if (decrypted1.length !== decrypted2.length) {
-        return false
-      }
-
-      let result = 0
-      for (let i = 0; i < decrypted1.length; i++) {
-        result |= decrypted1.charCodeAt(i) ^ decrypted2.charCodeAt(i)
-      }
+      // Compute cryptographic hashes of the decrypted values
+      const hash1 = crypto
+        .createHash('sha256')
+        .update(decrypted1)
+        .digest()
       
-      return result === 0
+      const hash2 = crypto
+        .createHash('sha256')
+        .update(decrypted2)
+        .digest()
+      
+      // Use timing-safe comparison on the hashes
+      return crypto.timingSafeEqual(hash1, hash2)
     } catch {
       return false
     }
