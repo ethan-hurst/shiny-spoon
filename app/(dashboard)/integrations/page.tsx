@@ -29,7 +29,7 @@ export default async function IntegrationsPage({
 }: {
   searchParams: { page?: string; limit?: string }
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get user's organization
   const { data: { user } } = await supabase.auth.getUser()

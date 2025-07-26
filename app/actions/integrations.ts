@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { AuthManager } from '@/lib/integrations/auth-manager'
-import { integrationSchema, credentialSchema } from '@/types/integration.types'
+import { integrationSchema } from '@/types/integration.types'
 import type { 
   IntegrationInsert, 
   IntegrationUpdate,
@@ -46,7 +46,7 @@ const updateIntegrationSchema = z.object({
 // Create a new integration
 export async function createIntegration(formData: FormData) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get authenticated user
     const { data: { user } } = await supabase.auth.getUser()
@@ -74,7 +74,11 @@ export async function createIntegration(formData: FormData) {
 
     // Create integration
     const integrationData: IntegrationInsert = {
-      ...validated,
+      name: validated.name,
+      platform: validated.platform,
+      description: validated.description ?? null,
+      config: validated.config ?? {},
+      sync_settings: validated.sync_settings ?? {},
       organization_id: profile.organization_id,
       created_by: user.id,
       status: 'configuring',
@@ -131,7 +135,7 @@ export async function createIntegration(formData: FormData) {
 // Update an integration
 export async function updateIntegration(formData: FormData) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -161,7 +165,13 @@ export async function updateIntegration(formData: FormData) {
     const validated = updateIntegrationSchema.parse(rawData)
     
     // Use validated data as update data
-    const updateData: IntegrationUpdate = validated
+    const updateData: IntegrationUpdate = {}
+    
+    if (validated.name !== undefined) updateData.name = validated.name
+    if (validated.description !== undefined) updateData.description = validated.description ?? null
+    if (validated.status !== undefined) updateData.status = validated.status
+    if (validated.config !== undefined) updateData.config = validated.config
+    if (validated.sync_settings !== undefined) updateData.sync_settings = validated.sync_settings
 
     // Update integration
     const { data: integration, error } = await supabase
