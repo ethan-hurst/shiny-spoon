@@ -5,11 +5,13 @@ ALTER TABLE shopify_product_mapping
 ADD COLUMN organization_id UUID REFERENCES organizations(id);
 
 -- Update existing rows to get organization_id from their integration
+BEGIN;
 UPDATE shopify_product_mapping spm
 SET organization_id = i.organization_id
 FROM integrations i
 WHERE spm.integration_id = i.id
 AND spm.organization_id IS NULL;
+COMMIT;
 
 -- Make organization_id NOT NULL after backfilling
 ALTER TABLE shopify_product_mapping 
@@ -24,11 +26,13 @@ ALTER TABLE shopify_b2b_catalogs
 ADD COLUMN organization_id UUID REFERENCES organizations(id);
 
 -- Update existing rows
+BEGIN;
 UPDATE shopify_b2b_catalogs sbc
 SET organization_id = i.organization_id
 FROM integrations i
 WHERE sbc.integration_id = i.id
 AND sbc.organization_id IS NULL;
+COMMIT;
 
 -- Make organization_id NOT NULL
 ALTER TABLE shopify_b2b_catalogs 
