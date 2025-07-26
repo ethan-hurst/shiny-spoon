@@ -1,5 +1,5 @@
 // Shared hook for copying text to clipboard with toast notifications
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useToast } from '@/components/ui/use-toast'
 
 interface UseCopyToClipboardOptions {
@@ -10,6 +10,16 @@ interface UseCopyToClipboardOptions {
 export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
   const [isCopied, setIsCopied] = useState(false)
   const { toast } = useToast()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const copyToClipboard = useCallback(async (text: string) => {
     try {
@@ -21,8 +31,16 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
         description: options?.successMessage || 'Text copied to clipboard',
       })
       
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+      
       // Reset after 2 seconds
-      setTimeout(() => setIsCopied(false), 2000)
+      timeoutRef.current = setTimeout(() => {
+        setIsCopied(false)
+        timeoutRef.current = null
+      }, 2000)
       
       return true
     } catch (error) {

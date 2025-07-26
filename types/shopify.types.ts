@@ -504,11 +504,6 @@ export function isShopifyCustomer(obj: unknown): obj is ShopifyCustomer {
   if (typeof customer.updatedAt !== 'string' || !customer.updatedAt) return false
   if (!Array.isArray(customer.addresses)) return false
   
-  // Validate tags array contains strings
-  for (const tag of customer.tags as unknown[]) {
-    if (typeof tag !== 'string') return false
-  }
-  
   // Optional fields with type checking
   if (customer.firstName !== undefined && typeof customer.firstName !== 'string') return false
   if (customer.lastName !== undefined && typeof customer.lastName !== 'string') return false
