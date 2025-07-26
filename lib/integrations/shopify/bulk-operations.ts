@@ -139,11 +139,12 @@ export class BulkOperationManager {
             // Emit progress periodically
             if (totalProcessed % 100 === 0) {
               await this.emitProgress(totalProcessed, totalProcessed + 1000) // Estimate total
+            }
+          } catch (error) {
+            totalFailed++
+            errors.push(error as Error)
+            console.error('Failed to process bulk operation item:', error)
           }
-        } catch (error) {
-          totalFailed++
-          errors.push(error as Error)
-          console.error('Failed to process bulk operation item:', error)
         }
       }
 
