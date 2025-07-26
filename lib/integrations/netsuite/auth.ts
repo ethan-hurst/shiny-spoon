@@ -267,46 +267,68 @@ export class NetSuiteAuth {
       const oauthCreds = credentials as OAuthCredentials
       const revokeUrl = `https://${this.accountId}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/revoke`
       
-      // Revoke access token
-      const accessTokenResponse = await fetch(revokeUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          token: oauthCreds.access_token,
-          token_type_hint: 'access_token',
-        }),
-      })
+      // Track revocation failures
+      const revocationErrors: string[] = []
 
-      if (!accessTokenResponse.ok) {
-        console.error('Failed to revoke access token:', {
-          status: accessTokenResponse.status,
-          statusText: accessTokenResponse.statusText,
-        })
-        throw new Error(`Failed to revoke access token: ${accessTokenResponse.status} ${accessTokenResponse.statusText}`)
-      }
-
-      // Revoke refresh token if available
-      if (oauthCreds.refresh_token) {
-        const refreshTokenResponse = await fetch(revokeUrl, {
+      // Attempt to revoke access token
+      try {
+        const accessTokenResponse = await fetch(revokeUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: new URLSearchParams({
-            token: oauthCreds.refresh_token,
-            token_type_hint: 'refresh_token',
+            token: oauthCreds.access_token,
+            token_type_hint: 'access_token',
           }),
         })
 
-        if (!refreshTokenResponse.ok) {
-          console.error('Failed to revoke refresh token:', {
-            status: refreshTokenResponse.status,
-            statusText: refreshTokenResponse.statusText,
+        if (!accessTokenResponse.ok) {
+          const errorMsg = `Failed to revoke access token: ${accessTokenResponse.status} ${accessTokenResponse.statusText}`
+          console.error(errorMsg, {
+            status: accessTokenResponse.status,
+            statusText: accessTokenResponse.statusText,
           })
-          throw new Error(`Failed to revoke refresh token: ${refreshTokenResponse.status} ${refreshTokenResponse.statusText}`)
+          revocationErrors.push(errorMsg)
         }
+      } catch (error) {
+        const errorMsg = `Access token revocation error: ${error instanceof Error ? error.message : String(error)}`
+        console.error(errorMsg)
+        revocationErrors.push(errorMsg)
+      }
+
+      // Attempt to revoke refresh token if available
+      if (oauthCreds.refresh_token) {
+        try {
+          const refreshTokenResponse = await fetch(revokeUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              token: oauthCreds.refresh_token,
+              token_type_hint: 'refresh_token',
+            }),
+          })
+
+          if (!refreshTokenResponse.ok) {
+            const errorMsg = `Failed to revoke refresh token: ${refreshTokenResponse.status} ${refreshTokenResponse.statusText}`
+            console.error(errorMsg, {
+              status: refreshTokenResponse.status,
+              statusText: refreshTokenResponse.statusText,
+            })
+            revocationErrors.push(errorMsg)
+          }
+        } catch (error) {
+          const errorMsg = `Refresh token revocation error: ${error instanceof Error ? error.message : String(error)}`
+          console.error(errorMsg)
+          revocationErrors.push(errorMsg)
+        }
+      }
+
+      // If any revocation failed, throw a combined error
+      if (revocationErrors.length > 0) {
+        throw new Error(`Token revocation failed: ${revocationErrors.join('; ')}`)
       }
 
       // Delete stored credentials
