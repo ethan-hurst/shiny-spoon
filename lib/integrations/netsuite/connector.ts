@@ -1,22 +1,17 @@
 // PRP-013: NetSuite Connector Implementation
-import { z } from 'zod'
+
+// Internal modules
 import { createClient } from '@/lib/supabase/server'
-import { 
-  BaseConnector, 
-  type ConnectorConfig, 
-  type SyncOptions, 
-  type SyncResult 
-} from '../base-connector'
-import { 
-  IntegrationError,
-  AuthenticationError,
-  type IntegrationPlatformType 
-} from '@/types/integration.types'
-import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
+import { BaseConnector } from '../base-connector'
 import { NetSuiteAuth } from './auth'
 import { NetSuiteApiClient } from './api-client'
 import { NetSuiteQueries } from './queries'
 import { NetSuiteTransformers } from './transformers'
+
+// Types
+import type { ConnectorConfig, SyncOptions, SyncResult } from '../base-connector'
+import { IntegrationError, type IntegrationPlatformType } from '@/types/integration.types'
+import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
 
 export class NetSuiteConnector extends BaseConnector {
   private auth: NetSuiteAuth
