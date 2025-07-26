@@ -1,6 +1,20 @@
 // PRP-013: NetSuite SuiteQL Queries
 export class NetSuiteQueries {
   /**
+   * Safely format date for NetSuite SuiteQL
+   */
+  private formatDate(date: Date): string {
+    // Format date as YYYY-MM-DD HH:MM:SS
+    const year = date.getUTCFullYear()
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const day = String(date.getUTCDate()).padStart(2, '0')
+    const hours = String(date.getUTCHours()).padStart(2, '0')
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0')
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+  /**
    * Get products query with pagination and filtering
    */
   getProductsQuery(options: {
@@ -9,7 +23,7 @@ export class NetSuiteQueries {
     offset: number
   }): string {
     const dateFilter = options.modifiedAfter
-      ? `AND i.lastmodifieddate > TO_DATE('${options.modifiedAfter.toISOString()}', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`
+      ? `AND i.lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
       : ''
 
     return `
@@ -28,7 +42,7 @@ export class NetSuiteQueries {
         c.name as category
       FROM item i
       LEFT JOIN itemcategory c ON i.category = c.id
-      WHERE i.itemtype IN ('InvtPart', 'NonInvtPart', 'Kit', 'Assembly')
+      WHERE i.itemtype IN ('inventoryitem', 'noninventoryitem', 'kititem', 'assemblyitem')
         ${dateFilter}
       ORDER BY i.lastmodifieddate DESC
       LIMIT ${options.limit}
@@ -44,7 +58,7 @@ export class NetSuiteQueries {
     modifiedAfter?: Date
   }): string {
     const dateFilter = options.modifiedAfter
-      ? `AND ib.lastmodifieddate > TO_DATE('${options.modifiedAfter.toISOString()}', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`
+      ? `AND ib.lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
       : ''
 
     return `
@@ -64,8 +78,8 @@ export class NetSuiteQueries {
       FROM inventorybalance ib
       JOIN item i ON ib.item = i.id
       JOIN location l ON ib.location = l.id
-      WHERE ib.location = '${options.locationId}'
-        AND i.itemtype IN ('InvtPart', 'Assembly', 'Kit')
+      WHERE ib.location = '${options.locationId.replace(/'/g, "''")}'
+        AND i.itemtype IN ('inventoryitem', 'assemblyitem', 'kititem')
         ${dateFilter}
       ORDER BY ib.lastmodifieddate DESC
     `
@@ -78,7 +92,7 @@ export class NetSuiteQueries {
     modifiedAfter?: Date
   }): string {
     const dateFilter = options.modifiedAfter
-      ? `WHERE ip.lastmodifieddate > TO_DATE('${options.modifiedAfter.toISOString()}', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`
+      ? `WHERE ip.lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
       : ''
 
     return `
@@ -147,7 +161,7 @@ export class NetSuiteQueries {
     offset: number
   }): string {
     const dateFilter = options.modifiedAfter
-      ? `AND c.lastmodifieddate > TO_DATE('${options.modifiedAfter.toISOString()}', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`
+      ? `AND c.lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
       : ''
 
     return `
@@ -185,7 +199,7 @@ export class NetSuiteQueries {
     offset: number
   }): string {
     const dateFilter = options.modifiedAfter
-      ? `AND so.lastmodifieddate > TO_DATE('${options.modifiedAfter.toISOString()}', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`
+      ? `AND so.lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
       : ''
     
     const statusFilter = options.status?.length
@@ -236,7 +250,7 @@ export class NetSuiteQueries {
       FROM salesorderline sol
       JOIN item i ON sol.item = i.id
       LEFT JOIN location l ON sol.location = l.id
-      WHERE sol.salesorder = '${orderId}'
+      WHERE sol.salesorder = '${orderId.replace(/'/g, "''")}'
       ORDER BY sol.line
     `
   }
@@ -260,7 +274,7 @@ export class NetSuiteQueries {
         c.name as category
       FROM item i
       LEFT JOIN itemcategory c ON i.category = c.id
-      WHERE i.itemid = '${sku}'
+      WHERE i.itemid = '${sku.replace(/'/g, "''")}'
     `
   }
 
@@ -282,7 +296,7 @@ export class NetSuiteQueries {
       FROM inventorybalance ib
       JOIN item i ON ib.item = i.id
       JOIN location l ON ib.location = l.id
-      WHERE i.itemid = '${sku}'
+      WHERE i.itemid = '${sku.replace(/'/g, "''")}'
         AND l.makeinventoryavailable = 'T'
       ORDER BY l.name
     `
@@ -303,7 +317,7 @@ export class NetSuiteQueries {
       JOIN item i ON ip.item = i.id
       JOIN pricelevel pl ON ip.pricelevel = pl.id
       JOIN currency c ON ip.currency = c.id
-      WHERE i.itemid = '${sku}'
+      WHERE i.itemid = '${sku.replace(/'/g, "''")}'
         AND pl.isinactive = 'F'
       ORDER BY pl.name
     `
@@ -317,7 +331,7 @@ export class NetSuiteQueries {
     modifiedAfter: Date
     limit: number
   }): string {
-    const dateFilter = `lastmodifieddate > TO_DATE('${options.modifiedAfter.toISOString()}', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`
+    const dateFilter = `lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
     
     switch (options.recordType) {
       case 'item':

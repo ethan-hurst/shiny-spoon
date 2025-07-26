@@ -118,10 +118,15 @@ const truthSourceFields = {
   ],
 }
 
+interface ExtendedFieldMapping extends FieldMapping {
+  customSourceField?: string
+  customTargetField?: string
+}
+
 export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteFieldMappingsProps) {
-  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>(() => {
+  const [fieldMappings, setFieldMappings] = useState<ExtendedFieldMapping[]>(() => {
     // Convert existing mappings to array format
-    const mappingArray: FieldMapping[] = []
+    const mappingArray: ExtendedFieldMapping[] = []
     Object.entries(mappings).forEach(([entityType, fields]) => {
       if (typeof fields === 'object' && fields !== null) {
         Object.entries(fields).forEach(([source, target]) => {
@@ -153,7 +158,7 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
     setFieldMappings(fieldMappings.filter((_, i) => i !== index))
   }
 
-  function updateMapping(index: number, field: keyof FieldMapping, value: string) {
+  function updateMapping(index: number, field: keyof ExtendedFieldMapping, value: string) {
     const updated = [...fieldMappings]
     updated[index] = { ...updated[index], [field]: value }
     setFieldMappings(updated)
@@ -173,8 +178,12 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
       }
 
       fieldMappings.forEach(mapping => {
-        if (mapping.sourceField && mapping.targetField) {
-          mappingsByEntity[mapping.entityType][mapping.sourceField] = mapping.targetField
+        // Use custom fields if they were entered, otherwise use selected values
+        const sourceField = mapping.sourceField === 'custom' ? mapping.customSourceField : mapping.sourceField
+        const targetField = mapping.targetField === 'metadata' ? mapping.customTargetField : mapping.targetField
+        
+        if (sourceField && targetField) {
+          mappingsByEntity[mapping.entityType][sourceField] = targetField
         }
       })
 
@@ -259,7 +268,8 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
                     <Input
                       className="mt-2"
                       placeholder="e.g., custitem_my_field"
-                      onChange={(e) => updateMapping(index, 'sourceField', e.target.value)}
+                      value={mapping.customSourceField || ''}
+                      onChange={(e) => updateMapping(index, 'customSourceField', e.target.value)}
                     />
                   )}
                 </div>
@@ -288,7 +298,8 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
                     <Input
                       className="mt-2"
                       placeholder="e.g., metadata.custom_field"
-                      onChange={(e) => updateMapping(index, 'targetField', e.target.value)}
+                      value={mapping.customTargetField || ''}
+                      onChange={(e) => updateMapping(index, 'customTargetField', e.target.value)}
                     />
                   )}
                 </div>

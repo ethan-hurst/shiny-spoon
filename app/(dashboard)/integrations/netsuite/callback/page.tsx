@@ -32,6 +32,19 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
     redirect('/login')
   }
 
+  // Get user's organization profile once
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile) {
+    redirect('/onboarding')
+  }
+
+  const organizationId = profile.organization_id
+
   let success = false
   let errorMessage = ''
   let integrationId = ''
@@ -62,14 +75,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
         throw new Error('Integration not found')
       }
 
-      // Get user's organization
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!profile || integration.organization_id !== profile.organization_id) {
+      if (integration.organization_id !== organizationId) {
         throw new Error('Unauthorized')
       }
 
@@ -81,7 +87,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
 
       const auth = new NetSuiteAuth(
         integrationId,
-        profile.organization_id,
+        organizationId,
         netsuiteConfig
       )
 
@@ -99,7 +105,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
       // Log successful authentication
       await supabase.rpc('log_integration_activity', {
         p_integration_id: integrationId,
-        p_organization_id: profile.organization_id,
+        p_organization_id: organizationId,
         p_log_type: 'auth',
         p_severity: 'info',
         p_message: 'NetSuite OAuth authentication successful',
@@ -111,22 +117,14 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
       
       // Log authentication failure
       if (integrationId) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .single()
-
-        if (profile) {
-          await supabase.rpc('log_integration_activity', {
-            p_integration_id: integrationId,
-            p_organization_id: profile.organization_id,
-            p_log_type: 'auth',
-            p_severity: 'error',
-            p_message: 'NetSuite OAuth authentication failed',
-            p_details: { error: errorMessage },
-          })
-        }
+        await supabase.rpc('log_integration_activity', {
+          p_integration_id: integrationId,
+          p_organization_id: organizationId,
+          p_log_type: 'auth',
+          p_severity: 'error',
+          p_message: 'NetSuite OAuth authentication failed',
+          p_details: { error: errorMessage },
+        })
       }
     }
   }

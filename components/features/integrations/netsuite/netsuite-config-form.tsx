@@ -1,7 +1,7 @@
 // PRP-013: NetSuite Configuration Form Component
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -46,6 +46,31 @@ interface NetSuiteConfigFormProps {
   config?: any
 }
 
+// Helper function to store OAuth credentials
+async function storeOAuthCredentials(
+  integrationId: string,
+  clientId: string,
+  clientSecret: string
+): Promise<void> {
+  const response = await fetch(`/api/integrations/netsuite/auth`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include', // Include cookies for authentication
+    body: JSON.stringify({
+      integration_id: integrationId,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Failed to store OAuth credentials' }))
+    throw new Error(error.error || 'Failed to store OAuth credentials')
+  }
+}
+
 export function NetSuiteConfigForm({ 
   organizationId, 
   integration,
@@ -53,6 +78,30 @@ export function NetSuiteConfigForm({
 }: NetSuiteConfigFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [redirectUri, setRedirectUri] = useState('')
+
+  // Set redirect URI after component mounts to avoid SSR issues
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      let baseUrl: string
+      
+      if (appUrl) {
+        // Validate NEXT_PUBLIC_APP_URL is a valid URL
+        try {
+          new URL(appUrl)
+          baseUrl = appUrl
+        } catch (error) {
+          console.warn('Invalid NEXT_PUBLIC_APP_URL:', appUrl, 'Falling back to window.location.origin')
+          baseUrl = window.location.origin
+        }
+      } else {
+        baseUrl = window.location.origin
+      }
+      
+      setRedirectUri(`${baseUrl}/integrations/netsuite/callback`)
+    }
+  }, [])
 
   const form = useForm<NetSuiteConfigFormValues>({
     resolver: zodResolver(netsuiteConfigSchema),
@@ -85,21 +134,7 @@ export function NetSuiteConfigForm({
 
         // If OAuth credentials provided, store them separately
         if (values.client_id && values.client_secret) {
-          const response = await fetch(`/api/integrations/netsuite/auth`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              integration_id: integration.id,
-              client_id: values.client_id,
-              client_secret: values.client_secret,
-            }),
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to store OAuth credentials')
-          }
+          await storeOAuthCredentials(integration.id, values.client_id, values.client_secret)
         }
 
         await updateIntegration(formData)
@@ -127,22 +162,8 @@ export function NetSuiteConfigForm({
         const result = await createIntegration(formData)
         
         // If OAuth credentials provided, store them
-        if (values.client_id && values.client_secret && result.id) {
-          const response = await fetch(`/api/integrations/netsuite/auth`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              integration_id: result.id,
-              client_id: values.client_id,
-              client_secret: values.client_secret,
-            }),
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to store OAuth credentials')
-          }
+        if (values.client_id && values.client_secret && result.data?.id) {
+          await storeOAuthCredentials(result.data.id, values.client_id, values.client_secret)
         }
 
         toast({
@@ -151,7 +172,7 @@ export function NetSuiteConfigForm({
         })
         
         // Redirect to integration page
-        router.push(`/integrations/netsuite?id=${result.id}`)
+        router.push(`/integrations/netsuite?id=${result.data?.id}`)
       }
     } catch (error) {
       console.error('NetSuite configuration error:', error)
@@ -271,7 +292,7 @@ export function NetSuiteConfigForm({
                   <ol className="list-decimal list-inside mt-2 space-y-1">
                     <li>Go to Setup → Integration → Manage Integrations</li>
                     <li>Create a new integration with OAuth 2.0 enabled</li>
-                    <li>Set the redirect URI to: <code className="text-xs">{`${window.location.origin}/integrations/netsuite/callback`}</code></li>
+                    <li>Set the redirect URI to: <code className="text-xs">{redirectUri || 'Loading...'}</code></li>
                     <li>Copy the Client ID and Client Secret</li>
                   </ol>
                 </AlertDescription>

@@ -49,7 +49,7 @@ export class NetSuiteTransformers {
         description: mappedData.description || item.description,
         price,
         weight,
-        dimensions: item.dimensions,
+        dimensions: this.parseDimensions(item.dimensions),
         is_active: isActive,
         external_id: item.id,
         external_updated_at: this.parseNetSuiteDate(item.lastmodifieddate),
@@ -74,12 +74,12 @@ export class NetSuiteTransformers {
       return {
         product_sku: balance.sku,
         warehouse_code: warehouseCode,
-        quantity_available: parseInt(balance.quantityavailable) || 0,
-        quantity_on_hand: parseInt(balance.quantityonhand) || 0,
-        quantity_on_order: parseInt(balance.quantityonorder) || 0,
-        reorder_point: balance.reorderpoint ? parseInt(balance.reorderpoint) : undefined,
+        quantity_available: parseInt(balance.quantityavailable, 10) || 0,
+        quantity_on_hand: parseInt(balance.quantityonhand, 10) || 0,
+        quantity_on_order: parseInt(balance.quantityonorder, 10) || 0,
+        reorder_point: balance.reorderpoint ? parseInt(balance.reorderpoint, 10) : undefined,
         preferred_stock_level: balance.preferredstocklevel 
-          ? parseInt(balance.preferredstocklevel) 
+          ? parseInt(balance.preferredstocklevel, 10) 
           : undefined,
         external_id: `${balance.itemid}_${location.id}`,
         external_updated_at: this.parseNetSuiteDate(balance.lastmodifieddate),
@@ -125,7 +125,7 @@ export class NetSuiteTransformers {
         is_active: isActive,
         credit_limit: customer.creditlimit ? parseFloat(customer.creditlimit) : null,
         balance: customer.balance ? parseFloat(customer.balance) : 0,
-        days_overdue: customer.daysoverdue ? parseInt(customer.daysoverdue) : 0,
+        days_overdue: customer.daysoverdue ? parseInt(customer.daysoverdue, 10) : 0,
         category: customer.category,
         price_level: customer.pricelevel,
         external_id: customer.id,
@@ -160,14 +160,14 @@ export class NetSuiteTransformers {
         external_id: order.id,
         external_updated_at: this.parseNetSuiteDate(order.lastmodifieddate),
         line_items: lines.map(line => ({
-          line_number: parseInt(line.linenumber),
+          line_number: parseInt(line.linenumber, 10),
           sku: line.sku,
           description: line.itemname,
-          quantity: parseInt(line.quantity) || 0,
+          quantity: parseInt(line.quantity, 10) || 0,
           unit_price: parseFloat(line.unitprice) || 0,
           amount: parseFloat(line.amount) || 0,
-          quantity_shipped: parseInt(line.quantityshipped) || 0,
-          quantity_backordered: parseInt(line.quantitybackordered) || 0,
+          quantity_shipped: parseInt(line.quantityshipped, 10) || 0,
+          quantity_backordered: parseInt(line.quantitybackordered, 10) || 0,
           location: line.locationname,
         })),
       }
@@ -337,7 +337,16 @@ export class NetSuiteTransformers {
     // Try to extract numbers and format
     const numbers = cleaned.match(/\d+(\.\d+)?/g)
     if (numbers && numbers.length >= 3) {
-      return `${numbers[0]} x ${numbers[1]} x ${numbers[2]}`
+      // Parse and validate numbers
+      const parsedNumbers = numbers.slice(0, 3).map(n => {
+        const parsed = parseFloat(n)
+        return isNaN(parsed) ? 0 : parsed
+      })
+      
+      // Only return formatted dimensions if all are valid
+      if (parsedNumbers.every(n => n > 0)) {
+        return `${parsedNumbers[0]} x ${parsedNumbers[1]} x ${parsedNumbers[2]}`
+      }
     }
     
     // Return original if can't parse

@@ -30,10 +30,10 @@ export class NetSuiteApiClient {
   constructor(
     private auth: NetSuiteAuth,
     private accountId: string,
-    private datacenterUrl: string,
+    datacenterUrl: string,
     private rateLimiter?: RateLimiter
   ) {
-    this.baseUrl = `https://${accountId}.suitetalk.api.netsuite.com/services/rest`
+    this.baseUrl = `${datacenterUrl}/services/rest`
     this.suiteQLUrl = `${this.baseUrl}/query/v1/suiteql`
   }
 
@@ -48,25 +48,31 @@ export class NetSuiteApiClient {
       preferQueryMode?: 'normal' | 'stream'
     } = {}
   ): Promise<NetSuiteSuiteQLResponse<T>> {
+    let rateLimitToken = 0
+    
     try {
       // Acquire rate limit token
       if (this.rateLimiter) {
-        await this.rateLimiter.acquire(2) // SuiteQL has higher weight
+        rateLimitToken = 2 // SuiteQL has higher weight
+        await this.rateLimiter.acquire(rateLimitToken)
       }
 
       const token = await this.auth.getValidAccessToken()
       
-      // Build query with pagination
+      // Build query with pagination - validate numeric values
       let finalQuery = query
       if (options.limit !== undefined || options.offset !== undefined) {
-        const limit = options.limit || 1000
-        const offset = options.offset || 0
+        const limit = Math.min(Math.max(1, options.limit || 1000), 10000) // Validate range
+        const offset = Math.max(0, options.offset || 0)
         
-        // Add LIMIT/OFFSET if not already in query
-        if (!query.toLowerCase().includes('limit')) {
+        // Check for existing LIMIT/OFFSET using regex to be case-insensitive
+        const hasLimit = /\bLIMIT\b/i.test(query)
+        const hasOffset = /\bOFFSET\b/i.test(query)
+        
+        if (!hasLimit && limit > 0) {
           finalQuery += ` LIMIT ${limit}`
         }
-        if (!query.toLowerCase().includes('offset') && offset > 0) {
+        if (!hasOffset && offset > 0) {
           finalQuery += ` OFFSET ${offset}`
         }
       }
@@ -86,11 +92,6 @@ export class NetSuiteApiClient {
         }),
       })
 
-      // Release rate limit token
-      if (this.rateLimiter) {
-        this.rateLimiter.release(2)
-      }
-
       if (!response.ok) {
         await this.handleApiError(response)
       }
@@ -109,19 +110,12 @@ export class NetSuiteApiClient {
         links: validated.links,
       }
     } catch (error) {
-      if (this.rateLimiter) {
-        this.rateLimiter.release(2)
+      throw error
+    } finally {
+      // Always release rate limit token
+      if (this.rateLimiter && rateLimitToken > 0) {
+        this.rateLimiter.release(rateLimitToken)
       }
-      
-      if (error instanceof IntegrationError) {
-        throw error
-      }
-      
-      throw new IntegrationError(
-        'SuiteQL query failed',
-        'SUITEQL_ERROR',
-        error instanceof Error ? error.message : String(error)
-      )
     }
   }
 
@@ -328,6 +322,20 @@ export class NetSuiteApiClient {
   }
 
   /**
+   * Validate SQL identifier (table/column names)
+   */
+  private validateIdentifier(identifier: string): string {
+    // Allow alphanumeric, underscore, and dot (for table.column)
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$/.test(identifier)) {
+      throw new IntegrationError(
+        `Invalid identifier: ${identifier}`,
+        'INVALID_IDENTIFIER'
+      )
+    }
+    return identifier
+  }
+
+  /**
    * Search records using SuiteQL
    */
   async searchRecords<T = any>(
@@ -340,22 +348,28 @@ export class NetSuiteApiClient {
       offset?: number
     } = {}
   ): Promise<NetSuiteSuiteQLResponse<T>> {
-    // Build SELECT clause
+    // Validate table name
+    const validatedTable = this.validateIdentifier(table)
+    
+    // Build SELECT clause with validation
     const selectClause = options.select?.length 
-      ? options.select.join(', ')
+      ? options.select.map(field => this.validateIdentifier(field)).join(', ')
       : '*'
     
     // Build WHERE clause
     const whereConditions = Object.entries(conditions)
       .map(([field, value]) => {
+        // Validate field name
+        const validatedField = this.validateIdentifier(field)
+        
         if (value === null) {
-          return `${field} IS NULL`
+          return `${validatedField} IS NULL`
         } else if (typeof value === 'string') {
-          return `${field} = '${value.replace(/'/g, "''")}'`
+          return `${validatedField} = '${value.replace(/'/g, "''")}'`
         } else if (typeof value === 'number') {
-          return `${field} = ${value}`
+          return `${validatedField} = ${value}`
         } else if (typeof value === 'boolean') {
-          return `${field} = '${value ? 'T' : 'F'}'`
+          return `${validatedField} = '${value ? 'T' : 'F'}'`
         }
         return ''
       })
@@ -363,12 +377,14 @@ export class NetSuiteApiClient {
       .join(' AND ')
     
     // Build query
-    let query = `SELECT ${selectClause} FROM ${table}`
+    let query = `SELECT ${selectClause} FROM ${validatedTable}`
     if (whereConditions) {
       query += ` WHERE ${whereConditions}`
     }
     if (options.orderBy) {
-      query += ` ORDER BY ${options.orderBy}`
+      // Validate orderBy field
+      const validatedOrderBy = this.validateIdentifier(options.orderBy)
+      query += ` ORDER BY ${validatedOrderBy}`
     }
     
     return this.executeSuiteQL<T>(query, {

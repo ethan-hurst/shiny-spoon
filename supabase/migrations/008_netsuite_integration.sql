@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS netsuite_webhook_events (
   integration_id UUID NOT NULL REFERENCES integrations(id) ON DELETE CASCADE,
   
   -- Event details
-  event_id TEXT NOT NULL UNIQUE,
+  event_id TEXT NOT NULL,
   event_type TEXT NOT NULL,
   entity_type TEXT NOT NULL,
   entity_id TEXT NOT NULL,

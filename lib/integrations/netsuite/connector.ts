@@ -425,7 +425,9 @@ export class NetSuiteConnector extends BaseConnector {
       .eq('sku', product.sku)
       .eq('organization_id', this.config.organizationId)
 
-    if (error) throw error
+    if (error) {
+      throw new Error(`Failed to save product ${product.sku}: ${error.message}`)
+    }
   }
 
   private async updateInventory(inventory: any) {
@@ -470,7 +472,9 @@ export class NetSuiteConnector extends BaseConnector {
       .eq('product_id', product.id)
       .eq('warehouse_id', warehouse.id)
 
-    if (error) throw error
+    if (error) {
+      throw new Error(`Failed to update inventory for product ${inventory.product_sku} at warehouse ${inventory.warehouse_code}: ${error.message}`)
+    }
   }
 
   private async updatePricing(pricing: any[]) {
@@ -489,7 +493,7 @@ export class NetSuiteConnector extends BaseConnector {
       }
 
       // Map NetSuite price level to TruthSource price tier
-      const priceTier = this.mapPriceLevelToTier(price.price_tier)
+      const priceTier = price.price_tier
 
       // Update product pricing
       const { error } = await this.supabase
@@ -512,17 +516,6 @@ export class NetSuiteConnector extends BaseConnector {
     }
   }
 
-  private mapPriceLevelToTier(priceLevel: string): string {
-    // Map NetSuite price levels to TruthSource tiers
-    const mapping: Record<string, string> = {
-      'Base Price': 'base',
-      'Wholesale': 'wholesale',
-      'Retail': 'retail',
-      'Special': 'special',
-    }
-    
-    return mapping[priceLevel] || priceLevel.toLowerCase()
-  }
 
   private async withRateLimit<T>(
     fn: () => Promise<T>,

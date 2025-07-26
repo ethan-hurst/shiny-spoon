@@ -268,7 +268,7 @@ export class NetSuiteAuth {
       const revokeUrl = `https://${this.accountId}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/revoke`
       
       // Revoke access token
-      await fetch(revokeUrl, {
+      const accessTokenResponse = await fetch(revokeUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -279,9 +279,17 @@ export class NetSuiteAuth {
         }),
       })
 
+      if (!accessTokenResponse.ok) {
+        console.error('Failed to revoke access token:', {
+          status: accessTokenResponse.status,
+          statusText: accessTokenResponse.statusText,
+        })
+        throw new Error(`Failed to revoke access token: ${accessTokenResponse.status} ${accessTokenResponse.statusText}`)
+      }
+
       // Revoke refresh token if available
       if (oauthCreds.refresh_token) {
-        await fetch(revokeUrl, {
+        const refreshTokenResponse = await fetch(revokeUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -291,6 +299,14 @@ export class NetSuiteAuth {
             token_type_hint: 'refresh_token',
           }),
         })
+
+        if (!refreshTokenResponse.ok) {
+          console.error('Failed to revoke refresh token:', {
+            status: refreshTokenResponse.status,
+            statusText: refreshTokenResponse.statusText,
+          })
+          throw new Error(`Failed to revoke refresh token: ${refreshTokenResponse.status} ${refreshTokenResponse.statusText}`)
+        }
       }
 
       // Delete stored credentials
