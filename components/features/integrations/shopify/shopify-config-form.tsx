@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { createShopifyIntegration, updateShopifyIntegration } from '@/app/actions/shopify-integration'
 import type { ShopifyConfigFormData } from '@/types/shopify.types'
 
 const formSchema = z.object({
@@ -50,130 +49,6 @@ interface ShopifyConfigFormProps {
   onSuccess?: (integrationId: string) => void
 }
 
-// Mutation for creating integration
-async function createIntegration(
-  supabase: ReturnType<typeof createBrowserClient>,
-  data: {
-    organizationId: string
-    values: z.infer<typeof formSchema>
-  }
-) {
-  // Create new integration
-  const { data: integration, error: integrationError } = await supabase
-    .from('integrations')
-    .insert({
-      organization_id: data.organizationId,
-      platform: 'shopify',
-      name: `Shopify - ${data.values.shop_domain}`,
-      status: 'configuring',
-      config: {
-        sync_frequency: data.values.sync_frequency,
-        api_version: '2024-01'
-      }
-    })
-    .select()
-    .single()
-
-  if (integrationError) throw integrationError
-
-  // Create Shopify config
-  const { error: configError } = await supabase
-    .from('shopify_config')
-    .insert({
-      integration_id: integration.id,
-      shop_domain: data.values.shop_domain,
-      sync_products: data.values.sync_products,
-      sync_inventory: data.values.sync_inventory,
-      sync_orders: data.values.sync_orders,
-      sync_customers: data.values.sync_customers,
-      b2b_catalog_enabled: data.values.b2b_catalog_enabled
-    })
-
-  if (configError) throw configError
-
-  // Store credentials
-  const { error: credError } = await supabase
-    .from('integration_credentials')
-    .insert({
-      integration_id: integration.id,
-      credential_type: 'api_key',
-      credentials: {
-        access_token: data.values.access_token,
-        webhook_secret: data.values.webhook_secret
-      }
-    })
-
-  if (credError) throw credError
-
-  return integration
-}
-
-// Mutation for updating integration
-async function updateIntegration(
-  supabase: ReturnType<typeof createBrowserClient>,
-  data: {
-    integrationId: string
-    values: z.infer<typeof formSchema>
-  }
-) {
-  // Update existing integration
-  const { error: integrationError } = await supabase
-    .from('integrations')
-    .update({
-      config: {
-        sync_frequency: data.values.sync_frequency,
-        api_version: '2024-01'
-      },
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', data.integrationId)
-
-  if (integrationError) throw integrationError
-
-  // Update Shopify config
-  const { error: configError } = await supabase
-    .from('shopify_config')
-    .update({
-      shop_domain: data.values.shop_domain,
-      sync_products: data.values.sync_products,
-      sync_inventory: data.values.sync_inventory,
-      sync_orders: data.values.sync_orders,
-      sync_customers: data.values.sync_customers,
-      b2b_catalog_enabled: data.values.b2b_catalog_enabled,
-      updated_at: new Date().toISOString()
-    })
-    .eq('integration_id', data.integrationId)
-
-  if (configError) throw configError
-
-  // Update credentials if provided
-  if (data.values.access_token || data.values.webhook_secret) {
-    const updateCredentials: Record<string, string> = {}
-    
-    // Only include fields with actual values
-    if (data.values.access_token) {
-      updateCredentials.access_token = data.values.access_token
-    }
-    if (data.values.webhook_secret) {
-      updateCredentials.webhook_secret = data.values.webhook_secret
-    }
-    
-    // Only update if there are fields to update
-    if (Object.keys(updateCredentials).length > 0) {
-      const { error: credError } = await supabase
-        .from('integration_credentials')
-        .update({
-          credentials: updateCredentials,
-          updated_at: new Date().toISOString()
-        })
-        .eq('integration_id', data.integrationId)
-
-      if (credError) throw credError
-    }
-  }
-
-  return { id: data.integrationId }
-}
 
 /**
  * Renders a form for configuring a Shopify integration, supporting both creation and update modes.
@@ -194,12 +69,11 @@ export function ShopifyConfigForm({
 }: ShopifyConfigFormProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const queryClient = useQueryClient()
   const [showAccessToken, setShowAccessToken] = useState(false)
   const [showWebhookSecret, setShowWebhookSecret] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isShopifyPlus, setIsShopifyPlus] = useState<boolean | null>(null)
-  const supabase = createBrowserClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -216,72 +90,45 @@ export function ShopifyConfigForm({
     }
   })
 
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => 
-      createIntegration(supabase, { organizationId, values }),
-    onSuccess: (integration) => {
-      toast({
-        title: 'Integration created',
-        description: 'Your Shopify integration has been created successfully.'
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true)
+    
+    try {
+      // Convert form values to FormData
+      const formData = new FormData()
+      Object.entries(values).forEach(([key, value]) => {
+        formData.append(key, value.toString())
       })
-      
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['integrations'] })
-      queryClient.invalidateQueries({ queryKey: ['shopify-integrations'] })
-      
+
+      let result
+      if (integrationId) {
+        result = await updateShopifyIntegration(integrationId, formData)
+      } else {
+        result = await createShopifyIntegration(formData)
+      }
+
+      toast({
+        title: integrationId ? 'Configuration updated' : 'Integration created',
+        description: integrationId 
+          ? 'Your Shopify integration has been updated successfully.'
+          : 'Your Shopify integration has been created successfully.'
+      })
+
       // Call onSuccess callback if provided, otherwise redirect
       if (onSuccess) {
-        onSuccess(integration.id)
+        onSuccess(result.integrationId)
       } else {
-        router.push(`/integrations/shopify?id=${integration.id}`)
+        router.push(`/integrations/shopify?id=${result.integrationId}`)
       }
-    },
-    onError: (error) => {
-      console.error('Failed to create integration:', error)
+    } catch (error) {
+      console.error('Failed to save integration:', error)
       toast({
         title: 'Error',
-        description: 'Failed to create integration. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to save integration. Please try again.',
         variant: 'destructive'
       })
-    }
-  })
-
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: (values: z.infer<typeof formSchema>) => 
-      updateIntegration(supabase, { integrationId: integrationId!, values }),
-    onSuccess: () => {
-      toast({
-        title: 'Configuration updated',
-        description: 'Your Shopify integration has been updated successfully.'
-      })
-      
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: ['integrations'] })
-      queryClient.invalidateQueries({ queryKey: ['shopify-integrations'] })
-      queryClient.invalidateQueries({ queryKey: ['integration', integrationId] })
-      
-      // Refresh the page to show updated data
-      router.refresh()
-    },
-    onError: (error) => {
-      console.error('Failed to update configuration:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to update configuration. Please try again.',
-        variant: 'destructive'
-      })
-    }
-  })
-
-  const isLoading = createMutation.isPending || updateMutation.isPending
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (integrationId) {
-      updateMutation.mutate(values)
-    } else {
-      createMutation.mutate(values)
+    } finally {
+      setIsLoading(false)
     }
   }
 
