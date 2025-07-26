@@ -162,7 +162,7 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
           <ShopifyConfigForm 
             integrationId={integration?.id}
             organizationId={profile.organization_id}
-            initialData={integration ? {
+            initialData={integration && integration.shopify_config?.length > 0 ? {
               shop_domain: integration.shopify_config[0].shop_domain,
               access_token: '', // Don't pre-fill sensitive data
               webhook_secret: '', // Don't pre-fill sensitive data
@@ -190,7 +190,7 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
             <CardContent>
               <ShopifySyncSettings 
                 integrationId={integration.id}
-                config={integration.shopify_config[0]}
+                config={integration.shopify_config?.[0] || {}}
                 syncSettings={integration.config}
               />
             </CardContent>

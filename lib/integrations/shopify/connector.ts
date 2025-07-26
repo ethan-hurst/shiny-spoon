@@ -11,6 +11,7 @@ import { ShopifyApiClient } from './api-client'
 import { BulkOperationManager } from './bulk-operations'
 import { PricingManager } from './pricing-manager'
 import { ShopifyTransformers } from './transformers'
+import { incrementalSyncProducts } from './connector-helpers'
 import type { 
   ShopifyIntegrationConfig,
   ShopifyProduct,
@@ -56,7 +57,8 @@ export class ShopifyConnector extends BaseConnector {
     this.pricingManager = new PricingManager(
       this.client, 
       this.config.integrationId,
-      this.config.organizationId
+      this.config.organizationId,
+      { currency: settings.currency }
     )
   }
 
@@ -68,8 +70,25 @@ export class ShopifyConnector extends BaseConnector {
     webhook_secret: string
     storefront_access_token?: string
   } {
-    // In production, this would decrypt the credentials
-    // For now, we assume they're already decrypted
+    // Decrypt credentials if encrypted
+    if (credentials.encrypted && process.env.ENCRYPTION_KEY) {
+      try {
+        const decipher = crypto.createDecipher('aes-256-gcm', process.env.ENCRYPTION_KEY)
+        const decrypted = JSON.parse(
+          decipher.update(credentials.data, 'base64', 'utf8') + decipher.final('utf8')
+        )
+        return {
+          access_token: decrypted.access_token,
+          webhook_secret: decrypted.webhook_secret,
+          storefront_access_token: decrypted.storefront_access_token
+        }
+      } catch (error) {
+        this.logger.error('Failed to decrypt credentials', { error })
+        throw new Error('Invalid credentials encryption')
+      }
+    }
+    
+    // Return plain credentials if not encrypted
     return {
       access_token: credentials.access_token,
       webhook_secret: credentials.webhook_secret,
@@ -164,87 +183,27 @@ export class ShopifyConnector extends BaseConnector {
           return await this.bulkSyncProducts(options)
         }
 
-        // Incremental sync using cursor pagination
-        this.logger.info('Starting incremental product sync')
-        let cursor = syncState?.sync_cursor
-        let hasNextPage = true
-
-        while (hasNextPage && (!options?.signal?.aborted)) {
-          const query = `
-            query GetProducts($cursor: String) {
-              products(first: ${options?.limit || 50}, after: $cursor) {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-                edges {
-                  node {
-                    ${ShopifyApiClient.buildProductQuery()}
-                  }
-                }
-              }
-            }
-          `
-
-          const result = await this.withRateLimit(
-            () => this.client.query(query, { cursor })
-          )
-
-          const products = result.data?.products
-          if (!products) break
-
-          hasNextPage = products.pageInfo.hasNextPage
-          cursor = products.pageInfo.endCursor
-
-          // Process products
-          for (const edge of products.edges) {
-            try {
-              if (options?.dryRun) {
-                this.logger.info('Dry run: Would sync product', {
-                  id: edge.node.id,
-                  title: edge.node.title
-                })
-              } else {
-                const transformed = this.transformers.transformProduct(edge.node)
-                await this.saveProduct(transformed)
-                await this.saveProductMapping(edge.node.id, transformed.id)
-              }
-              totalProcessed++
-
-              // Emit progress
-              if (totalProcessed % 10 === 0) {
-                this.emitProgress(totalProcessed, totalProcessed + (hasNextPage ? 50 : 0))
-              }
-            } catch (error) {
-              totalFailed++
-              errors.push(error as Error)
-              this.logger.error('Failed to sync product', {
-                productId: edge.node.id,
-                error
-              })
-            }
-          }
-
-          // Save cursor for resume capability
-          if (!options?.dryRun) {
-            await this.saveSyncCursor('product', cursor)
-          }
-
-          // Check if we should stop
-          if (options?.limit && totalProcessed >= options.limit) {
-            break
-          }
-        }
-
-        // Update sync state
-        if (!options?.dryRun) {
-          await this.updateSyncState('product', {
-            last_sync_at: new Date(),
-            total_synced: totalProcessed,
-            total_failed: totalFailed,
-            last_error: errors.length > 0 ? errors[0].message : null
-          })
-        }
+        // Use extracted incremental sync logic
+        const result = await incrementalSyncProducts(
+          {
+            client: this.client,
+            transformers: this.transformers,
+            logger: this.logger,
+            getSyncState: this.getSyncState.bind(this),
+            saveProduct: this.saveProduct.bind(this),
+            saveProductMapping: this.saveProductMapping.bind(this),
+            saveSyncCursor: this.saveSyncCursor.bind(this),
+            updateSyncState: this.updateSyncState.bind(this),
+            emitProgress: this.emitProgress.bind(this),
+            withRateLimit: this.withRateLimit.bind(this)
+          },
+          syncState,
+          options
+        )
+        
+        totalProcessed = result.processed
+        totalFailed = result.failed
+        errors.push(...result.errors)
 
         const duration = Date.now() - startTime
         return {
@@ -668,7 +627,7 @@ export class ShopifyConnector extends BaseConnector {
       .from('shopify_product_mapping')
       .upsert({
         integration_id: this.config.integrationId,
-        shopify_product_id: shopifyId.split('/').pop(), // Extract ID from GID
+        shopify_product_id: this.extractIdFromGid(shopifyId),
         shopify_variant_id: shopifyId,
         internal_product_id: internalId,
         last_synced_at: new Date().toISOString()
@@ -714,5 +673,30 @@ export class ShopifyConnector extends BaseConnector {
         attempts: status === 'failed' ? 1 : 0
       })
       .eq('id', webhookId)
+  }
+
+  /**
+   * Extract numeric ID from Shopify GID (Global ID)
+   * Example: gid://shopify/Product/123456789 -> 123456789
+   */
+  private extractIdFromGid(gid: string): string {
+    // Validate GID format
+    const gidPattern = /^gid:\/\/shopify\/[A-Za-z]+\/([0-9]+)$/
+    const match = gid.match(gidPattern)
+    
+    if (match && match[1]) {
+      return match[1]
+    }
+    
+    // Fallback for simple extraction if pattern doesn't match
+    const parts = gid.split('/')
+    const id = parts[parts.length - 1]
+    
+    if (!id || !/^\d+$/.test(id)) {
+      this.logger.warn('Invalid GID format', { gid })
+      return gid // Return original if can't parse
+    }
+    
+    return id
   }
 }

@@ -61,6 +61,7 @@ export function ShopifyConfigForm({
   const [showAccessToken, setShowAccessToken] = useState(false)
   const [showWebhookSecret, setShowWebhookSecret] = useState(false)
   const [testingConnection, setTestingConnection] = useState(false)
+  const [isShopifyPlus, setIsShopifyPlus] = useState<boolean | null>(null)
   const supabase = createBrowserClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -115,18 +116,28 @@ export function ShopifyConfigForm({
 
         // Update credentials if provided
         if (values.access_token || values.webhook_secret) {
-          const { error: credError } = await supabase
-            .from('integration_credentials')
-            .update({
-              credentials: {
-                access_token: values.access_token || undefined,
-                webhook_secret: values.webhook_secret || undefined
-              },
-              updated_at: new Date().toISOString()
-            })
-            .eq('integration_id', integrationId)
+          const updateCredentials: Record<string, string> = {}
+          
+          // Only include fields with actual values
+          if (values.access_token) {
+            updateCredentials.access_token = values.access_token
+          }
+          if (values.webhook_secret) {
+            updateCredentials.webhook_secret = values.webhook_secret
+          }
+          
+          // Only update if there are fields to update
+          if (Object.keys(updateCredentials).length > 0) {
+            const { error: credError } = await supabase
+              .from('integration_credentials')
+              .update({
+                credentials: updateCredentials,
+                updated_at: new Date().toISOString()
+              })
+              .eq('integration_id', integrationId)
 
-          if (credError) throw credError
+            if (credError) throw credError
+          }
         }
 
         toast({
@@ -192,9 +203,10 @@ export function ShopifyConfigForm({
         } else {
           router.push(`/integrations/shopify?id=${integration.id}`)
         }
+      } else {
+        // Only refresh if we're updating existing integration
+        router.refresh()
       }
-
-      router.refresh()
     } catch (error) {
       console.error('Failed to save configuration:', error)
       toast({
@@ -236,6 +248,11 @@ export function ShopifyConfigForm({
       const result = await response.json()
 
       if (response.ok && result.success) {
+        // Check if store is Shopify Plus
+        if (result.plan) {
+          setIsShopifyPlus(result.plan === 'shopify_plus' || result.plan === 'plus')
+        }
+        
         toast({
           title: 'Connection successful',
           description: `Connected to ${result.shop_name}`
@@ -484,7 +501,7 @@ export function ShopifyConfigForm({
                   <Switch
                     checked={field.value}
                     onCheckedChange={field.onChange}
-                    disabled={isLoading}
+                    disabled={isLoading || (isShopifyPlus === false)}
                   />
                 </FormControl>
               </FormItem>
@@ -497,6 +514,15 @@ export function ShopifyConfigForm({
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               B2B features require a Shopify Plus plan. Ensure your store has the necessary features enabled.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {isShopifyPlus === false && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Your store is not on a Shopify Plus plan. B2B catalog features are disabled.
             </AlertDescription>
           </Alert>
         )}

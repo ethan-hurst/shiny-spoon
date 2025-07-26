@@ -271,7 +271,7 @@ CREATE TRIGGER update_shopify_b2b_catalogs_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Function to log Shopify sync activity
+-- Function to log Shopify sync activity with input validation
 CREATE OR REPLACE FUNCTION log_shopify_sync_activity(
   p_integration_id UUID,
   p_entity_type TEXT,
@@ -279,6 +279,25 @@ CREATE OR REPLACE FUNCTION log_shopify_sync_activity(
   p_details JSONB
 ) RETURNS void AS $$
 BEGIN
+  -- Validate inputs
+  IF p_integration_id IS NULL THEN
+    RAISE EXCEPTION 'integration_id cannot be null';
+  END IF;
+  
+  IF p_entity_type IS NULL OR p_entity_type = '' THEN
+    RAISE EXCEPTION 'entity_type cannot be null or empty';
+  END IF;
+  
+  -- Validate entity_type is one of allowed values
+  IF p_entity_type NOT IN ('product', 'inventory', 'order', 'customer', 'bulk_operation', 'webhook', 'b2b_catalog') THEN
+    RAISE EXCEPTION 'Invalid entity_type: %. Must be one of: product, inventory, order, customer, bulk_operation, webhook, b2b_catalog', p_entity_type;
+  END IF;
+  
+  IF p_action IS NULL OR p_action = '' THEN
+    RAISE EXCEPTION 'action cannot be null or empty';
+  END IF;
+  
+  -- Insert log entry
   INSERT INTO integration_logs (
     integration_id,
     log_type,

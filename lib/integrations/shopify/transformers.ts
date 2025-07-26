@@ -321,9 +321,10 @@ export class ShopifyTransformers {
   }
 
   private generateInternalId(input: string): string {
-    // Generate a deterministic ID from input
-    // In production, this might use a proper hashing function
-    return `shopify_${input.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+    // Generate a deterministic ID using SHA-256 hash
+    const crypto = require('crypto')
+    const hash = crypto.createHash('sha256').update(input).digest('hex')
+    return `shopify_${hash.substring(0, 16)}` // Use first 16 chars of hash
   }
 
   /**

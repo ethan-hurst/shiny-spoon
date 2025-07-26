@@ -176,18 +176,10 @@ export class BulkOperationManager {
     productType?: string
     tags?: string[]
     status?: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'
-  }>): string {
+  }>): { mutation: string; variables: Record<string, any> } {
     const mutations = products.map((product, index) => `
       product${index}: productUpdate(
-        input: {
-          id: "${product.id}"
-          ${product.title ? `title: "${product.title}"` : ''}
-          ${product.descriptionHtml ? `descriptionHtml: "${product.descriptionHtml}"` : ''}
-          ${product.vendor ? `vendor: "${product.vendor}"` : ''}
-          ${product.productType ? `productType: "${product.productType}"` : ''}
-          ${product.tags ? `tags: ${JSON.stringify(product.tags)}` : ''}
-          ${product.status ? `status: ${product.status}` : ''}
-        }
+        input: $input${index}
       ) {
         product {
           id
@@ -199,7 +191,29 @@ export class BulkOperationManager {
       }
     `).join('\n')
 
-    return `mutation { ${mutations} }`
+    const variables: Record<string, any> = {}
+    
+    products.forEach((product, index) => {
+      const input: Record<string, unknown> = { id: product.id }
+      
+      if (product.title !== undefined) input.title = product.title
+      if (product.descriptionHtml !== undefined) input.descriptionHtml = product.descriptionHtml
+      if (product.vendor !== undefined) input.vendor = product.vendor
+      if (product.productType !== undefined) input.productType = product.productType
+      if (product.tags !== undefined) input.tags = product.tags
+      if (product.status !== undefined) input.status = product.status
+      
+      variables[`input${index}`] = input
+    })
+
+    const variableDeclarations = products.map((_, index) => 
+      `$input${index}: ProductInput!`
+    ).join(', ')
+
+    return {
+      mutation: `mutation BulkProductUpdate(${variableDeclarations}) { ${mutations} }`,
+      variables
+    }
   }
 
   /**

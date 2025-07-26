@@ -84,8 +84,14 @@ export class ShopifyApiClient {
         this.handleGraphQLErrors(result.errors)
       }
 
+      // Release tokens on successful request
+      if (this.rateLimiter) {
+        this.rateLimiter.release(estimatedCost)
+      }
+
       return result
     } catch (error) {
+      // Don't release tokens on error - they should count against rate limit
       if (error instanceof ShopifyAPIError) {
         throw error
       }
@@ -93,11 +99,6 @@ export class ShopifyApiClient {
         `Shopify API request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'NETWORK_ERROR'
       )
-    } finally {
-      // Release rate limit tokens
-      if (this.rateLimiter) {
-        this.rateLimiter.release(estimatedCost)
-      }
     }
   }
 
@@ -297,7 +298,7 @@ export class ShopifyApiClient {
   /**
    * Helper method to create a complete product query
    */
-  static buildProductQuery(includeMetafields = true): string {
+  static buildProductQuery(includeMetafields = true, variantLimit = 100): string {
     return `
       id
       title
@@ -309,7 +310,7 @@ export class ShopifyApiClient {
       status
       updatedAt
       createdAt
-      variants(first: 100) {
+      variants(first: ${variantLimit}) {
         edges {
           node {
             id

@@ -79,12 +79,20 @@ function IntroStep({ onNext }: StepProps) {
 function AppCreationStep({ onNext, onPrev }: StepProps) {
   const { toast } = useToast()
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: 'Copied to clipboard',
-      description: 'The text has been copied to your clipboard.'
-    })
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({
+        title: 'Copied to clipboard',
+        description: 'The text has been copied to your clipboard.'
+      })
+    } catch (error) {
+      toast({
+        title: 'Failed to copy',
+        description: 'Could not copy to clipboard. Please copy manually.',
+        variant: 'destructive'
+      })
+    }
   }
 
   return (
@@ -246,12 +254,20 @@ function WebhooksStep({ onNext, onPrev }: StepProps) {
   const { toast } = useToast()
   const webhookUrl = `${process.env.NEXT_PUBLIC_URL || window.location.origin}/api/webhooks/shopify`
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast({
-      title: 'Copied to clipboard',
-      description: 'The webhook URL has been copied to your clipboard.'
-    })
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({
+        title: 'Copied to clipboard',
+        description: 'The webhook URL has been copied to your clipboard.'
+      })
+    } catch (error) {
+      toast({
+        title: 'Failed to copy',
+        description: 'Could not copy to clipboard. Please copy manually.',
+        variant: 'destructive'
+      })
+    }
   }
 
   const webhookTopics = [

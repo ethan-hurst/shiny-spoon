@@ -11,11 +11,12 @@ import { useToast } from '@/components/ui/use-toast'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, RefreshCw, Save } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/client'
+import type { ShopifyIntegrationConfig, ShopifySyncSettings } from '@/types/shopify-integration.types'
 
 interface ShopifySyncSettingsProps {
   integrationId: string
-  config: any
-  syncSettings: any
+  config: ShopifyIntegrationConfig
+  syncSettings: ShopifySyncSettings
 }
 
 export function ShopifySyncSettings({

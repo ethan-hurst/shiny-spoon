@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { ShopifyConnector } from '@/lib/integrations/shopify/connector'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import type { ShopifyWebhookTopic } from '@/types/shopify.types'
+import type { ShopifyWebhookTopic, ShopifyWebhookPayload } from '@/types/shopify.types'
 import { 
   shopifyProductWebhookSchema,
   shopifyInventoryWebhookSchema,

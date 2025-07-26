@@ -154,9 +154,9 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {Object.entries(entityConfig).map(([entityType, config]) => {
         const status = syncStatuses.find(s => s.entity_type === entityType) || {
-          entity_type: entityType as any,
+          entity_type: entityType as SyncStatus['entity_type'],
           last_sync_at: null,
-          sync_status: 'pending',
+          sync_status: 'pending' as const,
           records_synced: 0,
           records_failed: 0,
           error_message: null,

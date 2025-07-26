@@ -13,13 +13,16 @@ import { createClient } from '@/lib/supabase/server'
 
 export class PricingManager {
   private transformers: ShopifyTransformers
+  private settings: { currency?: string }
 
   constructor(
     private client: ShopifyApiClient,
     private integrationId: string,
-    private organizationId: string
+    private organizationId: string,
+    settings?: { currency?: string }
   ) {
     this.transformers = new ShopifyTransformers()
+    this.settings = settings || {}
   }
 
   /**
@@ -497,7 +500,7 @@ export class PricingManager {
     const createResponse = await this.client.mutation(mutation, {
       input: {
         name: `Price List for Catalog ${catalogId}`,
-        currency: 'USD',
+        currency: this.settings.currency || 'USD',
         parent: {
           adjustment: {
             type: 'PERCENTAGE_DECREASE',
