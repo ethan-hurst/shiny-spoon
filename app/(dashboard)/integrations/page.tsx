@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { IntegrationsList } from '@/components/features/integrations/integrations-list'
 import { IntegrationStats } from '@/components/features/integrations/integration-stats'
-import { IntegrationsLoading } from '@/components/features/integrations/integrations-loading'
+import { IntegrationsListSkeleton } from '@/components/features/integrations/integrations-list-skeleton'
 import type { Database } from '@/supabase/types/database'
 
 type SyncJob = {
@@ -107,7 +107,7 @@ export default async function IntegrationsPage({
       <IntegrationStats stats={stats} />
 
       <div className="rounded-md border">
-        <Suspense fallback={<IntegrationsLoading />}>
+        <Suspense fallback={<IntegrationsListSkeleton />}>
           <IntegrationsList integrations={typedIntegrations} />
         </Suspense>
       </div>

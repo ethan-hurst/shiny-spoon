@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -22,97 +23,135 @@ interface IntegrationsListProps {
   integrations: IntegrationFull[]
 }
 
+// Helper to get CSRF token
+const getCSRFToken = () => {
+  // Get CSRF token from cookie
+  const match = document.cookie.match(/csrf-token=([^;]+)/)
+  return match ? match[1] : null
+}
+
+// API functions
+const syncIntegration = async (id: string) => {
+  const csrfToken = getCSRFToken()
+  const response = await fetch(`/api/integrations/${id}/sync`, {
+    method: 'POST',
+    headers: {
+      'x-csrf-token': csrfToken || '',
+    },
+  })
+
+  if (!response.ok) {
+    let errorMessage = 'Failed to start sync'
+    try {
+      const errorData = await response.json()
+      errorMessage = errorData.error || errorData.message || errorMessage
+    } catch {
+      // Ignore JSON parse errors
+    }
+    throw new Error(errorMessage)
+  }
+
+  return response.json()
+}
+
+const updateIntegrationStatus = async ({ id, status }: { id: string; status: string }) => {
+  const csrfToken = getCSRFToken()
+  const response = await fetch(`/api/integrations/${id}`, {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-csrf-token': csrfToken || '',
+    },
+    body: JSON.stringify({ status }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to update status')
+  }
+
+  return response.json()
+}
+
+const deleteIntegration = async (id: string) => {
+  const csrfToken = getCSRFToken()
+  const response = await fetch(`/api/integrations/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'x-csrf-token': csrfToken || '',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to delete integration')
+  }
+
+  return response.json()
+}
+
 export function IntegrationsList({ integrations }: IntegrationsListProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [loading, setLoading] = useState<string | null>(null)
 
-  const handleSync = async (id: string) => {
-    const abortController = new AbortController()
-    setLoading(id)
-    
-    try {
-      const response = await fetch(`/api/integrations/${id}/sync`, {
-        method: 'POST',
-        signal: abortController.signal,
-      })
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to start sync'
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorData.message || errorMessage
-        } catch {
-          // Ignore JSON parse errors
-        }
-        throw new Error(errorMessage)
-      }
-
-      const data = await response.json()
+  // Sync mutation
+  const syncMutation = useMutation({
+    mutationFn: syncIntegration,
+    onSuccess: (data) => {
       toast.success(data.message || 'Sync started successfully')
+      // Invalidate and refetch integrations
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
       router.refresh()
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          toast.error('Sync request was cancelled')
-        } else {
-          toast.error(error.message)
-        }
-      } else {
-        toast.error('Failed to start sync')
-      }
-    } finally {
-      setLoading(null)
-    }
-    
-    // Return abort controller for cleanup if needed
-    return () => abortController.abort()
-  }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to start sync')
+    },
+  })
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
-    setLoading(id)
-    try {
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active'
-      const response = await fetch(`/api/integrations/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update status')
-      }
-
+  // Status update mutation
+  const statusMutation = useMutation({
+    mutationFn: updateIntegrationStatus,
+    onSuccess: (_, variables) => {
+      const newStatus = variables.status
       toast.success(`Integration ${newStatus === 'active' ? 'activated' : 'paused'}`)
+      // Invalidate and refetch integrations
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
       router.refresh()
-    } catch (error) {
+    },
+    onError: () => {
       toast.error('Failed to update status')
-    } finally {
-      setLoading(null)
-    }
+    },
+  })
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: deleteIntegration,
+    onSuccess: () => {
+      toast.success('Integration deleted successfully')
+      setDeleteId(null)
+      // Invalidate and refetch integrations
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      router.refresh()
+    },
+    onError: () => {
+      toast.error('Failed to delete integration')
+    },
+    onSettled: () => {
+      setDeleteId(null)
+    },
+  })
+
+  const handleSync = (id: string) => {
+    syncMutation.mutate(id)
   }
 
-  const handleDelete = async () => {
+  const handleToggleStatus = (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active'
+    statusMutation.mutate({ id, status: newStatus })
+  }
+
+  const handleDelete = () => {
     if (!deleteId) return
-
-    setLoading(deleteId)
-    try {
-      const response = await fetch(`/api/integrations/${deleteId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete integration')
-      }
-
-      toast.success('Integration deleted successfully')
-      router.refresh()
-    } catch (error) {
-      toast.error('Failed to delete integration')
-    } finally {
-      setLoading(null)
-      setDeleteId(null)
-    }
+    deleteMutation.mutate(deleteId)
   }
 
   if (integrations.length === 0) {
@@ -138,7 +177,11 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
             onSync={handleSync}
             onToggleStatus={handleToggleStatus}
             onDelete={setDeleteId}
-            isLoading={loading === integration.id}
+            isLoading={
+              (syncMutation.isPending && syncMutation.variables === integration.id) ||
+              (statusMutation.isPending && statusMutation.variables?.id === integration.id) ||
+              (deleteMutation.isPending && deleteMutation.variables === integration.id)
+            }
           />
         ))}
       </div>

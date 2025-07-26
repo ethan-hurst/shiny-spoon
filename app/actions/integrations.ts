@@ -404,8 +404,12 @@ export async function testConnection(integrationId: string) {
 
           // NetSuite uses OAuth 1.0a, so we need to build the auth header
           // For now, we'll check if credentials exist
-          if (credentials.consumer_key && credentials.consumer_secret && 
-              credentials.token_id && credentials.token_secret) {
+          if (
+            credentials.consumer_key &&
+            credentials.consumer_secret &&
+            credentials.token_id &&
+            credentials.token_secret
+          ) {
             testPassed = true
             testDetails = {
               account_id: accountId,
