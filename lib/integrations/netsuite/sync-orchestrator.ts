@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NetSuiteConnector } from './connector'
 import { z } from 'zod'
+import type { ConnectorConfig } from '../base-connector'
 import type { 
   NetSuiteIntegrationConfig, 
   SyncProgress,
@@ -56,12 +57,15 @@ export class NetSuiteSyncOrchestrator {
       throw new Error(`Failed to create sync job: ${jobError?.message}`)
     }
 
-    // Initialize connector
-    this.connector = new NetSuiteConnector(
-      this.integrationId,
-      this.organizationId,
-      this.config
-    )
+    // Initialize connector with proper ConnectorConfig
+    const connectorConfig: ConnectorConfig = {
+      integrationId: this.integrationId,
+      organizationId: this.organizationId,
+      credentials: {} as any, // Credentials will be loaded by the connector
+      settings: this.config,
+    }
+    
+    this.connector = new NetSuiteConnector(connectorConfig)
 
     // Set up abort controller for cancellation
     this.abortController = new AbortController()
@@ -434,11 +438,14 @@ export class NetSuiteSyncOrchestrator {
       integration.netsuite_config[0]
     )
 
-    const connector = new NetSuiteConnector(
-      integrationId,
-      integration.organization_id,
-      integration.netsuite_config[0]
-    )
+    const connectorConfig: ConnectorConfig = {
+      integrationId: integrationId,
+      organizationId: integration.organization_id,
+      credentials: {} as any, // Credentials will be loaded by the connector
+      settings: integration.netsuite_config[0],
+    }
+    
+    const connector = new NetSuiteConnector(connectorConfig)
 
     await connector.initialize()
 
