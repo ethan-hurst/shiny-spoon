@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { SyncEngine } from '@/lib/sync/sync-engine'
-import { SyncJobManager } from '@/lib/sync/job-manager'
 import type { SyncJobConfig } from '@/types/sync-engine.types'
 
 // Vercel Cron job secret for authentication
@@ -85,15 +84,10 @@ export async function GET(
 
     console.log(`[CRON] Found ${schedules.length} schedules to process`)
 
-    // Initialize sync engine and job manager
+    // Initialize sync engine
     const syncEngine = new SyncEngine({
       max_concurrent_jobs: 10,
       enable_notifications: false, // Disable for cron jobs
-    })
-
-    const jobManager = new SyncJobManager(syncEngine, {
-      worker_id: `cron-${frequency}-${Date.now()}`,
-      enable_scheduling: false, // We're already in a scheduled context
     })
 
     const results = []
