@@ -763,15 +763,25 @@ export class SyncEngine extends EventEmitter {
    * Clean up resources
    */
   async shutdown(): Promise<void> {
-    // Cancel all active jobs
-    for (const [jobId, controller] of this.activeJobs) {
-      controller.abort()
-      await this.cancelJob(jobId)
+    // Cancel all active jobs (fix-56: copy map to avoid concurrent modification)
+    const activeJobsCopy = Array.from(this.activeJobs.entries())
+    for (const [jobId, controller] of activeJobsCopy) {
+      try {
+        controller.abort()
+        await this.cancelJob(jobId)
+      } catch (error) {
+        console.error(`Error cancelling job ${jobId} during shutdown:`, error)
+      }
     }
     
-    // Disconnect all connectors
-    for (const connector of this.connectorCache.values()) {
-      await connector.disconnect()
+    // Disconnect all connectors (copy to avoid concurrent modification)
+    const connectorsCopy = Array.from(this.connectorCache.values())
+    for (const connector of connectorsCopy) {
+      try {
+        await connector.disconnect()
+      } catch (error) {
+        console.error('Error disconnecting connector during shutdown:', error)
+      }
     }
     
     this.activeJobs.clear()
