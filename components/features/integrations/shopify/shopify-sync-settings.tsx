@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, RefreshCw, Save } from 'lucide-react'
-import { createBrowserClient } from '@/lib/supabase/client'
 import type { ShopifyIntegrationConfig, ShopifySyncSettings } from '@/types/shopify-integration.types'
+import { updateShopifySyncSettings } from '@/app/actions/shopify-integration'
 
 interface ShopifySyncSettingsProps {
   integrationId: string
@@ -20,56 +20,6 @@ interface ShopifySyncSettingsProps {
   syncSettings: ShopifySyncSettings
 }
 
-interface SaveSettingsData {
-  integrationId: string
-  settings: {
-    sync_products: boolean
-    sync_inventory: boolean
-    sync_orders: boolean
-    sync_customers: boolean
-    b2b_catalog_enabled: boolean
-    sync_frequency: number
-    batch_size: number
-  }
-  currentSyncSettings: ShopifySyncSettings
-}
-
-// Mutation function for saving settings
-async function saveSettingsRequest(data: SaveSettingsData) {
-  const supabase = createBrowserClient()
-  
-  // Update integration config
-  const { error: integrationError } = await supabase
-    .from('integrations')
-    .update({
-      config: {
-        ...data.currentSyncSettings,
-        sync_frequency: data.settings.sync_frequency,
-        batch_size: data.settings.batch_size
-      },
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', data.integrationId)
-
-  if (integrationError) throw integrationError
-
-  // Update Shopify config
-  const { error: configError } = await supabase
-    .from('shopify_config')
-    .update({
-      sync_products: data.settings.sync_products,
-      sync_inventory: data.settings.sync_inventory,
-      sync_orders: data.settings.sync_orders,
-      sync_customers: data.settings.sync_customers,
-      b2b_catalog_enabled: data.settings.b2b_catalog_enabled,
-      updated_at: new Date().toISOString()
-    })
-    .eq('integration_id', data.integrationId)
-
-  if (configError) throw configError
-
-  return { success: true }
-}
 
 interface TriggerSyncData {
   integrationId: string
@@ -144,11 +94,7 @@ export function ShopifySyncSettingsForm({
 
   // Save settings mutation
   const saveSettingsMutation = useMutation({
-    mutationFn: () => saveSettingsRequest({
-      integrationId,
-      settings,
-      currentSyncSettings: syncSettings
-    }),
+    mutationFn: () => updateShopifySyncSettings(integrationId, settings),
     onSuccess: () => {
       toast({
         title: 'Settings saved',

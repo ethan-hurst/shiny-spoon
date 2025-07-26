@@ -235,3 +235,87 @@ export async function updateShopifyIntegration(integrationId: string, formData: 
   
   return { integrationId }
 }
+
+export async function updateShopifySyncSettings(
+  integrationId: string, 
+  settings: {
+    sync_products: boolean
+    sync_inventory: boolean
+    sync_orders: boolean
+    sync_customers: boolean
+    b2b_catalog_enabled: boolean
+    sync_frequency: number
+    batch_size: number
+  }
+) {
+  const supabase = await createClient()
+  
+  // Get the current user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error('Unauthorized')
+  }
+
+  // Verify user has access to this integration
+  const { data: integration, error: integrationError } = await supabase
+    .from('integrations')
+    .select('organization_id')
+    .eq('id', integrationId)
+    .single()
+
+  if (integrationError || !integration) {
+    throw new Error('Integration not found')
+  }
+
+  // Verify user belongs to the organization
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .eq('organization_id', integration.organization_id)
+    .single()
+
+  if (profileError || !profile) {
+    throw new Error('Unauthorized')
+  }
+
+  // Update integration config
+  const { error: updateIntegrationError } = await supabase
+    .from('integrations')
+    .update({
+      config: {
+        sync_frequency: settings.sync_frequency,
+        batch_size: settings.batch_size,
+        api_version: '2024-01'
+      },
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', integrationId)
+    .eq('organization_id', integration.organization_id)
+
+  if (updateIntegrationError) {
+    throw new Error(`Failed to update integration: ${updateIntegrationError.message}`)
+  }
+
+  // Update Shopify config
+  const { error: configError } = await supabase
+    .from('shopify_config')
+    .update({
+      sync_products: settings.sync_products,
+      sync_inventory: settings.sync_inventory,
+      sync_orders: settings.sync_orders,
+      sync_customers: settings.sync_customers,
+      b2b_catalog_enabled: settings.b2b_catalog_enabled,
+      updated_at: new Date().toISOString()
+    })
+    .eq('integration_id', integrationId)
+
+  if (configError) {
+    throw new Error(`Failed to update config: ${configError.message}`)
+  }
+
+  revalidatePath('/integrations')
+  revalidatePath('/integrations/shopify')
+  
+  return { success: true }
+}
