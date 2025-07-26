@@ -14,6 +14,11 @@ import {
 export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
+/**
+ * Handles incoming Shopify webhook POST requests, validating headers, verifying the webhook signature, parsing and validating the payload, and processing the event for the configured shop integration.
+ *
+ * Returns appropriate HTTP status codes to control Shopify retry behavior based on integration status, payload validity, and processing outcome.
+ */
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const headers = request.headers
@@ -217,7 +222,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Webhook registration endpoint (optional - for programmatic registration)
+/**
+ * Returns webhook configuration details for a given Shopify shop domain.
+ *
+ * If the `shop` query parameter is provided and the shop exists in the system, responds with the webhook endpoint URL, supported topics, and verification method. Returns an error if the shop domain is missing or not found.
+ */
 export async function GET(request: NextRequest) {
   // This endpoint can be used to verify webhook configuration
   // or list registered webhooks

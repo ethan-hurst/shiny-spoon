@@ -15,6 +15,14 @@ interface PageProps {
   }
 }
 
+/**
+ * Renders the Shopify integration configuration page for authenticated users.
+ *
+ * Displays setup instructions, a configuration form, sync settings, sync status, and resource links based on whether a Shopify integration exists for the user's organization. Redirects unauthenticated users to login and users without a profile to onboarding.
+ *
+ * @param searchParams - Optional search parameters, including an integration ID to load a specific integration configuration
+ * @returns The Shopify integration configuration page as a React server component
+ */
 export default async function ShopifyIntegrationPage({ searchParams }: PageProps) {
   const supabase = await createClient()
   

@@ -34,7 +34,14 @@ interface SaveSettingsData {
   currentSyncSettings: ShopifySyncSettings
 }
 
-// Mutation function for saving settings
+/**
+ * Updates Shopify integration sync settings and configuration in the database.
+ *
+ * Applies new sync frequency, batch size, and entity sync flags for the specified integration. Throws an error if either update fails.
+ *
+ * @param data - Contains the integration ID, new sync settings, and current sync settings.
+ * @returns An object indicating success.
+ */
 async function saveSettingsRequest(data: SaveSettingsData) {
   const supabase = createBrowserClient()
   
@@ -77,7 +84,13 @@ interface TriggerSyncData {
   force?: boolean
 }
 
-// Mutation function for triggering sync
+/**
+ * Initiates a forced sync for a specified Shopify entity by sending a request to the backend API.
+ *
+ * @param data - Contains the integration ID, entity type to sync, and an optional force flag.
+ * @returns The result object from the sync API if the operation succeeds.
+ * @throws If the API response is not successful or the sync fails.
+ */
 async function triggerSyncRequest(data: TriggerSyncData) {
   const response = await fetch('/api/integrations/shopify/sync', {
     method: 'POST',
@@ -100,6 +113,15 @@ async function triggerSyncRequest(data: TriggerSyncData) {
   return result
 }
 
+/**
+ * React component for managing and updating Shopify integration sync settings.
+ *
+ * Renders UI controls to enable or disable syncing of products, inventory, orders, customers, and B2B catalogs, as well as to configure sync frequency and batch size. Allows users to save changes and manually trigger sync operations for individual entities or all at once, with real-time feedback and loading states.
+ *
+ * @param integrationId - The unique identifier for the Shopify integration.
+ * @param config - The current Shopify integration configuration.
+ * @param syncSettings - The current sync settings for the integration.
+ */
 export function ShopifySyncSettings({
   integrationId,
   config,

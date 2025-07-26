@@ -38,6 +38,13 @@ const steps = [
   { id: 'complete', title: 'Complete', description: 'Start syncing data' }
 ]
 
+/**
+ * Displays the introduction step of the Shopify integration wizard, outlining integration features and requirements.
+ *
+ * Presents a checklist of integration capabilities, an alert with prerequisites, and a button to proceed to the next step.
+ *
+ * @param onNext - Callback invoked when the user clicks "Get Started" to advance to the next step.
+ */
 function IntroStep({ onNext }: StepProps) {
   return (
     <div className="space-y-6">
@@ -75,6 +82,11 @@ function IntroStep({ onNext }: StepProps) {
   )
 }
 
+/**
+ * Guides the user through creating a custom Shopify app, including step-by-step instructions and a copy-to-clipboard feature for the app name.
+ *
+ * Provides navigation controls to move to the previous or next step in the setup wizard.
+ */
 function AppCreationStep({ onNext, onPrev }: StepProps) {
   const { toast } = useToast()
 
@@ -173,6 +185,11 @@ function AppCreationStep({ onNext, onPrev }: StepProps) {
   )
 }
 
+/**
+ * Displays instructions for configuring required API permission scopes in the Shopify app setup process.
+ *
+ * Guides the user through enabling specific admin API scopes needed for integration, provides a checklist of required permissions, and includes navigation controls for the setup wizard.
+ */
 function PermissionsStep({ onNext, onPrev }: StepProps) {
   const requiredScopes = [
     { scope: 'read_products', description: 'Read product information' },
@@ -249,6 +266,11 @@ function PermissionsStep({ onNext, onPrev }: StepProps) {
   )
 }
 
+/**
+ * Guides the user through configuring Shopify webhooks for the integration step.
+ *
+ * Displays instructions for setting the webhook URL, subscribing to required webhook topics, and copying the webhook signing secret. Provides a button to copy the webhook URL to the clipboard with user feedback. Includes navigation controls to proceed to the next or previous step.
+ */
 function WebhooksStep({ onNext, onPrev }: StepProps) {
   const { toast } = useToast()
   const webhookUrl = `${process.env.NEXT_PUBLIC_URL || window.location.origin}/api/webhooks/shopify`
@@ -361,6 +383,16 @@ interface CredentialsStepProps extends StepProps {
   onIntegrationCreated: (integrationId: string) => void
 }
 
+/**
+ * Renders the step for entering Shopify store credentials in the setup wizard.
+ *
+ * Prompts the user to provide their shop domain, Admin API access token, and webhook signing secret using a form. On successful submission, notifies the parent with the new integration ID and advances to the next step.
+ *
+ * @param onNext - Callback to proceed to the next step after successful credential submission
+ * @param onPrev - Callback to return to the previous step
+ * @param organizationId - The ID of the organization for which the Shopify integration is being configured
+ * @param onIntegrationCreated - Callback invoked with the new integration ID upon successful form submission
+ */
 function CredentialsStep({ onNext, onPrev, organizationId, onIntegrationCreated }: CredentialsStepProps) {
   const handleFormSubmit = (newIntegrationId: string) => {
     onIntegrationCreated(newIntegrationId)
@@ -409,6 +441,15 @@ interface TestStepProps extends StepProps {
   integrationId: string | null
 }
 
+/**
+ * Renders the step for testing the Shopify integration connection and required permissions.
+ *
+ * Allows the user to run automated tests that verify API connectivity, product access, inventory access, and webhook configuration for the specified integration. Displays the status of each test and prevents progression until all tests pass.
+ *
+ * @param onNext - Callback to proceed to the next step after successful tests
+ * @param onPrev - Callback to return to the previous step
+ * @param integrationId - The ID of the Shopify integration to test
+ */
 function TestStep({ onNext, onPrev, integrationId }: TestStepProps) {
   const [testing, setTesting] = useState(false)
   const [testResults, setTestResults] = useState<{
@@ -540,6 +581,11 @@ function TestStep({ onNext, onPrev, integrationId }: TestStepProps) {
   )
 }
 
+/**
+ * Displays the final step of the Shopify setup wizard, confirming successful integration and outlining next steps.
+ *
+ * Shows a completion message, describes what will happen after setup, and provides navigation buttons to view all integrations or the Shopify integration page.
+ */
 function CompleteStep({ organizationId }: StepProps) {
   const router = useRouter()
   
@@ -597,6 +643,13 @@ function CompleteStep({ organizationId }: StepProps) {
   )
 }
 
+/**
+ * Renders a multi-step wizard guiding users through the process of integrating a Shopify store with the application.
+ *
+ * Displays step-specific content, manages navigation between steps, tracks integration progress, and handles state for the integration ID. The wizard enforces sequential completion of setup tasks, including app creation, permissions configuration, webhook setup, credential entry, connection testing, and completion.
+ *
+ * @param organizationId - The unique identifier for the organization setting up the Shopify integration.
+ */
 export function ShopifySetupWizard({ organizationId }: ShopifySetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [integrationId, setIntegrationId] = useState<string | null>(null)

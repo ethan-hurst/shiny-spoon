@@ -63,7 +63,12 @@ const entityConfig = {
   }
 }
 
-// Query function for fetching sync status
+/**
+ * Retrieves the synchronization status for all Shopify entities associated with a given integration ID.
+ *
+ * @param integrationId - The unique identifier for the Shopify integration.
+ * @returns An array of sync status objects for each entity type, or an empty array if no data is found.
+ */
 async function fetchSyncStatus(integrationId: string): Promise<SyncStatus[]> {
   const supabase = createBrowserClient()
   
@@ -78,6 +83,13 @@ async function fetchSyncStatus(integrationId: string): Promise<SyncStatus[]> {
   return data || []
 }
 
+/**
+ * Displays the synchronization status of Shopify entities for a given integration.
+ *
+ * Fetches sync status data for products, inventory, orders, customers, and B2B catalogs from Supabase, subscribes to real-time updates, and renders a status card for each entity. Shows sync progress, last sync time, record counts, error messages, and next scheduled sync.
+ *
+ * @param integrationId - The unique identifier for the Shopify integration whose sync status should be displayed.
+ */
 export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
   const supabase = createBrowserClient()
   const queryClient = useQueryClient()

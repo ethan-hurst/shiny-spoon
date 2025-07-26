@@ -404,7 +404,14 @@ export class ShopifyRateLimitError extends ShopifyAPIError {
 
 // ===============================
 // Type Guards
-// ===============================
+/**
+ * Determines whether the given object conforms to the ShopifyProduct interface.
+ *
+ * Checks for required fields, valid status values, and the structure of optional and nested properties.
+ *
+ * @param obj - The object to validate
+ * @returns True if the object matches the ShopifyProduct structure; otherwise, false
+ */
 
 export function isShopifyProduct(obj: unknown): obj is ShopifyProduct {
   if (!obj || typeof obj !== 'object') return false
@@ -434,6 +441,14 @@ export function isShopifyProduct(obj: unknown): obj is ShopifyProduct {
   return true
 }
 
+/**
+ * Determines whether the given object matches the structure of a ShopifyOrder.
+ *
+ * Performs runtime validation of required fields, enum values, and nested structures to ensure the object conforms to the ShopifyOrder interface.
+ *
+ * @param obj - The object to validate
+ * @returns True if the object is a valid ShopifyOrder, otherwise false
+ */
 export function isShopifyOrder(obj: unknown): obj is ShopifyOrder {
   if (!obj || typeof obj !== 'object') return false
   
@@ -484,6 +499,11 @@ export function isShopifyOrder(obj: unknown): obj is ShopifyOrder {
   return true
 }
 
+/**
+ * Determines whether the provided object matches the structure of a ShopifyCustomer.
+ *
+ * Returns true if the object has all required ShopifyCustomer fields with correct types, including nested address and optional company and catalogGroups structures.
+ */
 export function isShopifyCustomer(obj: unknown): obj is ShopifyCustomer {
   if (!obj || typeof obj !== 'object') return false
   
