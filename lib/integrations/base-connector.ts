@@ -57,26 +57,103 @@ export interface ConnectorEvents {
   'error': (error: IntegrationError) => void
 }
 
-// Default logger implementation
-export class DefaultLogger implements Logger {
-  constructor(private integrationId: string) {}
+// Logger adapter that delegates to an injected logger implementation
+export class LoggerAdapter implements Logger {
+  constructor(
+    private integrationId: string,
+    private logger?: Logger
+  ) {
+    // If no logger provided, use console as fallback
+    if (!this.logger) {
+      this.logger = {
+        debug: (message: string, data?: any) => console.debug(message, data),
+        info: (message: string, data?: any) => console.info(message, data),
+        warn: (message: string, data?: any) => console.warn(message, data),
+        error: (message: string, data?: any) => console.error(message, data),
+      }
+    }
+  }
 
   debug(message: string, data?: any): void {
-    console.debug(`[${this.integrationId}] ${message}`, data)
+    this.logger!.debug(`[${this.integrationId}] ${message}`, {
+      integrationId: this.integrationId,
+      ...data
+    })
   }
 
   info(message: string, data?: any): void {
-    console.info(`[${this.integrationId}] ${message}`, data)
+    this.logger!.info(`[${this.integrationId}] ${message}`, {
+      integrationId: this.integrationId,
+      ...data
+    })
   }
 
   warn(message: string, data?: any): void {
-    console.warn(`[${this.integrationId}] ${message}`, data)
+    this.logger!.warn(`[${this.integrationId}] ${message}`, {
+      integrationId: this.integrationId,
+      ...data
+    })
   }
 
   error(message: string, data?: any): void {
-    console.error(`[${this.integrationId}] ${message}`, data)
+    this.logger!.error(`[${this.integrationId}] ${message}`, {
+      integrationId: this.integrationId,
+      ...data
+    })
   }
 }
+
+// Factory function to create production loggers (Winston, Pino, etc.)
+export type LoggerFactory = (integrationId: string) => Logger
+
+// Default logger implementation using console (for backward compatibility)
+export class DefaultLogger extends LoggerAdapter {
+  constructor(integrationId: string) {
+    super(integrationId)
+  }
+}
+
+/**
+ * Example usage with Winston:
+ * 
+ * import winston from 'winston'
+ * 
+ * const winstonLogger = winston.createLogger({
+ *   level: 'info',
+ *   format: winston.format.json(),
+ *   transports: [
+ *     new winston.transports.File({ filename: 'error.log', level: 'error' }),
+ *     new winston.transports.File({ filename: 'combined.log' })
+ *   ]
+ * })
+ * 
+ * const config: ConnectorConfig = {
+ *   integrationId: 'int_123',
+ *   organizationId: 'org_456',
+ *   credentials: { ... },
+ *   settings: { ... },
+ *   logger: new LoggerAdapter('int_123', winstonLogger)
+ * }
+ * 
+ * Example usage with Pino:
+ * 
+ * import pino from 'pino'
+ * 
+ * const pinoLogger = pino({
+ *   level: 'info',
+ *   transport: {
+ *     target: 'pino-pretty'
+ *   }
+ * })
+ * 
+ * const config: ConnectorConfig = {
+ *   integrationId: 'int_123',
+ *   organizationId: 'org_456',
+ *   credentials: { ... },
+ *   settings: { ... },
+ *   logger: new LoggerAdapter('int_123', pinoLogger)
+ * }
+ */
 
 // Default rate limiter implementation
 export class DefaultRateLimiter implements RateLimiter {
