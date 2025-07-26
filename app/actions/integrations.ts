@@ -228,7 +228,7 @@ export async function updateIntegration(formData: FormData) {
 // Delete an integration
 export async function deleteIntegration(id: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -282,9 +282,12 @@ export async function deleteIntegration(id: string) {
 const ALLOWED_ENTITY_TYPES = ['products', 'inventory', 'orders', 'customers', 'pricing'] as const
 
 // Trigger manual sync
-export async function triggerSync(integrationId: string, entityType?: string) {
+export async function triggerSync(formData: FormData) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
+    
+    const integrationId = formData.get('integrationId') as string
+    const entityType = formData.get('entityType') as string | undefined
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -357,7 +360,7 @@ export async function triggerSync(integrationId: string, entityType?: string) {
 // Test integration connection
 export async function testConnection(integrationId: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
@@ -431,30 +434,20 @@ export async function testConnection(integrationId: string) {
         }
         
         case 'netsuite': {
-          // Test NetSuite connection with REST API
-          const accountId = integration.config?.account_id
-          const restUrl = integration.config?.rest_url
+          // NetSuite connection test is handled by a dedicated endpoint
+          const response = await fetch('/api/integrations/netsuite/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ integration_id: integrationId }),
+          })
           
-          if (!accountId || !restUrl || !credentials) {
-            throw new Error('Missing NetSuite configuration')
-          }
-
-          // NetSuite uses OAuth 1.0a, so we need to build the auth header
-          // For now, we'll check if credentials exist
-          if (
-            credentials.consumer_key &&
-            credentials.consumer_secret &&
-            credentials.token_id &&
-            credentials.token_secret
-          ) {
-            testPassed = true
-            testDetails = {
-              account_id: accountId,
-              rest_url: restUrl,
-              auth_method: 'OAuth 1.0a',
-            }
+          if (response.ok) {
+            const result = await response.json()
+            testPassed = result.overall_status === 'success'
+            testDetails = result
           } else {
-            throw new Error('Invalid NetSuite credentials')
+            testPassed = false
+            testDetails = { error: 'Test endpoint failed' }
           }
           break
         }
