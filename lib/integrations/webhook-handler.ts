@@ -97,21 +97,23 @@ export class WebhookHandler {
 
       // Add platform-specific filters
       switch (platform) {
-        case 'shopify':
+        case 'shopify': {
           const shopDomain = headers.get('x-shopify-shop-domain')
           if (shopDomain) {
             query = query.eq('integrations.config->shop_domain', shopDomain)
             queryFilters.shop_domain = shopDomain
           }
           break
+        }
 
-        case 'quickbooks':
+        case 'quickbooks': {
           const companyId = headers.get('intuit-company-id')
           if (companyId) {
             query = query.eq('integrations.config->company_id', companyId)
             queryFilters.company_id = companyId
           }
           break
+        }
 
         default:
           // For other platforms, try to match by webhook URL or other headers
