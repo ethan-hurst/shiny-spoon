@@ -33,6 +33,7 @@ export interface SyncOptions {
   filters?: Record<string, any>
   force?: boolean
   dryRun?: boolean
+  signal?: AbortSignal
 }
 
 // Connector configuration

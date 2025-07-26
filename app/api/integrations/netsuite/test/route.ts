@@ -5,6 +5,19 @@ import { NetSuiteAPIClient } from '@/lib/integrations/netsuite/api-client'
 import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
 import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
 
+interface TestResult {
+  name: string
+  status: 'pending' | 'success' | 'error'
+  message: string
+  duration: number
+  details?: any
+}
+
+interface TestResults {
+  timestamp: string
+  tests: TestResult[]
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -56,7 +69,7 @@ export async function POST(request: NextRequest) {
       netsuiteConfig as NetSuiteIntegrationConfig
     )
 
-    let testResults: any = {
+    const testResults: TestResults = {
       timestamp: new Date().toISOString(),
       tests: [],
     }
@@ -147,8 +160,14 @@ export async function POST(request: NextRequest) {
             const query = `SELECT COUNT(*) as count FROM ${recordType} WHERE ROWNUM <= 1`
             await apiClient.executeSuiteQL(query)
             permissions[recordType] = true
-          } catch {
+          } catch (error) {
             permissions[recordType] = false
+            // Log the specific error for debugging
+            console.error(`Permission check failed for ${recordType}:`, {
+              recordType,
+              error: error instanceof Error ? error.message : String(error),
+              code: (error as any)?.code,
+            })
           }
         }
 

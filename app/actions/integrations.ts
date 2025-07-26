@@ -289,6 +289,11 @@ export async function triggerSync(formData: FormData) {
     const integrationId = formData.get('integrationId') as string
     const entityType = formData.get('entityType') as string | undefined
     
+    // Validate required fields
+    if (!integrationId || integrationId.trim() === '') {
+      throw new Error('Integration ID is required')
+    }
+    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 

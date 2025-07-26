@@ -204,18 +204,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Check for data quality issues
-    const { data: orphanedProducts } = await supabase
+    const { data: orphanedProducts, count: orphanedCount } = await supabase
       .from('products')
       .select('id', { count: 'exact' })
       .eq('organization_id', profile.organization_id)
       .is('external_id', null)
 
-    if (orphanedProducts && orphanedProducts.length > 0) {
-      healthMetrics.metrics.data_quality.orphaned_records = orphanedProducts.length
+    if (orphanedCount && orphanedCount > 0) {
+      healthMetrics.metrics.data_quality.orphaned_records = orphanedCount
       healthMetrics.issues.push({
         severity: 'info',
         category: 'data_quality',
-        message: `${orphanedProducts.length} products not linked to NetSuite`,
+        message: `${orphanedCount} products not linked to NetSuite`,
         timestamp: new Date().toISOString(),
       })
     }

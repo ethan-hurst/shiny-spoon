@@ -210,13 +210,22 @@ export class NetSuiteSyncOrchestrator {
 
     switch (entityType) {
       case 'products':
-        return await this.connector.syncProducts(onProgress)
+        return await this.connector.syncProducts({
+          signal: this.abortController?.signal,
+          ...onProgress
+        })
       
       case 'inventory':
-        return await this.connector.syncInventory(onProgress)
+        return await this.connector.syncInventory({
+          signal: this.abortController?.signal,
+          ...onProgress
+        })
       
       case 'pricing':
-        return await this.connector.syncPricing(onProgress)
+        return await this.connector.syncPricing({
+          signal: this.abortController?.signal,
+          ...onProgress
+        })
       
       case 'customers':
         // Customer sync (if implemented)
@@ -333,11 +342,29 @@ export class NetSuiteSyncOrchestrator {
   ): Promise<void> {
     const supabase = await createClient()
     
-    // Get integration details
+    // Verify user is authenticated
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      throw new Error('Unauthorized: User must be authenticated to schedule sync jobs')
+    }
+    
+    // Get user's organization
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+    
+    if (!profile) {
+      throw new Error('User profile not found')
+    }
+    
+    // Get integration details and verify ownership
     const { data: integration } = await supabase
       .from('integrations')
       .select('*, netsuite_config(*)')
       .eq('id', integrationId)
+      .eq('organization_id', profile.organization_id)
       .single()
 
     if (!integration || !integration.sync_settings?.sync_enabled) {
