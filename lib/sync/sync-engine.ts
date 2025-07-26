@@ -144,7 +144,6 @@ export class SyncEngine extends EventEmitter {
    */
   async executeJob(jobId: string): Promise<SyncResult> {
     const supabase = await createClient()
-    const startTime = Date.now()
     
     // Check concurrent job limit
     if (this.activeJobs.size >= this.config.max_concurrent_jobs) {
