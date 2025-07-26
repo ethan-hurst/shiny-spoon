@@ -1,6 +1,6 @@
 // PRP-012: Integration Framework Types
 import { z } from 'zod'
-import type { Database } from '@/supabase/types/database'
+import type { Database } from '@/supabase/types/database-extended'
 
 // Database types
 export type Integration = Database['public']['Tables']['integrations']['Row']
