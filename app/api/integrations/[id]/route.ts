@@ -7,15 +7,19 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  let user: { id: string; email?: string } | null = null
+  let body: any = null
+  
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: authData } = await supabase.auth.getUser()
+    user = authData.user
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    body = await request.json()
     
     // Convert to FormData for server action
     const formData = new FormData()
@@ -35,7 +39,16 @@ export async function PATCH(
 
     return NextResponse.json(result.data)
   } catch (error) {
-    console.error('API error:', error)
+    console.error('Integration PATCH API error:', {
+      error,
+      method: 'PATCH',
+      url: request.url,
+      integrationId: params.id,
+      userId: user?.id,
+      userEmail: user?.email,
+      requestBody: body,
+      timestamp: new Date().toISOString()
+    })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -48,9 +61,12 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  let user: { id: string; email?: string } | null = null
+  
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: authData } = await supabase.auth.getUser()
+    user = authData.user
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -64,7 +80,15 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('API error:', error)
+    console.error('Integration DELETE API error:', {
+      error,
+      method: 'DELETE',
+      url: request.url,
+      integrationId: params.id,
+      userId: user?.id,
+      userEmail: user?.email,
+      timestamp: new Date().toISOString()
+    })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
