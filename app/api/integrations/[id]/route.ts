@@ -3,6 +3,29 @@ import { createClient } from '@/lib/supabase/server'
 import { updateIntegration, deleteIntegration } from '@/app/actions/integrations'
 import { headers } from 'next/headers'
 import crypto from 'crypto'
+import { z } from 'zod'
+
+// Schema for PATCH request body validation
+const updateIntegrationRequestSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'error', 'configuring', 'suspended']).optional(),
+  config: z.record(z.any()).optional(),
+  sync_settings: z.object({
+    sync_products: z.boolean().optional(),
+    sync_inventory: z.boolean().optional(),
+    sync_pricing: z.boolean().optional(),
+    sync_customers: z.boolean().optional(),
+    sync_orders: z.boolean().optional(),
+    sync_direction: z.enum(['push', 'pull', 'bidirectional']).optional(),
+    sync_frequency_minutes: z.number().min(5).max(1440).optional(),
+    batch_size: z.number().min(1).max(1000).optional(),
+    field_mappings: z.record(z.string()).optional(),
+    filters: z.record(z.any()).optional(),
+  }).optional(),
+  credential_type: z.enum(['oauth2', 'api_key', 'basic_auth', 'custom']).optional(),
+  credentials: z.record(z.any()).optional(),
+})
 
 // CSRF token validation helper
 async function validateCSRFToken(request: NextRequest): Promise<boolean> {
@@ -56,11 +79,26 @@ export async function PATCH(
 
     body = await request.json()
     
+    // Validate request body with Zod schema
+    const validationResult = updateIntegrationRequestSchema.safeParse(body)
+    
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid request body',
+          details: validationResult.error.flatten()
+        },
+        { status: 400 }
+      )
+    }
+    
+    const validatedBody = validationResult.data
+    
     // Convert to FormData for server action
     const formData = new FormData()
     formData.append('id', params.id)
     
-    Object.entries(body).forEach(([key, value]) => {
+    Object.entries(validatedBody).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         formData.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value))
       }
