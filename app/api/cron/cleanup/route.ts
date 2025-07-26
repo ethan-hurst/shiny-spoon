@@ -174,14 +174,25 @@ export async function GET(request: NextRequest) {
 
       // 5. Clean up orphaned queue items for this organization
       try {
-        // First get orphaned queue items
-        const { data: orphanedItems } = await supabase
+        // First get all sync jobs for this organization
+        const { data: syncJobs } = await supabase
+          .from('sync_jobs')
+          .select('id')
+          .eq('organization_id', org.id)
+        
+        const syncJobIds = syncJobs?.map(job => job.id) || []
+        
+        // Get orphaned queue items (those without corresponding sync job)
+        const { data: allQueueItems } = await supabase
           .from('sync_queue')
           .select('job_id')
           .eq('organization_id', org.id)
-          .filter('job_id', 'not.in', `(SELECT id FROM sync_jobs WHERE organization_id = '${org.id}')`)
         
-        if (orphanedItems && orphanedItems.length > 0) {
+        const orphanedItems = allQueueItems?.filter(
+          item => !syncJobIds.includes(item.job_id)
+        ) || []
+        
+        if (orphanedItems.length > 0) {
           // Delete orphaned items
           const { error: deleteError } = await supabase
             .from('sync_queue')
