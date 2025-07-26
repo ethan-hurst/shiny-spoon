@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { WebhookHandler } from '@/lib/integrations/webhook-handler'
-import { NetSuiteConnector } from '@/lib/integrations/netsuite/connector'
 import { NetSuiteTransformers } from '@/lib/integrations/netsuite/transformers'
 import { z } from 'zod'
 import crypto from 'crypto'
@@ -113,12 +112,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Process the webhook based on event type
-    const connector = new NetSuiteConnector(
-      webhook.integration_id,
-      webhook.integrations.organization_id,
-      webhook.integrations.config
-    )
-
+    
     // Get NetSuite config for transformers
     const { data: netsuiteConfig } = await supabase
       .from('netsuite_config')
