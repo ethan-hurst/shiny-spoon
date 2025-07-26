@@ -59,7 +59,15 @@ export class SyncJobManager {
   /**
    * Stop the job manager
    */
-  async stop(): Promise<void> {
+  async stop(options?: { 
+    gracefulShutdownMs?: number 
+    forceKillAfterMs?: number 
+  }): Promise<void> {
+    const { 
+      gracefulShutdownMs = 30000, // 30 seconds default
+      forceKillAfterMs = 60000 // 60 seconds default
+    } = options || {}
+    
     this.isRunning = false
     
     if (this.pollTimer) {
@@ -67,14 +75,42 @@ export class SyncJobManager {
       this.pollTimer = null
     }
 
-    // Wait for active jobs to complete
+    // Wait for active jobs to complete with proper timeout (fix-46)
     if (this.activeJobs.size > 0) {
       console.log(`Waiting for ${this.activeJobs.size} active jobs to complete...`)
       
-      // Give jobs some time to complete
-      await new Promise(resolve => setTimeout(resolve, 10000))
+      const startTime = Date.now()
+      const checkInterval = 1000 // Check every second
+      
+      // Wait for jobs to complete or timeout
+      while (this.activeJobs.size > 0) {
+        const elapsedTime = Date.now() - startTime
+        
+        if (elapsedTime >= forceKillAfterMs) {
+          console.warn(`Force killing ${this.activeJobs.size} jobs after ${forceKillAfterMs}ms`)
+          // Cancel remaining jobs
+          for (const jobId of this.activeJobs) {
+            try {
+              await this.syncEngine.cancelJob(jobId)
+            } catch (error) {
+              console.error(`Failed to cancel job ${jobId}:`, error)
+            }
+          }
+          break
+        }
+        
+        if (elapsedTime >= gracefulShutdownMs && elapsedTime < forceKillAfterMs) {
+          console.warn(`Still waiting for ${this.activeJobs.size} jobs after ${gracefulShutdownMs}ms`)
+        }
+        
+        // Wait before checking again
+        await new Promise(resolve => setTimeout(resolve, checkInterval))
+      }
     }
 
+    // Ensure sync engine is also shut down
+    await this.syncEngine.shutdown()
+    
     console.log('Job manager stopped')
   }
 
@@ -265,14 +301,41 @@ export class SyncJobManager {
   private shouldRunSchedule(schedule: SyncSchedule & { last_run_at?: string }): boolean {
     const now = new Date()
     
-    // Check active hours if configured
+    // Check active hours if configured (fix-47: add timezone support)
     if (schedule.active_hours) {
-      const currentHour = now.getHours()
-      const [startHour] = schedule.active_hours.start.split(':').map(Number)
-      const [endHour] = schedule.active_hours.end.split(':').map(Number)
+      // Get current time in schedule's timezone (default to UTC if not specified)
+      const timezone = schedule.active_hours.timezone || 'UTC'
       
-      if (currentHour < startHour || currentHour >= endHour) {
-        return false
+      // Convert current time to the schedule's timezone
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false
+      })
+      
+      const timeParts = formatter.formatToParts(now)
+      const currentHour = parseInt(timeParts.find(p => p.type === 'hour')?.value || '0')
+      const currentMinute = parseInt(timeParts.find(p => p.type === 'minute')?.value || '0')
+      const currentTimeMinutes = currentHour * 60 + currentMinute
+      
+      // Parse start and end times
+      const [startHour, startMinute = 0] = schedule.active_hours.start.split(':').map(Number)
+      const [endHour, endMinute = 0] = schedule.active_hours.end.split(':').map(Number)
+      const startTimeMinutes = startHour * 60 + startMinute
+      const endTimeMinutes = endHour * 60 + endMinute
+      
+      // Check if current time is within active hours
+      if (startTimeMinutes < endTimeMinutes) {
+        // Normal case: start time is before end time (e.g., 9:00 - 17:00)
+        if (currentTimeMinutes < startTimeMinutes || currentTimeMinutes >= endTimeMinutes) {
+          return false
+        }
+      } else {
+        // Overnight case: end time is before start time (e.g., 22:00 - 6:00)
+        if (currentTimeMinutes < startTimeMinutes && currentTimeMinutes >= endTimeMinutes) {
+          return false
+        }
       }
     }
 

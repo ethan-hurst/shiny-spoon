@@ -233,7 +233,10 @@ export function ShopifyConfigForm({
     setTestingConnection(true)
 
     try {
-      // Test the connection by making a simple API call
+      // Test the connection by making a simple API call with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      
       const response = await fetch('/api/integrations/shopify/test', {
         method: 'POST',
         headers: {
@@ -242,8 +245,11 @@ export function ShopifyConfigForm({
         body: JSON.stringify({
           shop_domain: values.shop_domain,
           access_token: values.access_token
-        })
+        }),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
 
       const result = await response.json()
 
@@ -261,9 +267,19 @@ export function ShopifyConfigForm({
         throw new Error(result.error || 'Connection failed')
       }
     } catch (error) {
+      let errorMessage = 'Failed to connect to Shopify'
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Connection timeout - please try again'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast({
         title: 'Connection failed',
-        description: error instanceof Error ? error.message : 'Failed to connect to Shopify',
+        description: errorMessage,
         variant: 'destructive'
       })
     } finally {

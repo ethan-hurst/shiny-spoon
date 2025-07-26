@@ -362,8 +362,7 @@ export class PricingManager {
   }
 
   private async fetchCatalogGroups(): Promise<ShopifyCatalogGroup[]> {
-    // Note: This is a simplified version - actual implementation would
-    // depend on Shopify's B2B API structure for customer groups
+    // Fetch B2B companies and their locations as catalog groups (fix-45)
     const query = `
       query getCompanies($cursor: String) {
         companies(first: 50, after: $cursor) {
@@ -376,6 +375,23 @@ export class PricingManager {
               id
               name
               externalId
+              locations(first: 10) {
+                edges {
+                  node {
+                    id
+                    name
+                    externalId
+                    catalogs(first: 10) {
+                      edges {
+                        node {
+                          id
+                          title
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -383,7 +399,54 @@ export class PricingManager {
     `
 
     const groups: ShopifyCatalogGroup[] = []
-    // Implementation would fetch and transform company data
+    let cursor: string | null = null
+    let hasNextPage = true
+
+    try {
+      while (hasNextPage) {
+        const response = await this.client.query(query, { cursor })
+        const data = response.data?.companies
+
+        if (!data) break
+
+        // Transform companies and their locations into catalog groups
+        for (const edge of data.edges) {
+          const company = edge.node
+          
+          // Add company as a group
+          groups.push({
+            id: company.id,
+            name: company.name,
+            external_id: company.externalId,
+            type: 'company',
+            catalog_ids: []
+          })
+
+          // Add company locations as groups
+          if (company.locations?.edges) {
+            for (const locEdge of company.locations.edges) {
+              const location = locEdge.node
+              const catalogIds = location.catalogs?.edges.map((e: any) => e.node.id) || []
+              
+              groups.push({
+                id: location.id,
+                name: `${company.name} - ${location.name}`,
+                external_id: location.externalId,
+                type: 'company_location',
+                parent_id: company.id,
+                catalog_ids: catalogIds
+              })
+            }
+          }
+        }
+
+        hasNextPage = data.pageInfo.hasNextPage
+        cursor = data.pageInfo.endCursor
+      }
+    } catch (error) {
+      console.error('Failed to fetch catalog groups:', error)
+      // Return partial results on error
+    }
     
     return groups
   }

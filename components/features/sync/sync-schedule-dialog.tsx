@@ -15,6 +15,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Form,
   FormControl,
   FormDescription,
@@ -44,8 +54,17 @@ const formSchema = z.object({
   frequency: z.enum(['every_5_min', 'every_15_min', 'every_30_min', 'hourly', 'daily', 'weekly']),
   entity_types: z.array(z.string()).min(1, 'Select at least one entity type'),
   active_hours_enabled: z.boolean(),
-  active_hours_start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
-  active_hours_end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+  active_hours_start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format').optional(),
+  active_hours_end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format').optional(),
+}).refine((data) => {
+  // Add conditional validation (fix-32)
+  if (data.active_hours_enabled) {
+    return data.active_hours_start && data.active_hours_end
+  }
+  return true
+}, {
+  message: 'Start and end times are required when active hours are enabled',
+  path: ['active_hours_start'],
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -68,6 +87,7 @@ export function SyncScheduleDialog({ integrationId, schedule, onClose }: SyncSch
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -76,8 +96,9 @@ export function SyncScheduleDialog({ integrationId, schedule, onClose }: SyncSch
       frequency: schedule?.frequency || 'daily',
       entity_types: schedule?.entity_types || [],
       active_hours_enabled: !!schedule?.active_hours,
-      active_hours_start: schedule?.active_hours?.start || '09:00',
-      active_hours_end: schedule?.active_hours?.end || '17:00',
+      // Remove fallback values (fix-33)
+      active_hours_start: schedule?.active_hours?.start,
+      active_hours_end: schedule?.active_hours?.end,
     },
   })
 
@@ -95,10 +116,10 @@ export function SyncScheduleDialog({ integrationId, schedule, onClose }: SyncSch
         formData.append('entity_types', type)
       })
       
-      if (values.active_hours_enabled) {
+      if (values.active_hours_enabled && values.active_hours_start && values.active_hours_end) {
         formData.append('active_hours_enabled', 'true')
-        formData.append('active_hours_start', values.active_hours_start || '09:00')
-        formData.append('active_hours_end', values.active_hours_end || '17:00')
+        formData.append('active_hours_start', values.active_hours_start)
+        formData.append('active_hours_end', values.active_hours_end)
       }
 
       await updateSyncSchedule(formData)
@@ -122,10 +143,6 @@ export function SyncScheduleDialog({ integrationId, schedule, onClose }: SyncSch
   }
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this schedule? This cannot be undone.')) {
-      return
-    }
-
     setIsDeleting(true)
 
     try {
@@ -149,12 +166,14 @@ export function SyncScheduleDialog({ integrationId, schedule, onClose }: SyncSch
       })
     } finally {
       setIsDeleting(false)
+      setShowDeleteConfirm(false)
     }
   }
 
   return (
-    <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-[600px]">
+    <>
+      <Dialog open onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Configure Sync Schedule</DialogTitle>
           <DialogDescription>
@@ -340,20 +359,11 @@ export function SyncScheduleDialog({ integrationId, schedule, onClose }: SyncSch
                   <Button
                     type="button"
                     variant="destructive"
-                    onClick={handleDelete}
+                    onClick={() => setShowDeleteConfirm(true)}
                     disabled={isDeleting}
                   >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Schedule
-                      </>
-                    )}
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Schedule
                   </Button>
                 )}
               </div>
@@ -380,5 +390,34 @@ export function SyncScheduleDialog({ integrationId, schedule, onClose }: SyncSch
         </Form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Sync Schedule</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this schedule? This action cannot be undone and the integration will stop syncing automatically.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete Schedule'
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

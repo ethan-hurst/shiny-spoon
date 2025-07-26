@@ -5,11 +5,27 @@ import { createClient } from '@/lib/supabase/server'
 // Vercel Cron job secret for authentication
 const CRON_SECRET = process.env.CRON_SECRET
 
+// Constant-time string comparison to prevent timing attacks
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false
+  }
+  
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  
+  return result === 0
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    const expectedHeader = `Bearer ${CRON_SECRET}`
+    
+    if (!authHeader || !constantTimeEqual(authHeader, expectedHeader)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -25,7 +41,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Get retention period from environment or default to 30 days
-    const retentionDays = parseInt(process.env.SYNC_RETENTION_DAYS || '30')
+    const rawRetentionDays = parseInt(process.env.SYNC_RETENTION_DAYS || '30')
+    const retentionDays = isNaN(rawRetentionDays) || rawRetentionDays < 1 || rawRetentionDays > 365
+      ? 30 // Default to 30 days if invalid
+      : rawRetentionDays
+      
+    if (rawRetentionDays !== retentionDays) {
+      console.warn(`[CRON] Invalid SYNC_RETENTION_DAYS value: ${process.env.SYNC_RETENTION_DAYS}, using ${retentionDays}`)
+    }
+    
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays)
     const cutoffDateStr = cutoffDate.toISOString()
@@ -110,18 +134,26 @@ export async function GET(request: NextRequest) {
 
     // 5. Clean up orphaned queue items
     try {
-      // Delete queue items where the job no longer exists
-      const { error: orphanError } = await supabase.rpc('text', {
-        query: `
-          DELETE FROM sync_queue
-          WHERE job_id NOT IN (SELECT id FROM sync_jobs)
-        `
-      })
-
-      if (orphanError) {
-        throw orphanError
+      // First get orphaned queue items
+      const { data: orphanedItems } = await supabase
+        .from('sync_queue')
+        .select('job_id')
+        .filter('job_id', 'not.in', '(SELECT id FROM sync_jobs)')
+      
+      if (orphanedItems && orphanedItems.length > 0) {
+        // Delete orphaned items
+        const { error: deleteError } = await supabase
+          .from('sync_queue')
+          .delete()
+          .in('job_id', orphanedItems.map(item => item.job_id))
+        
+        if (deleteError) {
+          throw deleteError
+        }
+        console.log(`[CRON] Cleaned up ${orphanedItems.length} orphaned queue items`)
+      } else {
+        console.log('[CRON] No orphaned queue items found')
       }
-      console.log('[CRON] Cleaned up orphaned queue items')
     } catch (error) {
       console.error('[CRON] Error cleaning orphaned queue items:', error)
       results.errors.push(`Failed to clean orphaned queue items: ${error}`)

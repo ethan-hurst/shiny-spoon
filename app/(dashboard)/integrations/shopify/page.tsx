@@ -20,17 +20,26 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
   const supabase = await createClient()
   
   // Get user and validate
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError) {
+    console.error('Authentication error:', authError)
+    redirect('/login')
+  }
   if (!user) {
     redirect('/login')
   }
 
   // Get user's organization
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('organization_id, role')
     .eq('user_id', user.id)
     .single()
+
+  if (profileError) {
+    console.error('Error fetching user profile:', profileError)
+    redirect('/login')
+  }
 
   if (!profile) {
     redirect('/onboarding')
@@ -39,7 +48,7 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
   // Check if integration exists
   let integration = null
   if (searchParams.id) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('integrations')
       .select(`
         *,
@@ -49,10 +58,14 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
       .eq('organization_id', profile.organization_id)
       .single()
 
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      console.error('Error fetching integration:', error)
+    }
+    
     integration = data
   } else {
     // Try to find existing Shopify integration
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('integrations')
       .select(`
         *,
@@ -61,6 +74,10 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
       .eq('platform', 'shopify')
       .eq('organization_id', profile.organization_id)
       .single()
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      console.error('Error fetching integration:', error)
+    }
 
     integration = data
   }
@@ -126,8 +143,16 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
                 Add the following webhook URL to your app:
               </p>
               <code className="block p-3 bg-muted rounded text-xs">
-                {process.env.NEXT_PUBLIC_URL}/api/webhooks/shopify
+                {process.env.NEXT_PUBLIC_URL 
+                  ? `${process.env.NEXT_PUBLIC_URL}/api/webhooks/shopify`
+                  : '[NEXT_PUBLIC_URL not configured]/api/webhooks/shopify'
+                }
               </code>
+              {!process.env.NEXT_PUBLIC_URL && (
+                <p className="text-sm text-destructive mt-2">
+                  Warning: NEXT_PUBLIC_URL environment variable is not set. Please configure it in your deployment settings.
+                </p>
+              )}
             </div>
 
             <div className="space-y-3">

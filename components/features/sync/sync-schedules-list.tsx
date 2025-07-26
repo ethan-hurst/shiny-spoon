@@ -62,7 +62,10 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
     return <Calendar className="h-4 w-4" />
   }
 
-  const handleToggleEnabled = async (schedule: any, enabled: boolean) => {
+  const handleToggleEnabled = async (
+    schedule: SyncSchedule & { integrations: { id: string; name: string; platform: string } }, 
+    enabled: boolean
+  ) => {
     setProcessingSchedules(prev => new Set(prev).add(schedule.id))
     
     try {
@@ -70,9 +73,12 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
       formData.append('integration_id', schedule.integration_id)
       formData.append('enabled', enabled.toString())
       formData.append('frequency', schedule.frequency)
-      schedule.entity_types.forEach((type: string) => {
-        formData.append('entity_types', type)
-      })
+      // Add array check for entity_types (fix-35)
+      if (Array.isArray(schedule.entity_types)) {
+        schedule.entity_types.forEach((type: string) => {
+          formData.append('entity_types', type)
+        })
+      }
       
       if (schedule.active_hours) {
         formData.append('active_hours_enabled', 'true')
@@ -168,11 +174,15 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {schedule.entity_types.map((type) => (
-                      <Badge key={type} variant="outline" className="text-xs">
-                        {type}
-                      </Badge>
-                    ))}
+                    {Array.isArray(schedule.entity_types) ? (
+                      schedule.entity_types.map((type) => (
+                        <Badge key={type} variant="outline" className="text-xs">
+                          {type}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No entities</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>

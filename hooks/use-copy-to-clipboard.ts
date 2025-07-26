@@ -1,0 +1,43 @@
+// Shared hook for copying text to clipboard with toast notifications
+import { useState, useCallback } from 'react'
+import { useToast } from '@/components/ui/use-toast'
+
+interface UseCopyToClipboardOptions {
+  successMessage?: string
+  errorMessage?: string
+}
+
+export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
+  const [isCopied, setIsCopied] = useState(false)
+  const { toast } = useToast()
+
+  const copyToClipboard = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setIsCopied(true)
+      
+      toast({
+        title: 'Copied!',
+        description: options?.successMessage || 'Text copied to clipboard',
+      })
+      
+      // Reset after 2 seconds
+      setTimeout(() => setIsCopied(false), 2000)
+      
+      return true
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+      
+      toast({
+        title: 'Copy failed',
+        description: options?.errorMessage || 'Failed to copy to clipboard',
+        variant: 'destructive',
+      })
+      
+      setIsCopied(false)
+      return false
+    }
+  }, [toast, options?.successMessage, options?.errorMessage])
+
+  return { copyToClipboard, isCopied }
+}

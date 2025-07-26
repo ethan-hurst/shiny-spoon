@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { ShopifyConfigForm } from './shopify-config-form'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 
 interface ShopifySetupWizardProps {
   organizationId: string
@@ -77,23 +78,10 @@ function IntroStep({ onNext }: StepProps) {
 }
 
 function AppCreationStep({ onNext, onPrev }: StepProps) {
-  const { toast } = useToast()
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast({
-        title: 'Copied to clipboard',
-        description: 'The text has been copied to your clipboard.'
-      })
-    } catch (error) {
-      toast({
-        title: 'Failed to copy',
-        description: 'Could not copy to clipboard. Please copy manually.',
-        variant: 'destructive'
-      })
-    }
-  }
+  const { copyToClipboard } = useCopyToClipboard({
+    successMessage: 'The text has been copied to your clipboard.',
+    errorMessage: 'Could not copy to clipboard. Please copy manually.'
+  })
 
   return (
     <div className="space-y-6">
@@ -251,24 +239,15 @@ function PermissionsStep({ onNext, onPrev }: StepProps) {
 }
 
 function WebhooksStep({ onNext, onPrev }: StepProps) {
-  const { toast } = useToast()
-  const webhookUrl = `${process.env.NEXT_PUBLIC_URL || window.location.origin}/api/webhooks/shopify`
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast({
-        title: 'Copied to clipboard',
-        description: 'The webhook URL has been copied to your clipboard.'
-      })
-    } catch (error) {
-      toast({
-        title: 'Failed to copy',
-        description: 'Could not copy to clipboard. Please copy manually.',
-        variant: 'destructive'
-      })
-    }
-  }
+  const { copyToClipboard } = useCopyToClipboard({
+    successMessage: 'The webhook URL has been copied to your clipboard.',
+    errorMessage: 'Could not copy to clipboard. Please copy manually.'
+  })
+  
+  // Fix webhook URL validation - ensure it's a valid URL
+  const baseUrl = process.env.NEXT_PUBLIC_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+  const webhookUrl = baseUrl ? `${baseUrl}/api/webhooks/shopify` : ''
+  const isValidWebhookUrl = webhookUrl && webhookUrl.startsWith('http')
 
   const webhookTopics = [
     'products/create',
@@ -302,18 +281,28 @@ function WebhooksStep({ onNext, onPrev }: StepProps) {
             </span>
             <div className="space-y-2">
               <p className="text-sm">Set the webhook URL to:</p>
-              <div className="flex items-center gap-2">
-                <code className="px-2 py-1 bg-muted rounded text-xs flex-1 overflow-x-auto">
-                  {webhookUrl}
-                </code>
-                <Button 
-                  size="sm" 
-                  variant="ghost"
-                  onClick={() => copyToClipboard(webhookUrl)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
+              {isValidWebhookUrl ? (
+                <div className="flex items-center gap-2">
+                  <code className="px-2 py-1 bg-muted rounded text-xs flex-1 overflow-x-auto">
+                    {webhookUrl}
+                  </code>
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    onClick={() => copyToClipboard(webhookUrl)}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Configuration Required:</strong> The NEXT_PUBLIC_URL environment variable is not set. 
+                    Please configure it in your deployment settings to enable webhooks.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </li>
 

@@ -432,42 +432,90 @@ export class SyncEngine extends EventEmitter {
   ): Promise<SyncConflict[]> {
     const supabase = await createClient()
     const conflicts: SyncConflict[] = []
+    const failedConflicts: Array<{ conflict: any; error: Error }> = []
     
     for (const conflict of potentialConflicts) {
-      const syncConflict: SyncConflict = {
-        entity_type: entityType,
-        record_id: conflict.record_id,
-        field: conflict.field,
-        source_value: conflict.source_value,
-        target_value: conflict.target_value,
-        detected_at: new Date().toISOString(),
-      }
-      
-      // Apply auto-resolution if enabled
-      if (conflict.auto_resolve) {
-        const strategy = conflict.resolution_strategy || 'newest_wins'
-        const resolvedValue = this.resolveConflict(
-          strategy,
-          conflict.source_value,
-          conflict.target_value
-        )
-        
-        syncConflict.resolution = {
-          strategy: strategy,
-          resolved_value: resolvedValue,
-          resolved_at: new Date().toISOString(),
+      try {
+        // Validate conflict data (fix-51)
+        if (!conflict.record_id || !conflict.field) {
+          console.warn('Invalid conflict data - missing required fields', conflict)
+          continue
         }
+        
+        const syncConflict: SyncConflict = {
+          entity_type: entityType,
+          record_id: conflict.record_id,
+          field: conflict.field,
+          source_value: conflict.source_value,
+          target_value: conflict.target_value,
+          detected_at: new Date().toISOString(),
+        }
+        
+        // Apply auto-resolution if enabled
+        if (conflict.auto_resolve) {
+          try {
+            const strategy = conflict.resolution_strategy || 'newest_wins'
+            const resolvedValue = this.resolveConflict(
+              strategy,
+              conflict.source_value,
+              conflict.target_value,
+              conflict.source_timestamp,
+              conflict.target_timestamp
+            )
+            
+            syncConflict.resolution = {
+              strategy: strategy,
+              resolved_value: resolvedValue,
+              resolved_at: new Date().toISOString(),
+            }
+          } catch (resolutionError) {
+            console.error('Failed to auto-resolve conflict', {
+              conflict: syncConflict,
+              error: resolutionError
+            })
+            // Continue without resolution
+          }
+        }
+        
+        conflicts.push(syncConflict)
+        
+        // Save conflict to database with error handling
+        try {
+          const { error } = await supabase.from('sync_conflicts').insert({
+            sync_job_id: jobId,
+            ...syncConflict,
+          })
+          
+          if (error) {
+            throw error
+          }
+          
+          this.emit('conflict:detected', syncConflict)
+        } catch (dbError) {
+          console.error('Failed to save conflict to database', {
+            conflict: syncConflict,
+            error: dbError
+          })
+          failedConflicts.push({ conflict: syncConflict, error: dbError as Error })
+          // Continue processing other conflicts
+        }
+      } catch (error) {
+        console.error('Error processing conflict', {
+          conflict,
+          error
+        })
+        failedConflicts.push({ conflict, error: error as Error })
       }
-      
-      conflicts.push(syncConflict)
-      
-      // Save conflict to database
-      await supabase.from('sync_conflicts').insert({
-        sync_job_id: jobId,
-        ...syncConflict,
+    }
+    
+    // Log summary if there were failures
+    if (failedConflicts.length > 0) {
+      console.warn(`Failed to process ${failedConflicts.length} conflicts`, {
+        jobId,
+        entityType,
+        failedCount: failedConflicts.length,
+        totalCount: potentialConflicts.length
       })
-      
-      this.emit('conflict:detected', syncConflict)
     }
     
     return conflicts
@@ -479,7 +527,9 @@ export class SyncEngine extends EventEmitter {
   private resolveConflict(
     strategy: ConflictResolutionStrategy,
     sourceValue: any,
-    targetValue: any
+    targetValue: any,
+    sourceTimestamp?: string | Date,
+    targetTimestamp?: string | Date
   ): any {
     switch (strategy) {
       case 'source_wins':
@@ -489,9 +539,27 @@ export class SyncEngine extends EventEmitter {
         return targetValue
         
       case 'newest_wins':
-        // This would need actual timestamp comparison
-        // For now, default to source
-        return sourceValue
+        // Implement proper timestamp comparison (fix-48)
+        if (!sourceTimestamp || !targetTimestamp) {
+          // If timestamps are missing, log warning and default to source
+          this.config.debug_mode && console.warn('Missing timestamps for newest_wins strategy')
+          return sourceValue
+        }
+        
+        const sourceTime = new Date(sourceTimestamp).getTime()
+        const targetTime = new Date(targetTimestamp).getTime()
+        
+        // Handle invalid dates
+        if (isNaN(sourceTime) || isNaN(targetTime)) {
+          this.config.debug_mode && console.warn('Invalid timestamps for comparison', {
+            source: sourceTimestamp,
+            target: targetTimestamp
+          })
+          return sourceValue
+        }
+        
+        // Return the value with the newer timestamp
+        return sourceTime > targetTime ? sourceValue : targetValue
         
       case 'manual':
         // Manual resolution required
@@ -531,6 +599,52 @@ export class SyncEngine extends EventEmitter {
         this.emit('job:cancelled', job)
       }
     }
+  }
+
+  /**
+   * Evict a connector from cache (fix-49)
+   */
+  async evictConnector(integrationId: string): Promise<void> {
+    // Find all cache keys for this integration
+    const keysToEvict: string[] = []
+    for (const key of this.connectorCache.keys()) {
+      if (key.includes(integrationId)) {
+        keysToEvict.push(key)
+      }
+    }
+    
+    // Disconnect and remove connectors
+    for (const key of keysToEvict) {
+      const connector = this.connectorCache.get(key)
+      if (connector) {
+        try {
+          await connector.disconnect()
+        } catch (error) {
+          console.error(`Error disconnecting connector ${key}:`, error)
+        }
+        this.connectorCache.delete(key)
+      }
+    }
+    
+    this.emit('connector:evicted', { integrationId, evictedKeys: keysToEvict })
+  }
+
+  /**
+   * Evict all connectors from cache
+   */
+  async evictAllConnectors(): Promise<void> {
+    const connectors = Array.from(this.connectorCache.entries())
+    
+    for (const [key, connector] of connectors) {
+      try {
+        await connector.disconnect()
+      } catch (error) {
+        console.error(`Error disconnecting connector ${key}:`, error)
+      }
+    }
+    
+    this.connectorCache.clear()
+    this.emit('connector:evicted-all', { count: connectors.length })
   }
 
   /**
@@ -615,18 +729,27 @@ class PerformanceTracker {
   private jobs: Map<string, {
     startTime: number
     apiCalls: number
+    apiCallDurations: number[]
     dbQueries: number
+    dbQueryDurations: number[]
     bytesReceived: number
     bytesSent: number
+    startMemory: number
+    startCpuUsage?: NodeJS.CpuUsage
   }> = new Map()
 
   startJob(jobId: string): void {
+    const memoryUsage = process.memoryUsage()
     this.jobs.set(jobId, {
       startTime: Date.now(),
       apiCalls: 0,
+      apiCallDurations: [],
       dbQueries: 0,
+      dbQueryDurations: [],
       bytesReceived: 0,
       bytesSent: 0,
+      startMemory: memoryUsage.heapUsed,
+      startCpuUsage: process.cpuUsage ? process.cpuUsage() : undefined
     })
   }
 
@@ -638,21 +761,29 @@ class PerformanceTracker {
 
     const duration = Date.now() - job.startTime
     
-    // Get memory usage
+    // Get memory usage (fix-50: actual memory measurements)
     const memoryUsage = process.memoryUsage()
-    const memoryUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024)
-
-    // CPU usage would require more complex tracking
-    // For now, we'll use a placeholder
-    const cpuUsagePercent = 0
+    const memoryUsedMB = Math.round((memoryUsage.heapUsed - job.startMemory) / 1024 / 1024)
+    
+    // Calculate actual CPU usage if available
+    let cpuUsagePercent = 0
+    if (job.startCpuUsage && process.cpuUsage) {
+      const endCpuUsage = process.cpuUsage(job.startCpuUsage)
+      const totalCpuTime = (endCpuUsage.user + endCpuUsage.system) / 1000 // Convert to ms
+      cpuUsagePercent = Math.round((totalCpuTime / duration) * 100)
+    }
+    
+    // Calculate actual durations
+    const apiCallDuration = job.apiCallDurations.reduce((sum, d) => sum + d, 0)
+    const dbQueryDuration = job.dbQueryDurations.reduce((sum, d) => sum + d, 0)
 
     const metrics: PerformanceMetrics = {
       api_calls: job.apiCalls,
-      api_call_duration_ms: Math.round(duration * 0.7), // Estimate
+      api_call_duration_ms: Math.round(apiCallDuration),
       db_queries: job.dbQueries,
-      db_query_duration_ms: Math.round(duration * 0.2), // Estimate
-      memory_used_mb: memoryUsedMB,
-      cpu_usage_percent: cpuUsagePercent,
+      db_query_duration_ms: Math.round(dbQueryDuration),
+      memory_used_mb: Math.max(0, memoryUsedMB), // Ensure non-negative
+      cpu_usage_percent: Math.min(100, cpuUsagePercent), // Cap at 100%
       network_bytes_sent: job.bytesSent,
       network_bytes_received: job.bytesReceived,
     }
@@ -662,17 +793,23 @@ class PerformanceTracker {
     return metrics
   }
 
-  trackApiCall(jobId: string): void {
+  trackApiCall(jobId: string, duration?: number): void {
     const job = this.jobs.get(jobId)
     if (job) {
       job.apiCalls++
+      if (duration !== undefined) {
+        job.apiCallDurations.push(duration)
+      }
     }
   }
 
-  trackDbQuery(jobId: string): void {
+  trackDbQuery(jobId: string, duration?: number): void {
     const job = this.jobs.get(jobId)
     if (job) {
       job.dbQueries++
+      if (duration !== undefined) {
+        job.dbQueryDurations.push(duration)
+      }
     }
   }
 
@@ -681,6 +818,37 @@ class PerformanceTracker {
     if (job) {
       job.bytesSent += sent
       job.bytesReceived += received
+    }
+  }
+  
+  // Helper to measure async operation duration
+  async measureOperation<T>(
+    jobId: string,
+    type: 'api' | 'db',
+    operation: () => Promise<T>
+  ): Promise<T> {
+    const startTime = Date.now()
+    try {
+      const result = await operation()
+      const duration = Date.now() - startTime
+      
+      if (type === 'api') {
+        this.trackApiCall(jobId, duration)
+      } else {
+        this.trackDbQuery(jobId, duration)
+      }
+      
+      return result
+    } catch (error) {
+      const duration = Date.now() - startTime
+      
+      if (type === 'api') {
+        this.trackApiCall(jobId, duration)
+      } else {
+        this.trackDbQuery(jobId, duration)
+      }
+      
+      throw error
     }
   }
 }

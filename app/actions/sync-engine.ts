@@ -46,6 +46,20 @@ const resolveConflictSchema = z.object({
 })
 
 /**
+ * Helper function to execute code with a sync engine instance
+ */
+async function withSyncEngine<T>(
+  callback: (engine: SyncEngine) => Promise<T>
+): Promise<T> {
+  const syncEngine = new SyncEngine()
+  try {
+    return await callback(syncEngine)
+  } finally {
+    await syncEngine.shutdown()
+  }
+}
+
+/**
  * Create a manual sync job
  */
 export async function createManualSyncJob(formData: FormData) {
@@ -99,9 +113,8 @@ export async function createManualSyncJob(formData: FormData) {
     batch_size: 100,
   }
 
-  // Initialize sync engine and create job
-  const syncEngine = new SyncEngine()
-  try {
+  // Use the helper function
+  return withSyncEngine(async (syncEngine) => {
     const job = await syncEngine.createSyncJob(jobConfig)
     
     // Revalidate sync dashboard
@@ -109,9 +122,7 @@ export async function createManualSyncJob(formData: FormData) {
     revalidatePath(`/integrations/${parsed.integration_id}`)
     
     return { success: true, job }
-  } finally {
-    await syncEngine.shutdown()
-  }
+  })
 }
 
 /**
@@ -153,17 +164,14 @@ export async function cancelSyncJob(formData: FormData) {
   }
 
   // Cancel the job
-  const syncEngine = new SyncEngine()
-  try {
+  return withSyncEngine(async (syncEngine) => {
     await syncEngine.cancelJob(jobId)
     
     // Revalidate pages
     revalidatePath('/sync')
     
     return { success: true }
-  } finally {
-    await syncEngine.shutdown()
-  }
+  })
 }
 
 /**
@@ -205,20 +213,22 @@ export async function retrySyncJob(formData: FormData) {
   }
 
   // Create retry job
-  const syncEngine = new SyncEngine()
-  const jobManager = new SyncJobManager(syncEngine)
-  
-  try {
-    const retryJob = await jobManager.retryJob(originalJobId)
+  return withSyncEngine(async (syncEngine) => {
+    const jobManager = new SyncJobManager(syncEngine)
     
-    // Revalidate pages
-    revalidatePath('/sync')
-    revalidatePath(`/integrations/${originalJob.integration_id}`)
-    
-    return { success: true, job: retryJob }
-  } finally {
-    await syncEngine.shutdown()
-  }
+    try {
+      const retryJob = await jobManager.retryJob(originalJobId)
+      
+      // Revalidate pages
+      revalidatePath('/sync')
+      revalidatePath(`/integrations/${originalJob.integration_id}`)
+      
+      return { success: true, job: retryJob }
+    } finally {
+      // JobManager doesn't have a cleanup method in current implementation
+      // If it had one, we would call it here: await jobManager.stop()
+    }
+  })
 }
 
 /**
@@ -361,10 +371,19 @@ export async function resolveSyncConflict(formData: FormData) {
   }
 
   // Parse and validate input
+  const resolvedValueStr = formData.get('resolved_value') as string
+  let resolvedValue: any
+  
+  try {
+    resolvedValue = JSON.parse(resolvedValueStr)
+  } catch (error) {
+    throw new Error('Invalid resolved value format')
+  }
+  
   const rawData = {
     conflict_id: formData.get('conflict_id'),
     resolution_strategy: formData.get('resolution_strategy'),
-    resolved_value: JSON.parse(formData.get('resolved_value') as string),
+    resolved_value: resolvedValue,
   }
 
   const parsed = resolveConflictSchema.parse(rawData)
@@ -464,35 +483,39 @@ export async function getSyncStatistics(
     throw new Error(`Failed to get statistics: ${error.message}`)
   }
 
-  // Get entity-specific breakdown
+  // Get entity-specific breakdown with aggregated query
   const entityTypes: SyncEntityType[] = ['products', 'inventory', 'pricing', 'customers', 'orders']
   const byEntityType: Record<SyncEntityType, { count: number; records: number; errors: number }> = {} as any
 
+  // Initialize all entity types
   for (const entityType of entityTypes) {
-    const { data: entityStats } = await supabase
-      .from('sync_jobs')
-      .select('result')
-      .eq('integration_id', integrationId)
-      .eq('status', 'completed')
-      .contains('config', { entity_types: [entityType] })
-      .gte('created_at', getDateForPeriod(period))
+    byEntityType[entityType] = { count: 0, records: 0, errors: 0 }
+  }
 
-    const entityResult = {
-      count: entityStats?.length || 0,
-      records: 0,
-      errors: 0,
-    }
+  // Get all completed jobs for the period
+  const { data: allJobs } = await supabase
+    .from('sync_jobs')
+    .select('config, result')
+    .eq('integration_id', integrationId)
+    .eq('status', 'completed')
+    .gte('created_at', getDateForPeriod(period))
 
-    if (entityStats) {
-      for (const job of entityStats) {
-        if (job.result?.entity_results?.[entityType]) {
-          entityResult.records += job.result.entity_results[entityType].processed || 0
-          entityResult.errors += job.result.entity_results[entityType].errors?.length || 0
+  // Process jobs to aggregate by entity type
+  if (allJobs) {
+    for (const job of allJobs) {
+      const jobEntityTypes = job.config?.entity_types || []
+      
+      for (const entityType of jobEntityTypes) {
+        if (entityTypes.includes(entityType)) {
+          byEntityType[entityType].count += 1
+          
+          if (job.result?.entity_results?.[entityType]) {
+            byEntityType[entityType].records += job.result.entity_results[entityType].processed || 0
+            byEntityType[entityType].errors += job.result.entity_results[entityType].errors?.length || 0
+          }
         }
       }
     }
-
-    byEntityType[entityType] = entityResult
   }
 
   return {

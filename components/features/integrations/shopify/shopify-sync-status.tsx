@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/use-toast'
 import { 
   Package, 
   Warehouse, 
@@ -64,10 +65,43 @@ const entityConfig = {
 
 export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
   const supabase = createBrowserClient()
+  const { toast } = useToast()
   const [syncStatuses, setSyncStatuses] = useState<SyncStatus[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    async function fetchSyncStatus() {
+      try {
+        const { data, error } = await supabase
+          .from('shopify_sync_state')
+          .select('*')
+          .eq('integration_id', integrationId)
+          .order('entity_type')
+
+        if (error) {
+          console.error('Failed to fetch sync status:', error)
+          // Add user notification for fetch errors (fix-25)
+          toast({
+            title: 'Sync status error',
+            description: 'Failed to load sync status. Please refresh the page.',
+            variant: 'destructive'
+          })
+          return
+        }
+
+        setSyncStatuses(data || [])
+      } catch (error) {
+        console.error('Failed to fetch sync status:', error)
+        toast({
+          title: 'Connection error',
+          description: 'Unable to connect to sync service. Please check your connection.',
+          variant: 'destructive'
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     fetchSyncStatus()
 
     // Subscribe to real-time updates
@@ -94,25 +128,7 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
       supabase.removeChannel(channel)
       clearInterval(interval)
     }
-  }, [integrationId])
-
-  async function fetchSyncStatus() {
-    try {
-      const { data, error } = await supabase
-        .from('shopify_sync_state')
-        .select('*')
-        .eq('integration_id', integrationId)
-        .order('entity_type')
-
-      if (error) throw error
-
-      setSyncStatuses(data || [])
-    } catch (error) {
-      console.error('Failed to fetch sync status:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  }, [integrationId, supabase, toast])
 
   function getStatusIcon(status: string) {
     switch (status) {
@@ -212,7 +228,7 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
                 )}
 
                 {status.sync_status === 'in_progress' && (
-                  <Progress className="h-1.5" value={75} />
+                  <Progress className="h-1.5" value={status.records_synced > 0 ? Math.min(90, (status.records_synced / (status.records_synced + 100)) * 100) : 25} />
                 )}
 
                 {status.error_message && (

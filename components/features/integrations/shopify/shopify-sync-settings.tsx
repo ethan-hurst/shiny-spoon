@@ -44,35 +44,19 @@ export function ShopifySyncSettings({
     setIsLoading(true)
 
     try {
-      // Update integration config
-      const { error: integrationError } = await supabase
-        .from('integrations')
-        .update({
-          config: {
-            ...syncSettings,
-            sync_frequency: settings.sync_frequency,
-            batch_size: settings.batch_size
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', integrationId)
+      // Use RPC call to handle transaction on the database side
+      const { error } = await supabase.rpc('update_shopify_sync_settings', {
+        p_integration_id: integrationId,
+        p_sync_frequency: settings.sync_frequency,
+        p_batch_size: settings.batch_size,
+        p_sync_products: settings.sync_products,
+        p_sync_inventory: settings.sync_inventory,
+        p_sync_orders: settings.sync_orders,
+        p_sync_customers: settings.sync_customers,
+        p_b2b_catalog_enabled: settings.b2b_catalog_enabled
+      })
 
-      if (integrationError) throw integrationError
-
-      // Update Shopify config
-      const { error: configError } = await supabase
-        .from('shopify_config')
-        .update({
-          sync_products: settings.sync_products,
-          sync_inventory: settings.sync_inventory,
-          sync_orders: settings.sync_orders,
-          sync_customers: settings.sync_customers,
-          b2b_catalog_enabled: settings.b2b_catalog_enabled,
-          updated_at: new Date().toISOString()
-        })
-        .eq('integration_id', integrationId)
-
-      if (configError) throw configError
+      if (error) throw error
 
       toast({
         title: 'Settings saved',
@@ -82,11 +66,59 @@ export function ShopifySyncSettings({
       router.refresh()
     } catch (error) {
       console.error('Failed to save settings:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to save settings. Please try again.',
-        variant: 'destructive'
-      })
+      
+      // If RPC doesn't exist, fall back to individual updates
+      if (error && error.code === 'PGRST202') {
+        try {
+          // Update both tables separately (original approach)
+          const { error: integrationError } = await supabase
+            .from('integrations')
+            .update({
+              config: {
+                ...syncSettings,
+                sync_frequency: settings.sync_frequency,
+                batch_size: settings.batch_size
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', integrationId)
+
+          if (integrationError) throw integrationError
+
+          const { error: configError } = await supabase
+            .from('shopify_config')
+            .update({
+              sync_products: settings.sync_products,
+              sync_inventory: settings.sync_inventory,
+              sync_orders: settings.sync_orders,
+              sync_customers: settings.sync_customers,
+              b2b_catalog_enabled: settings.b2b_catalog_enabled,
+              updated_at: new Date().toISOString()
+            })
+            .eq('integration_id', integrationId)
+
+          if (configError) throw configError
+
+          toast({
+            title: 'Settings saved',
+            description: 'Your sync settings have been updated successfully.'
+          })
+
+          router.refresh()
+        } catch (fallbackError) {
+          toast({
+            title: 'Error',
+            description: 'Failed to save settings. Please try again.',
+            variant: 'destructive'
+          })
+        }
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to save settings. Please try again.',
+          variant: 'destructive'
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -96,6 +128,10 @@ export function ShopifySyncSettings({
     setIsSyncing(true)
 
     try {
+      // Add timeout to fetch
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+      
       const response = await fetch('/api/integrations/shopify/sync', {
         method: 'POST',
         headers: {
@@ -105,8 +141,11 @@ export function ShopifySyncSettings({
           integrationId,
           entityType,
           force: true
-        })
+        }),
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
 
       const result = await response.json()
 
@@ -119,9 +158,19 @@ export function ShopifySyncSettings({
         throw new Error(result.error || 'Sync failed')
       }
     } catch (error) {
+      let errorMessage = 'Failed to start sync'
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - please try again'
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
       toast({
         title: 'Sync failed',
-        description: error instanceof Error ? error.message : 'Failed to start sync',
+        description: errorMessage,
         variant: 'destructive'
       })
     } finally {

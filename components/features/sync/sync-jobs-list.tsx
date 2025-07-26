@@ -69,16 +69,22 @@ export function SyncJobsList({ jobs }: SyncJobsListProps) {
   }
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+    // Fix type casting - properly type the status parameter
+    type JobStatusType = 'completed' | 'failed' | 'running' | 'pending' | 'cancelled'
+    const statusTyped = status as JobStatusType
+    
+    const variantMap = {
       completed: 'default',
       failed: 'destructive',
       running: 'secondary',
       pending: 'outline',
       cancelled: 'outline',
-    }
+    } as const
+    
+    const variant = variantMap[statusTyped] || 'outline'
 
     return (
-      <Badge variant={variants[status] || 'outline'} className="gap-1">
+      <Badge variant={variant} className="gap-1">
         {getStatusIcon(status)}
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
@@ -194,7 +200,7 @@ export function SyncJobsList({ jobs }: SyncJobsListProps) {
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    {(job.config as any).entity_types?.join(', ') || '-'}
+                    {job.config?.entity_types?.join(', ') || '-'}
                   </div>
                 </TableCell>
                 <TableCell>

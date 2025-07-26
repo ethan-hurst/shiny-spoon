@@ -80,11 +80,17 @@ export function SyncStatistics({ integrations }: SyncStatisticsProps) {
             countWithDuration += stats.total_syncs
           }
 
-          // Aggregate by entity type
+          // Aggregate by entity type with runtime check (fix-39)
           for (const [entityType, entityStats] of Object.entries(stats.by_entity_type)) {
-            allStats.by_entity_type[entityType as keyof typeof allStats.by_entity_type].count += entityStats.count
-            allStats.by_entity_type[entityType as keyof typeof allStats.by_entity_type].records += entityStats.records
-            allStats.by_entity_type[entityType as keyof typeof allStats.by_entity_type].errors += entityStats.errors
+            // Runtime check for valid entity type keys
+            if (entityType in allStats.by_entity_type) {
+              const typedEntityType = entityType as keyof typeof allStats.by_entity_type
+              allStats.by_entity_type[typedEntityType].count += entityStats.count
+              allStats.by_entity_type[typedEntityType].records += entityStats.records
+              allStats.by_entity_type[typedEntityType].errors += entityStats.errors
+            } else {
+              console.warn(`Unknown entity type received: ${entityType}`)
+            }
           }
         }
 

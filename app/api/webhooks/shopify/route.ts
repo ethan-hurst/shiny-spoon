@@ -14,6 +14,62 @@ import {
 export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
+// Simple in-memory rate limiter for Edge runtime
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
+const RATE_LIMIT_MAX = 100 // 100 requests per minute per shop
+const MAX_RATE_LIMIT_ENTRIES = 1000 // Prevent memory leak
+
+// Cleanup old entries periodically (fix-40)
+function cleanupRateLimits() {
+  const now = Date.now()
+  const entriesToDelete: string[] = []
+  
+  for (const [key, limit] of rateLimitMap) {
+    if (now > limit.resetTime) {
+      entriesToDelete.push(key)
+    }
+  }
+  
+  for (const key of entriesToDelete) {
+    rateLimitMap.delete(key)
+  }
+  
+  // If still too many entries, remove oldest ones
+  if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
+    const entries = Array.from(rateLimitMap.entries())
+      .sort((a, b) => a[1].resetTime - b[1].resetTime)
+    
+    const toRemove = entries.slice(0, entries.length - MAX_RATE_LIMIT_ENTRIES)
+    for (const [key] of toRemove) {
+      rateLimitMap.delete(key)
+    }
+  }
+}
+
+function checkRateLimit(shopDomain: string): boolean {
+  const now = Date.now()
+  const key = `shopify-webhook:${shopDomain}`
+  const limit = rateLimitMap.get(key)
+
+  // Cleanup periodically (on 1% of requests)
+  if (Math.random() < 0.01) {
+    cleanupRateLimits()
+  }
+
+  if (!limit || now > limit.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW })
+    return true
+  }
+
+  if (limit.count >= RATE_LIMIT_MAX) {
+    return false
+  }
+
+  limit.count++
+  return true
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const headers = request.headers
@@ -35,6 +91,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'Missing required headers' },
       { status: 400 }
+    )
+  }
+
+  // Check rate limit
+  if (!checkRateLimit(shopDomain)) {
+    console.warn(`Rate limit exceeded for shop: ${shopDomain}`)
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429 }
     )
   }
 
@@ -187,19 +252,41 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Return 200 for non-recoverable errors to prevent Shopify retry storm
-      // Only return 500 for temporary/network errors that should be retried
-      const isRecoverable = processError instanceof Error && 
-        (processError.message.includes('network') || 
-         processError.message.includes('timeout') ||
-         processError.message.includes('database'))
-
-      if (isRecoverable) {
+      // Refactored error recovery logic
+      const isRecoverableError = (error: unknown): boolean => {
+        if (!(error instanceof Error)) return false
+        
+        const recoverablePatterns = [
+          'network',
+          'timeout', 
+          'ECONNREFUSED',
+          'ETIMEDOUT',
+          'database connection',
+          'transaction',
+          'deadlock'
+        ]
+        
+        const errorMessage = error.message.toLowerCase()
+        return recoverablePatterns.some(pattern => errorMessage.includes(pattern))
+      }
+      
+      if (isRecoverableError(processError)) {
         return NextResponse.json(
           { error: 'Internal server error' },
           { status: 500 }
         )
       }
+
+      // For non-recoverable errors, store for manual processing
+      await supabase.from('webhook_queue').insert({
+        integration_id: integration.id,
+        platform: 'shopify',
+        topic,
+        payload: parsedData,
+        error_message: processError instanceof Error ? processError.message : 'Unknown error',
+        retry_count: 0,
+        status: 'failed'
+      })
 
       return NextResponse.json(
         { success: true, warning: 'Webhook stored for later processing' },

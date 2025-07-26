@@ -15,7 +15,8 @@ export async function GET(
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+      console.error('[CRON] Missing CRON_SECRET or invalid authorization')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -88,8 +89,9 @@ export async function GET(
 
     const results = []
 
-    // Process each schedule
-    for (const schedule of schedules) {
+    try {
+      // Process each schedule
+      for (const schedule of schedules) {
       try {
         // Skip if integration is not available
         if (!schedule.integrations) {
@@ -168,9 +170,14 @@ export async function GET(
         })
       }
     }
-
-    // Clean up
-    await syncEngine.shutdown()
+    } finally {
+      // Clean up - ensure this always runs
+      try {
+        await syncEngine.shutdown()
+      } catch (shutdownError) {
+        console.error('[CRON] Error during sync engine shutdown:', shutdownError)
+      }
+    }
 
     console.log(`[CRON] Completed ${frequency} sync job processing`)
 

@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
+    if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
+      console.error('[CRON] Missing CRON_SECRET or invalid authorization')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -163,11 +164,20 @@ async function checkIntegrationHealth(
     p_period: 'day',
   })
 
-  // Get queue depth
+  // Get queue depth - first get job IDs for this integration
+  const { data: jobIds } = await supabase
+    .from('sync_jobs')
+    .select('id')
+    .eq('integration_id', integrationId)
+    .in('status', ['pending', 'running'])
+  
+  const jobIdList = jobIds?.map(job => job.id) || []
+  
+  // Get queue depth for these jobs
   const { count: queueDepth } = await supabase
     .from('sync_queue')
     .select('id', { count: 'exact', head: true })
-    .eq('job_id', supabase.from('sync_jobs').select('id').eq('integration_id', integrationId))
+    .in('job_id', jobIdList.length > 0 ? jobIdList : ['00000000-0000-0000-0000-000000000000'])
 
   // Get oldest pending job
   const { data: oldestPendingJob } = await supabase
@@ -323,19 +333,33 @@ async function createHealthNotification(
       return
     }
 
-    // Create notification
-    await supabase.from('sync_notifications').insert({
+    // Get admin users for this organization
+    const { data: adminUsers } = await supabase
+      .from('user_profiles')
+      .select('user_id, users!inner(email)')
+      .eq('organization_id', organizationId)
+      .eq('role', 'admin')
+    
+    if (!adminUsers || adminUsers.length === 0) {
+      console.warn(`[CRON] No admin users found for organization ${organizationId}`)
+      return
+    }
+    
+    // Create notification for each admin
+    const notifications = adminUsers.map(admin => ({
       organization_id: organizationId,
       event_type: 'performance_degradation',
       channel: 'email',
-      recipient: 'admin', // This would be resolved to actual email
+      recipient: admin.users.email,
       payload: {
         integration_id: integrationId,
         health_status: healthStatus,
         issues: healthStatus.issues,
         metrics: healthStatus.metrics,
       },
-    })
+    }))
+    
+    await supabase.from('sync_notifications').insert(notifications)
 
   } catch (error) {
     console.error('[CRON] Error creating health notification:', error)

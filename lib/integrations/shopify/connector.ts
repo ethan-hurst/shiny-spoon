@@ -73,9 +73,22 @@ export class ShopifyConnector extends BaseConnector {
     // Decrypt credentials if encrypted
     if (credentials.encrypted && process.env.ENCRYPTION_KEY) {
       try {
-        const decipher = crypto.createDecipher('aes-256-gcm', process.env.ENCRYPTION_KEY)
+        // Extract IV and encrypted data
+        const encryptedData = Buffer.from(credentials.data, 'base64')
+        const iv = encryptedData.subarray(0, 16)
+        const authTag = encryptedData.subarray(16, 32)
+        const ciphertext = encryptedData.subarray(32)
+        
+        // Create key from ENCRYPTION_KEY
+        const key = crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32)
+        
+        // Create decipher with IV
+        const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
+        decipher.setAuthTag(authTag)
+        
+        // Decrypt
         const decrypted = JSON.parse(
-          decipher.update(credentials.data, 'base64', 'utf8') + decipher.final('utf8')
+          decipher.update(ciphertext, undefined, 'utf8') + decipher.final('utf8')
         )
         return {
           access_token: decrypted.access_token,
@@ -503,11 +516,28 @@ export class ShopifyConnector extends BaseConnector {
     try {
       const settings = this.config.settings as ShopifyIntegrationConfig
       const locationMappings = settings.location_mappings || {}
-      const warehouseId = locationMappings[inventory.location_id]
+      
+      // Extract location ID from webhook payload (fix-44)
+      // Inventory webhooks may have location_id at different paths
+      const locationId = inventory.location_id || 
+                        inventory.inventory_level?.location_id ||
+                        (inventory.admin_graphql_api_id?.includes('Location/') 
+                          ? this.extractIdFromGid(inventory.admin_graphql_api_id)
+                          : null)
+      
+      if (!locationId) {
+        this.logger.error('No location ID found in inventory webhook', {
+          webhookId,
+          inventoryKeys: Object.keys(inventory)
+        })
+        throw new Error('Missing location ID in inventory webhook')
+      }
+      
+      const warehouseId = locationMappings[locationId]
 
       if (!warehouseId) {
         this.logger.warn('No warehouse mapping for location', {
-          locationId: inventory.location_id
+          locationId: locationId
         })
         return
       }
@@ -589,13 +619,29 @@ export class ShopifyConnector extends BaseConnector {
 
   private async updateSyncState(entityType: string, updates: Record<string, any>): Promise<void> {
     const supabase = await createClient()
-    await supabase
+    
+    // Add cursor to sync state update (fix-42)
+    const stateUpdate = {
+      integration_id: this.config.integrationId,
+      entity_type: entityType,
+      last_sync_at: new Date().toISOString(),
+      sync_version: updates.sync_version || 0,
+      ...updates
+    }
+    
+    // Include cursor if provided
+    if ('cursor' in updates || 'last_cursor' in updates) {
+      stateUpdate.last_cursor = updates.cursor || updates.last_cursor
+    }
+    
+    const { error } = await supabase
       .from('shopify_sync_state')
-      .upsert({
-        integration_id: this.config.integrationId,
-        entity_type: entityType,
-        ...updates
-      })
+      .upsert(stateUpdate)
+      
+    if (error) {
+      this.logger.error(`Failed to update sync state for ${entityType}`, error)
+      throw new Error(`Failed to update sync state: ${error.message}`)
+    }
   }
 
   private async saveProduct(product: any): Promise<void> {
