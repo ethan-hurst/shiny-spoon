@@ -48,12 +48,14 @@ export class NetSuiteApiClient {
     } = {}
   ): Promise<NetSuiteSuiteQLResponse<T>> {
     let rateLimitToken = 0
+    let rateLimiterAcquired = false
     
     try {
       // Acquire rate limit token
       if (this.rateLimiter) {
         rateLimitToken = 2 // SuiteQL has higher weight
         await this.rateLimiter.acquire(rateLimitToken)
+        rateLimiterAcquired = true
       }
 
       const token = await this.auth.getValidAccessToken()
@@ -109,8 +111,8 @@ export class NetSuiteApiClient {
         links: validated.links,
       }
     } finally {
-      // Always release rate limit token
-      if (this.rateLimiter && rateLimitToken > 0) {
+      // Always release rate limit token if acquired
+      if (this.rateLimiter && rateLimiterAcquired && rateLimitToken > 0) {
         this.rateLimiter.release(rateLimitToken)
       }
     }
@@ -120,9 +122,12 @@ export class NetSuiteApiClient {
    * Get a record by type and ID
    */
   async getRecord(recordType: string, recordId: string): Promise<any> {
+    let rateLimiterAcquired = false
+    
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
+        rateLimiterAcquired = true
       }
 
       const token = await this.auth.getValidAccessToken()
@@ -135,8 +140,9 @@ export class NetSuiteApiClient {
         },
       })
 
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
+        rateLimiterAcquired = false
       }
 
       if (!response.ok) {
@@ -145,7 +151,7 @@ export class NetSuiteApiClient {
 
       return await response.json()
     } catch (error) {
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
       }
       throw error
@@ -156,9 +162,12 @@ export class NetSuiteApiClient {
    * Create a new record
    */
   async createRecord(recordType: string, data: any): Promise<any> {
+    let rateLimiterAcquired = false
+    
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
+        rateLimiterAcquired = true
       }
 
       const token = await this.auth.getValidAccessToken()
@@ -174,8 +183,9 @@ export class NetSuiteApiClient {
         body: JSON.stringify(data),
       })
 
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
+        rateLimiterAcquired = false
       }
 
       if (!response.ok) {
@@ -184,7 +194,7 @@ export class NetSuiteApiClient {
 
       return await response.json()
     } catch (error) {
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
       }
       throw error
@@ -195,9 +205,12 @@ export class NetSuiteApiClient {
    * Update a record
    */
   async updateRecord(recordType: string, recordId: string, data: any): Promise<any> {
+    let rateLimiterAcquired = false
+    
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
+        rateLimiterAcquired = true
       }
 
       const token = await this.auth.getValidAccessToken()
@@ -213,8 +226,9 @@ export class NetSuiteApiClient {
         body: JSON.stringify(data),
       })
 
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
+        rateLimiterAcquired = false
       }
 
       if (!response.ok) {
@@ -223,7 +237,7 @@ export class NetSuiteApiClient {
 
       return await response.json()
     } catch (error) {
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
       }
       throw error
@@ -234,9 +248,12 @@ export class NetSuiteApiClient {
    * Delete a record
    */
   async deleteRecord(recordType: string, recordId: string): Promise<void> {
+    let rateLimiterAcquired = false
+    
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
+        rateLimiterAcquired = true
       }
 
       const token = await this.auth.getValidAccessToken()
@@ -250,15 +267,16 @@ export class NetSuiteApiClient {
         },
       })
 
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
+        rateLimiterAcquired = false
       }
 
       if (!response.ok) {
         await this.handleApiError(response)
       }
     } catch (error) {
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
       }
       throw error
@@ -286,9 +304,12 @@ export class NetSuiteApiClient {
    * Get metadata for a record type
    */
   async getRecordMetadata(recordType: string): Promise<any> {
+    let rateLimiterAcquired = false
+    
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
+        rateLimiterAcquired = true
       }
 
       const token = await this.auth.getValidAccessToken()
@@ -301,8 +322,9 @@ export class NetSuiteApiClient {
         },
       })
 
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
+        rateLimiterAcquired = false
       }
 
       if (!response.ok) {
@@ -311,7 +333,7 @@ export class NetSuiteApiClient {
 
       return await response.json()
     } catch (error) {
-      if (this.rateLimiter) {
+      if (this.rateLimiter && rateLimiterAcquired) {
         this.rateLimiter.release(1)
       }
       throw error
