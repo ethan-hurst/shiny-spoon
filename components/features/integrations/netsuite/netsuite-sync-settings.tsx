@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Form,
   FormControl,
@@ -44,7 +45,7 @@ interface NetSuiteSyncSettingsProps {
 }
 
 export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSettingsProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const queryClient = useQueryClient()
   const [isSyncing, setIsSyncing] = useState(false)
 
   const form = useForm<SyncSettingsFormValues>({
@@ -63,10 +64,9 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
     },
   })
 
-  async function onSubmit(values: SyncSettingsFormValues) {
-    setIsSubmitting(true)
-
-    try {
+  // React Query mutation for updating sync settings
+  const updateSyncSettingsMutation = useMutation({
+    mutationFn: async (values: SyncSettingsFormValues) => {
       const formData = new FormData()
       formData.append('id', integrationId)
       
@@ -89,22 +89,33 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
       
       formData.append('sync_settings', JSON.stringify(syncSettings))
       
-      await updateIntegration(formData)
-      
+      return await updateIntegration(formData)
+    },
+    onSuccess: () => {
       toast({
         title: 'Settings saved',
         description: 'Sync settings have been updated successfully.',
       })
-    } catch (error) {
+      
+      // Invalidate integration cache to refetch updated data
+      queryClient.invalidateQueries({ queryKey: ['integration', integrationId] })
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
+    },
+    onError: (error) => {
       console.error('Failed to save sync settings:', error)
       toast({
         title: 'Save failed',
         description: error instanceof Error ? error.message : 'Failed to save settings',
         variant: 'destructive',
       })
-    } finally {
-      setIsSubmitting(false)
-    }
+    },
+  })
+
+  // Get loading state from mutation
+  const isSubmitting = updateSyncSettingsMutation.isPending
+
+  function onSubmit(values: SyncSettingsFormValues) {
+    updateSyncSettingsMutation.mutate(values)
   }
 
   async function handleManualSync(entityType: string) {
