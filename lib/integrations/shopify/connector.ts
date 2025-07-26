@@ -411,6 +411,7 @@ export class ShopifyConnector extends BaseConnector {
       .from('shopify_webhook_events')
       .insert({
         integration_id: this.config.integrationId,
+        organization_id: this.config.organizationId,
         event_id: body.webhook_id || body.id || crypto.randomUUID(),
         topic,
         shop_domain: this.shopDomain,
