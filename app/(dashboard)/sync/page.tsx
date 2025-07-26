@@ -193,7 +193,13 @@ export default async function SyncDashboardPage() {
             </CardHeader>
             <CardContent>
               {recentJobs && recentJobs.length > 0 ? (
-                <SyncJobsList jobs={recentJobs as any} />
+                <SyncJobsList jobs={recentJobs as (SyncJob & {
+                  integrations: {
+                    id: string
+                    name: string
+                    platform: string
+                  }
+                })[]} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No sync jobs found. Create an integration and trigger a sync to get started.
@@ -213,7 +219,13 @@ export default async function SyncDashboardPage() {
             </CardHeader>
             <CardContent>
               {schedules && schedules.length > 0 ? (
-                <SyncSchedulesList schedules={schedules as any} />
+                <SyncSchedulesList schedules={schedules as (SyncSchedule & {
+                  integrations: {
+                    id: string
+                    name: string
+                    platform: string
+                  }
+                })[]} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No schedules configured. Set up automatic syncing for your integrations.
