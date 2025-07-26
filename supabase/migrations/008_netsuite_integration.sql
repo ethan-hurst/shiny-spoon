@@ -1,5 +1,10 @@
 -- PRP-013: NetSuite Integration Schema
-
+--
+-- Sync frequency constraints:
+-- - Minimum: 1 minute (to prevent excessive API calls)
+-- - Maximum: 1440 minutes (24 hours)
+-- - Default: 15 minutes
+--
 -- NetSuite-specific configuration
 CREATE TABLE IF NOT EXISTS netsuite_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -18,7 +23,7 @@ CREATE TABLE IF NOT EXISTS netsuite_config (
   field_mappings JSONB DEFAULT '{}',
   
   -- Sync settings
-  sync_frequency INTEGER DEFAULT 15, -- Minutes
+  sync_frequency INTEGER DEFAULT 15 CONSTRAINT valid_sync_frequency CHECK (sync_frequency > 0 AND sync_frequency <= 1440), -- Minutes (min: 1, max: 1440 = 24 hours)
   last_full_sync TIMESTAMPTZ,
   
   created_at TIMESTAMPTZ DEFAULT NOW(),
