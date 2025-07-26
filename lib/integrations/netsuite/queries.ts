@@ -1,6 +1,38 @@
 // PRP-013: NetSuite SuiteQL Queries
 export class NetSuiteQueries {
   /**
+   * Sanitize SQL values to prevent SQL injection
+   * - Escapes single quotes
+   * - Removes dangerous characters and SQL comment tokens
+   * - Validates against common SQL injection patterns
+   */
+  private sanitizeSqlValue(value: string): string {
+    if (!value) {
+      return ''
+    }
+    
+    // First, escape single quotes by doubling them (standard SQL escaping)
+    let sanitized = value.replace(/'/g, "''")
+    
+    // Remove SQL comment tokens
+    sanitized = sanitized.replace(/--/g, '')
+    sanitized = sanitized.replace(/\/\*/g, '')
+    sanitized = sanitized.replace(/\*\//g, '')
+    
+    // Remove or escape other dangerous characters
+    sanitized = sanitized.replace(/;/g, '') // Remove semicolons
+    sanitized = sanitized.replace(/\\/g, '') // Remove backslashes
+    
+    // Remove common SQL injection patterns
+    sanitized = sanitized.replace(/\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b/gi, '')
+    
+    // Remove null bytes
+    sanitized = sanitized.replace(/\x00/g, '')
+    
+    return sanitized
+  }
+  
+  /**
    * Safely format date for NetSuite SuiteQL
    */
   private formatDate(date: Date | null | undefined): string {
@@ -87,7 +119,7 @@ export class NetSuiteQueries {
       FROM inventorybalance ib
       JOIN item i ON ib.item = i.id
       JOIN location l ON ib.location = l.id
-      WHERE ib.location = '${options.locationId.replace(/'/g, "''")}'
+      WHERE ib.location = '${this.sanitizeSqlValue(options.locationId)}'
         AND i.itemtype IN ('inventoryitem', 'assemblyitem', 'kititem')
         ${dateFilter}
       ORDER BY ib.lastmodifieddate DESC
@@ -259,7 +291,7 @@ export class NetSuiteQueries {
       FROM salesorderline sol
       JOIN item i ON sol.item = i.id
       LEFT JOIN location l ON sol.location = l.id
-      WHERE sol.salesorder = '${orderId.replace(/'/g, "''")}'
+      WHERE sol.salesorder = '${this.sanitizeSqlValue(orderId)}'
       ORDER BY sol.line
     `
   }
@@ -283,7 +315,7 @@ export class NetSuiteQueries {
         c.name as category
       FROM item i
       LEFT JOIN itemcategory c ON i.category = c.id
-      WHERE i.itemid = '${sku.replace(/'/g, "''")}'
+      WHERE i.itemid = '${this.sanitizeSqlValue(sku)}'
     `
   }
 
@@ -305,7 +337,7 @@ export class NetSuiteQueries {
       FROM inventorybalance ib
       JOIN item i ON ib.item = i.id
       JOIN location l ON ib.location = l.id
-      WHERE i.itemid = '${sku.replace(/'/g, "''")}'
+      WHERE i.itemid = '${this.sanitizeSqlValue(sku)}'
         AND l.makeinventoryavailable = 'T'
       ORDER BY l.name
     `
@@ -326,7 +358,7 @@ export class NetSuiteQueries {
       JOIN item i ON ip.item = i.id
       JOIN pricelevel pl ON ip.pricelevel = pl.id
       JOIN currency c ON ip.currency = c.id
-      WHERE i.itemid = '${sku.replace(/'/g, "''")}'
+      WHERE i.itemid = '${this.sanitizeSqlValue(sku)}'
         AND pl.isinactive = 'F'
       ORDER BY pl.name
     `
@@ -408,9 +440,9 @@ export class NetSuiteQueries {
         if (value === null) {
           return `${field} IS NULL`
         } else if (typeof value === 'string') {
-          // Escape single quotes
-          const escapedValue = value.replace(/'/g, "''")
-          return `${field} = '${escapedValue}'`
+          // Sanitize string value
+          const sanitizedValue = this.sanitizeSqlValue(value)
+          return `${field} = '${sanitizedValue}'`
         } else if (typeof value === 'number') {
           return `${field} = ${value}`
         } else if (typeof value === 'boolean') {
@@ -418,7 +450,7 @@ export class NetSuiteQueries {
         } else if (Array.isArray(value)) {
           // Handle IN clause
           const values = value.map(v => 
-            typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : v
+            typeof v === 'string' ? `'${this.sanitizeSqlValue(v)}'` : v
           ).join(', ')
           return `${field} IN (${values})`
         }
