@@ -565,19 +565,40 @@ export function ContractDialog({
                                   type="number"
                                   step="0.01"
                                   min="0"
+                                  max="999999.99"
                                   className="pl-8"
                                   value={item.contract_price}
                                   onChange={(e) => {
                                     const value = e.target.value
-                                    const numValue = parseFloat(value)
                                     
-                                    // Validate the input
-                                    if (value === '' || (!isNaN(numValue) && numValue >= 0)) {
-                                      updateContractItem(
-                                        index,
-                                        'contract_price',
-                                        value === '' ? 0 : numValue
-                                      )
+                                    // Allow empty string for clearing the field
+                                    if (value === '') {
+                                      updateContractItem(index, 'contract_price', 0)
+                                      return
+                                    }
+                                    
+                                    // Regex pattern for valid decimal numbers with up to 2 decimal places
+                                    // Matches: 0, 0.1, 0.01, 1, 100, 100.99, etc.
+                                    // Does not match: .1, 1., 1.234, -1, etc.
+                                    const validPricePattern = /^\d+(\.\d{0,2})?$/
+                                    
+                                    // Maximum price limit for business rules (e.g., $999,999.99)
+                                    const MAX_PRICE = 999999.99
+                                    
+                                    if (validPricePattern.test(value)) {
+                                      const numValue = parseFloat(value)
+                                      
+                                      // Check for valid number, not Infinity, and within business limits
+                                      if (!isNaN(numValue) && 
+                                          isFinite(numValue) && 
+                                          numValue >= 0 && 
+                                          numValue <= MAX_PRICE) {
+                                        updateContractItem(
+                                          index,
+                                          'contract_price',
+                                          numValue
+                                        )
+                                      }
                                     }
                                   }}
                                 />
