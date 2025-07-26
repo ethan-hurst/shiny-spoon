@@ -6,13 +6,133 @@ import type {
   PricingTransformResult,
 } from '@/types/netsuite.types'
 
+/**
+ * NetSuite item data structure as returned from SuiteQL queries
+ */
+interface NetSuiteItemData {
+  id: string
+  sku: string
+  name: string
+  description?: string
+  baseprice?: string
+  weight?: string
+  weightunit?: string
+  dimensions?: string
+  isactive: 'T' | 'F'
+  itemtype: string
+  category?: string
+  lastmodifieddate: string
+  // Allow custom fields (e.g., custitem_*)
+  [key: string]: string | undefined
+}
+
+/**
+ * NetSuite inventory balance data structure
+ */
+interface NetSuiteInventoryData {
+  itemid: string
+  sku: string
+  itemname: string
+  locationid: string
+  locationname: string
+  quantityavailable: string
+  quantityonhand: string
+  quantityintransit: string
+  quantityonorder: string
+  reorderpoint?: string
+  preferredstocklevel?: string
+  lastmodifieddate: string
+}
+
+/**
+ * NetSuite location data structure
+ */
+interface NetSuiteLocationData {
+  id: string
+  name: string
+  isinactive: 'T' | 'F'
+  makeinventoryavailable: 'T' | 'F'
+  address1?: string
+  address2?: string
+  city?: string
+  state?: string
+  zip?: string
+  country?: string
+}
+
+/**
+ * NetSuite price data structure
+ */
+interface NetSuitePriceData {
+  itemid: string
+  sku: string
+  itemname: string
+  pricelevelid: string
+  pricelevelname: string
+  unitprice: string
+  currency: string
+  lastmodifieddate: string
+}
+
+/**
+ * NetSuite customer data structure
+ */
+interface NetSuiteCustomerData {
+  id: string
+  customercode: string
+  companyname?: string
+  email?: string
+  phone?: string
+  isinactive: 'T' | 'F'
+  lastmodifieddate: string
+  creditlimit?: string
+  balance?: string
+  daysoverdue?: string
+  category?: string
+  pricelevel?: string
+}
+
+/**
+ * NetSuite sales order data structure
+ */
+interface NetSuiteSalesOrderData {
+  id: string
+  ordernumber: string
+  trandate: string
+  duedate?: string
+  orderstatus: string
+  total: string
+  subtotal: string
+  taxtotal?: string
+  shippingcost?: string
+  lastmodifieddate: string
+  customercode: string
+  customername?: string
+}
+
+/**
+ * NetSuite sales order line data structure
+ */
+interface NetSuiteSalesOrderLineData {
+  id: string
+  linenumber: string
+  sku: string
+  itemname: string
+  quantity: string
+  unitprice: string
+  amount: string
+  quantityshipped?: string
+  quantitybackordered?: string
+  locationname?: string
+}
+
 export class NetSuiteTransformers {
   constructor(private fieldMappings: Record<string, string> = {}) {}
 
   /**
    * Transform NetSuite item to TruthSource product
    */
-  async transformProduct(item: any): Promise<ProductTransformResult> {
+  async transformProduct(item: NetSuiteItemData): Promise<ProductTransformResult> {
     try {
       // Parse NetSuite boolean values ('T'/'F' to boolean)
       const isActive = item.isactive === 'T'
@@ -61,8 +181,8 @@ export class NetSuiteTransformers {
    * Transform NetSuite inventory balance to TruthSource inventory
    */
   async transformInventory(
-    balance: any,
-    location: any
+    balance: NetSuiteInventoryData,
+    location: NetSuiteLocationData
   ): Promise<InventoryTransformResult> {
     try {
       // Map location to warehouse code
@@ -91,7 +211,7 @@ export class NetSuiteTransformers {
    */
   async transformPricing(
     itemId: string,
-    prices: any[]
+    prices: NetSuitePriceData[]
   ): Promise<PricingTransformResult[]> {
     try {
       return prices.map(price => ({
@@ -110,7 +230,7 @@ export class NetSuiteTransformers {
   /**
    * Transform NetSuite customer to TruthSource customer
    */
-  async transformCustomer(customer: any): Promise<any> {
+  async transformCustomer(customer: NetSuiteCustomerData): Promise<any> {
     try {
       const isActive = customer.isinactive === 'F'
       
@@ -139,7 +259,7 @@ export class NetSuiteTransformers {
   /**
    * Transform NetSuite sales order to TruthSource order
    */
-  async transformSalesOrder(order: any, lines: any[]): Promise<any> {
+  async transformSalesOrder(order: NetSuiteSalesOrderData, lines: NetSuiteSalesOrderLineData[]): Promise<any> {
     try {
       // Map NetSuite order status to TruthSource status
       const status = this.mapOrderStatus(order.orderstatus)
@@ -176,7 +296,7 @@ export class NetSuiteTransformers {
   /**
    * Apply custom field mappings
    */
-  private applyFieldMappings(data: any): Record<string, any> {
+  private applyFieldMappings(data: Record<string, any>): Record<string, any> {
     const mapped: Record<string, any> = {}
     
     Object.entries(this.fieldMappings).forEach(([sourceField, targetField]) => {
@@ -191,7 +311,7 @@ export class NetSuiteTransformers {
   /**
    * Map NetSuite location to warehouse code
    */
-  private mapLocationToWarehouse(location: any): string {
+  private mapLocationToWarehouse(location: NetSuiteLocationData): string {
     // Use location name as warehouse code, removing special characters
     return location.name
       .toUpperCase()
