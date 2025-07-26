@@ -35,7 +35,7 @@ const COLORS = {
  *
  * @param integrations - List of available integrations to display statistics for
  */
-export function SyncStatistics({ integrations }: SyncStatisticsProps) {
+export function SyncStatisticsPanel({ integrations }: SyncStatisticsProps) {
   const [selectedIntegration, setSelectedIntegration] = useState<string>('all')
   const [selectedPeriod, setSelectedPeriod] = useState<'hour' | 'day' | 'week' | 'month'>('day')
   const [statistics, setStatistics] = useState<SyncStatistics | null>(null)

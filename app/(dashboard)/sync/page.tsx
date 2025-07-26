@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Activity, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { SyncJobsList } from '@/components/features/sync/sync-jobs-list'
 import { SyncSchedulesList } from '@/components/features/sync/sync-schedules-list'
-import { SyncStatistics } from '@/components/features/sync/sync-statistics'
+import { SyncStatisticsPanel } from '@/components/features/sync/sync-statistics'
 import { SyncHealthMonitor } from '@/components/features/sync/sync-health-monitor'
 import { ManualSyncTrigger } from '@/components/features/sync/manual-sync-trigger'
 import type { SyncJob, SyncSchedule, SyncHealthStatus } from '@/types/sync-engine.types'
@@ -245,7 +245,7 @@ export default async function SyncDashboardPage() {
             </CardHeader>
             <CardContent>
               {integrations && integrations.length > 0 ? (
-                <SyncStatistics integrations={integrations} />
+                <SyncStatisticsPanel integrations={integrations} />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No integrations found. Add integrations to view statistics.
