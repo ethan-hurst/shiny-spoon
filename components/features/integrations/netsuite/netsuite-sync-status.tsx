@@ -34,10 +34,32 @@ import {
 import { triggerSync } from '@/app/actions/integrations'
 import { toast } from '@/components/ui/use-toast'
 
+interface SyncState {
+  id: string
+  entity_type: string
+  sync_status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped'
+  last_sync_at: string | null
+  sync_duration: number | null
+  total_records: number | null
+  records_processed: number | null
+  error_count: number | null
+  created_at: string
+  updated_at: string
+}
+
+interface IntegrationLog {
+  id: string
+  severity: 'info' | 'warning' | 'error' | 'critical' | 'debug'
+  log_type: string
+  message: string
+  details?: Record<string, any> | null
+  created_at: string
+}
+
 interface NetSuiteSyncStatusProps {
   integrationId: string
-  syncStates: any[] | null
-  recentLogs: any[] | null
+  syncStates: SyncState[] | null
+  recentLogs: IntegrationLog[] | null
 }
 
 const entityIcons = {
