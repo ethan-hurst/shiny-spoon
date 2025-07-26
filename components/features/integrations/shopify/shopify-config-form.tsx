@@ -49,6 +49,17 @@ interface ShopifyConfigFormProps {
   onSuccess?: (integrationId: string) => void
 }
 
+/**
+ * Renders a form for configuring a Shopify integration, supporting both creation and update modes.
+ *
+ * The form allows users to enter Shopify credentials, set sync options, enable B2B catalog features (if available), and specify sync frequency. It validates input, handles form submission to create or update integration records in the backend, and provides a "Test Connection" feature to verify Shopify credentials and detect Shopify Plus status. Success and error notifications are displayed as appropriate. On successful creation, an optional callback is invoked or the user is redirected to the integration detail page.
+ *
+ * @param integrationId - Optional ID of an existing integration to update; if omitted, a new integration is created.
+ * @param organizationId - The ID of the organization for which the integration is being configured.
+ * @param initialData - Optional initial values to prefill the form fields.
+ * @param onSuccess - Optional callback invoked with the integration ID after successful creation.
+ * @returns A React component rendering the Shopify configuration form.
+ */
 export function ShopifyConfigForm({
   integrationId,
   organizationId,

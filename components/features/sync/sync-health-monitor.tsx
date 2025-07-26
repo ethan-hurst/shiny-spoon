@@ -53,6 +53,13 @@ interface HealthData {
   } | null
 }
 
+/**
+ * Displays a real-time dashboard of system and integration health statuses, including sync engine, queue metrics, and individual integration details.
+ *
+ * Accepts a list of integrations and simulates periodic health checks, presenting visual indicators, metrics, and alerts for degraded or unhealthy states. Supports manual and automatic refresh, and summarizes overall system health with detailed breakdowns for each integration.
+ *
+ * @param integrations - The list of integrations to monitor and display health information for.
+ */
 export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
   const [healthData, setHealthData] = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(true)

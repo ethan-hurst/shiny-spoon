@@ -5,7 +5,15 @@ import { createClient } from '@/lib/supabase/server'
 // Vercel Cron job secret for authentication
 const CRON_SECRET = process.env.CRON_SECRET
 
-// Constant-time string comparison to prevent timing attacks
+/**
+ * Compares two strings in constant time to prevent timing attacks.
+ *
+ * Returns true only if both strings are identical in length and content.
+ *
+ * @param a - The first string to compare
+ * @param b - The second string to compare
+ * @returns True if the strings are equal; otherwise, false
+ */
 function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) {
     return false
@@ -19,6 +27,13 @@ function constantTimeEqual(a: string, b: string): boolean {
   return result === 0
 }
 
+/**
+ * Handles a cron-triggered GET request to perform cleanup operations on various database tables.
+ *
+ * Authenticates the request using a bearer token, then deletes old sync jobs, releases stale locks, removes old notifications and metrics, cleans up orphaned queue items, and resets sync state for stale integrations. Returns a JSON response summarizing the cleanup results and retention period.
+ *
+ * @returns A JSON response indicating success status, details of cleanup actions performed, and the retention period used. Returns a 401 response if unauthorized, or a 500 response if an unexpected error occurs.
+ */
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret

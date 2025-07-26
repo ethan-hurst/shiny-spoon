@@ -54,6 +54,14 @@ const ENTITY_TYPES = [
   { value: 'orders', label: 'Orders' },
 ]
 
+/**
+ * Renders a form interface for manually triggering a synchronization job with configurable integration, entity types, sync mode, and priority.
+ *
+ * Displays selectable integrations, entity types, sync modes, and priorities, validates input, and submits the configuration to start a sync job. Provides user feedback on success or failure and refreshes the page upon successful submission.
+ *
+ * @param integrations - List of available integrations to select for the sync job
+ * @returns The rendered manual sync trigger form component
+ */
 export function ManualSyncTrigger({ integrations }: ManualSyncTriggerProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)

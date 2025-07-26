@@ -16,6 +16,11 @@ interface PageProps {
   }
 }
 
+/**
+ * Renders the Shopify Integration configuration page, handling authentication, organization lookup, and integration setup for the current user.
+ *
+ * Redirects unauthenticated users to the login page and users without a profile to onboarding. Fetches the user's organization and attempts to load an existing Shopify integration, either by ID from the query string or by organization. Displays setup instructions if no integration exists, and renders forms and controls for configuring, updating, and managing the Shopify integration, including sync settings, status, and helpful resources.
+ */
 export default async function ShopifyIntegrationPage({ searchParams }: PageProps) {
   const supabase = await createClient()
   

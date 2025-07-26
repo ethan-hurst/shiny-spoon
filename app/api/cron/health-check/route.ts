@@ -17,6 +17,13 @@ const HEALTH_THRESHOLDS = {
   JOB_AGE_CRITICAL_MS: 60 * 60 * 1000, // 1 hour
 }
 
+/**
+ * Handles a secured cron API request to perform health checks on all active integrations and the overall system.
+ *
+ * Authenticates the request using a secret token, gathers health metrics for each integration, checks system and sync engine health, triggers notifications for critical issues, and returns a comprehensive health report as a JSON response.
+ *
+ * Returns a 401 response if authentication fails, or a 500 response for unexpected errors.
+ */
 export async function GET(request: NextRequest) {
   try {
     // Verify cron secret
@@ -149,7 +156,12 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Check health status for a specific integration
+ * Evaluates the health status of a specific integration by analyzing recent sync statistics, queue depth, and job age.
+ *
+ * Retrieves sync metrics for the past 24 hours, calculates success and error rates, checks the number of queued jobs and the age of the oldest pending job, and determines the integration's health status based on predefined thresholds. Returns a summary including metrics, status, and any detected issues.
+ *
+ * @param integrationId - The unique identifier of the integration to check.
+ * @returns An object describing the integration's health status, metrics, and any issues found.
  */
 async function checkIntegrationHealth(
   supabase: any,
@@ -254,7 +266,9 @@ async function checkIntegrationHealth(
 }
 
 /**
- * Check overall system health
+ * Assesses the overall health of the sync system by evaluating queue depth, detecting stuck jobs, and verifying database connectivity.
+ *
+ * @returns An object containing the system health status, relevant metrics, and a list of detected issues.
  */
 async function checkSystemHealth(supabase: any): Promise<{
   status: 'healthy' | 'degraded' | 'unhealthy'
@@ -309,7 +323,9 @@ async function checkSystemHealth(supabase: any): Promise<{
 }
 
 /**
- * Create a notification for critical health issues
+ * Sends email notifications to organization admins about critical integration health issues, rate-limited to avoid duplicate alerts within a 6-hour window.
+ *
+ * If no admin users are found for the organization, the function logs a warning and exits without sending notifications. Notification failures are logged but do not interrupt the main health check process.
  */
 async function createHealthNotification(
   supabase: any,

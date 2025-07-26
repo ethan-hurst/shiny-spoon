@@ -404,7 +404,14 @@ export class ShopifyRateLimitError extends ShopifyAPIError {
 
 // ===============================
 // Type Guards
-// ===============================
+/**
+ * Determines whether the given object conforms to the ShopifyProduct interface.
+ *
+ * Performs runtime validation of required and optional fields, including type checks and enum membership for status.
+ *
+ * @param obj - The object to validate
+ * @returns True if the object matches the ShopifyProduct structure; otherwise, false
+ */
 
 export function isShopifyProduct(obj: unknown): obj is ShopifyProduct {
   if (!obj || typeof obj !== 'object') return false
@@ -438,6 +445,14 @@ export function isShopifyProduct(obj: unknown): obj is ShopifyProduct {
   return true
 }
 
+/**
+ * Determines whether the given object matches the ShopifyOrder interface.
+ *
+ * Checks for required fields, enum values, and the structure of line items and optional customer data to validate if the object is a Shopify order.
+ *
+ * @param obj - The object to test for ShopifyOrder conformity
+ * @returns True if the object is a valid ShopifyOrder, otherwise false
+ */
 export function isShopifyOrder(obj: unknown): obj is ShopifyOrder {
   if (!obj || typeof obj !== 'object') return false
   
@@ -488,6 +503,14 @@ export function isShopifyOrder(obj: unknown): obj is ShopifyOrder {
   return true
 }
 
+/**
+ * Determines whether the given object matches the ShopifyCustomer interface at runtime.
+ *
+ * Checks for required fields, correct types, and validates nested address, company, and catalog group structures.
+ *
+ * @param obj - The object to test for ShopifyCustomer conformity
+ * @returns True if the object is a valid ShopifyCustomer, otherwise false
+ */
 export function isShopifyCustomer(obj: unknown): obj is ShopifyCustomer {
   if (!obj || typeof obj !== 'object') return false
   

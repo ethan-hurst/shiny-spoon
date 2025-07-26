@@ -8,6 +8,15 @@ import type { SyncJobConfig } from '@/types/sync-engine.types'
 // Vercel Cron job secret for authentication
 const CRON_SECRET = process.env.CRON_SECRET
 
+/**
+ * Handles scheduled synchronization jobs triggered by a cron request for a specific frequency.
+ *
+ * Authenticates the request using a bearer token, validates the frequency parameter, and retrieves all enabled sync schedules matching the frequency from the database. For each valid schedule, checks integration availability and time constraints, creates and queues a sync job, updates schedule run times, and collects processing results. Returns a JSON response summarizing the outcome for all processed schedules, including errors if any.
+ *
+ * @param request - The incoming HTTP request
+ * @param params - Route parameters containing the sync frequency
+ * @returns A JSON response with the processing summary, including status and details for each schedule
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { frequency: string } }
@@ -198,7 +207,11 @@ export async function GET(
 }
 
 /**
- * Calculate next run time based on frequency
+ * Returns the next scheduled run time by advancing the given date according to the specified frequency.
+ *
+ * @param frequency - The schedule frequency (e.g., 'every_5_min', 'hourly', 'daily', 'weekly')
+ * @param from - The starting date and time to calculate from
+ * @returns A new Date representing the next run time for the given frequency
  */
 function calculateNextRun(frequency: string, from: Date): Date {
   const next = new Date(from)

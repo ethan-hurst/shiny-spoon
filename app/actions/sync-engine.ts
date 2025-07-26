@@ -46,7 +46,9 @@ const resolveConflictSchema = z.object({
 })
 
 /**
- * Helper function to execute code with a sync engine instance
+ * Executes the provided asynchronous callback with a SyncEngine instance, ensuring the engine is properly shut down after use.
+ *
+ * @returns The result of the callback function.
  */
 async function withSyncEngine<T>(
   callback: (engine: SyncEngine) => Promise<T>
@@ -60,7 +62,12 @@ async function withSyncEngine<T>(
 }
 
 /**
- * Create a manual sync job
+ * Creates a manual sync job for a specified integration after validating user authentication and organization access.
+ *
+ * Validates input data, ensures the integration belongs to the user's organization, and creates a manual sync job with the specified configuration. Triggers revalidation of relevant UI pages upon success.
+ *
+ * @param formData - The form data containing sync job parameters
+ * @returns An object with a success flag and the created sync job
  */
 export async function createManualSyncJob(formData: FormData) {
   const supabase = await createClient()
@@ -126,7 +133,11 @@ export async function createManualSyncJob(formData: FormData) {
 }
 
 /**
- * Cancel a running sync job
+ * Cancels a running sync job after verifying user authentication and organization ownership.
+ *
+ * Throws an error if the user is unauthorized, the job does not exist, or the user does not have access to the job.
+ *
+ * @returns An object indicating whether the cancellation was successful.
  */
 export async function cancelSyncJob(formData: FormData) {
   const supabase = await createClient()
@@ -175,7 +186,12 @@ export async function cancelSyncJob(formData: FormData) {
 }
 
 /**
- * Retry a failed sync job
+ * Retries a failed sync job after verifying user authentication and job ownership.
+ *
+ * Validates that the requesting user belongs to the same organization as the original job, then creates a retry job using the Sync Engine. Revalidates relevant sync and integration pages upon success.
+ *
+ * @param formData - Form data containing the `job_id` of the job to retry
+ * @returns An object with a success flag and the newly created retry job
  */
 export async function retrySyncJob(formData: FormData) {
   const supabase = await createClient()
@@ -232,7 +248,11 @@ export async function retrySyncJob(formData: FormData) {
 }
 
 /**
- * Update sync schedule for an integration
+ * Updates the synchronization schedule for a specified integration after validating user authorization and input data.
+ *
+ * Throws an error if the user is unauthorized, the integration does not belong to the user's organization, or the update fails.
+ *
+ * @returns An object indicating whether the update was successful.
  */
 export async function updateSyncSchedule(formData: FormData) {
   const supabase = await createClient()
@@ -303,7 +323,9 @@ export async function updateSyncSchedule(formData: FormData) {
 }
 
 /**
- * Delete sync schedule for an integration
+ * Deletes the sync schedule for a specified integration after verifying user authentication and organization ownership.
+ *
+ * @returns An object indicating successful deletion.
  */
 export async function deleteSyncSchedule(formData: FormData) {
   const supabase = await createClient()
@@ -359,7 +381,11 @@ export async function deleteSyncSchedule(formData: FormData) {
 }
 
 /**
- * Resolve a sync conflict
+ * Resolves a synchronization conflict by applying the specified resolution strategy and value.
+ *
+ * Validates user authentication and organization access, parses and applies the conflict resolution, and updates the conflict record. Revalidates relevant sync pages upon success.
+ *
+ * @returns An object indicating whether the conflict was successfully resolved
  */
 export async function resolveSyncConflict(formData: FormData) {
   const supabase = await createClient()
@@ -437,7 +463,13 @@ export async function resolveSyncConflict(formData: FormData) {
 }
 
 /**
- * Get sync statistics for an integration
+ * Retrieves aggregated synchronization statistics for a specific integration over a given time period.
+ *
+ * Authenticates the user, verifies access to the integration, and returns overall and per-entity sync metrics such as counts, processed records, errors, and conflicts.
+ *
+ * @param integrationId - The unique identifier of the integration to retrieve statistics for
+ * @param period - The time period for aggregation ('hour', 'day', 'week', or 'month'). Defaults to 'day'.
+ * @returns An object containing total and per-entity sync statistics for the specified integration and period
  */
 export async function getSyncStatistics(
   integrationId: string,
@@ -533,7 +565,10 @@ export async function getSyncStatistics(
 }
 
 /**
- * Get date for period calculation
+ * Returns the ISO timestamp representing the start of the specified period relative to the current time.
+ *
+ * @param period - The time period to subtract from the current date ('hour', 'day', 'week', or 'month')
+ * @returns An ISO string of the calculated date and time
  */
 function getDateForPeriod(period: string): string {
   const now = new Date()

@@ -7,6 +7,12 @@ interface UseCopyToClipboardOptions {
   errorMessage?: string
 }
 
+/**
+ * Provides a hook for copying text to the clipboard with customizable toast notifications and copy status tracking.
+ *
+ * @param options - Optional configuration for custom success and error messages in toast notifications.
+ * @returns An object containing the `copyToClipboard` function to copy text and an `isCopied` boolean indicating copy status.
+ */
 export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
   const [isCopied, setIsCopied] = useState(false)
   const { toast } = useToast()
