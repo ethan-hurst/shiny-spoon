@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
 import { ContractDialog } from '@/components/features/pricing/contract-dialog'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { formatCurrency } from '@/lib/utils'
 import {
   ContractWithItems,
@@ -56,14 +57,21 @@ interface ContractListProps {
 export function ContractList({ customerId, contracts, customer }: ContractListProps) {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
+  const [contractToCancel, setContractToCancel] = useState<string | null>(null)
 
-  const handleCancel = async (contractId: string) => {
-    if (!confirm('Are you sure you want to cancel this contract?')) return
+  const handleCancelClick = (contractId: string) => {
+    setContractToCancel(contractId)
+    setConfirmCancelOpen(true)
+  }
 
-    setLoading(contractId)
+  const handleCancelConfirm = async () => {
+    if (!contractToCancel) return
+
+    setLoading(contractToCancel)
     try {
       const formData = new FormData()
-      formData.append('id', contractId)
+      formData.append('id', contractToCancel)
       
       await cancelContract(formData)
       toast.success('Contract cancelled successfully')
@@ -72,6 +80,7 @@ export function ContractList({ customerId, contracts, customer }: ContractListPr
       toast.error('Failed to cancel contract')
     } finally {
       setLoading(null)
+      setContractToCancel(null)
     }
   }
 
@@ -265,7 +274,7 @@ export function ContractList({ customerId, contracts, customer }: ContractListPr
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleCancel(contract.id)}
+                            onClick={() => handleCancelClick(contract.id)}
                             className="text-destructive"
                           >
                             <Trash className="h-4 w-4 mr-2" />
@@ -281,6 +290,17 @@ export function ContractList({ customerId, contracts, customer }: ContractListPr
           })}
         </TableBody>
       </Table>
+
+      <ConfirmationDialog
+        open={confirmCancelOpen}
+        onOpenChange={setConfirmCancelOpen}
+        title="Cancel Contract"
+        description="Are you sure you want to cancel this contract? This action cannot be undone."
+        confirmText="Cancel Contract"
+        cancelText="Keep Contract"
+        onConfirm={handleCancelConfirm}
+        variant="destructive"
+      />
     </div>
   )
 }
