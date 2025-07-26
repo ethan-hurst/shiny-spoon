@@ -33,6 +33,33 @@ export class NetSuiteQueries {
   }
   
   /**
+   * Validate SQL identifier (table/column names) to prevent SQL injection
+   * - Must start with a letter or underscore
+   * - Can only contain letters, numbers, and underscores
+   * - Prevents SQL injection via identifiers
+   */
+  private validateIdentifier(identifier: string): string {
+    if (!identifier) {
+      throw new Error('SQL identifier cannot be empty')
+    }
+    
+    // Check if identifier matches the safe pattern
+    const identifierPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+    
+    if (!identifierPattern.test(identifier)) {
+      throw new Error(`Invalid SQL identifier: "${identifier}". Identifiers must start with a letter or underscore and contain only letters, numbers, and underscores.`)
+    }
+    
+    // Additional check for reserved keywords (optional but recommended)
+    const reservedKeywords = ['select', 'from', 'where', 'insert', 'update', 'delete', 'drop', 'create', 'alter', 'table', 'column', 'database', 'schema']
+    if (reservedKeywords.includes(identifier.toLowerCase())) {
+      throw new Error(`Invalid SQL identifier: "${identifier}" is a reserved keyword`)
+    }
+    
+    return identifier
+  }
+  
+  /**
    * Safely format date for NetSuite SuiteQL
    */
   private formatDate(date: Date | null | undefined): string {
@@ -431,41 +458,50 @@ export class NetSuiteQueries {
       offset?: number
     } = {}
   ): string {
-    // Build SELECT clause
-    const selectClause = fields.join(', ')
+    // Validate table name
+    const validatedTable = this.validateIdentifier(table)
     
-    // Build WHERE clause
+    // Validate and build SELECT clause
+    const validatedFields = fields.map(field => this.validateIdentifier(field))
+    const selectClause = validatedFields.join(', ')
+    
+    // Build WHERE clause with validated field names
     const whereConditions = Object.entries(conditions)
       .map(([field, value]) => {
+        // Validate field name
+        const validatedField = this.validateIdentifier(field)
+        
         if (value === null) {
-          return `${field} IS NULL`
+          return `${validatedField} IS NULL`
         } else if (typeof value === 'string') {
           // Sanitize string value
           const sanitizedValue = this.sanitizeSqlValue(value)
-          return `${field} = '${sanitizedValue}'`
+          return `${validatedField} = '${sanitizedValue}'`
         } else if (typeof value === 'number') {
-          return `${field} = ${value}`
+          return `${validatedField} = ${value}`
         } else if (typeof value === 'boolean') {
-          return `${field} = '${value ? 'T' : 'F'}'`
+          return `${validatedField} = '${value ? 'T' : 'F'}'`
         } else if (Array.isArray(value)) {
           // Handle IN clause
           const values = value.map(v => 
             typeof v === 'string' ? `'${this.sanitizeSqlValue(v)}'` : v
           ).join(', ')
-          return `${field} IN (${values})`
+          return `${validatedField} IN (${values})`
         }
         return ''
       })
       .filter(Boolean)
       .join(' AND ')
     
-    // Build query
-    let query = `SELECT ${selectClause} FROM ${table}`
+    // Build query with validated identifiers
+    let query = `SELECT ${selectClause} FROM ${validatedTable}`
     if (whereConditions) {
       query += ` WHERE ${whereConditions}`
     }
     if (options.orderBy) {
-      query += ` ORDER BY ${options.orderBy}`
+      // Validate orderBy field name
+      const validatedOrderBy = this.validateIdentifier(options.orderBy)
+      query += ` ORDER BY ${validatedOrderBy}`
     }
     if (options.limit) {
       query += ` LIMIT ${options.limit}`
