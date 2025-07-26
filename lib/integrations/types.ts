@@ -1,5 +1,5 @@
 // PRP-012: Integration Framework Common Types
-import type { 
+import type {
   IntegrationPlatformType,
   SyncResult,
   SyncOptions,
