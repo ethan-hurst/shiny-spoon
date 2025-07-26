@@ -107,8 +107,30 @@ export class SyncEngine extends EventEmitter {
       })
 
     if (queueError) {
-      // Rollback job creation
-      await supabase.from('sync_jobs').delete().eq('id', job.id)
+      // Rollback job creation (fix-53: handle rollback failures)
+      try {
+        const { error: rollbackError } = await supabase
+          .from('sync_jobs')
+          .delete()
+          .eq('id', job.id)
+        
+        if (rollbackError) {
+          console.error('Failed to rollback job creation', {
+            jobId: job.id,
+            originalError: queueError,
+            rollbackError: rollbackError
+          })
+          // Continue with original error
+        }
+      } catch (rollbackException) {
+        console.error('Exception during rollback', {
+          jobId: job.id,
+          originalError: queueError,
+          rollbackException
+        })
+        // Continue with original error
+      }
+      
       throw new Error(`Failed to queue sync job: ${queueError.message}`)
     }
 
