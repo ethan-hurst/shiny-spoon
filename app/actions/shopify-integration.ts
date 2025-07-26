@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { validateCsrfToken } from '@/lib/security/csrf'
 
 const shopifyConfigSchema = z.object({
   shop_domain: z.string()
@@ -22,6 +23,9 @@ const shopifyConfigSchema = z.object({
 })
 
 export async function createShopifyIntegration(formData: FormData) {
+  // Validate CSRF token
+  await validateCsrfToken()
+  
   const supabase = await createClient()
   
   // Get the current user
@@ -121,6 +125,9 @@ export async function createShopifyIntegration(formData: FormData) {
 }
 
 export async function updateShopifyIntegration(integrationId: string, formData: FormData) {
+  // Validate CSRF token
+  await validateCsrfToken()
+  
   const supabase = await createClient()
   
   // Get the current user
@@ -248,6 +255,8 @@ export async function updateShopifySyncSettings(
     batch_size: number
   }
 ) {
+  // Validate CSRF token
+  await validateCsrfToken()
   const supabase = await createClient()
   
   // Get the current user
