@@ -2,6 +2,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { AuthenticationError } from '@/types/integration.types'
 
+/**
+ * Timing-safe comparison function compatible with Web Crypto API
+ * Compares two Uint8Arrays in constant time to prevent timing attacks
+ */
+function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) {
+    return false
+  }
+  
+  let result = 0
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i]
+  }
+  
+  return result === 0
+}
+
 // Encryption configuration
 export interface EncryptionConfig {
   keyId?: string
@@ -234,19 +251,23 @@ export const encryptionUtils = {
       const decrypted1 = await encryption.decrypt(encrypted1)
       const decrypted2 = await encryption.decrypt(encrypted2)
       
-      // Compute cryptographic hashes of the decrypted values
-      const hash1 = crypto
-        .createHash('sha256')
-        .update(decrypted1)
-        .digest()
+      // Convert strings to Uint8Array for Web Crypto API
+      const encoder = new TextEncoder()
+      const data1 = encoder.encode(decrypted1)
+      const data2 = encoder.encode(decrypted2)
       
-      const hash2 = crypto
-        .createHash('sha256')
-        .update(decrypted2)
-        .digest()
+      // Compute SHA-256 hashes using Web Crypto API
+      const [hashBuffer1, hashBuffer2] = await Promise.all([
+        crypto.subtle.digest('SHA-256', data1),
+        crypto.subtle.digest('SHA-256', data2)
+      ])
       
-      // Use timing-safe comparison on the hashes
-      return crypto.timingSafeEqual(hash1, hash2)
+      // Convert ArrayBuffers to Uint8Arrays for comparison
+      const hash1 = new Uint8Array(hashBuffer1)
+      const hash2 = new Uint8Array(hashBuffer2)
+      
+      // Timing-safe comparison compatible with Web Crypto API
+      return timingSafeEqual(hash1, hash2)
     } catch {
       return false
     }
