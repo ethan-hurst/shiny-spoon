@@ -166,12 +166,23 @@ export class SyncEngine extends EventEmitter {
     const abortController = new AbortController()
     this.activeJobs.set(jobId, abortController)
 
-    // Set up timeout
-    const timeoutId = setTimeout(() => {
-      abortController.abort()
-    }, this.config.job_timeout_ms)
+    // Set up timeout (fix-54: prevent race condition)
+    let timeoutId: NodeJS.Timeout | null = null
+    let isTimedOut = false
+    
+    if (this.config.job_timeout_ms > 0) {
+      timeoutId = setTimeout(() => {
+        isTimedOut = true
+        abortController.abort()
+      }, this.config.job_timeout_ms)
+    }
 
     try {
+      // Check if already timed out before starting
+      if (isTimedOut) {
+        throw new Error('Job timed out before execution')
+      }
+      
       this.emit('job:started', job)
       
       // Initialize performance tracking
@@ -235,7 +246,9 @@ export class SyncEngine extends EventEmitter {
       throw error
       
     } finally {
-      clearTimeout(timeoutId)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       this.activeJobs.delete(jobId)
     }
   }
