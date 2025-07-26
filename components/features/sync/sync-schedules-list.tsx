@@ -20,7 +20,8 @@ import {
   Clock, 
   Settings,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { updateSyncSchedule, deleteSyncSchedule } from '@/app/actions/sync-engine'
@@ -237,6 +238,15 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
                       onClick={() => setEditingSchedule(schedule.integration_id)}
                     >
                       <Settings className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(schedule.integration_id)}
+                      disabled={deleteScheduleMutation.isPending}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>
