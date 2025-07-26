@@ -356,7 +356,7 @@ export async function testConnection(integrationId: string) {
 
     try {
       switch (integration.platform) {
-        case 'shopify':
+        case 'shopify': {
           // Test Shopify connection with a simple API call
           const shopDomain = integration.config?.shop_domain
           const apiVersion = integration.config?.api_version || '2024-01'
@@ -390,9 +390,10 @@ export async function testConnection(integrationId: string) {
               message: shopifyResponse.statusText,
             }
           }
-          break
+        }
+        break
         
-        case 'netsuite':
+        case 'netsuite': {
           // Test NetSuite connection with REST API
           const accountId = integration.config?.account_id
           const restUrl = integration.config?.rest_url
@@ -403,8 +404,12 @@ export async function testConnection(integrationId: string) {
 
           // NetSuite uses OAuth 1.0a, so we need to build the auth header
           // For now, we'll check if credentials exist
-          if (credentials.consumer_key && credentials.consumer_secret && 
-              credentials.token_id && credentials.token_secret) {
+          if (
+            credentials.consumer_key &&
+            credentials.consumer_secret &&
+            credentials.token_id &&
+            credentials.token_secret
+          ) {
             testPassed = true
             testDetails = {
               account_id: accountId,
@@ -414,9 +419,10 @@ export async function testConnection(integrationId: string) {
           } else {
             throw new Error('Invalid NetSuite credentials')
           }
-          break
+        }
+        break
 
-        case 'quickbooks':
+        case 'quickbooks': {
           // Test QuickBooks connection
           const companyId = integration.config?.company_id
           const sandbox = integration.config?.sandbox || false
@@ -454,7 +460,8 @@ export async function testConnection(integrationId: string) {
               message: qbResponse.statusText,
             }
           }
-          break
+        }
+        break
         
         default:
           testDetails = { 
