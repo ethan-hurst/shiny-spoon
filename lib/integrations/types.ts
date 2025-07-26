@@ -237,8 +237,15 @@ export const commonTransforms = {
     return !!value
   },
   
-  // Parse date
+  // Parse date to Date object
   toDate: (value: any) => {
+    if (!value) return null
+    const date = new Date(value)
+    return isNaN(date.getTime()) ? null : date
+  },
+  
+  // Parse date to ISO string
+  toISOString: (value: any) => {
     if (!value) return null
     const date = new Date(value)
     return isNaN(date.getTime()) ? null : date.toISOString()

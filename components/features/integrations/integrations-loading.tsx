@@ -1,13 +1,9 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
-interface IntegrationsListSkeletonProps {
-  count?: number
-}
-
-export function IntegrationsListSkeleton({ count = 5 }: IntegrationsListSkeletonProps = {}) {
+export function IntegrationsLoading() {
   return (
     <div className="divide-y">
-      {[...Array(count)].map((_, i) => (
+      {[...Array(5)].map((_, i) => (
         <div key={i} className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">

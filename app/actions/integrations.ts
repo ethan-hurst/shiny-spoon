@@ -30,13 +30,23 @@ export async function createIntegration(formData: FormData) {
 
     if (!profile) throw new Error('User profile not found')
 
-    // Parse and validate input
+    // Parse and validate input with safe JSON parsing
+    const safeJsonParse = (value: string | null, defaultValue: any = {}) => {
+      if (!value) return defaultValue
+      try {
+        return JSON.parse(value)
+      } catch (error) {
+        console.warn('Invalid JSON provided:', error)
+        return defaultValue
+      }
+    }
+
     const input = {
       name: formData.get('name'),
       platform: formData.get('platform'),
       description: formData.get('description'),
-      config: JSON.parse(formData.get('config') as string || '{}'),
-      sync_settings: JSON.parse(formData.get('sync_settings') as string || '{}'),
+      config: safeJsonParse(formData.get('config') as string),
+      sync_settings: safeJsonParse(formData.get('sync_settings') as string),
     }
 
     const validated = integrationSchema.parse(input)
@@ -63,9 +73,11 @@ export async function createIntegration(formData: FormData) {
     
     if (credentialType && credentials) {
       const authManager = new AuthManager(integration.id, profile.organization_id)
-      const parsedCredentials = JSON.parse(credentials as string) as CredentialData
+      const parsedCredentials = safeJsonParse(credentials as string) as CredentialData
       
-      await authManager.storeCredentials(credentialType, parsedCredentials)
+      if (parsedCredentials && Object.keys(parsedCredentials).length > 0) {
+        await authManager.storeCredentials(credentialType, parsedCredentials)
+      }
     }
 
     // Log creation
@@ -109,14 +121,36 @@ export async function updateIntegration(formData: FormData) {
 
     if (!profile) throw new Error('User profile not found')
 
-    // Build update data
+    // Safe JSON parsing helper
+    const safeJsonParse = (value: string | null, defaultValue: any = {}) => {
+      if (!value) return defaultValue
+      try {
+        return JSON.parse(value)
+      } catch (error) {
+        console.warn('Invalid JSON provided:', error)
+        return defaultValue
+      }
+    }
+
+    // Build update data with type safety
     const updateData: IntegrationUpdate = {}
     
     if (formData.has('name')) updateData.name = formData.get('name') as string
     if (formData.has('description')) updateData.description = formData.get('description') as string
-    if (formData.has('status')) updateData.status = formData.get('status') as any
-    if (formData.has('config')) updateData.config = JSON.parse(formData.get('config') as string)
-    if (formData.has('sync_settings')) updateData.sync_settings = JSON.parse(formData.get('sync_settings') as string)
+    
+    // Type-safe status update
+    if (formData.has('status')) {
+      const status = formData.get('status') as string
+      const validStatuses = ['active', 'inactive', 'error', 'configuring', 'suspended'] as const
+      if (validStatuses.includes(status as any)) {
+        updateData.status = status as typeof validStatuses[number]
+      } else {
+        throw new Error(`Invalid status: ${status}`)
+      }
+    }
+    
+    if (formData.has('config')) updateData.config = safeJsonParse(formData.get('config') as string)
+    if (formData.has('sync_settings')) updateData.sync_settings = safeJsonParse(formData.get('sync_settings') as string)
 
     // Update integration
     const { data: integration, error } = await supabase
@@ -135,9 +169,11 @@ export async function updateIntegration(formData: FormData) {
     
     if (credentialType && credentials) {
       const authManager = new AuthManager(id, profile.organization_id)
-      const parsedCredentials = JSON.parse(credentials as string) as CredentialData
+      const parsedCredentials = safeJsonParse(credentials as string) as CredentialData
       
-      await authManager.storeCredentials(credentialType, parsedCredentials)
+      if (parsedCredentials && Object.keys(parsedCredentials).length > 0) {
+        await authManager.storeCredentials(credentialType, parsedCredentials)
+      }
     }
 
     // Log update
@@ -314,24 +350,125 @@ export async function testConnection(integrationId: string) {
 
     if (!credentials) throw new Error('No credentials configured')
 
-    // Platform-specific connection tests would go here
-    // For now, we'll simulate a successful test
-    let testPassed = true
-    let testDetails = {}
+    // Platform-specific connection tests
+    let testPassed = false
+    let testDetails: Record<string, any> = {}
 
-    switch (integration.platform) {
-      case 'shopify':
-        // Test Shopify connection
-        testDetails = { shop: integration.config?.shop_domain, api_version: '2024-01' }
-        break
-      
-      case 'netsuite':
-        // Test NetSuite connection
-        testDetails = { account_id: integration.config?.account_id }
-        break
-      
-      default:
-        testDetails = { message: 'Connection test not implemented for this platform' }
+    try {
+      switch (integration.platform) {
+        case 'shopify':
+          // Test Shopify connection with a simple API call
+          const shopDomain = integration.config?.shop_domain
+          const apiVersion = integration.config?.api_version || '2024-01'
+          
+          if (!shopDomain || !credentials.access_token) {
+            throw new Error('Missing Shopify configuration')
+          }
+
+          const shopifyResponse = await fetch(
+            `https://${shopDomain}/admin/api/${apiVersion}/shop.json`,
+            {
+              headers: {
+                'X-Shopify-Access-Token': credentials.access_token as string,
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+
+          testPassed = shopifyResponse.ok
+          if (testPassed) {
+            const shopData = await shopifyResponse.json()
+            testDetails = {
+              shop_name: shopData.shop?.name,
+              shop_domain: shopData.shop?.domain,
+              api_version: apiVersion,
+              plan_name: shopData.shop?.plan_name,
+            }
+          } else {
+            testDetails = {
+              error: `HTTP ${shopifyResponse.status}`,
+              message: shopifyResponse.statusText,
+            }
+          }
+          break
+        
+        case 'netsuite':
+          // Test NetSuite connection with REST API
+          const accountId = integration.config?.account_id
+          const restUrl = integration.config?.rest_url
+          
+          if (!accountId || !restUrl || !credentials) {
+            throw new Error('Missing NetSuite configuration')
+          }
+
+          // NetSuite uses OAuth 1.0a, so we need to build the auth header
+          // For now, we'll check if credentials exist
+          if (credentials.consumer_key && credentials.consumer_secret && 
+              credentials.token_id && credentials.token_secret) {
+            testPassed = true
+            testDetails = {
+              account_id: accountId,
+              rest_url: restUrl,
+              auth_method: 'OAuth 1.0a',
+            }
+          } else {
+            throw new Error('Invalid NetSuite credentials')
+          }
+          break
+
+        case 'quickbooks':
+          // Test QuickBooks connection
+          const companyId = integration.config?.company_id
+          const sandbox = integration.config?.sandbox || false
+          
+          if (!companyId || !credentials.access_token) {
+            throw new Error('Missing QuickBooks configuration')
+          }
+
+          const qbBaseUrl = sandbox 
+            ? 'https://sandbox-quickbooks.api.intuit.com'
+            : 'https://quickbooks.api.intuit.com'
+
+          const qbResponse = await fetch(
+            `${qbBaseUrl}/v3/company/${companyId}/companyinfo/${companyId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${credentials.access_token}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+
+          testPassed = qbResponse.ok
+          if (testPassed) {
+            const companyInfo = await qbResponse.json()
+            testDetails = {
+              company_name: companyInfo.CompanyInfo?.CompanyName,
+              company_id: companyId,
+              sandbox: sandbox,
+            }
+          } else {
+            testDetails = {
+              error: `HTTP ${qbResponse.status}`,
+              message: qbResponse.statusText,
+            }
+          }
+          break
+        
+        default:
+          testDetails = { 
+            message: 'Connection test not implemented for this platform',
+            platform: integration.platform,
+          }
+          testPassed = false
+      }
+    } catch (testError) {
+      testPassed = false
+      testDetails = {
+        error: testError instanceof Error ? testError.message : 'Connection test failed',
+        platform: integration.platform,
+      }
     }
 
     // Log test result

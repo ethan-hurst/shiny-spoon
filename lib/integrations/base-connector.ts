@@ -1,13 +1,13 @@
 // PRP-012: Base Connector Class for Integration Framework
 import { EventEmitter } from 'events'
-import type {
-  Integration,
+import {
   IntegrationError,
   RateLimitError,
-  SyncResult,
-  IntegrationPlatformType,
-  LogSeverityEnum,
-  CredentialData,
+  type Integration,
+  type SyncResult,
+  type IntegrationPlatformType,
+  type LogSeverityEnum,
+  type CredentialData,
 } from '@/types/integration.types'
 
 // Logger interface
@@ -146,26 +146,22 @@ export abstract class BaseConnector extends EventEmitter {
 
   // Common initialization
   async initialize(): Promise<void> {
-    try {
-      this.logger.info('Initializing connector')
-      
-      if (!this.authenticated) {
-        await this.authenticate()
-        this.authenticated = true
-      }
-
-      const connected = await this.testConnection()
-      if (!connected) {
-        throw new IntegrationError(
-          'Failed to establish connection',
-          'CONNECTION_FAILED'
-        )
-      }
-
-      this.logger.info('Connector initialized successfully')
-    } catch (error) {
-      this.handleError(error, 'initialization')
+    this.logger.info('Initializing connector')
+    
+    if (!this.authenticated) {
+      await this.authenticate()
+      this.authenticated = true
     }
+
+    const connected = await this.testConnection()
+    if (!connected) {
+      throw new IntegrationError(
+        'Failed to establish connection',
+        'CONNECTION_FAILED'
+      )
+    }
+
+    this.logger.info('Connector initialized successfully')
   }
 
   // Common sync orchestration

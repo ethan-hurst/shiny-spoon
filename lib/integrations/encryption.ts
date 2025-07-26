@@ -14,7 +14,6 @@ const DEFAULT_CONFIG: EncryptionConfig = {
 }
 
 export class EncryptionService {
-  private supabase = createClient()
   private config: EncryptionConfig
 
   constructor(config?: Partial<EncryptionConfig>) {
@@ -25,13 +24,15 @@ export class EncryptionService {
    * Encrypt sensitive data using Supabase Vault
    */
   async encrypt(plaintext: string): Promise<string> {
+    const supabase = createClient()
+    
     try {
       if (!plaintext) {
         throw new Error('Cannot encrypt empty data')
       }
 
       // Use Supabase RPC function for encryption
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .rpc('encrypt_credential', {
           p_credential: plaintext,
           p_key_id: this.config.keyId,
@@ -54,13 +55,15 @@ export class EncryptionService {
    * Decrypt data encrypted with encrypt()
    */
   async decrypt(ciphertext: string): Promise<string> {
+    const supabase = createClient()
+    
     try {
       if (!ciphertext) {
         throw new Error('Cannot decrypt empty data')
       }
 
       // Use Supabase RPC function for decryption
-      const { data, error } = await this.supabase
+      const { data, error } = await supabase
         .rpc('decrypt_credential', {
           p_encrypted: ciphertext,
           p_key_id: this.config.keyId,
@@ -113,16 +116,26 @@ export class EncryptionService {
    * Hash sensitive data for comparison without storing plaintext
    * Uses HMAC-SHA256 for deterministic hashing
    */
-  async hash(data: string, salt?: string): Promise<string> {
+  async hash(data: string, salt: string = 'default-salt'): Promise<string> {
     try {
       const encoder = new TextEncoder()
-      const dataBuffer = encoder.encode(data + (salt || ''))
       
-      // Use Web Crypto API for hashing
-      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer)
+      // Import the salt as a key for HMAC
+      const keyData = encoder.encode(salt)
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      )
+      
+      // Create HMAC of the data
+      const dataBuffer = encoder.encode(data)
+      const signature = await crypto.subtle.sign('HMAC', key, dataBuffer)
       
       // Convert to hex string
-      const hashArray = Array.from(new Uint8Array(hashBuffer))
+      const hashArray = Array.from(new Uint8Array(signature))
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
     } catch (error) {
       throw new AuthenticationError(
@@ -170,7 +183,7 @@ export class EncryptionService {
 
     // Check if it's base64 encoded and has proper length
     try {
-      const decoded = atob(data)
+      const decoded = Buffer.from(data, 'base64')
       // Encrypted data should have nonce (24 bytes) + ciphertext + tag
       return decoded.length >= 40 // Minimum reasonable length
     } catch {
@@ -247,20 +260,19 @@ export const encryptionUtils = {
   /**
    * Validate webhook signature
    */
-  validateWebhookSignature(
+  async validateWebhookSignature(
     payload: string,
     signature: string,
     secret: string
-  ): boolean {
+  ): Promise<boolean> {
     try {
       // Most webhooks use HMAC-SHA256
       const encoder = new TextEncoder()
       const keyData = encoder.encode(secret)
       const messageData = encoder.encode(payload)
 
-      // Use Web Crypto API for HMAC (synchronous for now)
-      // In production, this should be async
-      const cryptoKey = crypto.subtle.importKey(
+      // Import the key for HMAC
+      const cryptoKey = await crypto.subtle.importKey(
         'raw',
         keyData,
         { name: 'HMAC', hash: 'SHA-256' },
@@ -268,9 +280,29 @@ export const encryptionUtils = {
         ['sign']
       )
 
-      // For now, return true as placeholder
-      // Real implementation would compute HMAC and compare
-      return true
+      // Compute HMAC
+      const signatureBuffer = await crypto.subtle.sign(
+        'HMAC',
+        cryptoKey,
+        messageData
+      )
+
+      // Convert signature to hex string
+      const computedSignature = Array.from(new Uint8Array(signatureBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+
+      // Timing-safe comparison
+      if (computedSignature.length !== signature.length) {
+        return false
+      }
+
+      let result = 0
+      for (let i = 0; i < computedSignature.length; i++) {
+        result |= computedSignature.charCodeAt(i) ^ signature.charCodeAt(i)
+      }
+
+      return result === 0
     } catch {
       return false
     }

@@ -258,7 +258,11 @@ export class WebhookHandler {
       .update(body)
       .digest('base64')
 
-    return signature === hash
+    // Timing-safe comparison
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(hash)
+    )
   }
 
   /**

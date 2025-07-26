@@ -286,8 +286,14 @@ CREATE POLICY "Service role can update sync jobs" ON sync_jobs
   FOR UPDATE USING (true);
 
 -- RLS Policies for rate_limit_buckets table
+-- Only service role can access rate limit buckets
 CREATE POLICY "Service role only for rate limits" ON rate_limit_buckets
-  FOR ALL USING (auth.uid() = '00000000-0000-0000-0000-000000000000');
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM auth.jwt() AS jwt
+      WHERE jwt.role = 'service_role'
+    )
+  );
 
 -- Functions for credential encryption using Supabase Vault
 CREATE OR REPLACE FUNCTION encrypt_credential(

@@ -1,24 +1,40 @@
 import { Suspense } from 'react'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { IntegrationsList } from '@/components/features/integrations/integrations-list'
 import { IntegrationStats } from '@/components/features/integrations/integration-stats'
-import { IntegrationsListSkeleton } from '@/components/features/integrations/integrations-list-skeleton'
+import { IntegrationsLoading } from '@/components/features/integrations/integrations-loading'
+import type { Database } from '@/supabase/types/database'
+
+type SyncJob = {
+  count: number
+  status: Database['public']['Tables']['sync_jobs']['Row']['status']
+}
+
+type IntegrationWithRelations = Database['public']['Tables']['integrations']['Row'] & {
+  integration_logs?: { count: number }[]
+  sync_jobs?: SyncJob[]
+}
 
 export const metadata = {
   title: 'Integrations | TruthSource',
   description: 'Manage your external system integrations',
 }
 
-export default async function IntegrationsPage() {
+export default async function IntegrationsPage({
+  searchParams,
+}: {
+  searchParams: { page?: string; limit?: string }
+}) {
   const supabase = createClient()
 
   // Get user's organization
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    throw new Error('Not authenticated')
+    redirect('/login')
   }
 
   const { data: profile } = await supabase
@@ -28,11 +44,16 @@ export default async function IntegrationsPage() {
     .single()
 
   if (!profile) {
-    throw new Error('User profile not found')
+    redirect('/onboarding')
   }
 
+  // Pagination settings
+  const page = parseInt(searchParams.page || '1', 10)
+  const limit = parseInt(searchParams.limit || '20', 10)
+  const offset = (page - 1) * limit
+
   // Fetch integrations with related data
-  const { data: integrations, error } = await supabase
+  const { data: integrations, error, count } = await supabase
     .from('integrations')
     .select(`
       *,
@@ -43,22 +64,27 @@ export default async function IntegrationsPage() {
         count,
         status
       )
-    `)
+    `, { count: 'exact' })
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
 
   if (error) {
-    throw new Error('Failed to load integrations')
+    console.error('Failed to load integrations:', error.message)
+    throw new Error(`Failed to load integrations: ${error.message}`)
   }
+
+  // Type-safe integrations
+  const typedIntegrations = (integrations || []) as IntegrationWithRelations[]
 
   // Calculate stats
   const stats = {
-    total: integrations?.length || 0,
-    active: integrations?.filter(i => i.status === 'active').length || 0,
-    error: integrations?.filter(i => i.status === 'error').length || 0,
-    syncing: integrations?.filter(i => 
-      i.sync_jobs?.some((j: any) => j.status === 'running')
-    ).length || 0,
+    total: count || 0,
+    active: typedIntegrations.filter(i => i.status === 'active').length,
+    error: typedIntegrations.filter(i => i.status === 'error').length,
+    syncing: typedIntegrations.filter(i => 
+      i.sync_jobs?.some((j: SyncJob) => j.status === 'running')
+    ).length,
   }
 
   return (
@@ -81,8 +107,8 @@ export default async function IntegrationsPage() {
       <IntegrationStats stats={stats} />
 
       <div className="rounded-md border">
-        <Suspense fallback={<IntegrationsListSkeleton />}>
-          <IntegrationsList integrations={integrations || []} />
+        <Suspense fallback={<IntegrationsLoading />}>
+          <IntegrationsList integrations={typedIntegrations} />
         </Suspense>
       </div>
     </div>

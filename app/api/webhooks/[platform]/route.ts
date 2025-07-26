@@ -201,17 +201,50 @@ export async function GET(
   )
 }
 
+// List of allowed webhook origins - configure based on your needs
+const ALLOWED_WEBHOOK_ORIGINS = [
+  'https://api.shopify.com',
+  'https://myshopify.com',
+  'https://api.netsuite.com',
+  'https://quickbooks.api.intuit.com',
+  'https://sandbox-quickbooks.api.intuit.com',
+] as const
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false
+  
+  // Check exact matches
+  if (ALLOWED_WEBHOOK_ORIGINS.includes(origin as any)) {
+    return true
+  }
+  
+  // Check pattern matches (e.g., Shopify subdomains)
+  if (origin.endsWith('.myshopify.com')) {
+    return true
+  }
+  
+  return false
+}
+
 export async function OPTIONS(
   request: NextRequest,
   { params }: { params: { platform: string } }
 ) {
+  const origin = request.headers.get('origin')
+  
+  // Only set CORS headers if origin is allowed
+  if (!isAllowedOrigin(origin)) {
+    return new NextResponse(null, { status: 403 })
+  }
+  
   // Handle CORS preflight
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': origin!,
       'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Shopify-Topic, X-Shopify-Hmac-Sha256, X-Shopify-Shop-Domain, X-Shopify-Webhook-Id',
+      'Access-Control-Max-Age': '86400', // 24 hours
     },
   })
 }

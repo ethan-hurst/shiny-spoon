@@ -1,13 +1,13 @@
 // PRP-012: Authentication Manager for Integration Framework
 import { createClient } from '@/lib/supabase/server'
-import type {
-  IntegrationCredential,
-  CredentialTypeEnum,
-  OAuthCredentials,
-  ApiKeyCredentials,
-  BasicAuthCredentials,
-  CredentialData,
+import {
   AuthenticationError,
+  type IntegrationCredential,
+  type CredentialTypeEnum,
+  type OAuthCredentials,
+  type ApiKeyCredentials,
+  type BasicAuthCredentials,
+  type CredentialData,
 } from '@/types/integration.types'
 
 // OAuth configuration per platform
@@ -57,8 +57,6 @@ const DEFAULT_REFRESH_CONFIG: TokenRefreshConfig = {
 }
 
 export class AuthManager {
-  private supabase = createClient()
-  
   constructor(
     private integrationId: string,
     private organizationId: string
@@ -69,9 +67,11 @@ export class AuthManager {
     credentialType: CredentialTypeEnum,
     credentials: CredentialData
   ): Promise<IntegrationCredential> {
+    const supabase = createClient()
+    
     try {
       // Encrypt the credentials
-      const { data: encryptedData, error: encryptError } = await this.supabase
+      const { data: encryptedData, error: encryptError } = await supabase
         .rpc('encrypt_credential', {
           p_credential: JSON.stringify(credentials),
         })
@@ -94,7 +94,7 @@ export class AuthManager {
       }
 
       // Store encrypted credentials
-      const { data: credential, error } = await this.supabase
+      const { data: credential, error } = await supabase
         .from('integration_credentials')
         .upsert({
           integration_id: this.integrationId,
@@ -121,9 +121,11 @@ export class AuthManager {
 
   // Retrieve and decrypt credentials
   async getCredentials(): Promise<CredentialData | null> {
+    const supabase = createClient()
+    
     try {
       // Get encrypted credentials
-      const { data: credential, error } = await this.supabase
+      const { data: credential, error } = await supabase
         .from('integration_credentials')
         .select('*')
         .eq('integration_id', this.integrationId)
@@ -154,7 +156,7 @@ export class AuthManager {
       }
 
       // Decrypt credentials
-      const { data: decryptedData, error: decryptError } = await this.supabase
+      const { data: decryptedData, error: decryptError } = await supabase
         .rpc('decrypt_credential', {
           p_encrypted: credential.encrypted_data,
         })
@@ -176,9 +178,11 @@ export class AuthManager {
   async rotateCredentials(
     newCredentials: CredentialData
   ): Promise<IntegrationCredential> {
+    const supabase = createClient()
+    
     try {
       // Get existing credential record
-      const { data: existing } = await this.supabase
+      const { data: existing } = await supabase
         .from('integration_credentials')
         .select('credential_type')
         .eq('integration_id', this.integrationId)
@@ -195,13 +199,13 @@ export class AuthManager {
       )
 
       // Update rotation timestamp
-      await this.supabase
+      await supabase
         .from('integration_credentials')
         .update({ rotated_at: new Date().toISOString() })
         .eq('id', rotated.id)
 
       // Log rotation event
-      await this.supabase.rpc('log_integration_activity', {
+      await supabase.rpc('log_integration_activity', {
         p_integration_id: this.integrationId,
         p_organization_id: this.organizationId,
         p_log_type: 'auth',
@@ -220,8 +224,10 @@ export class AuthManager {
 
   // Delete credentials
   async deleteCredentials(): Promise<void> {
+    const supabase = createClient()
+    
     try {
-      const { error } = await this.supabase
+      const { error } = await supabase
         .from('integration_credentials')
         .delete()
         .eq('integration_id', this.integrationId)
@@ -231,7 +237,7 @@ export class AuthManager {
       }
 
       // Log deletion
-      await this.supabase.rpc('log_integration_activity', {
+      await supabase.rpc('log_integration_activity', {
         p_integration_id: this.integrationId,
         p_organization_id: this.organizationId,
         p_log_type: 'auth',
@@ -355,9 +361,11 @@ export class AuthManager {
   private async refreshOAuthToken(
     credential: IntegrationCredential
   ): Promise<OAuthCredentials | null> {
+    const supabase = createClient()
+    
     try {
       // Decrypt current credentials
-      const { data: decryptedData } = await this.supabase
+      const { data: decryptedData } = await supabase
         .rpc('decrypt_credential', {
           p_encrypted: credential.encrypted_data,
         })
@@ -369,7 +377,7 @@ export class AuthManager {
       }
 
       // Get platform config
-      const { data: integration } = await this.supabase
+      const { data: integration } = await supabase
         .from('integrations')
         .select('platform, config')
         .eq('id', this.integrationId)
@@ -431,7 +439,7 @@ export class AuthManager {
       await this.storeCredentials('oauth2', refreshedCreds)
 
       // Log refresh event
-      await this.supabase.rpc('log_integration_activity', {
+      await supabase.rpc('log_integration_activity', {
         p_integration_id: this.integrationId,
         p_organization_id: this.organizationId,
         p_log_type: 'auth',
@@ -442,7 +450,8 @@ export class AuthManager {
       return refreshedCreds
     } catch (error) {
       // Log refresh failure
-      await this.supabase.rpc('log_integration_activity', {
+      const supabase = createClient()
+      await supabase.rpc('log_integration_activity', {
         p_integration_id: this.integrationId,
         p_organization_id: this.organizationId,
         p_log_type: 'auth',

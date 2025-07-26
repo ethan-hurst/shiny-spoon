@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import type { IntegrationFull } from '@/types/integration.types'
+import type { IntegrationFull, SyncJob } from '@/types/integration.types'
 
 interface IntegrationsListProps {
   integrations: IntegrationFull[]
@@ -55,23 +55,45 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
   const [loading, setLoading] = useState<string | null>(null)
 
   const handleSync = async (id: string) => {
+    const abortController = new AbortController()
     setLoading(id)
+    
     try {
       const response = await fetch(`/api/integrations/${id}/sync`, {
         method: 'POST',
+        signal: abortController.signal,
       })
 
       if (!response.ok) {
-        throw new Error('Failed to start sync')
+        let errorMessage = 'Failed to start sync'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.message || errorMessage
+        } catch {
+          // Ignore JSON parse errors
+        }
+        throw new Error(errorMessage)
       }
 
-      toast.success('Sync started successfully')
+      const data = await response.json()
+      toast.success(data.message || 'Sync started successfully')
       router.refresh()
     } catch (error) {
-      toast.error('Failed to start sync')
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          toast.error('Sync request was cancelled')
+        } else {
+          toast.error(error.message)
+        }
+      } else {
+        toast.error('Failed to start sync')
+      }
     } finally {
       setLoading(null)
     }
+    
+    // Return abort controller for cleanup if needed
+    return () => abortController.abort()
   }
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
@@ -143,7 +165,7 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
             : null
           const hasError = integration.status === 'error'
           const runningJobs = integration.sync_jobs?.filter(
-            (job: any) => job.status === 'running'
+            (job) => (job as SyncJob).status === 'running'
           ).length || 0
 
           return (
