@@ -648,7 +648,6 @@ export async function getSyncHealthData() {
     const totalJobs = jobs?.length || 0
     const successfulJobs = jobs?.filter(j => j.status === 'completed').length || 0
     const failedJobs = jobs?.filter(j => j.status === 'failed').length || 0
-    const runningJobs = jobs?.filter(j => j.status === 'running').length || 0
     const pendingJobs = jobs?.filter(j => j.status === 'pending').length || 0
 
     // Calculate metrics
