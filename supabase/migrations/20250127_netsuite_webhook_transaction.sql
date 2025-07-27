@@ -106,7 +106,7 @@ BEGIN
             COALESCE((p_record_data->>'quantityavailable')::INTEGER, 0),
             COALESCE((p_record_data->>'quantitycommitted')::INTEGER, 0),
             COALESCE((p_record_data->>'quantityonorder')::INTEGER, 0),
-            COALESCE((p_record_data->>'quantityonorder')::INTEGER, 0),
+            COALESCE((p_record_data->>'quantitycommitted')::INTEGER, 0),
             COALESCE((p_record_data->>'reorderpoint')::INTEGER, 0),
             NOW(),
             'synced'
