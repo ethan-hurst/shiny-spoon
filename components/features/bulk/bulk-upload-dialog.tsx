@@ -82,10 +82,17 @@ export function BulkUploadDialog({
       formData.append('validateOnly', values.validateOnly.toString())
       formData.append('rollbackOnError', values.rollbackOnError.toString())
 
+      // Create an AbortController for timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
       const response = await fetch('/api/bulk/upload', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -100,9 +107,41 @@ export function BulkUploadDialog({
 
       onSuccess()
     } catch (error) {
-      toast.error('Failed to start bulk operation', {
-        description: error instanceof Error ? error.message : 'Unknown error'
-      })
+      // Sanitize error messages
+      let errorMessage = 'Failed to start bulk operation'
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Please try again.'
+        } else if (error.message.toLowerCase().includes('network')) {
+          errorMessage = 'Network error. Please check your connection.'
+        } else if (error.message.toLowerCase().includes('unauthorized') || 
+                   error.message.toLowerCase().includes('authentication')) {
+          errorMessage = 'Authentication error. Please sign in again.'
+        } else if (error.message.toLowerCase().includes('validation') || 
+                   error.message.toLowerCase().includes('invalid')) {
+          // Validation errors are generally safe to show
+          errorMessage = error.message
+        } else {
+          // For other errors, check if it's a user-friendly message
+          const safePatterns = [
+            'file size',
+            'csv',
+            'format',
+            'required',
+            'missing',
+            'duplicate',
+            'already exists'
+          ]
+          
+          const lowerMessage = error.message.toLowerCase()
+          const isSafeMessage = safePatterns.some(pattern => lowerMessage.includes(pattern))
+          
+          errorMessage = isSafeMessage ? error.message : 'Failed to start bulk operation'
+        }
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setIsUploading(false)
     }
