@@ -139,9 +139,26 @@ export const CustomerBulkSchema = z.object({
 
 // Form schemas for UI
 export const BulkUploadFormSchema = z.object({
-  file: z.instanceof(File).refine(
+  file: z.custom<File>((val) => {
+    // Enhanced file validation for better cross-environment compatibility
+    if (typeof File !== 'undefined' && val instanceof File) {
+      return true;
+    }
+    // Check for File-like properties in environments where File might not be available
+    return (
+      val !== null &&
+      typeof val === 'object' &&
+      typeof (val as any).name === 'string' &&
+      typeof (val as any).size === 'number' &&
+      typeof (val as any).type === 'string' &&
+      typeof (val as any).stream === 'function'
+    );
+  }, 'Must be a valid file').refine(
     (file) => file.name.endsWith('.csv'),
     'File must be a CSV'
+  ).refine(
+    (file) => file.size <= 100 * 1024 * 1024, // 100MB limit
+    'File size must not exceed 100MB'
   ),
   operationType: z.enum(['import', 'update']),
   entityType: z.enum(['products', 'inventory', 'pricing', 'customers']),
