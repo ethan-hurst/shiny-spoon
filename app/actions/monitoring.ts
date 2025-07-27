@@ -511,6 +511,27 @@ export async function triggerAutoRemediation(discrepancyIds: string[]) {
   }
 }
 
+// Schema for accuracy report parameters
+const accuracyReportSchema = z.object({
+  startDate: z.date().optional().refine((date) => {
+    if (!date) return true
+    // Ensure date is not in the future
+    return date <= new Date()
+  }, 'Start date cannot be in the future'),
+  endDate: z.date().optional().refine((date) => {
+    if (!date) return true
+    // Ensure date is not in the future
+    return date <= new Date()
+  }, 'End date cannot be in the future'),
+  integrationId: z.string().uuid().optional(),
+}).refine((data) => {
+  // If both dates are provided, ensure startDate is before endDate
+  if (data.startDate && data.endDate) {
+    return data.startDate <= data.endDate
+  }
+  return true
+}, 'Start date must be before or equal to end date')
+
 // Get accuracy report
 export async function getAccuracyReport(
   startDate?: Date,
@@ -518,6 +539,20 @@ export async function getAccuracyReport(
   integrationId?: string
 ) {
   try {
+    // Validate input parameters
+    const validationResult = accuracyReportSchema.safeParse({
+      startDate,
+      endDate,
+      integrationId,
+    })
+
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => e.message).join(', ')
+      return { success: false, error: `Invalid parameters: ${errors}` }
+    }
+
+    const validated = validationResult.data
+
     const supabase = createClient()
 
     // Check authentication
@@ -537,12 +572,36 @@ export async function getAccuracyReport(
       return { success: false, error: 'No organization found' }
     }
 
+    // If integrationId is provided, verify it belongs to the user's organization
+    if (validated.integrationId) {
+      const { data: integration, error: integrationError } = await supabase
+        .from('integrations')
+        .select('id, organization_id')
+        .eq('id', validated.integrationId)
+        .eq('organization_id', orgUser.organization_id)
+        .single()
+
+      if (integrationError || !integration) {
+        return { success: false, error: 'Integration not found or unauthorized' }
+      }
+    }
+
+    // Set sensible defaults for date range if not provided
+    const reportStartDate = validated.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
+    const reportEndDate = validated.endDate || new Date()
+
+    // Ensure date range is not too large (e.g., max 1 year)
+    const MAX_DATE_RANGE_MS = 365 * 24 * 60 * 60 * 1000 // 1 year in milliseconds
+    if (reportEndDate.getTime() - reportStartDate.getTime() > MAX_DATE_RANGE_MS) {
+      return { success: false, error: 'Date range cannot exceed 1 year' }
+    }
+
     const scorer = new AccuracyScorer()
     const report = await scorer.getAccuracyReport({
       organizationId: orgUser.organization_id,
-      integrationId,
-      startDate,
-      endDate,
+      integrationId: validated.integrationId,
+      startDate: reportStartDate,
+      endDate: reportEndDate,
     })
 
     return { success: true, report }
