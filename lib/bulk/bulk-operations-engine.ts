@@ -5,32 +5,14 @@ import Papa from 'papaparse'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/database.types'
-import type { BulkOperationStatus } from '@/types/bulk-operations.types'
+import type { 
+  BulkOperationStatus, 
+  BulkOperationConfig, 
+  BulkOperationProgress 
+} from '@/types/bulk-operations.types'
 import { isFile } from '@/lib/utils/file'
 
 const pipelineAsync = promisify(pipeline)
-
-export interface BulkOperationConfig {
-  operationType: 'import' | 'export' | 'update' | 'delete'
-  entityType: 'products' | 'inventory' | 'pricing' | 'customers'
-  chunkSize?: number
-  maxConcurrent?: number
-  validateOnly?: boolean
-  rollbackOnError?: boolean
-  mapping?: Record<string, string>
-}
-
-export interface BulkOperationProgress {
-  operationId: string
-  status: BulkOperationStatus
-  totalRecords: number
-  processedRecords: number
-  successfulRecords: number
-  failedRecords: number
-  estimatedTimeRemaining?: number
-  currentChunk?: number
-  totalChunks?: number
-}
 
 export class BulkOperationsEngine extends EventEmitter {
   private supabase: ReturnType<typeof createServerClient>
