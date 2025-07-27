@@ -253,18 +253,16 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
                     <AlertTitle>Authentication Required</AlertTitle>
                     <AlertDescription>
                       Connect your NetSuite account using OAuth 2.0 to start syncing data.
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={() => {
-                          // This will be handled by the OAuth flow
-                          window.location.href = `/api/integrations/netsuite/auth?integration_id=${integration.id}`
-                        }}
-                      >
-                        Connect NetSuite Account
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
+                      <Link href={`/api/integrations/netsuite/auth?integration_id=${integration.id}`}>
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="mt-2"
+                        >
+                          Connect NetSuite Account
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link>
                     </AlertDescription>
                   </Alert>
                 )}
