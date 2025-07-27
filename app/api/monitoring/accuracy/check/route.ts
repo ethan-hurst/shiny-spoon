@@ -90,12 +90,28 @@ export async function POST(request: NextRequest) {
         checker.on(`error-${checkId}`, handleError)
 
         // Timeout after 5 minutes
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           checker.removeListener(`progress-${checkId}`, handleProgress)
           checker.removeListener(`complete-${checkId}`, handleComplete)
           checker.removeListener(`error-${checkId}`, handleError)
           controller.close()
         }, 5 * 60 * 1000)
+
+        // Store cleanup function for cancel
+        ;(controller as any).cleanup = () => {
+          clearTimeout(timeoutId)
+          checker.removeListener(`progress-${checkId}`, handleProgress)
+          checker.removeListener(`complete-${checkId}`, handleComplete)
+          checker.removeListener(`error-${checkId}`, handleError)
+        }
+      },
+      cancel(reason) {
+        // Clean up event listeners if client disconnects
+        const controller = this as any
+        if (controller.cleanup) {
+          controller.cleanup()
+        }
+        console.log('SSE stream cancelled:', reason)
       },
     })
 

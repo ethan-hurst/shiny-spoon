@@ -56,43 +56,23 @@ export async function POST(
     const body = await request.json()
     const validatedData = requestSchema.parse(body)
 
-    // Update alert status
-    const { error: updateError } = await supabase
-      .from('alerts')
-      .update({
-        status: 'acknowledged',
-        acknowledged_at: new Date().toISOString(),
-        acknowledged_by: orgUser.user_id,
-        acknowledgment_note: validatedData.note,
+    // Use RPC function for atomic alert acknowledgment
+    const { data: result, error: rpcError } = await supabase
+      .rpc('acknowledge_alert', {
+        p_alert_id: params.id,
+        p_organization_id: orgUser.organization_id,
+        p_user_id: orgUser.user_id,
+        p_note: validatedData.note || null,
       })
-      .eq('id', params.id)
 
-    if (updateError) {
-      throw updateError
+    if (rpcError) {
+      throw rpcError
     }
-
-    // Log the acknowledgment
-    await supabase.from('audit_logs').insert({
-      organization_id: orgUser.organization_id,
-      user_id: orgUser.user_id,
-      action: 'alert.acknowledged',
-      resource_type: 'alert',
-      resource_id: params.id,
-      details: {
-        alert_type: alert.alert_type,
-        severity: alert.severity,
-        note: validatedData.note,
-      },
-    })
 
     return NextResponse.json({
       status: 'success',
       message: 'Alert acknowledged successfully',
-      data: {
-        alertId: params.id,
-        acknowledgedAt: new Date().toISOString(),
-        acknowledgedBy: orgUser.user_id,
-      },
+      data: result,
     })
   } catch (error) {
     console.error('Alert acknowledgment API error:', error)
