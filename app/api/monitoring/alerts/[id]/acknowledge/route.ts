@@ -25,7 +25,7 @@ export async function POST(
     // Get user's organization
     const { data: orgUser } = await supabase
       .from('organization_users')
-      .select('organization_id, user_id')
+      .select('organization_id')
       .eq('user_id', user.id)
       .single()
 
@@ -61,7 +61,7 @@ export async function POST(
       .rpc('acknowledge_alert', {
         p_alert_id: params.id,
         p_organization_id: orgUser.organization_id,
-        p_user_id: orgUser.user_id,
+        p_user_id: user.id,
         p_note: validatedData.note || null,
       })
 
