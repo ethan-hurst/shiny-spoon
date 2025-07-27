@@ -23,6 +23,11 @@ BEGIN
   FROM integration_configs ic
   WHERE ic.integration_id = p_integration_id
   LIMIT 1;
+  
+  -- Set default empty object if field_mappings is null
+  IF v_field_mappings IS NULL THEN
+    v_field_mappings := '{}'::jsonb;
+  END IF;
 
   -- Process based on event type
   CASE 
