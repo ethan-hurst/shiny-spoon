@@ -107,14 +107,42 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Bulk upload error:', error)
+    
     // Sanitize error messages to avoid exposing sensitive information
-    const errorMessage = error instanceof Error && error.message.includes('User') 
-      ? error.message // Auth-related errors are safe to show
-      : 'Internal server error'
+    let errorMessage = 'Internal server error'
+    let statusCode = 500
+    
+    if (error instanceof Error) {
+      // Define patterns for authentication-related errors
+      const authErrorPatterns = [
+        'authentication',
+        'unauthorized',
+        'unauthenticated',
+        'jwt',
+        'token',
+        'session',
+        'permission',
+        'access denied',
+        'forbidden',
+        'credentials'
+      ]
+      
+      const lowerMessage = error.message.toLowerCase()
+      const isAuthError = authErrorPatterns.some(pattern => lowerMessage.includes(pattern))
+      
+      if (isAuthError) {
+        errorMessage = 'Authentication error: Please check your credentials'
+        statusCode = 401
+      } else if (lowerMessage.includes('validation') || lowerMessage.includes('invalid')) {
+        // Validation errors are generally safe to show
+        errorMessage = error.message.replace(/\b(password|token|secret|key)\b/gi, '[REDACTED]')
+        statusCode = 400
+      }
+    }
     
     return NextResponse.json(
       { error: errorMessage },
-      { status: 500 }
+      { status: statusCode }
     )
   }
 }
