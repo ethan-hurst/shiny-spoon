@@ -37,6 +37,13 @@ async function getIntegrationContext(
       case 'shopify': {
         const shopifyShop = headersList.get('x-shopify-shop-domain')
         if (!shopifyShop) return null
+        
+        // Validate shop domain format
+        const shopDomainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/
+        if (!shopDomainRegex.test(shopifyShop)) {
+          console.error('Invalid Shopify shop domain format:', shopifyShop)
+          return null
+        }
 
         const { data: integration } = await supabase
           .from('integrations')
