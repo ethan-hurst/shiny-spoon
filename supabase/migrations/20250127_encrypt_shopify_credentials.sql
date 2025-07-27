@@ -126,7 +126,10 @@ BEGIN
     RAISE EXCEPTION 'Invalid input: shop_domain cannot be null or empty';
   END IF;
 
-  -- Validate shop domain format
+  -- Sanitize shop domain first
+  p_shop_domain := lower(trim(p_shop_domain));
+
+  -- Validate shop domain format after sanitization
   IF NOT p_shop_domain ~ v_shopify_domain_pattern THEN
     RAISE EXCEPTION 'Invalid input: shop_domain must be a valid Shopify domain';
   END IF;
@@ -141,8 +144,7 @@ BEGIN
     RAISE EXCEPTION 'Invalid input: access_token cannot be null or empty';
   END IF;
 
-  -- Sanitize inputs
-  p_shop_domain := lower(trim(p_shop_domain));
+  -- Sanitize access token
   p_access_token := trim(p_access_token);
   
   -- Encrypt tokens

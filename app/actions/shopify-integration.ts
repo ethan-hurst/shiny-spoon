@@ -62,12 +62,20 @@ export async function createShopifyIntegration(formData: FormData) {
 
   const validatedData = shopifyConfigSchema.parse(rawData)
 
-  // Use RPC for atomic creation
+  // Map sync frequency number to text format
+  const getSyncFrequency = (minutes: number): string => {
+    if (minutes <= 5) return 'realtime'
+    if (minutes <= 60) return 'hourly'
+    if (minutes <= 1440) return 'daily'
+    return 'weekly'
+  }
+
+  // Use RPC for atomic creation with encryption
   const { data: integrationId, error: rpcError } = await supabase
-    .rpc('create_shopify_integration', {
+    .rpc('create_shopify_integration_encrypted', {
       p_organization_id: profile.organization_id,
       p_shop_domain: validatedData.shop_domain,
-      p_sync_frequency: validatedData.sync_frequency,
+      p_sync_frequency: getSyncFrequency(validatedData.sync_frequency),
       p_sync_products: validatedData.sync_products,
       p_sync_inventory: validatedData.sync_inventory,
       p_sync_orders: validatedData.sync_orders,
