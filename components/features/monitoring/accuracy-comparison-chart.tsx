@@ -44,7 +44,7 @@ export function AccuracyComparisonChart({
       setLoading(true)
       try {
         // Fetch accuracy data for each integration
-        const comparisonData = await Promise.all(
+        const comparisonResults = await Promise.all(
           integrations.map(async (integration) => {
             // Get latest accuracy metrics for this integration
             const { data: metrics } = await supabase
@@ -56,12 +56,8 @@ export function AccuracyComparisonChart({
               .limit(10)
 
             if (!metrics || metrics.length === 0) {
-              return {
-                integration: integration.name || integration.platform,
-                accuracy: 100,
-                checks: 0,
-                discrepancies: 0,
-              }
+              // Return null to indicate no data available
+              return null
             }
 
             // Calculate average accuracy from recent metrics
@@ -77,6 +73,9 @@ export function AccuracyComparisonChart({
             }
           })
         )
+
+        // Filter out integrations without metrics data
+        const comparisonData = comparisonResults.filter((data): data is ComparisonData => data !== null)
 
         // Sort by accuracy score
         comparisonData.sort((a, b) => b.accuracy - a.accuracy)
