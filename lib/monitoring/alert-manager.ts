@@ -414,12 +414,18 @@ export class AlertManager {
     // Reactivate expired alerts
     const alertIds = expiredAlerts.map(alert => alert.id)
     
-    await this.supabase
-      .from('alerts')
-      .update({
-        status: 'active',
-        metadata: {},
-      })
-      .in('id', alertIds)
+    // Update each alert individually to preserve metadata
+    for (const alert of expiredAlerts) {
+      const updatedMetadata = { ...alert.metadata }
+      delete updatedMetadata.snoozed_until // Remove only the snooze timestamp
+      
+      await this.supabase
+        .from('alerts')
+        .update({
+          status: 'active',
+          metadata: updatedMetadata,
+        })
+        .eq('id', alert.id)
+    }
   }
 }
