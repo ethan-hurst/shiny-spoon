@@ -129,11 +129,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Bulk upload error:', error)
-    
+
     // Sanitize error messages to avoid exposing sensitive information
     let errorMessage = 'Internal server error'
     let statusCode = 500
-    
+
     if (error instanceof Error) {
       // Define patterns for authentication-related errors
       const authErrorPatterns = [
@@ -146,25 +146,32 @@ export async function POST(request: NextRequest) {
         'permission',
         'access denied',
         'forbidden',
-        'credentials'
+        'credentials',
+        'auth failed',
+        'not authenticated',
       ]
-      
+
       const lowerMessage = error.message.toLowerCase()
-      const isAuthError = authErrorPatterns.some(pattern => lowerMessage.includes(pattern))
-      
+      const isAuthError = authErrorPatterns.some((pattern) =>
+        lowerMessage.includes(pattern)
+      )
+
       if (isAuthError) {
         errorMessage = 'Authentication error: Please check your credentials'
         statusCode = 401
-      } else if (lowerMessage.includes('validation') || lowerMessage.includes('invalid')) {
+      } else if (
+        lowerMessage.includes('validation') ||
+        lowerMessage.includes('invalid')
+      ) {
         // Validation errors are generally safe to show
-        errorMessage = error.message.replace(/\b(password|token|secret|key)\b/gi, '[REDACTED]')
+        errorMessage = error.message.replace(
+          /\b(password|token|secret|key|credential|apikey|api_key)\b/gi,
+          '[REDACTED]'
+        )
         statusCode = 400
       }
     }
-    
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: statusCode }
-    )
+
+    return NextResponse.json({ error: errorMessage }, { status: statusCode })
   }
 }
