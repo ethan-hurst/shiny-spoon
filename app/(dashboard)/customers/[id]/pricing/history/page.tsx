@@ -60,19 +60,32 @@ async function getHistoryData(customerId: string) {
   } catch (error) {
     console.error('Error fetching price history:', error)
     
-    // Check if it's an authentication error
+    // Check if it's an authentication/authorization error
     if (error instanceof Error) {
-      // Check for common auth error patterns
-      const errorMessage = error.message.toLowerCase()
-      if (errorMessage.includes('auth') || 
-          errorMessage.includes('unauthorized') ||
-          errorMessage.includes('forbidden') ||
-          errorMessage.includes('401') ||
-          errorMessage.includes('403')) {
+      // Check for Supabase auth errors or HTTP status errors
+      const isAuthError = (
+        error.message.includes('JWT') ||
+        error.message.includes('token') ||
+        error.message.includes('session') ||
+        error.message.includes('Row level security') ||
+        error.message.includes('RLS')
+      )
+      
+      // Check if error has status code (from fetch errors)
+      const errorWithStatus = error as Error & { status?: number }
+      const isHttpAuthError = errorWithStatus.status === 401 || errorWithStatus.status === 403
+      
+      if (isAuthError || isHttpAuthError) {
         // Re-throw auth errors to be handled by the app's auth middleware
         throw error
       }
     }
+    
+    // Log non-auth errors for debugging
+    console.error('Non-auth error in price history fetch:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error?.constructor?.name
+    })
     
     // For other errors, return empty history to allow page to render
     return { customer, history: [] }
