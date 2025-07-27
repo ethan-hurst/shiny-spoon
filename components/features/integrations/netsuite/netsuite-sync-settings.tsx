@@ -39,9 +39,22 @@ const syncSettingsSchema = z.object({
 
 type SyncSettingsFormValues = z.infer<typeof syncSettingsSchema>
 
+interface NetSuiteSyncConfig {
+  sync_enabled?: boolean
+  sync_frequency?: 'manual' | 'hourly' | 'daily' | 'weekly'
+  sync_products?: boolean
+  sync_inventory?: boolean
+  sync_pricing?: boolean
+  sync_customers?: boolean
+  sync_orders?: boolean
+  inventory_locations?: string[]
+  price_levels?: string[]
+  batch_size?: number
+}
+
 interface NetSuiteSyncSettingsProps {
   integrationId: string
-  config?: any
+  config?: NetSuiteSyncConfig
 }
 
 export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSettingsProps) {
