@@ -9,6 +9,17 @@ import { Loader2, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
 
+// Sanitize error messages to remove sensitive information
+function sanitizeErrorMessage(error: string): string {
+  // Remove URLs, tokens, and other sensitive patterns
+  return error
+    .replace(/https?:\/\/[^\s]+/g, '[URL]')
+    .replace(/[a-zA-Z0-9_-]{20,}/g, '[TOKEN]')
+    .replace(/Bearer\s+[^\s]+/g, 'Bearer [TOKEN]')
+    .replace(/account_id[=:]\s*\d+/gi, 'account_id=[REDACTED]')
+    .replace(/consumer_key[=:]\s*[^\s]+/gi, 'consumer_key=[REDACTED]')
+}
+
 export const metadata: Metadata = {
   title: 'NetSuite OAuth Callback | TruthSource',
   description: 'Processing NetSuite authentication',
@@ -91,16 +102,21 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
         netsuiteConfig
       )
 
-      await auth.exchangeCodeForTokens(searchParams.code)
-
-      // Update integration status
-      await supabase
-        .from('integrations')
-        .update({ 
-          status: 'active',
-          credential_type: 'oauth2',
-        })
-        .eq('id', integrationId)
+      const tokenResult = await auth.exchangeCodeForTokens(searchParams.code)
+      
+      // Only update integration status if token exchange succeeded
+      if (tokenResult) {
+        // Update integration status
+        await supabase
+          .from('integrations')
+          .update({ 
+            status: 'active',
+            credential_type: 'oauth2',
+          })
+          .eq('id', integrationId)
+      } else {
+        throw new Error('Failed to exchange code for tokens')
+      }
 
       // Log successful authentication
       await supabase.rpc('log_integration_activity', {
@@ -123,7 +139,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
           p_log_type: 'auth',
           p_severity: 'error',
           p_message: 'NetSuite OAuth authentication failed',
-          p_details: { error: errorMessage },
+          p_details: { error: sanitizeErrorMessage(errorMessage) },
         })
       }
     }

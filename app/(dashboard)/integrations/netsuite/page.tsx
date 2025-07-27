@@ -2,6 +2,7 @@
 import { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -90,8 +91,6 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
     if (data) {
       integration = data
       netsuiteConfig = data.netsuite_config?.[0]
-      // Redirect to specific integration page
-      redirect(`/integrations/netsuite?id=${data.id}`)
     }
   }
 
