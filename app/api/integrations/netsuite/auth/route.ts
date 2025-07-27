@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
 import { AuthManager } from '@/lib/integrations/auth-manager'
+import { z } from 'zod'
 import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
+
+// Shared UUID schema
+const uuidSchema = z.string().uuid('Invalid integration ID format')
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,9 +25,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Integration ID required' }, { status: 400 })
     }
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(integrationId)) {
+    // Validate UUID format using shared schema
+    try {
+      uuidSchema.parse(integrationId)
+    } catch (error) {
       return NextResponse.json({ error: 'Invalid integration ID format' }, { status: 400 })
     }
 
@@ -108,29 +113,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { integration_id, client_id, client_secret } = body
-
-    if (!integration_id || !client_id || !client_secret) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
+    
+    // Define validation schema for credentials
+    const credentialsSchema = z.object({
+      integration_id: uuidSchema,
+      client_id: z.string().min(1, 'Client ID cannot be empty').trim(),
+      client_secret: z.string().min(1, 'Client secret cannot be empty').trim()
+    })
+    
+    // Validate input
+    let validatedData
+    try {
+      validatedData = credentialsSchema.parse(body)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors = error.errors.map(e => e.message).join(', ')
+        return NextResponse.json({ error: errors }, { status: 400 })
+      }
+      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 })
     }
-
-    // Validate non-empty strings
-    if (typeof client_id !== 'string' || client_id.trim() === '' ||
-        typeof client_secret !== 'string' || client_secret.trim() === '') {
-      return NextResponse.json(
-        { error: 'Client ID and secret cannot be empty' },
-        { status: 400 }
-      )
-    }
-
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(integration_id)) {
-      return NextResponse.json({ error: 'Invalid integration ID format' }, { status: 400 })
-    }
+    
+    const { integration_id, client_id, client_secret } = validatedData
 
     // Get user's organization
     const { data: profile } = await supabase
