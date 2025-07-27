@@ -21,13 +21,11 @@ DECLARE
   v_key TEXT;
   v_encrypted TEXT;
 BEGIN
-  -- In production, this key should come from environment variables or key management service
-  -- For now, using a placeholder that should be replaced
+  -- Get encryption key from app settings (must be set via environment variables)
   v_key := current_setting('app.encryption_key', true);
   
-  IF v_key IS NULL THEN
-    -- Fallback to a default key (MUST be changed in production)
-    v_key := 'CHANGE_THIS_SECRET_KEY_IN_PRODUCTION_ENV';
+  IF v_key IS NULL OR v_key = '' THEN
+    RAISE EXCEPTION 'Encryption key not configured. Please set app.encryption_key in your environment.';
   END IF;
   
   -- Encrypt using AES
@@ -54,23 +52,28 @@ DECLARE
   v_key TEXT;
   v_decrypted TEXT;
 BEGIN
-  -- In production, this key should come from environment variables or key management service
+  -- Get encryption key from app settings (must be set via environment variables)
   v_key := current_setting('app.encryption_key', true);
   
-  IF v_key IS NULL THEN
-    -- Fallback to a default key (MUST be changed in production)
-    v_key := 'CHANGE_THIS_SECRET_KEY_IN_PRODUCTION_ENV';
+  IF v_key IS NULL OR v_key = '' THEN
+    RAISE EXCEPTION 'Encryption key not configured. Please set app.encryption_key in your environment.';
   END IF;
   
   -- Decrypt using AES
-  v_decrypted := convert_from(
-    decrypt(
-      decode(p_encrypted, 'base64'),
-      v_key::bytea,
-      'aes'
-    ),
-    'utf8'
-  );
+  BEGIN
+    v_decrypted := convert_from(
+      decrypt(
+        decode(p_encrypted, 'base64'),
+        v_key::bytea,
+        'aes'
+      ),
+      'utf8'
+    );
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Log decryption failure without exposing details
+      RAISE EXCEPTION 'Failed to decrypt credentials. Please check encryption key configuration.';
+  END;
   
   RETURN v_decrypted;
 END;
