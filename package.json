@@ -71,6 +71,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "contentlayer2": "^0.5.8",
     "date-fns": "^3.6.0",
     "encoding": "^0.1.13",
     "framer-motion": "^11.1.9",
@@ -80,7 +81,6 @@
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.436.0",
     "mini-svg-data-uri": "^1.4.4",
-    "contentlayer2": "^0.5.8",
     "next": "^14.2.30",
     "next-contentlayer2": "^0.5.8",
     "next-themes": "^0.3.0",
@@ -108,6 +108,7 @@
     "swagger-ui-react": "^5.27.0",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
+    "twilio": "^5.8.0",
     "zod": "^3.25.76",
     "zustand": "^5.0.6"
   },

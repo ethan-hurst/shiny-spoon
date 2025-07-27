@@ -187,12 +187,16 @@ export class NotificationService {
 
 // Email Provider using Resend
 class EmailProvider implements NotificationProvider {
+  private resend: any
+  
+  constructor() {
+    // Import Resend SDK dynamically to avoid issues during build
+    const { Resend } = require('resend')
+    this.resend = new Resend(process.env.RESEND_API_KEY)
+  }
+
   async send(config: NotificationConfig): Promise<NotificationResult> {
     try {
-      // In production, this would use the Resend SDK
-      // import { Resend } from 'resend'
-      // const resend = new Resend(process.env.RESEND_API_KEY)
-      
       const recipient = config.metadata?.recipient
       if (!recipient) {
         return {
@@ -201,25 +205,36 @@ class EmailProvider implements NotificationProvider {
         }
       }
 
-      // Mock implementation - replace with actual Resend call
-      console.log('Sending email notification:', {
+      // Send actual email using Resend SDK
+      const { data, error } = await this.resend.emails.send({
+        from: 'TruthSource Alerts <alerts@truthsource.io>',
         to: recipient,
         subject: config.title,
         html: this.formatEmailHtml(config),
+        tags: [
+          {
+            name: 'alert_id',
+            value: config.alertId,
+          },
+          {
+            name: 'severity',
+            value: config.severity,
+          },
+        ],
       })
 
-      // In production:
-      // const { data, error } = await resend.emails.send({
-      //   from: 'TruthSource Alerts <alerts@truthsource.io>',
-      //   to: recipient,
-      //   subject: config.title,
-      //   html: this.formatEmailHtml(config),
-      // })
+      if (error) {
+        return {
+          success: false,
+          errorMessage: error.message || 'Email send failed',
+          providerResponse: error,
+        }
+      }
 
       return {
         success: true,
         deliveredAt: new Date(),
-        providerResponse: { messageId: 'mock-message-id' },
+        providerResponse: { messageId: data?.id },
       }
     } catch (error) {
       return {
@@ -238,6 +253,30 @@ class EmailProvider implements NotificationProvider {
     }
 
     const color = severityColors[config.severity as keyof typeof severityColors] || '#6b7280'
+    
+    // Validate and sanitize actionUrl
+    let safeActionUrl: string | null = null
+    if (config.actionUrl) {
+      // Ensure actionUrl starts with / and contains no dangerous characters
+      const sanitizedPath = config.actionUrl
+        .replace(/[<>"']/g, '') // Remove potentially dangerous characters
+        .replace(/\/+/g, '/') // Normalize multiple slashes
+        .trim()
+      
+      if (sanitizedPath.startsWith('/') && sanitizedPath.length > 1) {
+        safeActionUrl = sanitizedPath
+      }
+    }
+
+    // HTML encode message content to prevent XSS
+    const htmlEncode = (str: string) => {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+    }
 
     return `
       <!DOCTYPE html>
@@ -255,13 +294,13 @@ class EmailProvider implements NotificationProvider {
       <body>
         <div class="container">
           <div class="header">
-            <h2 style="margin: 0;">${config.title}</h2>
+            <h2 style="margin: 0;">${htmlEncode(config.title)}</h2>
           </div>
           <div class="content">
             <p><span class="severity">${config.severity.toUpperCase()}</span></p>
-            <div style="white-space: pre-line; margin-top: 20px;">${config.message}</div>
-            ${config.actionUrl ? `
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}${config.actionUrl}" class="button">
+            <div style="white-space: pre-line; margin-top: 20px;">${htmlEncode(config.message)}</div>
+            ${safeActionUrl ? `
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}${safeActionUrl}" class="button">
                 View Alert Details
               </a>
             ` : ''}
@@ -279,6 +318,17 @@ class EmailProvider implements NotificationProvider {
 
 // SMS Provider using Twilio
 class SMSProvider implements NotificationProvider {
+  private twilioClient: any
+  
+  constructor() {
+    // Import Twilio SDK dynamically to avoid issues during build
+    const twilio = require('twilio')
+    this.twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    )
+  }
+
   async send(config: NotificationConfig): Promise<NotificationResult> {
     try {
       const recipient = config.metadata?.recipient
@@ -289,47 +339,63 @@ class SMSProvider implements NotificationProvider {
         }
       }
 
-      // In production, this would use the Twilio SDK
-      // import twilio from 'twilio'
-      // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+      const fromNumber = process.env.TWILIO_PHONE_NUMBER
+      if (!fromNumber) {
+        return {
+          success: false,
+          errorMessage: 'Twilio phone number not configured',
+        }
+      }
 
       const message = this.formatSMSMessage(config)
 
-      // Mock implementation
-      console.log('Sending SMS notification:', {
-        to: recipient,
+      // Send actual SMS using Twilio SDK
+      const result = await this.twilioClient.messages.create({
         body: message,
+        from: fromNumber,
+        to: recipient,
+        statusCallback: process.env.TWILIO_STATUS_CALLBACK_URL,
       })
-
-      // In production:
-      // const result = await client.messages.create({
-      //   body: message,
-      //   from: process.env.TWILIO_PHONE_NUMBER,
-      //   to: recipient,
-      // })
 
       return {
         success: true,
         deliveredAt: new Date(),
-        providerResponse: { sid: 'mock-sms-id' },
+        providerResponse: { 
+          sid: result.sid,
+          status: result.status,
+          price: result.price,
+          priceUnit: result.priceUnit,
+        },
       }
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
-        errorMessage: error instanceof Error ? error.message : 'SMS send failed',
+        errorMessage: error?.message || 'SMS send failed',
+        providerResponse: {
+          code: error?.code,
+          status: error?.status,
+          moreInfo: error?.moreInfo,
+        },
       }
     }
   }
 
   private formatSMSMessage(config: NotificationConfig): string {
     // SMS has character limits, so keep it concise
-    const lines = [
-      `🚨 ${config.severity.toUpperCase()} Alert`,
-      config.title,
-      '',
-      'View details:',
-      `${process.env.NEXT_PUBLIC_APP_URL}${config.actionUrl}`,
-    ]
+    const lines = [`🚨 ${config.severity.toUpperCase()} Alert`, config.title]
+    
+    // Only include URL if actionUrl is valid
+    if (config.actionUrl) {
+      // Validate actionUrl - ensure it's a relative path starting with /
+      const sanitizedPath = config.actionUrl
+        .replace(/[<>"']/g, '') // Remove potentially dangerous characters
+        .replace(/\/+/g, '/') // Normalize multiple slashes
+        .trim()
+      
+      if (sanitizedPath.startsWith('/') && sanitizedPath.length > 1) {
+        lines.push('', 'View details:', `${process.env.NEXT_PUBLIC_APP_URL}${sanitizedPath}`)
+      }
+    }
 
     return lines.join('\n')
   }
