@@ -158,9 +158,22 @@ export async function getBulkOperations() {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
+  // Get user's organization_id
+  const { data: userProfile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError) throw profileError
+  if (!userProfile?.organization_id) {
+    throw new Error('User does not belong to an organization')
+  }
+
   const { data, error } = await supabase
     .from('bulk_operations')
     .select('*')
+    .eq('organization_id', userProfile.organization_id)
     .order('created_at', { ascending: false })
     .limit(50)
 
