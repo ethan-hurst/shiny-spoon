@@ -41,13 +41,13 @@ interface NetSuiteSyncStatusProps {
   integrationId: string
 }
 
-const entityIcons = {
+const ENTITY_ICONS = {
   products: Package,
   inventory: Package,
   pricing: DollarSign,
   customers: Users,
   orders: ShoppingCart,
-}
+} as const
 
 const severityColors = {
   info: 'default',
@@ -223,9 +223,9 @@ export function NetSuiteSyncStatus({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {['products', 'inventory', 'pricing', 'customers', 'orders'].map((entityType) => {
+              {Object.keys(ENTITY_ICONS).map((entityType) => {
                 const state = syncStatesByEntity[entityType]
-                const Icon = entityIcons[entityType as keyof typeof entityIcons]
+                const Icon = ENTITY_ICONS[entityType as keyof typeof ENTITY_ICONS]
                 const isInProgress = state?.sync_status === 'in_progress'
                 const progress = state?.sync_progress || 0
 
