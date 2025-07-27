@@ -38,20 +38,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!['import', 'export', 'update', 'delete'].includes(operationType)) {
-      return NextResponse.json(
-        { error: 'Invalid operation type' },
-        { status: 400 }
-      )
-    }
-
-    if (!['products', 'inventory', 'pricing', 'customers'].includes(entityType)) {
-      return NextResponse.json(
-        { error: 'Invalid entity type' },
-        { status: 400 }
-      )
-    }
-
     // Validate file
     const validation = validateCSVFile(file)
     if (!validation.valid) {
