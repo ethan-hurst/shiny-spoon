@@ -1,12 +1,15 @@
 import { z } from 'zod'
 
+// Reusable status type for bulk operations
+export type BulkOperationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rolled_back' | 'rolling_back'
+
 // Database types matching the schema
 export interface BulkOperation {
   id: string
   organization_id: string
   operation_type: 'import' | 'export' | 'update' | 'delete'
   entity_type: 'products' | 'inventory' | 'pricing' | 'customers'
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rolled_back'
+  status: BulkOperationStatus
   
   // File information
   file_name?: string
@@ -49,7 +52,7 @@ export interface BulkOperationRecord {
   after_data?: Record<string, any>
   
   // Status
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'rolled_back'
+  status: Exclude<BulkOperationStatus, 'cancelled' | 'rolling_back'>
   error?: string
   processed_at?: string
 }

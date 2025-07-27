@@ -5,6 +5,7 @@ import Papa from 'papaparse'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/database.types'
+import type { BulkOperationStatus } from '@/types/bulk-operations.types'
 
 const pipelineAsync = promisify(pipeline)
 
@@ -36,13 +37,7 @@ export interface BulkOperationConfig {
 
 export interface BulkOperationProgress {
   operationId: string
-  status:
-    | 'pending'
-    | 'processing'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'rolled_back'
+  status: BulkOperationStatus
   totalRecords: number
   processedRecords: number
   successfulRecords: number
@@ -691,7 +686,7 @@ export class BulkOperationsEngine extends EventEmitter {
 
   private async updateOperationStatus(
     operationId: string,
-    status: Database['public']['Tables']['bulk_operations']['Row']['status'],
+    status: BulkOperationStatus,
     additionalData?: Record<string, any>
   ): Promise<void> {
     const updateData: any = { status }
