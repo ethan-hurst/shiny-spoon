@@ -15,7 +15,7 @@ export interface ShopifySyncSettings {
 }
 
 export interface ShopifyIntegrationConfig extends ShopifyConfig {
-  shop_domain?: string
+  shop_domain: string
   created_at?: string
   updated_at?: string
 }

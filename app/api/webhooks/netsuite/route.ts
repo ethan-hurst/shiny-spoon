@@ -42,6 +42,11 @@ function verifyWebhookSignature(
   )
 }
 
+/**
+ * Handles incoming NetSuite webhook POST requests, verifying signature, validating payload, recording the event, and processing it atomically via a Supabase RPC.
+ *
+ * Returns a JSON response indicating success or an error with appropriate HTTP status codes for invalid signatures, missing headers, inactive webhooks, or processing failures.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -124,6 +129,58 @@ export async function POST(request: NextRequest) {
       netsuiteConfig?.field_mappings || {}
     )
 
+    // Use a database transaction for all webhook processing
+    // Since Supabase doesn't have native transaction support in the client,
+    // we'll create an RPC function to handle the webhook processing atomically
+    try {
+      const processingResult = await supabase.rpc('process_netsuite_webhook', {
+        p_webhook_id: webhook.id,
+        p_integration_id: webhook.integration_id,
+        p_organization_id: webhook.integrations.organization_id,
+        p_event_type: validated.event_type,
+        p_record_data: validated.record.fields,
+        p_event_id: event.id
+      })
+
+      // Enhanced error handling
+      if (processingResult.error) {
+        console.error('RPC processing error:', processingResult.error)
+        throw new Error(
+          processingResult.error.message || 
+          processingResult.error.toString() || 
+          'Failed to process webhook'
+        )
+      }
+
+      // Verify the RPC returned valid data
+      if (!processingResult.data) {
+        console.error('RPC returned no data')
+        throw new Error('Webhook processing returned no data')
+      }
+
+      // Check if RPC indicated success
+      if (processingResult.data === false || processingResult.data.success === false) {
+        const errorMsg = processingResult.data?.error || 'Webhook processing failed'
+        console.error('RPC processing failed:', errorMsg)
+        throw new Error(errorMsg)
+      }
+
+      return NextResponse.json({ success: true })
+
+    } catch (processingError) {
+      console.error('Webhook processing error:', processingError)
+      
+      // Mark webhook as failed
+      await handler.markWebhookFailed(event.id, {
+        error: processingError instanceof Error ? processingError.message : 'Processing failed',
+        response_status: 500,
+      })
+
+      throw processingError
+    }
+
+    // Original non-transactional code (keeping as reference, but not executed)
+    /*
     try {
       switch (validated.event_type) {
         case 'item.created':
@@ -274,6 +331,7 @@ export async function POST(request: NextRequest) {
 
       throw processingError
     }
+    */
 
   } catch (error) {
     console.error('NetSuite webhook error:', error)

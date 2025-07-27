@@ -3,6 +3,7 @@ import Papa from 'papaparse'
 import { productSchema } from '@/lib/validations/product'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
+import { escapeCSVField } from '@/lib/utils/csv'
 
 export interface CSVParseResult {
   success: boolean
@@ -126,6 +127,12 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
 }
 
 
+/**
+ * Generates a CSV template string for product imports with headers and sample rows.
+ *
+ * The template includes properly escaped fields and example data for each required and optional column.
+ * @returns A CSV-formatted string containing headers and three sample product rows.
+ */
 export function generateProductCSVTemplate(): string {
   const headers = ['sku', 'name', 'description', 'category', 'base_price', 'cost', 'weight']
   const sampleRows = [
@@ -135,8 +142,8 @@ export function generateProductCSVTemplate(): string {
   ]
 
   const csvLines = [
-    headers.join(','),
-    ...sampleRows.map(row => row.map(cell => `"${cell}"`).join(','))
+    headers.map(escapeCSVField).join(','),
+    ...sampleRows.map(row => row.map(cell => escapeCSVField(cell)).join(','))
   ]
 
   return csvLines.join('\n')

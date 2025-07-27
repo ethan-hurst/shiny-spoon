@@ -30,14 +30,25 @@ interface Product {
   base_price: number
 }
 
+type ContractItemFieldValue<K extends keyof ContractItemForm> = ContractItemForm[K]
+
 interface ContractItemsSectionProps {
   contractItems: ContractItemForm[]
   products: Product[]
   onAddItem: () => void
   onRemoveItem: (index: number) => void
-  onUpdateItem: (index: number, field: keyof ContractItemForm, value: any) => void
+  onUpdateItem: <K extends keyof ContractItemForm>(
+    index: number,
+    field: K,
+    value: ContractItemFieldValue<K>
+  ) => void
 }
 
+/**
+ * Renders a section for managing a list of contract items, allowing users to add, edit, and remove items with associated product and pricing details.
+ *
+ * Displays contract items with fields for product selection, contract price, quantity limits, price lock, and notes. Provides controls to add new items or remove existing ones, and invokes callback handlers for all item modifications.
+ */
 export function ContractItemsSection({
   contractItems,
   products,
@@ -80,6 +91,7 @@ export function ContractItemsSection({
                   size="sm"
                   className="absolute right-2 top-2"
                   onClick={() => onRemoveItem(index)}
+                  aria-label="Remove item"
                 >
                   <X className="h-4 w-4" />
                 </Button>

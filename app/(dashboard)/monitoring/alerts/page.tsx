@@ -2,17 +2,23 @@
 import { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { Plus, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { AlertRulesList } from '@/components/features/monitoring/alert-rules-list'
 import { AlertConfigDialog } from '@/components/features/monitoring/alert-config-dialog'
+import { RefreshButton } from '@/components/features/monitoring/refresh-button'
 
 export const metadata: Metadata = {
   title: 'Alert Configuration | TruthSource',
   description: 'Configure accuracy monitoring alert rules',
 }
 
+/**
+ * Server component for the Alert Configuration page, displaying and managing alert rules for the authenticated user's organization.
+ *
+ * Redirects unauthenticated users to the login page and users without an organization to onboarding. Fetches and displays alert rules for the user's organization, or shows an error message if loading fails.
+ */
 export default async function AlertsPage() {
   const supabase = await createClient()
   
@@ -62,10 +68,23 @@ export default async function AlertsPage() {
         </AlertConfigDialog>
       </div>
 
-      <AlertRulesList 
-        rules={alertRules || []} 
-        organizationId={orgUser.organization_id}
-      />
+      {rulesError ? (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <h3 className="font-semibold">Failed to load alert rules</h3>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We encountered an error while loading your alert rules. Please try refreshing the page.
+          </p>
+          <RefreshButton className="mt-3" />
+        </div>
+      ) : (
+        <AlertRulesList 
+          rules={alertRules || []} 
+          organizationId={orgUser.organization_id}
+        />
+      )}
     </div>
   )
 }

@@ -51,7 +51,13 @@ async function validateCSRFToken(request: NextRequest): Promise<boolean> {
   }
 }
 
-// Update integration
+/**
+ * Handles PATCH requests to update an integration resource.
+ *
+ * Validates the CSRF token and user authentication, parses and validates the request body, and updates the specified integration using the provided data. Returns appropriate JSON responses for validation errors, authentication failures, or update errors.
+ *
+ * @returns A JSON response containing the updated integration data on success, or an error message with the corresponding HTTP status code on failure.
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -113,14 +119,12 @@ export async function PATCH(
     return NextResponse.json(result.data)
   } catch (error) {
     console.error('Integration PATCH API error:', {
-      error,
+      error: error instanceof Error ? error.message : 'Unknown error',
       method: 'PATCH',
-      url: request.url,
       integrationId: params.id,
       userId: user?.id,
-      userEmail: user?.email,
-      requestBody: body,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Removed requestBody and userEmail to prevent logging sensitive data
     })
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -129,7 +133,11 @@ export async function PATCH(
   }
 }
 
-// Delete integration
+/**
+ * Handles HTTP DELETE requests to remove an integration resource.
+ *
+ * Validates the CSRF token and user authentication before attempting deletion. Returns appropriate JSON responses for authorization errors, validation failures, or internal errors.
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -163,13 +171,12 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Integration DELETE API error:', {
-      error,
+      error: error instanceof Error ? error.message : 'Unknown error',
       method: 'DELETE',
-      url: request.url,
       integrationId: params.id,
       userId: user?.id,
-      userEmail: user?.email,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Removed URL and userEmail to prevent logging sensitive data
     })
     return NextResponse.json(
       { error: 'Internal server error' },

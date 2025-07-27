@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { PriceApprovalWithDetails } from '@/types/customer-pricing.types'
 import { queueEmail } from '@/lib/email/email-queue'
 
@@ -29,6 +30,15 @@ const APPROVAL_THRESHOLDS = {
   MARGIN_LOW: 15,    // Margin percentage considered low
 }
 
+/**
+ * Generates an HTML email body for a price approval request, including customer, product, pricing, discount, margin, reason, requester, and request date details.
+ *
+ * All dynamic content is HTML-escaped to prevent XSS. Visual emphasis is applied to discount and margin metrics based on defined thresholds. If the request date is invalid or cannot be parsed, "Date unavailable" is shown.
+ *
+ * @param approval - The price approval details to include in the email
+ * @param actionUrl - The URL for the recipient to review and approve the request
+ * @returns The complete HTML string for the approval email
+ */
 export function generateApprovalEmailHtml({
   approval,
   actionUrl,
@@ -263,9 +273,14 @@ export function generateApprovalEmailHtml({
       ${(() => {
         try {
           const date = new Date(approval.requested_at)
-          return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleString()
-        } catch {
-          return 'Invalid date'
+          if (isNaN(date.getTime())) {
+            console.error('Invalid date:', approval.requested_at)
+            return 'Date unavailable'
+          }
+          return date.toLocaleString()
+        } catch (error) {
+          console.error('Date parsing error:', error)
+          return 'Date unavailable'
         }
       })()}
     </div>
@@ -284,6 +299,11 @@ export function generateApprovalEmailHtml({
   `
 }
 
+/**
+ * Generates a plain text email body for a price approval request, including customer, product, pricing, discount, margin, reason, requester, date, and approval link.
+ *
+ * @returns The plain text content for the approval email.
+ */
 export function generateApprovalEmailText({
   approval,
   actionUrl,
@@ -306,7 +326,17 @@ Reason for Change:
 ${approval.change_reason}
 
 Requested by: ${approval.requested_by_user?.email || 'Unknown User'}
-Date: ${new Date(approval.requested_at).toLocaleString()}
+Date: ${(() => {
+  try {
+    const date = new Date(approval.requested_at)
+    if (isNaN(date.getTime())) {
+      return 'Date unavailable'
+    }
+    return date.toLocaleString()
+  } catch {
+    return 'Date unavailable'
+  }
+})()}
 
 Review and approve this request:
 ${actionUrl}
@@ -315,15 +345,27 @@ This is an automated notification from TruthSource.
   `
 }
 
-// This would be used in a Supabase Edge Function or API route
+/**
+ * Sends a price approval request email to the specified recipient.
+ *
+ * Validates the recipient's email address, generates both HTML and plain text email content with approval details, and queues the email for sending. Throws an error if validation fails or if the email cannot be queued.
+ *
+ * @param to - The recipient's email address
+ * @param approval - The approval request details to include in the email
+ * @param actionUrl - The URL for the recipient to review and approve the request
+ * @returns An object indicating success, recipient, and subject if the email is queued successfully
+ * @throws If the email address is invalid or the email cannot be queued for sending
+ */
 export async function sendApprovalEmail({
   to,
   approval,
   actionUrl,
 }: ApprovalEmailParams) {
-  // Validate email address
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(to)) {
+  // Validate email address with zod
+  const emailSchema = z.string().email()
+  try {
+    emailSchema.parse(to)
+  } catch (error) {
     throw new Error('Invalid email address')
   }
 

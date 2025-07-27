@@ -2,6 +2,8 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -27,6 +29,14 @@ interface DiscrepancyTableProps {
   onResolve: (id: string) => Promise<void>
 }
 
+/**
+ * Displays a table of data discrepancies with interactive controls for resolving individual discrepancies.
+ *
+ * Renders a summary table showing entity, field, type, severity, detection time, status, and actions for each discrepancy. If no discrepancies are present, displays a message indicating data is in sync. Provides a "Mark Resolved" action for each discrepancy, disabling controls while resolution is in progress. If more than 10 discrepancies exist, includes a link to view all discrepancies.
+ *
+ * @param discrepancies - The list of discrepancies to display in the table.
+ * @param onResolve - Callback invoked when a discrepancy is marked as resolved.
+ */
 export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableProps) {
   const [resolvingIds, setResolvingIds] = useState<Set<string>>(new Set())
 
@@ -114,7 +124,7 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant={getSeverityColor(discrepancy.severity) as any}>
+                <Badge variant={getSeverityColor(discrepancy.severity)}>
                   {discrepancy.severity}
                 </Badge>
               </TableCell>
@@ -151,9 +161,11 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
 
       {discrepancies.length > 10 && (
         <div className="text-center">
-          <Button variant="outline" size="sm">
-            View All Discrepancies
-          </Button>
+          <Link href="/monitoring/discrepancies">
+            <Button variant="outline" size="sm">
+              View All Discrepancies
+            </Button>
+          </Link>
         </div>
       )}
     </div>

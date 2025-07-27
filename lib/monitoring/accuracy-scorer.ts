@@ -139,9 +139,10 @@ export class AccuracyScorer {
     }
 
     // Calculate breakdowns
-    const byEntityType = this.calculateEntityBreakdown(
+    const byEntityType = await this.calculateEntityBreakdown(
       discrepancies,
-      latestCheck.records_checked
+      latestCheck.records_checked,
+      config.organizationId
     )
     
     const bySeverity = this.calculateSeverityBreakdown(
@@ -162,10 +163,11 @@ export class AccuracyScorer {
     }
   }
 
-  private calculateEntityBreakdown(
+  private async calculateEntityBreakdown(
     discrepancies: any[],
-    totalRecords: number
-  ): Record<string, number> {
+    totalRecords: number,
+    organizationId: string
+  ): Promise<Record<string, number>> {
     const breakdown: Record<string, number> = {}
     const entityCounts: Record<string, number> = {}
 
@@ -175,15 +177,65 @@ export class AccuracyScorer {
         (entityCounts[discrepancy.entity_type] || 0) + 1
     }
 
+    // Get actual entity counts from database
+    const actualEntityCounts = await this.getActualEntityCounts(organizationId)
+    
     // Calculate accuracy for each entity type
-    for (const [entityType, count] of Object.entries(entityCounts)) {
-      // Estimate records per entity type (in production, query actual counts)
-      const estimatedRecords = totalRecords / Object.keys(entityCounts).length
-      const entityScore = ((estimatedRecords - count) / estimatedRecords) * 100
-      breakdown[entityType] = Math.max(0, Math.min(100, entityScore))
+    for (const [entityType, discrepancyCount] of Object.entries(entityCounts)) {
+      const actualCount = actualEntityCounts[entityType] || 0
+      if (actualCount > 0) {
+        const entityScore = ((actualCount - discrepancyCount) / actualCount) * 100
+        breakdown[entityType] = Math.max(0, Math.min(100, entityScore))
+      } else {
+        // If no records for this entity type, assume 100% accuracy
+        breakdown[entityType] = 100
+      }
     }
 
     return breakdown
+  }
+
+  private async getActualEntityCounts(
+    organizationId: string
+  ): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {}
+    
+    try {
+      // Get product count
+      const { count: productCount } = await this.supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+      
+      // Get inventory count
+      const { count: inventoryCount } = await this.supabase
+        .from('inventory')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+      
+      // Get customer count
+      const { count: customerCount } = await this.supabase
+        .from('customers')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+      
+      // Get pricing count
+      const { count: pricingCount } = await this.supabase
+        .from('pricing_rules')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId)
+      
+      counts.product = productCount || 0
+      counts.inventory = inventoryCount || 0
+      counts.customer = customerCount || 0
+      counts.pricing = pricingCount || 0
+      
+    } catch (error) {
+      console.error('Error fetching entity counts:', error)
+      // Return empty counts on error
+    }
+    
+    return counts
   }
 
   private calculateSeverityBreakdown(

@@ -40,6 +40,12 @@ export async function generateMetadata(
   }
 }
 
+/**
+ * Retrieves customer details and their associated contracts, including contract items and product information, for a given customer ID.
+ *
+ * @param customerId - The unique identifier of the customer whose contracts are to be fetched.
+ * @returns An object containing the customer and their contracts, or `null` if the customer is not found.
+ */
 async function getContractsData(customerId: string) {
   const supabase = await createClient()
 
@@ -51,6 +57,7 @@ async function getContractsData(customerId: string) {
     .single()
 
   if (customerError || !customer) {
+    console.error('Error fetching customer:', customerError)
     return null
   }
 

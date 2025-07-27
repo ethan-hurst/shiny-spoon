@@ -65,13 +65,13 @@ BEGIN
     -- Encrypt new credentials before storing
     IF p_access_token IS NOT NULL THEN
       -- Use the encrypt_credential function from the encryption system
-      v_encrypted_token := encrypt_credential(p_access_token, 'integration-key');
+      v_encrypted_token := encrypt_credential(p_access_token);
       v_existing_credentials = jsonb_set(v_existing_credentials, '{access_token}', to_jsonb(v_encrypted_token));
     END IF;
     
     IF p_webhook_secret IS NOT NULL THEN
       -- Use the encrypt_credential function from the encryption system
-      v_encrypted_secret := encrypt_credential(p_webhook_secret, 'integration-key');
+      v_encrypted_secret := encrypt_credential(p_webhook_secret);
       v_existing_credentials = jsonb_set(v_existing_credentials, '{webhook_secret}', to_jsonb(v_encrypted_secret));
     END IF;
 
@@ -79,6 +79,7 @@ BEGIN
     UPDATE integration_credentials
     SET
       credentials = v_existing_credentials,
+      encrypted = true,
       updated_at = NOW()
     WHERE integration_id = p_integration_id;
   END IF;
@@ -124,11 +125,11 @@ BEGIN
   RETURN QUERY
   SELECT 
     CASE 
-      WHEN v_encrypted_token IS NOT NULL THEN decrypt_credential(v_encrypted_token, 'integration-key')
+      WHEN v_encrypted_token IS NOT NULL THEN decrypt_credential(v_encrypted_token)
       ELSE NULL
     END as access_token,
     CASE 
-      WHEN v_encrypted_secret IS NOT NULL THEN decrypt_credential(v_encrypted_secret, 'integration-key')
+      WHEN v_encrypted_secret IS NOT NULL THEN decrypt_credential(v_encrypted_secret)
       ELSE NULL
     END as webhook_secret;
 END;

@@ -170,6 +170,46 @@ export interface NetSuiteIntegrationConfig {
   field_mappings: Record<string, string>
 }
 
+// Validation schema for NetSuite configuration
+export const netsuiteIntegrationConfigSchema = z.object({
+  account_id: z.string().min(1, 'Account ID is required'),
+  datacenter_url: z.string().url('Datacenter URL must be a valid URL'),
+  consumer_key: z.string().optional(),
+  consumer_secret: z.string().optional(),
+  token_id: z.string().optional(),
+  token_secret: z.string().optional(),
+  sync_frequency: z.number().min(1, 'Sync frequency must be at least 1'),
+  inventory_sync_enabled: z.boolean(),
+  product_sync_enabled: z.boolean(),
+  pricing_sync_enabled: z.boolean(),
+  field_mappings: z.record(z.string(), z.string()).default({}),
+})
+
+/**
+ * Validates and parses a NetSuite integration configuration object.
+ *
+ * @param config - The configuration object to validate
+ * @returns The validated and typed NetSuiteIntegrationConfig object
+ * @throws If the input does not conform to the required schema
+ */
+export function validateNetSuiteConfig(config: unknown): NetSuiteIntegrationConfig {
+  return netsuiteIntegrationConfigSchema.parse(config)
+}
+
+/**
+ * Determines whether the provided value is a valid NetSuite integration configuration.
+ *
+ * Returns true if the input conforms to the NetSuiteIntegrationConfig schema; otherwise, returns false.
+ */
+export function isNetSuiteIntegrationConfig(config: unknown): config is NetSuiteIntegrationConfig {
+  try {
+    netsuiteIntegrationConfigSchema.parse(config)
+    return true
+  } catch {
+    return false
+  }
+}
+
 // Sync state types
 export interface NetSuiteSyncState {
   entity_type: 'product' | 'inventory' | 'pricing'
@@ -180,11 +220,32 @@ export interface NetSuiteSyncState {
   total_errors: number
 }
 
-// Type guards
+/**
+ * Determines whether the provided value is a NetSuiteApiError object.
+ *
+ * Returns true if the input has the required structure and types for a NetSuite API error.
+ */
 export function isNetSuiteApiError(error: any): error is NetSuiteApiError {
-  return error && typeof error === 'object' && 'type' in error && 'status' in error
+  return (
+    error && 
+    typeof error === 'object' && 
+    'type' in error && 
+    typeof error.type === 'string' &&
+    'status' in error && 
+    typeof error.status === 'number' &&
+    'title' in error && 
+    typeof error.title === 'string' &&
+    // Optional properties type checks
+    (!('detail' in error) || typeof error.detail === 'string') &&
+    (!('o:errorCode' in error) || typeof error['o:errorCode'] === 'string')
+  )
 }
 
+/**
+ * Determines whether the given object is a NetSuiteItem by checking for required properties.
+ *
+ * @returns True if the object has both 'id' and 'itemid' properties; otherwise, false.
+ */
 export function isNetSuiteItem(obj: any): obj is NetSuiteItem {
   return obj && typeof obj === 'object' && 'id' in obj && 'itemid' in obj
 }

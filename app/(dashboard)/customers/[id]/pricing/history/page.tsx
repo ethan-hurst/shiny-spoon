@@ -39,6 +39,14 @@ export async function generateMetadata(
   }
 }
 
+/**
+ * Retrieves customer details and their price history by customer ID.
+ *
+ * Fetches the customer record and up to 100 price history entries. If the customer is not found, returns `null`. If an authentication or authorization error occurs while fetching price history, the error is re-thrown for middleware handling. For other errors, returns the customer data with an empty history array to allow the page to render.
+ *
+ * @param customerId - The unique identifier of the customer
+ * @returns An object containing the customer and their price history, or `null` if the customer does not exist
+ */
 async function getHistoryData(customerId: string) {
   const supabase = await createClient()
 
@@ -59,6 +67,35 @@ async function getHistoryData(customerId: string) {
     return { customer, history }
   } catch (error) {
     console.error('Error fetching price history:', error)
+    
+    // Check if it's an authentication/authorization error
+    if (error instanceof Error) {
+      // Check for Supabase auth errors or HTTP status errors
+      const isAuthError = (
+        error.message.includes('JWT') ||
+        error.message.includes('token') ||
+        error.message.includes('session') ||
+        error.message.includes('Row level security') ||
+        error.message.includes('RLS')
+      )
+      
+      // Check if error has status code (from fetch errors)
+      const errorWithStatus = error as Error & { status?: number }
+      const isHttpAuthError = errorWithStatus.status === 401 || errorWithStatus.status === 403
+      
+      if (isAuthError || isHttpAuthError) {
+        // Re-throw auth errors to be handled by the app's auth middleware
+        throw error
+      }
+    }
+    
+    // Log non-auth errors for debugging
+    console.error('Non-auth error in price history fetch:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: error?.constructor?.name
+    })
+    
+    // For other errors, return empty history to allow page to render
     return { customer, history: [] }
   }
 }

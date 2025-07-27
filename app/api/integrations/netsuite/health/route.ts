@@ -1,6 +1,7 @@
 // PRP-013: NetSuite Integration Health Check
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { timingSafeEqual } from 'crypto'
 
 interface HealthMetrics {
   integration_id: string
@@ -290,7 +291,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Monitor endpoint for automated health checks
+/**
+ * Performs automated health checks on all active NetSuite integrations for monitoring purposes.
+ *
+ * Authenticates requests using either an API key (with timing-safe comparison) or an admin user's bearer token. For each active NetSuite integration, checks recent error logs to determine health status (`healthy`, `degraded`, or `unhealthy`). Logs a critical alert for integrations deemed unhealthy. Returns a summary of health check results for all integrations, including error counts and timestamps.
+ *
+ * @returns A JSON response containing the overall status, number of integrations checked, individual health check results, and a timestamp.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -302,7 +309,27 @@ export async function POST(request: NextRequest) {
     // Method 1: API Key authentication for monitoring systems
     if (apiKey) {
       const validApiKey = process.env.MONITORING_API_KEY
-      if (!validApiKey || apiKey !== validApiKey) {
+      if (!validApiKey) {
+        return NextResponse.json(
+          { error: 'API key not configured' },
+          { status: 500 }
+        )
+      }
+      
+      // Use timing-safe comparison to prevent timing attacks
+      const apiKeyBuffer = Buffer.from(apiKey)
+      const validApiKeyBuffer = Buffer.from(validApiKey)
+      
+      // Ensure buffers are same length for timingSafeEqual
+      if (apiKeyBuffer.length !== validApiKeyBuffer.length) {
+        return NextResponse.json(
+          { error: 'Invalid API key' },
+          { status: 401 }
+        )
+      }
+      
+      const isValid = timingSafeEqual(apiKeyBuffer, validApiKeyBuffer)
+      if (!isValid) {
         return NextResponse.json(
           { error: 'Invalid API key' },
           { status: 401 }
@@ -358,7 +385,8 @@ export async function POST(request: NextRequest) {
 
     const results: any[] = []
 
-    for (const integration of integrations) {
+    // Process health checks in parallel for better performance
+    const healthCheckPromises = integrations.map(async (integration) => {
       try {
         // Perform basic health check for each integration
         const { data: recentLogs } = await supabase
@@ -371,13 +399,6 @@ export async function POST(request: NextRequest) {
         const errorCount = recentLogs?.length || 0
         const status = errorCount > 10 ? 'unhealthy' : errorCount > 5 ? 'degraded' : 'healthy'
 
-        results.push({
-          integration_id: integration.id,
-          status,
-          error_count_1h: errorCount,
-          checked_at: new Date().toISOString(),
-        })
-
         // Alert if unhealthy
         if (status === 'unhealthy') {
           await supabase.rpc('log_integration_activity', {
@@ -389,15 +410,25 @@ export async function POST(request: NextRequest) {
             p_details: { error_count_1h: errorCount },
           })
         }
+
+        return {
+          integration_id: integration.id,
+          status,
+          error_count_1h: errorCount,
+          checked_at: new Date().toISOString(),
+        }
       } catch (error) {
-        results.push({
+        return {
           integration_id: integration.id,
           status: 'error',
           error: error instanceof Error ? error.message : 'Check failed',
           checked_at: new Date().toISOString(),
-        })
+        }
       }
-    }
+    })
+
+    // Wait for all health checks to complete
+    results = await Promise.all(healthCheckPromises)
 
     return NextResponse.json({
       status: 'ok',

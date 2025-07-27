@@ -23,11 +23,19 @@ import { createProduct, updateProduct } from '@/app/actions/products'
 import { Product } from '@/types/product.types'
 import { CategorySelect } from './category-select'
 import { ImageUpload } from './image-upload'
+import { isFile } from '@/lib/utils/file'
 
 interface ProductFormProps {
   product?: Product
 }
 
+/**
+ * Renders a form for creating or editing a product, handling validation, image upload, and submission.
+ *
+ * If a product is provided, the form is prefilled for editing; otherwise, it is set up for creating a new product. On submission, the form data is validated and sent to the appropriate API endpoint. Displays success or error messages based on the result and navigates to the products dashboard upon success.
+ *
+ * @param product - Optional product data to prefill the form for editing
+ */
 export function ProductForm({ product }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
@@ -55,7 +63,7 @@ export function ProductForm({ product }: ProductFormProps) {
       const formData = new FormData()
       Object.entries(values).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          if (value instanceof File) {
+          if (isFile(value)) {
             formData.append(key, value)
           } else {
             formData.append(key, value.toString())

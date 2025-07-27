@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { productSchema } from '@/lib/validations/product'
+import { isFile } from '@/lib/utils/file'
 
 // Image upload configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -116,6 +117,14 @@ async function deleteImage(imageUrl: string, supabase: any): Promise<void> {
   }
 }
 
+/**
+ * Creates a new product for the authenticated user's organization, including optional image upload and SKU uniqueness validation.
+ *
+ * Parses and validates product data from the provided form, uploads an image if present, ensures the SKU is unique within the organization, and inserts the new product into the database. Returns the created product data on success or an error message on failure.
+ *
+ * @param formData - The form data containing product details and an optional image file
+ * @returns An object with either `{ success: true, data: product }` on success or `{ error: message }` on failure
+ */
 export async function createProduct(formData: FormData) {
   const supabase = await createClient()
 
@@ -156,7 +165,7 @@ export async function createProduct(formData: FormData) {
 
   // Handle image upload if present
   let imageUrl = null
-  if (parsed.data.image instanceof File) {
+  if (isFile(parsed.data.image)) {
     const uploadResult = await validateAndUploadImage(
       parsed.data.image,
       profile.organization_id,
@@ -210,6 +219,11 @@ export async function createProduct(formData: FormData) {
   return { success: true, data: product }
 }
 
+/**
+ * Updates an existing product's details and image for the authenticated user's organization.
+ *
+ * Validates input data, ensures the product exists and belongs to the user's organization, and handles optional image replacement. If a new image is provided, the previous image is deleted before uploading the new one. Returns the updated product data on success or an error message on failure.
+ */
 export async function updateProduct(formData: FormData) {
   const supabase = await createClient()
 
@@ -267,7 +281,7 @@ export async function updateProduct(formData: FormData) {
 
   // Handle image upload if present
   let imageUrl = existingProduct.image_url
-  if (parsed.data.image instanceof File) {
+  if (isFile(parsed.data.image)) {
     // Delete old image if exists
     if (existingProduct.image_url) {
       await deleteImage(existingProduct.image_url, supabase)

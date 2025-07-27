@@ -3,21 +3,33 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { NetSuiteAPIClient } from '@/lib/integrations/netsuite/api-client'
 import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
-import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
+import { 
+  type NetSuiteIntegrationConfig,
+  validateNetSuiteConfig 
+} from '@/types/netsuite.types'
 
 interface TestResult {
   name: string
-  status: 'pending' | 'success' | 'error'
+  status: 'pending' | 'success' | 'error' | 'warning'
   message: string
   duration: number
-  details?: any
+  details?: Record<string, unknown>
 }
 
 interface TestResults {
   timestamp: string
   tests: TestResult[]
+  overall_status: 'success' | 'warning' | 'error'
+  message: string
 }
 
+/**
+ * Handles a POST request to test a NetSuite integration connection and returns a detailed report of the results.
+ *
+ * Validates user authentication, integration existence, user access, and NetSuite configuration. Executes a series of connectivity and permission tests against the NetSuite API, including OAuth token validation, API connectivity, permissions check, and data retrieval. Aggregates and returns the results, updates the integration status, and logs the activity.
+ *
+ * Returns a JSON response containing the test results, overall status, and summary message. Responds with appropriate HTTP status codes and error messages for authentication, authorization, validation, or unexpected errors.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -57,16 +69,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    const netsuiteConfig = integration.netsuite_config?.[0]
-    if (!netsuiteConfig) {
+    const netsuiteConfigRaw = integration.netsuite_config?.[0]
+    if (!netsuiteConfigRaw) {
       return NextResponse.json({ error: 'NetSuite configuration not found' }, { status: 404 })
+    }
+
+    // Validate NetSuite configuration
+    let netsuiteConfig: NetSuiteIntegrationConfig
+    try {
+      netsuiteConfig = validateNetSuiteConfig(netsuiteConfigRaw)
+    } catch (error) {
+      return NextResponse.json({ 
+        error: 'Invalid NetSuite configuration',
+        details: error instanceof Error ? error.message : 'Configuration validation failed'
+      }, { status: 400 })
     }
 
     // Initialize auth
     const auth = new NetSuiteAuth(
       integration_id,
       profile.organization_id,
-      netsuiteConfig as NetSuiteIntegrationConfig
+      netsuiteConfig
     )
 
     const testResults: TestResults = {
@@ -113,7 +136,7 @@ export async function POST(request: NextRequest) {
       const apiStart = Date.now()
       try {
         const apiClient = new NetSuiteAPIClient(
-          netsuiteConfig as NetSuiteIntegrationConfig,
+          netsuiteConfig,
           auth
         )
 
@@ -147,7 +170,7 @@ export async function POST(request: NextRequest) {
       const permStart = Date.now()
       try {
         const apiClient = new NetSuiteAPIClient(
-          netsuiteConfig as NetSuiteIntegrationConfig,
+          netsuiteConfig,
           auth
         )
 
@@ -200,7 +223,7 @@ export async function POST(request: NextRequest) {
       const dataStart = Date.now()
       try {
         const apiClient = new NetSuiteAPIClient(
-          netsuiteConfig as NetSuiteIntegrationConfig,
+          netsuiteConfig,
           auth
         )
 
@@ -231,8 +254,8 @@ export async function POST(request: NextRequest) {
       testResults.tests.push(dataTest)
 
       // Determine overall status
-      const hasErrors = testResults.tests.some((t: any) => t.status === 'error')
-      const hasWarnings = testResults.tests.some((t: any) => t.status === 'warning')
+      const hasErrors = testResults.tests.some((t: TestResult) => t.status === 'error')
+      const hasWarnings = testResults.tests.some((t: TestResult) => t.status === 'warning')
       
       testResults.overall_status = hasErrors ? 'error' : hasWarnings ? 'warning' : 'success'
       testResults.message = hasErrors 
