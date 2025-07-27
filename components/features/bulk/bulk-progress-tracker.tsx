@@ -62,7 +62,7 @@ export function BulkProgressTracker({
     if (!operationId) return
 
     let eventSource: EventSource | null = null
-    let reconnectTimeout: NodeJS.Timeout | null = null
+    let reconnectTimeout: number | null = null
     let isMounted = true
     let reconnectAttempts = 0
     const maxReconnectAttempts = 5
