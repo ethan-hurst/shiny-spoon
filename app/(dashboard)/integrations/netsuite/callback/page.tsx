@@ -62,7 +62,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
 
   // Check for OAuth errors
   if (searchParams.error) {
-    errorMessage = searchParams.error_description || 'Authentication failed'
+    errorMessage = sanitizeErrorMessage(searchParams.error_description || 'Authentication failed')
   } else if (!searchParams.code || !searchParams.state) {
     errorMessage = 'Missing authorization code or state parameter'
   } else {
