@@ -34,11 +34,7 @@ export const OAUTH_CONFIGS: Record<string, Partial<OAuthConfig>> = {
     tokenUrl: 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer',
     grantType: 'authorization_code',
   },
-  netsuite: {
-    // NetSuite uses OAuth 1.0a, handled separately
-    authorizationUrl: '',
-    tokenUrl: '',
-  },
+  // NetSuite is not included here as it uses OAuth 1.0a, not OAuth 2.0
 }
 
 // Token refresh configuration
@@ -85,6 +81,11 @@ export class AuthManager {
       if (credentialType === 'oauth2' && 'expires_at' in credentials) {
         const oauthCreds = credentials as OAuthCredentials
         if (oauthCreds.expires_at) {
+          // Validate the expires_at date string
+          const expiryDate = new Date(oauthCreds.expires_at)
+          if (isNaN(expiryDate.getTime())) {
+            throw new AuthenticationError('Invalid expires_at date format')
+          }
           accessTokenExpiresAt = oauthCreds.expires_at
         }
         // Refresh tokens typically don't expire, but if they do...
@@ -256,6 +257,10 @@ export class AuthManager {
     config: Partial<OAuthConfig>,
     state?: string
   ): Promise<string> {
+    if (platform === 'netsuite') {
+      throw new AuthenticationError('NetSuite uses OAuth 1.0a, not OAuth 2.0. Use NetSuite-specific authentication methods.')
+    }
+    
     const platformConfig = OAUTH_CONFIGS[platform]
     if (!platformConfig?.authorizationUrl) {
       throw new AuthenticationError(`OAuth not supported for platform: ${platform}`)
@@ -325,9 +330,18 @@ export class AuthManager {
 
       const tokenResponse = await response.json()
 
+      // Validate token response structure
+      if (!tokenResponse || typeof tokenResponse !== 'object') {
+        throw new AuthenticationError('Invalid token response format')
+      }
+
+      if (!tokenResponse.access_token || typeof tokenResponse.access_token !== 'string') {
+        throw new AuthenticationError('Missing or invalid access_token in response')
+      }
+
       // Calculate token expiry
       let expiresAt: string | undefined
-      if (tokenResponse.expires_in) {
+      if (tokenResponse.expires_in && typeof tokenResponse.expires_in === 'number') {
         const expiry = new Date()
         expiry.setSeconds(expiry.getSeconds() + tokenResponse.expires_in)
         expiresAt = expiry.toISOString()
@@ -338,7 +352,7 @@ export class AuthManager {
         client_id: mergedConfig.clientId!,
         client_secret: mergedConfig.clientSecret!,
         access_token: tokenResponse.access_token,
-        refresh_token: tokenResponse.refresh_token,
+        refresh_token: tokenResponse.refresh_token || undefined,
         token_type: tokenResponse.token_type || 'Bearer',
         expires_at: expiresAt,
         scope: tokenResponse.scope || mergedConfig.scope,
@@ -385,6 +399,11 @@ export class AuthManager {
         return null
       }
 
+      if (integration.platform === 'netsuite') {
+        // NetSuite uses OAuth 1.0a, token refresh is handled differently
+        return null
+      }
+      
       const platformConfig = OAUTH_CONFIGS[integration.platform]
       if (!platformConfig?.tokenUrl) {
         return null
@@ -417,9 +436,18 @@ export class AuthManager {
 
       const tokenResponse = await response.json()
 
+      // Validate token response structure
+      if (!tokenResponse || typeof tokenResponse !== 'object') {
+        throw new Error('Invalid token response format')
+      }
+
+      if (!tokenResponse.access_token || typeof tokenResponse.access_token !== 'string') {
+        throw new Error('Missing or invalid access_token in refresh response')
+      }
+
       // Calculate new expiry
       let expiresAt: string | undefined
-      if (tokenResponse.expires_in) {
+      if (tokenResponse.expires_in && typeof tokenResponse.expires_in === 'number') {
         const expiry = new Date()
         expiry.setSeconds(expiry.getSeconds() + tokenResponse.expires_in)
         expiresAt = expiry.toISOString()
@@ -448,7 +476,6 @@ export class AuthManager {
       return refreshedCreds
     } catch (error) {
       // Log refresh failure
-      const supabase = createClient()
       await supabase.rpc('log_integration_activity', {
         p_integration_id: this.integrationId,
         p_organization_id: this.organizationId,
