@@ -23,6 +23,34 @@ export function PriceExportButton({
 }: PriceExportButtonProps) {
   const [loading, setLoading] = useState(false)
 
+  // Helper function to sanitize filename
+  const sanitizeFilename = (filename: string): string => {
+    // Remove any path traversal attempts
+    let safe = filename.replace(/[\/\\]/g, '')
+    
+    // Remove or replace potentially dangerous characters
+    // Keep only alphanumeric, spaces, hyphens, underscores, and dots
+    safe = safe.replace(/[^a-zA-Z0-9\s\-_.]/g, '')
+    
+    // Replace multiple spaces with single underscore
+    safe = safe.replace(/\s+/g, '_')
+    
+    // Remove leading/trailing dots and spaces
+    safe = safe.replace(/^[\s.]+|[\s.]+$/g, '')
+    
+    // Limit length to prevent excessively long filenames
+    if (safe.length > 100) {
+      safe = safe.substring(0, 100)
+    }
+    
+    // Fallback if filename is empty after sanitization
+    if (!safe) {
+      safe = 'export'
+    }
+    
+    return safe
+  }
+
   const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
     setLoading(true)
     try {
@@ -34,16 +62,21 @@ export function PriceExportButton({
         const link = document.createElement('a')
         const url = URL.createObjectURL(blob)
         
+        // Sanitize customer name for safe filename
+        const safeCustomerName = sanitizeFilename(customerName)
+        const dateStr = new Date().toISOString().split('T')[0]
+        const filename = `${safeCustomerName}_prices_${dateStr}.csv`
+        
         link.setAttribute('href', url)
-        link.setAttribute(
-          'download',
-          `${customerName.replace(/\s+/g, '_')}_prices_${new Date().toISOString().split('T')[0]}.csv`
-        )
+        link.setAttribute('download', filename)
         link.style.visibility = 'hidden'
         
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
+        
+        // Clean up the object URL to prevent memory leaks
+        URL.revokeObjectURL(url)
         
         toast.success('Price sheet exported successfully')
       } else {
