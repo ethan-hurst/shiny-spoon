@@ -109,7 +109,14 @@ export function IntegrationItem({
                 <>
                   <span>•</span>
                   <span>
-                    Last sync: {format(lastSyncDate, 'MMM d, h:mm a')}
+                    Last sync: {(() => {
+                      try {
+                        return format(lastSyncDate, 'MMM d, h:mm a')
+                      } catch (error) {
+                        console.error('Invalid date format:', error)
+                        return 'Invalid date'
+                      }
+                    })()}
                   </span>
                 </>
               )}
