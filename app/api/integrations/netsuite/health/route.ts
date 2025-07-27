@@ -1,6 +1,7 @@
 // PRP-013: NetSuite Integration Health Check
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { timingSafeEqual } from 'crypto'
 
 interface HealthMetrics {
   integration_id: string
@@ -302,7 +303,27 @@ export async function POST(request: NextRequest) {
     // Method 1: API Key authentication for monitoring systems
     if (apiKey) {
       const validApiKey = process.env.MONITORING_API_KEY
-      if (!validApiKey || apiKey !== validApiKey) {
+      if (!validApiKey) {
+        return NextResponse.json(
+          { error: 'API key not configured' },
+          { status: 500 }
+        )
+      }
+      
+      // Use timing-safe comparison to prevent timing attacks
+      const apiKeyBuffer = Buffer.from(apiKey)
+      const validApiKeyBuffer = Buffer.from(validApiKey)
+      
+      // Ensure buffers are same length for timingSafeEqual
+      if (apiKeyBuffer.length !== validApiKeyBuffer.length) {
+        return NextResponse.json(
+          { error: 'Invalid API key' },
+          { status: 401 }
+        )
+      }
+      
+      const isValid = timingSafeEqual(apiKeyBuffer, validApiKeyBuffer)
+      if (!isValid) {
         return NextResponse.json(
           { error: 'Invalid API key' },
           { status: 401 }
