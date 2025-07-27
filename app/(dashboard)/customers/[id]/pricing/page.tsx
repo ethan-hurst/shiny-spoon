@@ -209,7 +209,7 @@ export default async function CustomerPricingPage(
             </div>
             <p className="text-xs text-muted-foreground">
               Tier discount:{' '}
-              {formatPercent(customer.customer_tiers?.discount_percentage || 0)}
+              {formatPercent(customer.customer_tiers?.discount_percentage ?? 0)}
             </p>
           </CardContent>
         </Card>
