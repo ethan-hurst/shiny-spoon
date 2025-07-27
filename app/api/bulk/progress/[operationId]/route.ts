@@ -15,11 +15,23 @@ export async function GET(
     return new Response('Unauthorized', { status: 401 })
   }
 
+  // Get user's organization
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!userProfile?.organization_id) {
+    return new Response('User organization not found', { status: 400 })
+  }
+
   // Verify operation belongs to user's org
   const { data: operation } = await supabase
     .from('bulk_operations')
     .select('*')
     .eq('id', params.operationId)
+    .eq('organization_id', userProfile.organization_id)
     .single()
 
   if (!operation) {
