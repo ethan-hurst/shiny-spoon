@@ -594,19 +594,24 @@ export class AutoRemediationService {
 
     // Limit batch size for safety
     const batchSize = Math.min(discrepancyIds.length, this.MAX_CHANGES_PER_RUN)
+    const idsToProcess = discrepancyIds.slice(0, batchSize)
 
-    for (let i = 0; i < batchSize; i++) {
-      const { data: discrepancy } = await this.supabase
-        .from('discrepancies')
-        .select('*')
-        .eq('id', discrepancyIds[i])
-        .single()
+    // Get all discrepancies in a single query
+    const { data: discrepancies } = await this.supabase
+      .from('discrepancies')
+      .select('*')
+      .in('id', idsToProcess)
 
-      if (!discrepancy) {
-        failedCount++
-        continue
+    if (!discrepancies || discrepancies.length === 0) {
+      return {
+        total: batchSize,
+        success: 0,
+        failed: batchSize,
       }
+    }
 
+    // Process each discrepancy
+    for (const discrepancy of discrepancies) {
       const result = await this.attemptRemediation(discrepancy)
       
       if (result.success) {
@@ -615,6 +620,10 @@ export class AutoRemediationService {
         failedCount++
       }
     }
+
+    // Count any missing discrepancies as failed
+    const missingCount = batchSize - discrepancies.length
+    failedCount += missingCount
 
     return {
       total: batchSize,
