@@ -62,12 +62,17 @@ export function IntegrationItem({
   isLoading 
 }: IntegrationItemProps) {
   const lastSyncDate = integration.last_sync_at
-    ? new Date(integration.last_sync_at)
+    ? (() => {
+        const date = new Date(integration.last_sync_at)
+        return !isNaN(date.getTime()) ? date : null
+      })()
     : null
   const hasError = integration.status === 'error'
-  const runningJobs = integration.sync_jobs?.filter(
-    (job) => (job as SyncJob).status === 'running'
-  ).length || 0
+  const runningJobs = Array.isArray(integration.sync_jobs)
+    ? integration.sync_jobs.filter(
+        (job): job is SyncJob => job && typeof job === 'object' && (job as SyncJob).status === 'running'
+      ).length
+    : 0
 
   const IconComponent = platformIcons[integration.platform] || LinkIcon
 
