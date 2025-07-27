@@ -20,6 +20,8 @@ AS $$
 DECLARE
   v_key TEXT;
   v_encrypted TEXT;
+  v_iv BYTEA;
+  v_key_hash BYTEA;
 BEGIN
   -- Get encryption key from app settings (must be set via environment variables)
   v_key := current_setting('app.encryption_key', true);
@@ -28,12 +30,19 @@ BEGIN
     RAISE EXCEPTION 'Encryption key not configured. Please set app.encryption_key in your environment.';
   END IF;
   
-  -- Encrypt using AES
+  -- Generate a random 16-byte IV for AES-CBC
+  v_iv := gen_random_bytes(16);
+  
+  -- Create a 256-bit key from the provided key using SHA-256
+  v_key_hash := digest(v_key::bytea, 'sha256');
+  
+  -- Encrypt using AES-256-CBC with IV
   v_encrypted := encode(
-    encrypt(
+    v_iv || encrypt_iv(
       p_plaintext::bytea,
-      v_key::bytea,
-      'aes'
+      v_key_hash,
+      v_iv,
+      'aes-cbc/pad:pkcs'
     ),
     'base64'
   );
@@ -51,6 +60,10 @@ AS $$
 DECLARE
   v_key TEXT;
   v_decrypted TEXT;
+  v_data BYTEA;
+  v_iv BYTEA;
+  v_ciphertext BYTEA;
+  v_key_hash BYTEA;
 BEGIN
   -- Get encryption key from app settings (must be set via environment variables)
   v_key := current_setting('app.encryption_key', true);
@@ -59,13 +72,24 @@ BEGIN
     RAISE EXCEPTION 'Encryption key not configured. Please set app.encryption_key in your environment.';
   END IF;
   
-  -- Decrypt using AES
+  -- Decode the base64 data
+  v_data := decode(p_encrypted, 'base64');
+  
+  -- Extract IV (first 16 bytes) and ciphertext (remaining bytes)
+  v_iv := substring(v_data from 1 for 16);
+  v_ciphertext := substring(v_data from 17);
+  
+  -- Create a 256-bit key from the provided key using SHA-256
+  v_key_hash := digest(v_key::bytea, 'sha256');
+  
+  -- Decrypt using AES-256-CBC with IV
   BEGIN
     v_decrypted := convert_from(
-      decrypt(
-        decode(p_encrypted, 'base64'),
-        v_key::bytea,
-        'aes'
+      decrypt_iv(
+        v_ciphertext,
+        v_key_hash,
+        v_iv,
+        'aes-cbc/pad:pkcs'
       ),
       'utf8'
     );
