@@ -23,22 +23,27 @@ export default async function AlertsPage() {
   }
 
   // Get user's organization
-  const { data: orgUser } = await supabase
+  const { data: orgUser, error: orgError } = await supabase
     .from('organization_users')
     .select('organization_id')
     .eq('user_id', user.id)
     .single()
 
-  if (!orgUser) {
+  if (orgError || !orgUser) {
+    console.error('Error fetching organization:', orgError)
     redirect('/onboarding')
   }
 
   // Get alert rules
-  const { data: alertRules } = await supabase
+  const { data: alertRules, error: rulesError } = await supabase
     .from('alert_rules')
     .select('*')
     .eq('organization_id', orgUser.organization_id)
     .order('created_at', { ascending: false })
+
+  if (rulesError) {
+    console.error('Error fetching alert rules:', rulesError)
+  }
 
   return (
     <div className="space-y-6">

@@ -16,7 +16,7 @@ interface AlertDetailPageProps {
 }
 
 export default async function AlertDetailPage({ params }: AlertDetailPageProps) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   
@@ -25,58 +25,71 @@ export default async function AlertDetailPage({ params }: AlertDetailPageProps) 
   }
 
   // Get alert details with rule information
-  const { data: alert } = await supabase
-    .from('alerts')
-    .select(`
-      *,
-      alert_rules!inner(
-        id,
-        name,
-        description,
-        notification_channels,
-        auto_remediate
-      ),
-      accuracy_checks(
-        id,
-        scope,
-        accuracy_score,
-        records_checked,
-        discrepancies_found,
-        completed_at
-      )
-    `)
-    .eq('id', params.alertId)
-    .single()
+  try {
+    const { data: alert, error: alertError } = await supabase
+      .from('alerts')
+      .select(`
+        *,
+        alert_rules!inner(
+          id,
+          name,
+          description,
+          notification_channels,
+          auto_remediate
+        ),
+        accuracy_checks(
+          id,
+          scope,
+          accuracy_score,
+          records_checked,
+          discrepancies_found,
+          completed_at
+        )
+      `)
+      .eq('id', params.alertId)
+      .single()
 
-  if (!alert) {
+    if (alertError || !alert) {
+      console.error('Error fetching alert:', alertError)
+      notFound()
+    }
+
+    // Get notification history
+    const { data: notifications, error: notifError } = await supabase
+      .from('notification_log')
+      .select('*')
+      .eq('alert_id', params.alertId)
+      .order('created_at', { ascending: false })
+
+    if (notifError) {
+      console.error('Error fetching notifications:', notifError)
+    }
+
+    // Get related discrepancies if there's an accuracy check
+    let discrepancies = []
+    if (alert.accuracy_check_id) {
+      const { data, error: discrepError } = await supabase
+        .from('discrepancies')
+        .select('*')
+        .eq('accuracy_check_id', alert.accuracy_check_id)
+        .order('severity', { ascending: false })
+        .limit(20)
+      
+      if (discrepError) {
+        console.error('Error fetching discrepancies:', discrepError)
+      }
+      discrepancies = data || []
+    }
+
+    return (
+      <AlertDetailView
+        alert={alert}
+        notifications={notifications || []}
+        discrepancies={discrepancies}
+      />
+    )
+  } catch (error) {
+    console.error('Unexpected error in alert detail page:', error)
     notFound()
   }
-
-  // Get notification history
-  const { data: notifications } = await supabase
-    .from('notification_log')
-    .select('*')
-    .eq('alert_id', params.alertId)
-    .order('created_at', { ascending: false })
-
-  // Get related discrepancies if there's an accuracy check
-  let discrepancies = []
-  if (alert.accuracy_check_id) {
-    const { data } = await supabase
-      .from('discrepancies')
-      .select('*')
-      .eq('accuracy_check_id', alert.accuracy_check_id)
-      .order('severity', { ascending: false })
-      .limit(20)
-    
-    discrepancies = data || []
-  }
-
-  return (
-    <AlertDetailView
-      alert={alert}
-      notifications={notifications || []}
-      discrepancies={discrepancies}
-    />
-  )
 }

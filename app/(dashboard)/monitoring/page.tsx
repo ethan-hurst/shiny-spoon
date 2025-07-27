@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 export default async function MonitoringPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   
@@ -19,23 +19,22 @@ export default async function MonitoringPage() {
   }
 
   // Get user's organization
-  const { data: orgUser } = await supabase
+  const { data: orgUser, error: orgError } = await supabase
     .from('organization_users')
     .select('organization_id')
     .eq('user_id', user.id)
     .single()
 
-  if (!orgUser) {
+  if (orgError || !orgUser) {
+    console.error('Error fetching organization:', orgError)
     redirect('/onboarding')
   }
 
   // Get initial data for the dashboard
-  const [
-    { data: currentAccuracy },
-    { data: recentChecks },
-    { data: activeAlerts },
-    { data: discrepancies }
-  ] = await Promise.all([
+  let currentAccuracy, recentChecks, activeAlerts, discrepancies
+  
+  try {
+    const results = await Promise.all([
     // Get current accuracy score
     supabase
       .from('accuracy_checks')
@@ -73,7 +72,20 @@ export default async function MonitoringPage() {
       .eq('organization_id', orgUser.organization_id)
       .order('detected_at', { ascending: false })
       .limit(50)
-  ])
+    ])
+    
+    currentAccuracy = results[0].data
+    recentChecks = results[1].data
+    activeAlerts = results[2].data
+    discrepancies = results[3].data
+  } catch (error) {
+    console.error('Error fetching monitoring data:', error)
+    // Provide fallback values
+    currentAccuracy = null
+    recentChecks = []
+    activeAlerts = []
+    discrepancies = []
+  }
 
   return (
     <AccuracyDashboard
