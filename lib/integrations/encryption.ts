@@ -330,9 +330,9 @@ export const encryptionUtils = {
         .join('')
 
       // Convert both signatures to Uint8Array for byte-level comparison
-      const encoder = new TextEncoder()
-      const computedBytes = encoder.encode(computedSignature)
-      const signatureBytes = encoder.encode(signature)
+      const textEncoder = new TextEncoder()
+      const computedBytes = textEncoder.encode(computedSignature)
+      const signatureBytes = textEncoder.encode(signature)
 
       // Use the timing-safe comparison function
       return timingSafeEqual(computedBytes, signatureBytes)

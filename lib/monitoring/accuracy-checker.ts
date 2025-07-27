@@ -46,7 +46,13 @@ export class AccuracyChecker extends EventEmitter {
         config.integrationId
       )
 
-      for (const integration of integrations) {
+      // Calculate expected total records for progress tracking
+      const sampleSize = config.sampleSize || 1000
+      const scopeMultiplier = config.scope === 'full' ? 3 : 1
+      const expectedRecords = integrations.length * sampleSize * scopeMultiplier
+
+      for (let i = 0; i < integrations.length; i++) {
+        const integration = integrations[i]
         if (this.abortController.signal.aborted) break
 
         // Check based on scope
@@ -80,11 +86,15 @@ export class AccuracyChecker extends EventEmitter {
           totalRecords += pricingResults.recordsChecked
         }
 
-        // Emit progress
+        // Emit progress based on actual records checked or integration progress
+        const progress = expectedRecords > 0 
+          ? Math.round((totalRecords / expectedRecords) * 100)
+          : Math.round(((i + 1) / integrations.length) * 100)
+          
         this.emit('check:progress', {
           checkId,
           integrationId: integration.id,
-          progress: Math.round((totalRecords / 10000) * 100), // Estimate
+          progress: Math.min(progress, 100), // Cap at 100%
         } as CheckProgressEvent)
       }
 
