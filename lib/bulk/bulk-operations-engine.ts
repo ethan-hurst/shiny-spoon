@@ -271,7 +271,16 @@ export class BulkOperationsEngine extends EventEmitter {
     config: BulkOperationConfig,
     signal: AbortSignal
   ): Transform {
-    const chunkSize = config.chunkSize || 100
+    // Validate and sanitize chunkSize
+    let chunkSize = config.chunkSize || 100
+    if (chunkSize < 1) {
+      console.warn(`Invalid chunkSize ${chunkSize}, using minimum of 1`)
+      chunkSize = 1
+    } else if (chunkSize > 1000) {
+      console.warn(`chunkSize ${chunkSize} exceeds maximum, capping at 1000`)
+      chunkSize = 1000
+    }
+    
     let chunk: any[] = []
     let totalProcessed = 0
     let totalSuccess = 0
