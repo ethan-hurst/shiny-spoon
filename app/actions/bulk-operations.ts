@@ -146,6 +146,9 @@ export async function cancelBulkOperation(operationId: string) {
  * @returns An object indicating the rollback request was initiated
  */
 export async function rollbackBulkOperation(operationId: string) {
+  // Validate operationId
+  const validatedId = operationIdSchema.parse(operationId)
+
   const supabase = createServerClient()
 
   const {
@@ -156,8 +159,8 @@ export async function rollbackBulkOperation(operationId: string) {
   const engine = new BulkOperationsEngine()
 
   // Start rollback asynchronously - don't await to return immediately
-  engine.rollbackOperation(operationId).catch((err) => {
-    console.error(`Rollback operation ${operationId} failed:`, err)
+  engine.rollbackOperation(validatedId).catch((err) => {
+    console.error(`Rollback operation ${validatedId} failed:`, err)
   })
 
   revalidatePath('/bulk-operations')
@@ -230,6 +233,9 @@ export async function getBulkOperationProgress(operationId: string) {
  * @returns An object containing the bulk operation details and an array of its records
  */
 export async function getBulkOperationDetails(operationId: string) {
+  // Validate operationId
+  const validatedId = operationIdSchema.parse(operationId)
+
   const supabase = createServerClient()
 
   const {
@@ -237,11 +243,23 @@ export async function getBulkOperationDetails(operationId: string) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  // Get operation details
+  // Get user's organization
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!userProfile?.organization_id) {
+    throw new Error('User organization not found')
+  }
+
+  // Get operation details filtered by organization
   const { data: operation, error: operationError } = await supabase
     .from('bulk_operations')
     .select('*')
-    .eq('id', operationId)
+    .eq('id', validatedId)
+    .eq('organization_id', userProfile.organization_id)
     .single()
 
   if (operationError) throw operationError
@@ -250,7 +268,7 @@ export async function getBulkOperationDetails(operationId: string) {
   const { data: records, error: recordsError } = await supabase
     .from('bulk_operation_records')
     .select('*')
-    .eq('operation_id', operationId)
+    .eq('operation_id', validatedId)
     .order('record_index')
     .limit(1000) // Limit for performance
 
