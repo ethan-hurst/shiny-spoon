@@ -39,8 +39,8 @@ const formSchema = z.object({
   file: z
     .instanceof(File)
     .refine((file) => file.name.endsWith('.csv'), 'File must be a CSV')
-    .refine((file) => file.type === 'text/csv' || file.type === 'application/vnd.ms-excel', 
-      'File must be a CSV file (invalid MIME type)')
+    .refine((file) => file.type === 'text/csv' || file.type === '', 
+      'File must be a CSV file (text/csv MIME type)')
     .refine((file) => file.size <= 50 * 1024 * 1024, 'File size must be less than 50MB'),
   operationType: z.enum(['import', 'update']),
   entityType: z.enum(['products', 'inventory', 'pricing', 'customers']),
