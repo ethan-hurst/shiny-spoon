@@ -24,6 +24,22 @@ import { Product } from '@/types/product.types'
 import { CategorySelect } from './category-select'
 import { ImageUpload } from './image-upload'
 
+// Isomorphic File check utility
+function isFile(obj: any): obj is File {
+  // In Node.js, File might not be defined, so we check for its existence first
+  if (typeof File !== 'undefined') {
+    return obj instanceof File
+  }
+  // In Node.js environments without File, check for File-like properties
+  return (
+    obj !== null &&
+    typeof obj === 'object' &&
+    typeof obj.name === 'string' &&
+    typeof obj.size === 'number' &&
+    typeof obj.stream === 'function'
+  )
+}
+
 interface ProductFormProps {
   product?: Product
 }
@@ -55,7 +71,7 @@ export function ProductForm({ product }: ProductFormProps) {
       const formData = new FormData()
       Object.entries(values).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          if (value instanceof File) {
+          if (isFile(value)) {
             formData.append(key, value)
           } else {
             formData.append(key, value.toString())

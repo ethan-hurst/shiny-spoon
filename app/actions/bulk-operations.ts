@@ -5,6 +5,22 @@ import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { validateCSVFile } from '@/lib/csv/parser'
 import { createServerClient } from '@/lib/supabase/server'
 
+// Isomorphic File check utility
+function isFile(obj: any): obj is File {
+  // In Node.js, File might not be defined, so we check for its existence first
+  if (typeof File !== 'undefined') {
+    return obj instanceof File
+  }
+  // In Node.js environments without File, check for File-like properties
+  return (
+    obj !== null &&
+    typeof obj === 'object' &&
+    typeof obj.name === 'string' &&
+    typeof obj.size === 'number' &&
+    typeof obj.stream === 'function'
+  )
+}
+
 export async function startBulkOperation(formData: FormData) {
   const supabase = createServerClient()
 
@@ -28,7 +44,7 @@ export async function startBulkOperation(formData: FormData) {
   const maxConcurrent = maxConcurrentEntry ? parseInt(String(maxConcurrentEntry)) : 3
 
   // Validate file is actually a File object
-  if (!(fileEntry instanceof File)) {
+  if (!isFile(fileEntry)) {
     throw new Error('Invalid file input')
   }
   const file = fileEntry

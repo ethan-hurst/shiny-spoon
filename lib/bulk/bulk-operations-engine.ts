@@ -8,6 +8,22 @@ import type { Database } from '@/types/database.types'
 
 const pipelineAsync = promisify(pipeline)
 
+// Isomorphic File check utility
+function isFile(obj: any): obj is File {
+  // In Node.js, File might not be defined, so we check for its existence first
+  if (typeof File !== 'undefined') {
+    return obj instanceof File
+  }
+  // In Node.js environments without File, check for File-like properties
+  return (
+    obj !== null &&
+    typeof obj === 'object' &&
+    typeof obj.name === 'string' &&
+    typeof obj.size === 'number' &&
+    typeof obj.stream === 'function'
+  )
+}
+
 export interface BulkOperationConfig {
   operationType: 'import' | 'export' | 'update' | 'delete'
   entityType: 'products' | 'inventory' | 'pricing' | 'customers'
@@ -68,8 +84,8 @@ export class BulkOperationsEngine extends EventEmitter {
         organization_id: userProfile.organization_id,
         operation_type: config.operationType,
         entity_type: config.entityType,
-        file_name: file instanceof File ? file.name : 'stream',
-        file_size_bytes: file instanceof File ? file.size : null,
+        file_name: isFile(file) ? file.name : 'stream',
+        file_size_bytes: isFile(file) ? file.size : null,
         status: 'pending',
         config,
         created_by: userId,
@@ -119,7 +135,7 @@ export class BulkOperationsEngine extends EventEmitter {
 
       // Create streams - only consume once
       let inputStream: Readable
-      if (typeof File !== 'undefined' && file instanceof File) {
+      if (isFile(file)) {
         // Check Node.js version for Readable.fromWeb support (available from 16.5.0)
         const versionMatch = process.version.match(/^v(\d+)\.(\d+)\.(\d+)/)
         if (!versionMatch) {

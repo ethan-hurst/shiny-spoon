@@ -14,6 +14,22 @@ const ALLOWED_IMAGE_TYPES = [
 ]
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 
+// Isomorphic File check utility
+function isFile(obj: any): obj is File {
+  // In Node.js, File might not be defined, so we check for its existence first
+  if (typeof File !== 'undefined') {
+    return obj instanceof File
+  }
+  // In Node.js environments without File, check for File-like properties
+  return (
+    obj !== null &&
+    typeof obj === 'object' &&
+    typeof obj.name === 'string' &&
+    typeof obj.size === 'number' &&
+    typeof obj.stream === 'function'
+  )
+}
+
 // Types for product operations
 interface ProductFilters {
   category?: string
@@ -156,7 +172,7 @@ export async function createProduct(formData: FormData) {
 
   // Handle image upload if present
   let imageUrl = null
-  if (parsed.data.image instanceof File) {
+  if (isFile(parsed.data.image)) {
     const uploadResult = await validateAndUploadImage(
       parsed.data.image,
       profile.organization_id,
@@ -267,7 +283,7 @@ export async function updateProduct(formData: FormData) {
 
   // Handle image upload if present
   let imageUrl = existingProduct.image_url
-  if (parsed.data.image instanceof File) {
+  if (isFile(parsed.data.image)) {
     // Delete old image if exists
     if (existingProduct.image_url) {
       await deleteImage(existingProduct.image_url, supabase)
