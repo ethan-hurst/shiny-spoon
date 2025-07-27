@@ -30,36 +30,42 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { deleteAlertRule, upsertAlertRule } from '@/app/actions/monitoring'
 import { AlertConfigDialog } from './alert-config-dialog'
+import type { AlertRule } from '@/lib/monitoring/types'
 
 interface AlertRulesListProps {
-  rules: any[]
+  rules: AlertRule[]
   organizationId: string
 }
 
 export function AlertRulesList({ rules, organizationId }: AlertRulesListProps) {
   const { toast } = useToast()
-  const [editingRule, setEditingRule] = useState<any>(null)
+  const [editingRule, setEditingRule] = useState<AlertRule | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleToggleActive = async (ruleId: string, isActive: boolean) => {
     const rule = rules.find(r => r.id === ruleId)
     if (!rule) return
 
+    // Optimistic update
+    const newActiveState = !isActive
+    
     const result = await upsertAlertRule(ruleId, {
-      ...rule,
-      isActive: !isActive,
-      severityThreshold: rule.severity_threshold,
-      accuracyThreshold: rule.accuracy_threshold,
-      discrepancyCountThreshold: rule.discrepancy_count_threshold,
-      checkFrequency: rule.check_frequency,
-      evaluationWindow: rule.evaluation_window,
-      notificationChannels: rule.notification_channels,
-      autoRemediate: rule.auto_remediate,
+      name: rule.name,
+      description: rule.description,
+      entityType: rule.entityType,
+      isActive: newActiveState,
+      severityThreshold: rule.severityThreshold,
+      accuracyThreshold: rule.accuracyThreshold,
+      discrepancyCountThreshold: rule.discrepancyCountThreshold,
+      checkFrequency: rule.checkFrequency,
+      evaluationWindow: rule.evaluationWindow,
+      notificationChannels: rule.notificationChannels,
+      autoRemediate: rule.autoRemediate,
     })
 
     if (result.success) {
       toast({
-        title: `Alert rule ${!isActive ? 'activated' : 'deactivated'}`,
+        title: `Alert rule ${newActiveState ? 'activated' : 'deactivated'}`,
       })
     } else {
       toast({
@@ -71,6 +77,15 @@ export function AlertRulesList({ rules, organizationId }: AlertRulesListProps) {
   }
 
   const handleDelete = async (ruleId: string) => {
+    const rule = rules.find(r => r.id === ruleId)
+    if (!rule) return
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the alert rule "${rule.name}"? This action cannot be undone.`
+    )
+    
+    if (!confirmed) return
+    
     setDeletingId(ruleId)
     
     const result = await deleteAlertRule(ruleId)

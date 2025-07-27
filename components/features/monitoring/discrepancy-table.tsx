@@ -20,9 +20,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { CheckCircle, Eye, MoreHorizontal, XCircle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import type { Discrepancy } from '@/lib/monitoring/types'
 
 interface DiscrepancyTableProps {
-  discrepancies: any[]
+  discrepancies: Discrepancy[]
   onResolve: (id: string) => Promise<void>
 }
 
@@ -42,12 +43,12 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
     }
   }
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): "destructive" | "secondary" | "outline" | "default" => {
     switch (severity) {
       case 'critical':
         return 'destructive'
       case 'high':
-        return 'warning'
+        return 'destructive'
       case 'medium':
         return 'secondary'
       case 'low':
@@ -139,10 +140,6 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
                     >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Mark Resolved
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Eye className="h-4 w-4 mr-2" />
-                      View Details
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
