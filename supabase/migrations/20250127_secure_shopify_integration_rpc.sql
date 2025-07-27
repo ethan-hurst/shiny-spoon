@@ -43,8 +43,16 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: User does not belong to the specified organization';
   END IF;
 
-  -- Validate inputs
-  IF p_shop_domain IS NULL OR trim(p_shop_domain) = '' THEN
+  -- Sanitize inputs first before validation
+  p_shop_domain := lower(trim(p_shop_domain));
+  p_access_token := trim(p_access_token);
+  
+  IF p_storefront_access_token IS NOT NULL THEN
+    p_storefront_access_token := trim(p_storefront_access_token);
+  END IF;
+
+  -- Validate inputs after sanitization
+  IF p_shop_domain IS NULL OR p_shop_domain = '' THEN
     RAISE EXCEPTION 'Invalid input: shop_domain cannot be null or empty';
   END IF;
 
@@ -59,16 +67,8 @@ BEGIN
   END IF;
 
   -- Validate access token
-  IF p_access_token IS NULL OR trim(p_access_token) = '' THEN
+  IF p_access_token IS NULL OR p_access_token = '' THEN
     RAISE EXCEPTION 'Invalid input: access_token cannot be null or empty';
-  END IF;
-
-  -- Sanitize inputs to prevent injection
-  p_shop_domain := lower(trim(p_shop_domain));
-  p_access_token := trim(p_access_token);
-  
-  IF p_storefront_access_token IS NOT NULL THEN
-    p_storefront_access_token := trim(p_storefront_access_token);
   END IF;
 
   -- Check if integration already exists for this shop and organization
@@ -122,8 +122,7 @@ BEGIN
     p_organization_id
   );
   
-  -- Store credentials (should be encrypted in production)
-  -- Note: In production, use pgcrypto or similar for encryption
+  -- Store credentials with encryption
   INSERT INTO integration_credentials (
     integration_id,
     credential_type,
@@ -134,11 +133,25 @@ BEGIN
     CASE 
       WHEN p_storefront_access_token IS NOT NULL THEN
         jsonb_build_object(
-          'access_token', p_access_token,
-          'storefront_access_token', p_storefront_access_token
+          'access_token', pgp_sym_encrypt(
+            p_access_token,
+            current_setting('app.encryption_key', true),
+            'compress-algo=1, cipher-algo=aes256'
+          ),
+          'storefront_access_token', pgp_sym_encrypt(
+            p_storefront_access_token,
+            current_setting('app.encryption_key', true),
+            'compress-algo=1, cipher-algo=aes256'
+          )
         )
       ELSE
-        jsonb_build_object('access_token', p_access_token)
+        jsonb_build_object(
+          'access_token', pgp_sym_encrypt(
+            p_access_token,
+            current_setting('app.encryption_key', true),
+            'compress-algo=1, cipher-algo=aes256'
+          )
+        )
     END
   );
 

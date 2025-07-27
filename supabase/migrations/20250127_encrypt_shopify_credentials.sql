@@ -1,16 +1,6 @@
 -- Enable pgcrypto extension for encryption
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Create encryption key management table
-CREATE TABLE IF NOT EXISTS encryption_keys (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  key_name TEXT NOT NULL UNIQUE,
-  key_hash TEXT NOT NULL, -- Store hash of the key for verification
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  rotated_at TIMESTAMPTZ,
-  is_active BOOLEAN DEFAULT true
-);
-
 -- Create function to encrypt credentials
 CREATE OR REPLACE FUNCTION encrypt_credential(p_plaintext TEXT)
 RETURNS TEXT
