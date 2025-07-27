@@ -38,11 +38,15 @@ export class CSVStreamProcessor {
           }
 
           if (parsed.data.length > 0) {
+            const rowData = parsed.data[0]
             const row = headers
               ? Object.fromEntries(
-                  headers.map((h, i) => [h, parsed.data[0][i]])
+                  headers.map((h, i) => [
+                    h,
+                    i < rowData.length ? rowData[i] : undefined
+                  ])
                 )
-              : parsed.data[0]
+              : rowData
 
             this.push({
               index: rowCount++,
@@ -58,8 +62,12 @@ export class CSVStreamProcessor {
         if (buffer.trim() && headers) {
           const parsed = Papa.parse(buffer, { skipEmptyLines: true })
           if (parsed.data.length > 0) {
+            const rowData = parsed.data[0]
             const row = Object.fromEntries(
-              headers.map((h, i) => [h, parsed.data[0][i]])
+              headers.map((h, i) => [
+                h,
+                i < rowData.length ? rowData[i] : undefined
+              ])
             )
             this.push({
               index: rowCount++,

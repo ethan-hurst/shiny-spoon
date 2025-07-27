@@ -186,7 +186,7 @@ export function parseCSV<T>(
             row: rowNumber,
             column: err.path.join('.'),
             message: err.message,
-            value: err.path[0] ? mappedRow[err.path[0]] : undefined,
+            value: err.path.length > 0 && err.path[0] in mappedRow ? mappedRow[err.path[0]] : undefined,
           })
         })
       }
