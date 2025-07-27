@@ -98,14 +98,24 @@ export async function POST(request: NextRequest) {
         console.error(`Rollback operation ${operationId} failed:`, err)
         // Update operation status to failed
         try {
+          // Get existing error log
+          const { data: existingOperation } = await supabase
+            .from('bulk_operations')
+            .select('error_log')
+            .eq('id', operationId)
+            .single()
+
+          const existingErrorLog = existingOperation?.error_log || []
+          const newError = {
+            message: err.message || 'Rollback failed',
+            timestamp: new Date().toISOString()
+          }
+
           await supabase
             .from('bulk_operations')
             .update({ 
               status: 'failed',
-              error_log: [{
-                message: err.message || 'Rollback failed',
-                timestamp: new Date().toISOString()
-              }],
+              error_log: [...existingErrorLog, newError],
               updated_at: new Date().toISOString()
             })
             .eq('id', operationId)
@@ -116,8 +126,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Rollback initiated',
+      message: 'Rollback has been initiated. The operation is being processed asynchronously.',
       operationId,
+      status: 'rollback_initiated'
     })
   } catch (error) {
     console.error('Rollback API error:', error)
