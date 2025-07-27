@@ -73,66 +73,64 @@ export class CSVStreamProcessor {
 
   createBatchStream(): Transform {
     let batch: any[] = []
+    const chunkSize = this.chunkSize
 
-    return new Transform(
-      {
-        objectMode: true,
-        transform(record: any, encoding: string, callback: Function) {
-          batch.push(record)
+    return new Transform({
+      objectMode: true,
+      transform(record: any, encoding: string, callback: Function) {
+        batch.push(record)
 
-          if (batch.length >= this.chunkSize) {
-            this.push([...batch])
-            batch = []
-          }
+        if (batch.length >= chunkSize) {
+          this.push([...batch])
+          batch = []
+        }
 
-          callback()
-        },
-        flush(callback: Function) {
-          if (batch.length > 0) {
-            this.push(batch)
-          }
-          callback()
-        },
-      }.bind(this)
-    )
+        callback()
+      },
+      flush(callback: Function) {
+        if (batch.length > 0) {
+          this.push(batch)
+        }
+        callback()
+      },
+    })
   }
 
   createConcurrentProcessor<T>(
     processFunc: (batch: any[]) => Promise<T[]>
   ): Transform {
     const processing = new Set<Promise<void>>()
+    const concurrency = this.concurrency
 
-    return new Transform(
-      {
-        objectMode: true,
-        async transform(batch: any[], encoding: string, callback: Function) {
-          // Wait if too many concurrent operations
-          while (processing.size >= this.concurrency) {
-            await Promise.race(processing)
-          }
+    return new Transform({
+      objectMode: true,
+      async transform(batch: any[], encoding: string, callback: Function) {
+        // Wait if too many concurrent operations
+        while (processing.size >= concurrency) {
+          await Promise.race(processing)
+        }
 
-          // Process batch
-          const promise = processFunc(batch)
-            .then((results) => {
-              this.push({ batch, results })
-            })
-            .catch((error) => {
-              this.push({ batch, error })
-            })
-            .finally(() => {
-              processing.delete(promise)
-            })
+        // Process batch
+        const promise = processFunc(batch)
+          .then((results) => {
+            this.push({ batch, results })
+          })
+          .catch((error) => {
+            this.push({ batch, error })
+          })
+          .finally(() => {
+            processing.delete(promise)
+          })
 
-          processing.add(promise)
-          callback()
-        },
-        async flush(callback: Function) {
-          // Wait for all processing to complete
-          await Promise.all(processing)
-          callback()
-        },
-      }.bind(this)
-    )
+        processing.add(promise)
+        callback()
+      },
+      async flush(callback: Function) {
+        // Wait for all processing to complete
+        await Promise.all(processing)
+        callback()
+      },
+    })
   }
 
   createProgressStream(
