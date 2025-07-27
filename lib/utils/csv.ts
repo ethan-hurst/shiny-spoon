@@ -70,10 +70,9 @@ export function arrayToCSV<T extends Record<string, any>>(
  * Prepends a UTF-8 Byte Order Mark (BOM) to the CSV content to ensure correct encoding in spreadsheet applications.
  *
  * @param csvContent - The CSV content as a string
- * @param filename - The intended filename for the download (not used in this function)
  * @returns A Blob object containing the CSV data with BOM and the appropriate MIME type
  */
-export function createCSVBlob(csvContent: string, filename: string): Blob {
+export function createCSVBlob(csvContent: string): Blob {
   // Add BOM for Excel compatibility with UTF-8
   const BOM = '\uFEFF'
   return new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' })
