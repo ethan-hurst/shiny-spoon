@@ -755,6 +755,8 @@ abstract class EntityProcessor {
   ): Promise<void>
 }
 
+type SupabaseClient = ReturnType<typeof createServerClient>
+
 class InventoryProcessor extends EntityProcessor {
   schema = z.object({
     sku: z.string().min(1),
@@ -764,7 +766,7 @@ class InventoryProcessor extends EntityProcessor {
     notes: z.string().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: any) {
+  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     // Implementation for inventory processing
     const { sku, warehouse_code, quantity, reason, notes } = record.data
 
@@ -817,7 +819,7 @@ class InventoryProcessor extends EntityProcessor {
     return data
   }
 
-  async rollback(record: any, supabase: any) {
+  async rollback(record: any, supabase: SupabaseClient) {
     if (record.before_data) {
       await supabase
         .from('inventory')
@@ -836,7 +838,7 @@ class ProductProcessor extends EntityProcessor {
     price: z.number().positive().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: any) {
+  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     const { sku, name, description, category, price } = record.data
 
     // Get organization_id from the current operation
@@ -881,7 +883,7 @@ class ProductProcessor extends EntityProcessor {
     }
   }
 
-  async rollback(record: any, supabase: any) {
+  async rollback(record: any, supabase: SupabaseClient) {
     if (record.action === 'create') {
       await supabase.from('products').delete().eq('id', record.entity_id)
     } else if (record.action === 'update' && record.before_data) {
@@ -901,7 +903,7 @@ class PricingProcessor extends EntityProcessor {
     min_quantity: z.number().int().min(1).optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: any) {
+  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     // Implementation for pricing processing
     const { sku, price_tier, price, min_quantity } = record.data
 
@@ -943,7 +945,7 @@ class PricingProcessor extends EntityProcessor {
     return data
   }
 
-  async rollback(record: any, supabase: any) {
+  async rollback(record: any, supabase: SupabaseClient) {
     if (record.action === 'create') {
       await supabase.from('product_pricing').delete().eq('id', record.entity_id)
     } else if (record.before_data) {
@@ -963,7 +965,7 @@ class CustomerProcessor extends EntityProcessor {
     price_tier: z.string().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: any) {
+  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     const { email, name, company, price_tier } = record.data
 
     // Get organization_id from the current operation
@@ -994,7 +996,7 @@ class CustomerProcessor extends EntityProcessor {
     return data
   }
 
-  async rollback(record: any, supabase: any) {
+  async rollback(record: any, supabase: SupabaseClient) {
     if (record.action === 'create') {
       await supabase.from('customers').delete().eq('id', record.entity_id)
     } else if (record.before_data) {
