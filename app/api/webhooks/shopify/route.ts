@@ -109,6 +109,16 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Validate shop domain format
+  const shopDomainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/
+  if (!shopDomainRegex.test(shopDomain)) {
+    console.error('Invalid shop domain format', { shopDomain })
+    return NextResponse.json(
+      { error: 'Invalid shop domain format' },
+      { status: 400 }
+    )
+  }
+
   // Check rate limit
   if (!checkRateLimit(shopDomain)) {
     console.warn(`Rate limit exceeded for shop: ${shopDomain}`)
@@ -333,6 +343,15 @@ export async function GET(request: NextRequest) {
   if (!shopDomain) {
     return NextResponse.json(
       { error: 'Shop domain required' },
+      { status: 400 }
+    )
+  }
+
+  // Validate shop domain format
+  const shopDomainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/
+  if (!shopDomainRegex.test(shopDomain)) {
+    return NextResponse.json(
+      { error: 'Invalid shop domain format' },
       { status: 400 }
     )
   }
