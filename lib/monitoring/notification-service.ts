@@ -478,6 +478,38 @@ class WebhookProvider implements NotificationProvider {
         }
       }
 
+      // Validate webhook URL
+      let validatedUrl: URL
+      try {
+        validatedUrl = new URL(webhookUrl)
+        // Only allow HTTPS webhooks in production
+        if (process.env.NODE_ENV === 'production' && validatedUrl.protocol !== 'https:') {
+          return {
+            success: false,
+            errorMessage: 'Only HTTPS webhooks are allowed in production',
+          }
+        }
+        // Prevent localhost/internal IPs in production
+        if (process.env.NODE_ENV === 'production') {
+          const hostname = validatedUrl.hostname.toLowerCase()
+          if (hostname === 'localhost' || 
+              hostname === '127.0.0.1' || 
+              hostname.startsWith('192.168.') ||
+              hostname.startsWith('10.') ||
+              hostname.startsWith('172.')) {
+            return {
+              success: false,
+              errorMessage: 'Internal/localhost webhooks are not allowed',
+            }
+          }
+        }
+      } catch (error) {
+        return {
+          success: false,
+          errorMessage: 'Invalid webhook URL format',
+        }
+      }
+
       const payload = {
         event: 'accuracy_alert',
         alert_id: config.alertId,
@@ -490,14 +522,47 @@ class WebhookProvider implements NotificationProvider {
         metadata: config.metadata,
       }
 
-      const response = await fetch(webhookUrl, {
+      const payloadString = JSON.stringify(payload)
+      
+      // Generate HMAC signature if webhook secret is available
+      let signature: string | undefined
+      const webhookSecret = config.metadata?.webhook_secret || process.env.WEBHOOK_SECRET
+      if (webhookSecret) {
+        const encoder = new TextEncoder()
+        const keyData = encoder.encode(webhookSecret)
+        const messageData = encoder.encode(payloadString)
+        
+        const key = await crypto.subtle.importKey(
+          'raw',
+          keyData,
+          { name: 'HMAC', hash: 'SHA-256' },
+          false,
+          ['sign']
+        )
+        
+        const signatureBuffer = await crypto.subtle.sign('HMAC', key, messageData)
+        const signatureArray = new Uint8Array(signatureBuffer)
+        signature = Array.from(signatureArray)
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('')
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'TruthSource/1.0',
+        'X-TruthSource-Event': 'accuracy_alert',
+        'X-TruthSource-Timestamp': new Date().toISOString(),
+      }
+      
+      if (signature) {
+        headers['X-TruthSource-Signature'] = `sha256=${signature}`
+      }
+
+      const response = await fetch(validatedUrl.toString(), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'TruthSource/1.0',
-          'X-TruthSource-Event': 'accuracy_alert',
-        },
-        body: JSON.stringify(payload),
+        headers,
+        body: payloadString,
+        signal: AbortSignal.timeout(30000), // 30 second timeout
       })
 
       if (!response.ok) {
