@@ -45,11 +45,14 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
           if (trimmed.startsWith('.')) {
             return file.name.toLowerCase().endsWith(trimmed.toLowerCase())
           }
-          // Properly escape special regex characters and handle wildcards
-          const regexPattern = trimmed
-            .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Escape special chars
-            .replace(/\*/g, '.*') // Replace wildcards
-          return file.type.match(new RegExp(`^${regexPattern}$`))
+          // Direct MIME type comparison (no regex for security)
+          if (trimmed.includes('*')) {
+            // Handle wildcard MIME types like "image/*"
+            const [category] = trimmed.split('/')
+            return file.type.startsWith(category + '/')
+          }
+          // Exact MIME type match
+          return file.type === trimmed
         })) {
           throw new Error(`File type not supported. Accepted types: ${accept}`)
         }
