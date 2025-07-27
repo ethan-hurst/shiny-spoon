@@ -40,27 +40,54 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse form data
+    // Parse form data with validation
     const formData = await request.formData()
-    const file = formData.get('file') as File
-    const operationType = formData.get('operationType') as string
-    const entityType = formData.get('entityType') as string
-    const validateOnly = formData.get('validateOnly') === 'true'
-    const rollbackOnError = formData.get('rollbackOnError') === 'true'
-    const chunkSize = parseInt(formData.get('chunkSize') as string) || 500
-    const maxConcurrent = parseInt(formData.get('maxConcurrent') as string) || 3
-
-    // Validate inputs
-    if (!file) {
-      return NextResponse.json({ error: 'File is required' }, { status: 400 })
+    
+    // Validate and get file
+    const fileField = formData.get('file')
+    if (!fileField || !(fileField instanceof File)) {
+      return NextResponse.json({ error: 'File is required and must be a valid file' }, { status: 400 })
+    }
+    const file = fileField
+    
+    // Validate and get operationType
+    const operationTypeField = formData.get('operationType')
+    if (!operationTypeField || typeof operationTypeField !== 'string') {
+      return NextResponse.json({ error: 'Operation type is required and must be a string' }, { status: 400 })
+    }
+    const operationType = operationTypeField
+    
+    // Validate and get entityType
+    const entityTypeField = formData.get('entityType')
+    if (!entityTypeField || typeof entityTypeField !== 'string') {
+      return NextResponse.json({ error: 'Entity type is required and must be a string' }, { status: 400 })
+    }
+    const entityType = entityTypeField
+    
+    // Parse boolean fields safely
+    const validateOnlyField = formData.get('validateOnly')
+    const validateOnly = validateOnlyField === 'true'
+    
+    const rollbackOnErrorField = formData.get('rollbackOnError')
+    const rollbackOnError = rollbackOnErrorField === 'true'
+    
+    // Parse numeric fields with validation
+    const chunkSizeField = formData.get('chunkSize')
+    const chunkSize = chunkSizeField && typeof chunkSizeField === 'string' 
+      ? parseInt(chunkSizeField) 
+      : 500
+    if (isNaN(chunkSize) || chunkSize < 1 || chunkSize > 10000) {
+      return NextResponse.json({ error: 'Chunk size must be a number between 1 and 10000' }, { status: 400 })
+    }
+    
+    const maxConcurrentField = formData.get('maxConcurrent')
+    const maxConcurrent = maxConcurrentField && typeof maxConcurrentField === 'string'
+      ? parseInt(maxConcurrentField)
+      : 3
+    if (isNaN(maxConcurrent) || maxConcurrent < 1 || maxConcurrent > 10) {
+      return NextResponse.json({ error: 'Max concurrent must be a number between 1 and 10' }, { status: 400 })
     }
 
-    if (!operationType || !entityType) {
-      return NextResponse.json(
-        { error: 'Operation type and entity type are required' },
-        { status: 400 }
-      )
-    }
 
     // Validate file
     const validation = validateCSVFile(file)
