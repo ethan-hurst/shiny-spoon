@@ -4,6 +4,37 @@ import { validateCSVFile } from '@/lib/csv/parser'
 import { NextRequest, NextResponse } from 'next/server'
 import { BulkOperationConfig } from '@/types/bulk-operations.types'
 import { validateCSRFToken } from '@/lib/utils/csrf'
+import { z } from 'zod'
+
+// Define valid types
+const VALID_OPERATION_TYPES = ['import', 'export', 'update', 'delete'] as const
+const VALID_ENTITY_TYPES = ['products', 'inventory', 'pricing', 'customers'] as const
+
+// Define the schema for bulk upload form data
+const bulkUploadSchema = z.object({
+  file: z.custom<File>(
+    (val) => val instanceof File,
+    { message: 'File is required and must be a valid file' }
+  ),
+  operationType: z.enum(VALID_OPERATION_TYPES, {
+    errorMap: () => ({ message: `Invalid operation type. Must be one of: ${VALID_OPERATION_TYPES.join(', ')}` }),
+  }),
+  entityType: z.enum(VALID_ENTITY_TYPES, {
+    errorMap: () => ({ message: `Invalid entity type. Must be one of: ${VALID_ENTITY_TYPES.join(', ')}` }),
+  }),
+  validateOnly: z.boolean().default(false),
+  rollbackOnError: z.boolean().default(false),
+  chunkSize: z.number()
+    .int()
+    .min(1, 'Chunk size must be at least 1')
+    .max(10000, 'Chunk size must not exceed 10000')
+    .default(500),
+  maxConcurrent: z.number()
+    .int()
+    .min(1, 'Max concurrent must be at least 1')
+    .max(10, 'Max concurrent must not exceed 10')
+    .default(3),
+})
 
 /**
  * Handles bulk upload operations via a POST request, including authentication, CSRF validation, form data parsing, and input validation.
@@ -47,110 +78,56 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse form data with validation
+    // Parse form data
     const formData = await request.formData()
     
-    // Validate and get file
-    const fileField = formData.get('file')
-    if (!fileField || !(fileField instanceof File)) {
-      return NextResponse.json({ error: 'File is required and must be a valid file' }, { status: 400 })
-    }
-    const file = fileField
-    
-    // Validate and get operationType
-    const operationTypeField = formData.get('operationType')
-    if (!operationTypeField || typeof operationTypeField !== 'string') {
-      return NextResponse.json({ error: 'Operation type is required and must be a string' }, { status: 400 })
-    }
-    const operationType = operationTypeField
-    
-    // Validate and get entityType
-    const entityTypeField = formData.get('entityType')
-    if (!entityTypeField || typeof entityTypeField !== 'string') {
-      return NextResponse.json({ error: 'Entity type is required and must be a string' }, { status: 400 })
-    }
-    const entityType = entityTypeField
-    
-    // Parse boolean fields safely
-    const validateOnlyField = formData.get('validateOnly')
-    const validateOnly = validateOnlyField === 'true'
-    
-    const rollbackOnErrorField = formData.get('rollbackOnError')
-    const rollbackOnError = rollbackOnErrorField === 'true'
-    
-    // Parse numeric fields with validation
-    const chunkSizeField = formData.get('chunkSize')
-    const chunkSize = chunkSizeField && typeof chunkSizeField === 'string' 
-      ? parseInt(chunkSizeField) 
-      : 500
-    if (isNaN(chunkSize) || chunkSize < 1 || chunkSize > 10000) {
-      return NextResponse.json({ error: 'Chunk size must be a number between 1 and 10000' }, { status: 400 })
-    }
-    
-    const maxConcurrentField = formData.get('maxConcurrent')
-    const maxConcurrent = maxConcurrentField && typeof maxConcurrentField === 'string'
-      ? parseInt(maxConcurrentField)
-      : 3
-    if (isNaN(maxConcurrent) || maxConcurrent < 1 || maxConcurrent > 10) {
-      return NextResponse.json({ error: 'Max concurrent must be a number between 1 and 10' }, { status: 400 })
+    // Prepare data for validation
+    const rawData = {
+      file: formData.get('file'),
+      operationType: formData.get('operationType'),
+      entityType: formData.get('entityType'),
+      validateOnly: formData.get('validateOnly') === 'true',
+      rollbackOnError: formData.get('rollbackOnError') === 'true',
+      chunkSize: formData.get('chunkSize') 
+        ? parseInt(String(formData.get('chunkSize'))) 
+        : undefined,
+      maxConcurrent: formData.get('maxConcurrent') 
+        ? parseInt(String(formData.get('maxConcurrent'))) 
+        : undefined,
     }
 
+    // Validate with Zod schema
+    let validatedData: z.infer<typeof bulkUploadSchema>
+    try {
+      validatedData = bulkUploadSchema.parse(rawData)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0]
+        return NextResponse.json(
+          { error: firstError.message },
+          { status: 400 }
+        )
+      }
+      throw error
+    }
 
-    // Validate file
-    const validation = validateCSVFile(file)
+    // Validate CSV file
+    const validation = validateCSVFile(validatedData.file)
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 })
-    }
-
-    // Type guards for operation and entity types
-    const validOperationTypes = ['import', 'export', 'update', 'delete'] as const
-    const validEntityTypes = ['products', 'inventory', 'pricing', 'customers'] as const
-
-    const isValidOperationType = (
-      type: string
-    ): type is BulkOperationConfig['operationType'] => {
-      return (validOperationTypes as readonly string[]).includes(type)
-    }
-
-    const isValidEntityType = (
-      type: string
-    ): type is BulkOperationConfig['entityType'] => {
-      return (validEntityTypes as readonly string[]).includes(type)
-    }
-
-    if (!isValidOperationType(operationType)) {
-      return NextResponse.json(
-        {
-          error: `Invalid operation type: ${operationType}. Must be one of: ${validOperationTypes.join(
-            ', '
-          )}`,
-        },
-        { status: 400 }
-      )
-    }
-
-    if (!isValidEntityType(entityType)) {
-      return NextResponse.json(
-        {
-          error: `Invalid entity type: ${entityType}. Must be one of: ${validEntityTypes.join(
-            ', '
-          )}`,
-        },
-        { status: 400 }
-      )
     }
 
     // Create engine and start operation
     const engine = new BulkOperationsEngine()
     const operationId = await engine.startOperation(
-      file,
+      validatedData.file,
       {
-        operationType,
-        entityType,
-        validateOnly,
-        rollbackOnError,
-        chunkSize,
-        maxConcurrent,
+        operationType: validatedData.operationType,
+        entityType: validatedData.entityType,
+        validateOnly: validatedData.validateOnly,
+        rollbackOnError: validatedData.rollbackOnError,
+        chunkSize: validatedData.chunkSize,
+        maxConcurrent: validatedData.maxConcurrent,
       },
       user.id
     )
