@@ -61,48 +61,94 @@ export function BulkProgressTracker({
   useEffect(() => {
     if (!operationId) return
 
-    const eventSource = new EventSource(`/api/bulk/progress/${operationId}`)
+    let eventSource: EventSource | null = null
+    let reconnectTimeout: NodeJS.Timeout | null = null
+    let isMounted = true
+    let reconnectAttempts = 0
+    const maxReconnectAttempts = 5
+    const reconnectDelay = 3000 // 3 seconds
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
+    const createEventSource = () => {
+      if (!isMounted) return
 
-        switch (data.type) {
-          case 'initial':
-          case 'progress':
-            setProgress(data.progress)
-            if (
-              data.progress.status === 'completed' ||
-              data.progress.status === 'failed' ||
-              data.progress.status === 'cancelled'
-            ) {
-              onComplete?.()
-            }
-            break
+      eventSource = new EventSource(`/api/bulk/progress/${operationId}`)
 
-          case 'rollback-progress':
-            setRollbackProgress(data.progress)
-            setIsRollingBack(true)
-            if (data.progress.status === 'rolled_back') {
-              setIsRollingBack(false)
-              onComplete?.()
-            }
-            break
+      eventSource.onmessage = (event) => {
+        if (!isMounted) return
+
+        try {
+          const data = JSON.parse(event.data)
+
+          switch (data.type) {
+            case 'initial':
+            case 'progress':
+              setProgress(data.progress)
+              setError(null) // Clear error on successful message
+              reconnectAttempts = 0 // Reset reconnect attempts on success
+              if (
+                data.progress.status === 'completed' ||
+                data.progress.status === 'failed' ||
+                data.progress.status === 'cancelled'
+              ) {
+                onComplete?.()
+              }
+              break
+
+            case 'rollback-progress':
+              setRollbackProgress(data.progress)
+              setIsRollingBack(true)
+              if (data.progress.status === 'rolled_back') {
+                setIsRollingBack(false)
+                onComplete?.()
+              }
+              break
+          }
+        } catch (err) {
+          console.error('Failed to parse SSE data:', err)
+          if (isMounted) {
+            setError('Failed to parse progress data')
+          }
         }
-      } catch (err) {
-        console.error('Failed to parse SSE data:', err)
-        setError('Failed to parse progress data')
+      }
+
+      eventSource.onerror = (err) => {
+        console.error('SSE error:', err)
+        eventSource?.close()
+        
+        if (!isMounted) return
+
+        // Attempt reconnection if not at max attempts
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++
+          setError(`Connection lost. Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`)
+          
+          reconnectTimeout = setTimeout(() => {
+            if (isMounted) {
+              createEventSource()
+            }
+          }, reconnectDelay)
+        } else {
+          setError('Connection lost. Please refresh the page.')
+        }
+      }
+
+      eventSource.onopen = () => {
+        if (isMounted && reconnectAttempts > 0) {
+          setError(null) // Clear error on successful reconnection
+        }
       }
     }
 
-    eventSource.onerror = (err) => {
-      console.error('SSE error:', err)
-      setError('Connection lost')
-      eventSource.close()
-    }
+    createEventSource()
 
     return () => {
-      eventSource.close()
+      isMounted = false
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout)
+      }
+      if (eventSource) {
+        eventSource.close()
+      }
     }
   }, [operationId, onComplete])
 
