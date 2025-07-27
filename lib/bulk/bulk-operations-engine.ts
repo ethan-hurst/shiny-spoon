@@ -721,13 +721,31 @@ class InventoryProcessor extends EntityProcessor {
     // Implementation for inventory processing
     const { sku, warehouse_code, quantity, reason, notes } = record.data
 
-    // Look up product and warehouse
+    // Get organization_id from the current operation
+    const { data: currentUser } = await supabase.auth.getUser()
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', currentUser.user.id)
+      .single()
+
+    if (!userProfile?.organization_id) {
+      throw new Error('User organization not found')
+    }
+
+    // Look up product and warehouse within the organization
     const [productResult, warehouseResult] = await Promise.all([
-      supabase.from('products').select('id').eq('sku', sku).single(),
+      supabase
+        .from('products')
+        .select('id')
+        .eq('sku', sku)
+        .eq('organization_id', userProfile.organization_id)
+        .single(),
       supabase
         .from('warehouses')
         .select('id')
         .eq('code', warehouse_code)
+        .eq('organization_id', userProfile.organization_id)
         .single(),
     ])
 
@@ -735,7 +753,7 @@ class InventoryProcessor extends EntityProcessor {
       throw new Error('Product or warehouse not found')
     }
 
-    // Update inventory
+    // Update inventory within the organization
     const { data, error } = await supabase
       .from('inventory')
       .update({
@@ -744,6 +762,7 @@ class InventoryProcessor extends EntityProcessor {
       })
       .eq('product_id', productResult.data.id)
       .eq('warehouse_id', warehouseResult.data.id)
+      .eq('organization_id', userProfile.organization_id)
       .select()
       .single()
 
@@ -773,6 +792,18 @@ class ProductProcessor extends EntityProcessor {
   async process(record: any, config: BulkOperationConfig, supabase: any) {
     const { sku, name, description, category, price } = record.data
 
+    // Get organization_id from the current operation
+    const { data: currentUser } = await supabase.auth.getUser()
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', currentUser.user.id)
+      .single()
+
+    if (!userProfile?.organization_id) {
+      throw new Error('User organization not found')
+    }
+
     if (config.operationType === 'import') {
       const { data, error } = await supabase
         .from('products')
@@ -782,6 +813,7 @@ class ProductProcessor extends EntityProcessor {
           description,
           category,
           price,
+          organization_id: userProfile.organization_id,
         })
         .select()
         .single()
@@ -793,6 +825,7 @@ class ProductProcessor extends EntityProcessor {
         .from('products')
         .update({ name, description, category, price })
         .eq('sku', sku)
+        .eq('organization_id', userProfile.organization_id)
         .select()
         .single()
 
@@ -825,11 +858,24 @@ class PricingProcessor extends EntityProcessor {
     // Implementation for pricing processing
     const { sku, price_tier, price, min_quantity } = record.data
 
-    // Look up product
+    // Get organization_id from the current operation
+    const { data: currentUser } = await supabase.auth.getUser()
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', currentUser.user.id)
+      .single()
+
+    if (!userProfile?.organization_id) {
+      throw new Error('User organization not found')
+    }
+
+    // Look up product within the organization
     const { data: product, error: productError } = await supabase
       .from('products')
       .select('id')
       .eq('sku', sku)
+      .eq('organization_id', userProfile.organization_id)
       .single()
 
     if (productError) throw new Error('Product not found')
@@ -841,6 +887,7 @@ class PricingProcessor extends EntityProcessor {
         price_tier,
         price,
         min_quantity: min_quantity || 1,
+        organization_id: userProfile.organization_id,
       })
       .select()
       .single()
@@ -872,6 +919,18 @@ class CustomerProcessor extends EntityProcessor {
   async process(record: any, config: BulkOperationConfig, supabase: any) {
     const { email, name, company, price_tier } = record.data
 
+    // Get organization_id from the current operation
+    const { data: currentUser } = await supabase.auth.getUser()
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', currentUser.user.id)
+      .single()
+
+    if (!userProfile?.organization_id) {
+      throw new Error('User organization not found')
+    }
+
     const { data, error } = await supabase
       .from('customers')
       .upsert({
@@ -879,6 +938,7 @@ class CustomerProcessor extends EntityProcessor {
         name,
         company,
         price_tier: price_tier || 'standard',
+        organization_id: userProfile.organization_id,
       })
       .select()
       .single()
