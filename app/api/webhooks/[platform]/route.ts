@@ -273,7 +273,8 @@ function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false
   
   // Check exact matches
-  if (ALLOWED_WEBHOOK_ORIGINS.includes(origin as any)) {
+  const allowedOrigins: readonly string[] = ALLOWED_WEBHOOK_ORIGINS
+  if (allowedOrigins.includes(origin)) {
     return true
   }
   
