@@ -102,13 +102,13 @@ export async function POST(request: NextRequest) {
     const isValidOperationType = (
       type: string
     ): type is BulkOperationConfig['operationType'] => {
-      return validOperationTypes.includes(type as any)
+      return (validOperationTypes as readonly string[]).includes(type)
     }
 
     const isValidEntityType = (
       type: string
     ): type is BulkOperationConfig['entityType'] => {
-      return validEntityTypes.includes(type as any)
+      return (validEntityTypes as readonly string[]).includes(type)
     }
 
     if (!isValidOperationType(operationType)) {
