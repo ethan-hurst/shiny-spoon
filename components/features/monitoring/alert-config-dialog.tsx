@@ -1,7 +1,7 @@
 // PRP-016: Data Accuracy Monitor - Alert Configuration Dialog
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -37,6 +37,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/use-toast'
 import { upsertAlertRule } from '@/app/actions/monitoring'
+import type { AlertRule } from '@/lib/monitoring/types'
 import { Loader2 } from 'lucide-react'
 
 const alertRuleSchema = z.object({
@@ -55,7 +56,7 @@ const alertRuleSchema = z.object({
 type AlertRuleForm = z.infer<typeof alertRuleSchema>
 
 interface AlertConfigDialogProps {
-  rule?: any
+  rule?: AlertRule
   open?: boolean
   onOpenChange?: (open: boolean) => void
   children?: React.ReactNode
@@ -76,14 +77,14 @@ export function AlertConfigDialog({
     defaultValues: rule ? {
       name: rule.name,
       description: rule.description || '',
-      entityType: rule.entity_type || [],
-      severityThreshold: rule.severity_threshold || 'medium',
-      accuracyThreshold: rule.accuracy_threshold || 95,
-      discrepancyCountThreshold: rule.discrepancy_count_threshold || 10,
-      checkFrequency: rule.check_frequency || 3600,
-      evaluationWindow: rule.evaluation_window || 3600,
-      notificationChannels: rule.notification_channels || ['in_app'],
-      autoRemediate: rule.auto_remediate || false,
+      entityType: rule.entityType || [],
+      severityThreshold: rule.severityThreshold || 'medium',
+      accuracyThreshold: rule.accuracyThreshold || 95,
+      discrepancyCountThreshold: rule.discrepancyCountThreshold || 10,
+      checkFrequency: rule.checkFrequency || 3600,
+      evaluationWindow: rule.evaluationWindow || 3600,
+      notificationChannels: rule.notificationChannels || ['in_app'],
+      autoRemediate: rule.autoRemediate || false,
     } : {
       name: '',
       description: '',
@@ -97,6 +98,24 @@ export function AlertConfigDialog({
       autoRemediate: false,
     },
   })
+
+  // Reset form when rule prop changes
+  useEffect(() => {
+    if (rule) {
+      form.reset({
+        name: rule.name,
+        description: rule.description || '',
+        entityType: rule.entityType || [],
+        severityThreshold: rule.severityThreshold || 'medium',
+        accuracyThreshold: rule.accuracyThreshold || 95,
+        discrepancyCountThreshold: rule.discrepancyCountThreshold || 10,
+        checkFrequency: rule.checkFrequency || 3600,
+        evaluationWindow: rule.evaluationWindow || 3600,
+        notificationChannels: rule.notificationChannels || ['in_app'],
+        autoRemediate: rule.autoRemediate || false,
+      })
+    }
+  }, [rule, form])
 
   const handleSubmit = async (data: AlertRuleForm) => {
     setIsSubmitting(true)
@@ -133,7 +152,10 @@ export function AlertConfigDialog({
     { value: 'customer', label: 'Customers' },
   ]
 
-  const notificationChannels = [
+  const notificationChannels: Array<{
+    value: 'email' | 'sms' | 'in_app' | 'webhook'
+    label: string
+  }> = [
     { value: 'email', label: 'Email' },
     { value: 'sms', label: 'SMS' },
     { value: 'in_app', label: 'In-App' },
@@ -367,7 +389,7 @@ export function AlertConfigDialog({
                               >
                                 <FormControl>
                                   <Checkbox
-                                    checked={field.value?.includes(channel.value as any)}
+                                    checked={field.value?.includes(channel.value)}
                                     onCheckedChange={(checked) => {
                                       return checked
                                         ? field.onChange([...field.value, channel.value])

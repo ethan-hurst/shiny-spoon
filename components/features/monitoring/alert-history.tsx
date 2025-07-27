@@ -14,9 +14,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import type { Alert } from '@/lib/monitoring/types'
 
 interface AlertHistoryProps {
-  alerts: any[]
+  alerts: Alert[]
   onAcknowledge: (id: string) => Promise<void>
 }
 
@@ -51,7 +52,7 @@ export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): "destructive" | "secondary" | "outline" | "default" => {
     switch (status) {
       case 'active':
         return 'destructive'

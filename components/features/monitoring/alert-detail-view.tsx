@@ -22,11 +22,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
 import { acknowledgeAlert, resolveAlert } from '@/app/actions/monitoring'
 import { DiscrepancyTable } from './discrepancy-table'
+import type { Alert, NotificationLog, Discrepancy } from '@/lib/monitoring/types'
 
 interface AlertDetailViewProps {
-  alert: any
-  notifications: any[]
-  discrepancies: any[]
+  alert: Alert
+  notifications: NotificationLog[]
+  discrepancies: Discrepancy[]
 }
 
 export function AlertDetailView({
@@ -78,12 +79,12 @@ export function AlertDetailView({
     setIsProcessing(false)
   }
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = (severity: string): "destructive" | "secondary" | "outline" | "default" => {
     switch (severity) {
       case 'critical':
         return 'destructive'
       case 'high':
-        return 'warning'
+        return 'destructive'
       case 'medium':
         return 'secondary'
       case 'low':
@@ -186,7 +187,7 @@ export function AlertDetailView({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant={getSeverityColor(alert.severity) as any}>
+              <Badge variant={getSeverityColor(alert.severity)}>
                 {alert.severity}
               </Badge>
               <Badge variant="outline">{alert.status}</Badge>

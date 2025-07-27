@@ -16,7 +16,11 @@ import { format } from 'date-fns'
 import type { AccuracyCheck } from '@/lib/monitoring/types'
 
 interface AccuracyChartProps {
-  data: AccuracyCheck[]
+  data: Array<Omit<AccuracyCheck, 'startedAt' | 'completedAt' | 'createdAt'> & {
+    startedAt: string | Date
+    completedAt?: string | Date
+    createdAt: string | Date
+  }>
   height?: number
 }
 
@@ -47,13 +51,27 @@ export function AccuracyChart({ data, height = 300 }: AccuracyChartProps) {
     )
   }
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+  interface CustomTooltipProps {
+    active?: boolean
+    payload?: Array<{
+      value?: number
+      payload?: {
+        date: string
+        accuracy: number
+        records: number
+        discrepancies: number
+      }
+    }>
+    label?: string
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+    if (active && payload && payload.length && payload[0]?.value !== undefined) {
       return (
         <div className="bg-background border rounded-lg shadow-lg p-3">
           <p className="font-medium">{label}</p>
           <p className="text-sm">
-            Accuracy: <span className="font-medium">{payload[0]?.value?.toFixed(2)}%</span>
+            Accuracy: <span className="font-medium">{payload[0].value.toFixed(2)}%</span>
           </p>
           {payload[0]?.payload?.records && (
             <p className="text-sm text-muted-foreground">
