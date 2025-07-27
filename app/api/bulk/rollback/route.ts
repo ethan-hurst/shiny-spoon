@@ -1,6 +1,14 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import crypto from 'crypto'
+
+// Define the request body schema
+const rollbackRequestSchema = z.object({
+  operationId: z.string().uuid('Invalid operation ID format'),
+  csrfToken: z.string().min(1, 'CSRF token is required'),
+})
 
 /**
  * Handles POST requests to initiate a rollback of a completed bulk operation for an authenticated user.
@@ -21,23 +29,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    let operationId: string
+    // Parse and validate request body
+    let validatedData: z.infer<typeof rollbackRequestSchema>
     try {
       const body = await request.json()
-      operationId = body.operationId
+      validatedData = rollbackRequestSchema.parse(body)
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          { 
+            error: 'Invalid request data',
+            details: error.errors.map(e => ({
+              field: e.path.join('.'),
+              message: e.message
+            }))
+          },
+          { status: 400 }
+        )
+      }
       return NextResponse.json(
         { error: 'Invalid JSON input' },
         { status: 400 }
       )
     }
 
-    if (!operationId) {
+    // Verify CSRF token
+    const sessionToken = request.cookies.get('session-token')?.value
+    if (!sessionToken) {
       return NextResponse.json(
-        { error: 'Operation ID required' },
-        { status: 400 }
+        { error: 'Session token not found' },
+        { status: 403 }
       )
     }
+
+    // Generate expected CSRF token based on session and user ID
+    const expectedCsrfToken = crypto
+      .createHmac('sha256', process.env.CSRF_SECRET || 'default-csrf-secret')
+      .update(`${sessionToken}:${user.id}`)
+      .digest('hex')
+
+    if (validatedData.csrfToken !== expectedCsrfToken) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      )
+    }
+
+    const { operationId } = validatedData
 
     // Get user's organization
     const { data: userProfile } = await supabase

@@ -91,11 +91,11 @@ export class BulkOperationsEngine extends EventEmitter {
     const abortController = new AbortController()
     this.activeOperations.set(operation.id, abortController)
 
-    // Start processing in background
+    // Start processing in background with organization_id
     this.processOperation(
       operation.id,
       file,
-      config,
+      { ...config, organization_id: userProfile.organization_id },
       abortController.signal
     ).catch((err) => {
       console.error(`Bulk operation ${operation.id} failed:`, err)
@@ -768,16 +768,10 @@ class InventoryProcessor extends EntityProcessor {
     // Implementation for inventory processing
     const { sku, warehouse_code, quantity, reason, notes } = record.data
 
-    // Get organization_id from the current operation
-    const { data: currentUser } = await supabase.auth.getUser()
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('organization_id')
-      .eq('user_id', currentUser.user.id)
-      .single()
-
-    if (!userProfile?.organization_id) {
-      throw new Error('User organization not found')
+    // Get organization_id from config
+    const organization_id = config.organization_id
+    if (!organization_id) {
+      throw new Error('Organization ID not found in config')
     }
 
     // Look up product and warehouse within the organization
@@ -786,13 +780,13 @@ class InventoryProcessor extends EntityProcessor {
         .from('products')
         .select('id')
         .eq('sku', sku)
-        .eq('organization_id', userProfile.organization_id)
+        .eq('organization_id', organization_id)
         .single(),
       supabase
         .from('warehouses')
         .select('id')
         .eq('code', warehouse_code)
-        .eq('organization_id', userProfile.organization_id)
+        .eq('organization_id', organization_id)
         .single(),
     ])
 
@@ -809,7 +803,7 @@ class InventoryProcessor extends EntityProcessor {
       })
       .eq('product_id', productResult.data.id)
       .eq('warehouse_id', warehouseResult.data.id)
-      .eq('organization_id', userProfile.organization_id)
+      .eq('organization_id', organization_id)
       .select()
       .single()
 
@@ -839,16 +833,10 @@ class ProductProcessor extends EntityProcessor {
   async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     const { sku, name, description, category, price } = record.data
 
-    // Get organization_id from the current operation
-    const { data: currentUser } = await supabase.auth.getUser()
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('organization_id')
-      .eq('user_id', currentUser.user.id)
-      .single()
-
-    if (!userProfile?.organization_id) {
-      throw new Error('User organization not found')
+    // Get organization_id from config
+    const organization_id = config.organization_id
+    if (!organization_id) {
+      throw new Error('Organization ID not found in config')
     }
 
     if (config.operationType === 'import') {
@@ -860,7 +848,7 @@ class ProductProcessor extends EntityProcessor {
           description,
           category,
           price,
-          organization_id: userProfile.organization_id,
+          organization_id: organization_id,
         })
         .select()
         .single()
@@ -872,7 +860,7 @@ class ProductProcessor extends EntityProcessor {
         .from('products')
         .update({ name, description, category, price })
         .eq('sku', sku)
-        .eq('organization_id', userProfile.organization_id)
+        .eq('organization_id', organization_id)
         .select()
         .single()
 
@@ -905,16 +893,10 @@ class PricingProcessor extends EntityProcessor {
     // Implementation for pricing processing
     const { sku, price_tier, price, min_quantity } = record.data
 
-    // Get organization_id from the current operation
-    const { data: currentUser } = await supabase.auth.getUser()
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('organization_id')
-      .eq('user_id', currentUser.user.id)
-      .single()
-
-    if (!userProfile?.organization_id) {
-      throw new Error('User organization not found')
+    // Get organization_id from config
+    const organization_id = config.organization_id
+    if (!organization_id) {
+      throw new Error('Organization ID not found in config')
     }
 
     // Look up product within the organization
@@ -922,7 +904,7 @@ class PricingProcessor extends EntityProcessor {
       .from('products')
       .select('id')
       .eq('sku', sku)
-      .eq('organization_id', userProfile.organization_id)
+      .eq('organization_id', organization_id)
       .single()
 
     if (productError) throw new Error('Product not found')
@@ -966,16 +948,10 @@ class CustomerProcessor extends EntityProcessor {
   async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     const { email, name, company, price_tier } = record.data
 
-    // Get organization_id from the current operation
-    const { data: currentUser } = await supabase.auth.getUser()
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('organization_id')
-      .eq('user_id', currentUser.user.id)
-      .single()
-
-    if (!userProfile?.organization_id) {
-      throw new Error('User organization not found')
+    // Get organization_id from config
+    const organization_id = config.organization_id
+    if (!organization_id) {
+      throw new Error('Organization ID not found in config')
     }
 
     const { data, error } = await supabase
@@ -985,7 +961,7 @@ class CustomerProcessor extends EntityProcessor {
         name,
         company,
         price_tier: price_tier || 'standard',
-        organization_id: userProfile.organization_id,
+        organization_id: organization_id,
       })
       .select()
       .single()

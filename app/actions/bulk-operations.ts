@@ -5,6 +5,41 @@ import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { validateCSVFile } from '@/lib/csv/parser'
 import { createServerClient } from '@/lib/supabase/server'
 import { isFile } from '@/lib/utils/file'
+import { escapeCSVField } from '@/lib/utils/csv'
+import { z } from 'zod'
+
+// Define valid types
+const VALID_OPERATION_TYPES = ['import', 'export', 'update', 'delete'] as const
+const VALID_ENTITY_TYPES = ['products', 'inventory', 'pricing', 'customers'] as const
+
+// Define the schema for bulk operation parameters
+const bulkOperationSchema = z.object({
+  operationType: z.enum(VALID_OPERATION_TYPES, {
+    errorMap: () => ({ message: 'Invalid operation type' }),
+  }),
+  entityType: z.enum(VALID_ENTITY_TYPES, {
+    errorMap: () => ({ message: 'Invalid entity type' }),
+  }),
+  validateOnly: z.boolean().default(false),
+  rollbackOnError: z.boolean().default(false),
+  chunkSize: z.number().int().min(1).max(1000).default(500),
+  maxConcurrent: z.number().int().min(1).max(10).default(3),
+})
+
+// File validation schema
+const fileSchema = z.custom<File>(
+  (val) => val instanceof File,
+  { message: 'Invalid file input' }
+).refine(
+  (file) => file.size > 0 && file.name.length > 0,
+  { message: 'File is empty or invalid' }
+).refine(
+  (file) => file.name.toLowerCase().endsWith('.csv'),
+  { message: 'File must be a CSV file' }
+).refine(
+  (file) => !file.type || ['text/csv', 'application/csv', 'text/plain'].includes(file.type),
+  { message: 'Invalid file type. Please upload a CSV file' }
+)
 
 /**
  * Initiates a new bulk operation for the authenticated user using the provided CSV file and operation parameters.
@@ -24,91 +59,57 @@ export async function startBulkOperation(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  // Get form data with proper type checking
-  const fileEntry = formData.get('file')
-  const operationTypeEntry = formData.get('operationType')
-  const entityTypeEntry = formData.get('entityType')
-  const validateOnly = formData.get('validateOnly') === 'true'
-  const rollbackOnError = formData.get('rollbackOnError') === 'true'
-  
-  // Safe parsing of numeric values
-  const chunkSizeEntry = formData.get('chunkSize')
-  const chunkSize = chunkSizeEntry ? parseInt(String(chunkSizeEntry)) : 500
-  const maxConcurrentEntry = formData.get('maxConcurrent')
-  const maxConcurrent = maxConcurrentEntry ? parseInt(String(maxConcurrentEntry)) : 3
+  // Parse and validate form data
+  try {
+    // Validate file
+    const fileEntry = formData.get('file')
+    const file = fileSchema.parse(fileEntry)
 
-  // Validate file is actually a File object
-  if (!isFile(fileEntry)) {
-    throw new Error('Invalid file input')
+    // Parse and validate operation parameters
+    const rawParams = {
+      operationType: formData.get('operationType') ? String(formData.get('operationType')) : undefined,
+      entityType: formData.get('entityType') ? String(formData.get('entityType')) : undefined,
+      validateOnly: formData.get('validateOnly') === 'true',
+      rollbackOnError: formData.get('rollbackOnError') === 'true',
+      chunkSize: formData.get('chunkSize') ? parseInt(String(formData.get('chunkSize'))) : undefined,
+      maxConcurrent: formData.get('maxConcurrent') ? parseInt(String(formData.get('maxConcurrent'))) : undefined,
+    }
+
+    const validatedParams = bulkOperationSchema.parse(rawParams)
+
+    // Validate CSV content
+    const validation = validateCSVFile(file)
+    if (!validation.valid) {
+      throw new Error(validation.error || 'Invalid CSV file')
+    }
+
+    // Create engine and start operation
+    const engine = new BulkOperationsEngine()
+    const operationId = await engine.startOperation(
+      file,
+      {
+        operationType: validatedParams.operationType,
+        entityType: validatedParams.entityType,
+        validateOnly: validatedParams.validateOnly,
+        rollbackOnError: validatedParams.rollbackOnError,
+        chunkSize: validatedParams.chunkSize,
+        maxConcurrent: validatedParams.maxConcurrent,
+      },
+      user.id
+    )
+
+    // Revalidate pages
+    revalidatePath('/bulk-operations')
+
+    return { operationId }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      // Format Zod errors into a readable message
+      const errorMessages = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+      throw new Error(`Validation error: ${errorMessages}`)
+    }
+    throw error
   }
-  const file = fileEntry
-
-  // Validate string entries
-  const operationType = operationTypeEntry ? String(operationTypeEntry) : null
-  const entityType = entityTypeEntry ? String(entityTypeEntry) : null
-
-  // Validate inputs
-  if (!operationType || !entityType) {
-    throw new Error('Operation type and entity type are required')
-  }
-
-  // Define valid types
-  const VALID_OPERATION_TYPES = ['import', 'export', 'update', 'delete'] as const
-  const VALID_ENTITY_TYPES = ['products', 'inventory', 'pricing', 'customers'] as const
-  
-  type OperationType = typeof VALID_OPERATION_TYPES[number]
-  type EntityType = typeof VALID_ENTITY_TYPES[number]
-
-  if (!VALID_OPERATION_TYPES.includes(operationType as OperationType)) {
-    throw new Error('Invalid operation type')
-  }
-
-  if (!VALID_ENTITY_TYPES.includes(entityType as EntityType)) {
-    throw new Error('Invalid entity type')
-  }
-
-  // Validate file properties
-  if (!file.name || file.size === 0) {
-    throw new Error('File is empty or invalid')
-  }
-
-  // Check file MIME type and extension
-  const validMimeTypes = ['text/csv', 'application/csv', 'text/plain']
-  const fileExtension = file.name.toLowerCase().split('.').pop()
-  
-  if (fileExtension !== 'csv') {
-    throw new Error('File must be a CSV file')
-  }
-
-  if (file.type && !validMimeTypes.includes(file.type)) {
-    throw new Error('Invalid file type. Please upload a CSV file')
-  }
-
-  // Validate CSV content
-  const validation = validateCSVFile(file)
-  if (!validation.valid) {
-    throw new Error(validation.error || 'Invalid CSV file')
-  }
-
-  // Create engine and start operation
-  const engine = new BulkOperationsEngine()
-  const operationId = await engine.startOperation(
-    file,
-    {
-      operationType: operationType as OperationType,
-      entityType: entityType as EntityType,
-      validateOnly,
-      rollbackOnError,
-      chunkSize,
-      maxConcurrent,
-    },
-    user.id
-  )
-
-  // Revalidate pages
-  revalidatePath('/bulk-operations')
-
-  return { operationId }
 }
 
 /**
@@ -341,29 +342,10 @@ export async function downloadBulkOperationReport(operationId: string) {
     record.processed_at || '',
   ])
 
-  // Helper function to properly escape CSV values
-  const escapeCSVValue = (value: string | number): string => {
-    let strValue = String(value)
-    
-    // Protect against CSV formula injection
-    // If the value starts with =, +, -, or @, prepend a single quote
-    if (strValue.length > 0 && ['=', '+', '-', '@'].includes(strValue[0])) {
-      strValue = "'" + strValue
-    }
-    
-    // If the value contains quotes, newlines, or commas, it needs to be quoted
-    if (strValue.includes('"') || strValue.includes('\n') || strValue.includes(',')) {
-      // Escape double quotes by doubling them
-      const escaped = strValue.replace(/"/g, '""')
-      return `"${escaped}"`
-    }
-    // Otherwise, quote it for consistency
-    return `"${strValue}"`
-  }
 
   const csvContent = [
-    headers.map(h => escapeCSVValue(h)).join(','),
-    ...rows.map(row => row.map(cell => escapeCSVValue(cell)).join(','))
+    headers.map(h => escapeCSVField(h)).join(','),
+    ...rows.map(row => row.map(cell => escapeCSVField(cell)).join(','))
   ].join('\n')
 
   return {

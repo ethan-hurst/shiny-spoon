@@ -66,6 +66,7 @@ export interface BulkOperationConfig {
   validateOnly?: boolean
   rollbackOnError?: boolean
   mapping?: Record<string, string>
+  organization_id?: string
 }
 
 // Progress tracking types
