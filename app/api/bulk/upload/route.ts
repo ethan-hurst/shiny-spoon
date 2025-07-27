@@ -71,25 +71,37 @@ export async function POST(request: NextRequest) {
     // Type guards for operation and entity types
     const validOperationTypes = ['import', 'export', 'update', 'delete'] as const
     const validEntityTypes = ['products', 'inventory', 'pricing', 'customers'] as const
-    
-    const isValidOperationType = (type: string): type is BulkOperationConfig['operationType'] => {
+
+    const isValidOperationType = (
+      type: string
+    ): type is BulkOperationConfig['operationType'] => {
       return validOperationTypes.includes(type as any)
     }
-    
-    const isValidEntityType = (type: string): type is BulkOperationConfig['entityType'] => {
+
+    const isValidEntityType = (
+      type: string
+    ): type is BulkOperationConfig['entityType'] => {
       return validEntityTypes.includes(type as any)
     }
-    
+
     if (!isValidOperationType(operationType)) {
       return NextResponse.json(
-        { error: `Invalid operation type: ${operationType}. Must be one of: ${validOperationTypes.join(', ')}` },
+        {
+          error: `Invalid operation type: ${operationType}. Must be one of: ${validOperationTypes.join(
+            ', '
+          )}`,
+        },
         { status: 400 }
       )
     }
-    
+
     if (!isValidEntityType(entityType)) {
       return NextResponse.json(
-        { error: `Invalid entity type: ${entityType}. Must be one of: ${validEntityTypes.join(', ')}` },
+        {
+          error: `Invalid entity type: ${entityType}. Must be one of: ${validEntityTypes.join(
+            ', '
+          )}`,
+        },
         { status: 400 }
       )
     }
