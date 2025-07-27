@@ -240,9 +240,22 @@ export async function downloadBulkOperationReport(operationId: string) {
     record.processed_at || '',
   ])
 
+  // Helper function to properly escape CSV values
+  const escapeCSVValue = (value: string | number): string => {
+    const strValue = String(value)
+    // If the value contains quotes, newlines, or commas, it needs to be quoted
+    if (strValue.includes('"') || strValue.includes('\n') || strValue.includes(',')) {
+      // Escape double quotes by doubling them
+      const escaped = strValue.replace(/"/g, '""')
+      return `"${escaped}"`
+    }
+    // Otherwise, quote it for consistency
+    return `"${strValue}"`
+  }
+
   const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    headers.map(h => escapeCSVValue(h)).join(','),
+    ...rows.map(row => row.map(cell => escapeCSVValue(cell)).join(','))
   ].join('\n')
 
   return {
