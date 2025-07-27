@@ -49,9 +49,14 @@ export async function GET(request: Request) {
     }
 
     const checks: Array<{ organizationId: string; checkId: string }> = []
+    const checkPromises: Promise<void>[] = []
 
-    // Start accuracy checks for each organization
-    for (const org of organizations) {
+    // Process organizations in batches
+    const BATCH_SIZE = 5
+    for (let i = 0; i < organizations.length; i += BATCH_SIZE) {
+      const batch = organizations.slice(i, i + BATCH_SIZE)
+      
+      await Promise.all(batch.map(async (org) => {
       try {
         // Check if a scheduled check should run based on alert rules
         const shouldRun = await shouldRunScheduledCheck(supabase, org.id)
@@ -87,8 +92,8 @@ export async function GET(request: Request) {
           continue
         }
 
-        // Start the check asynchronously
-        accuracyChecker.runCheck(config).then(async (result) => {
+        // Start the check and track the promise
+        const checkPromise = accuracyChecker.runCheck(config).then(async (result) => {
           console.log(`Accuracy check completed for org ${org.id}`)
           
           // Process any triggered alerts
@@ -115,6 +120,8 @@ export async function GET(request: Request) {
         }).catch(error => {
           console.error(`Accuracy check failed for org ${org.id}:`, error)
         })
+        
+        checkPromises.push(checkPromise)
 
         checks.push({
           organizationId: org.id,
@@ -124,8 +131,12 @@ export async function GET(request: Request) {
       } catch (error) {
         console.error(`Error processing organization ${org.id}:`, error)
       }
+      }))}
     }
 
+    // Wait for all checks to complete
+    await Promise.allSettled(checkPromises)
+    
     // Process notification queue
     try {
       await notificationService.processNotificationQueue()
@@ -217,8 +228,26 @@ async function checkLastRunTime(
 // Optional: Add a POST endpoint for manual trigger (with auth)
 export async function POST(request: Request) {
   try {
-    // This endpoint could be used for manual triggers from the UI
-    // Add proper authentication here
+    // Verify authentication
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const supabase = await createClient()
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Verify the token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      )
+    }
     
     const body = await request.json()
     const { organizationId } = body
@@ -230,9 +259,25 @@ export async function POST(request: Request) {
       )
     }
 
+    // Verify user has access to this organization
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .eq('organization_id', organizationId)
+      .single()
+
+    if (!orgUser) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied' },
+        { status: 403 }
+      )
+    }
+
     // Trigger check for specific organization
     const accuracyChecker = new AccuracyChecker()
     const checkId = await accuracyChecker.runCheck({
+      organizationId,
       scope: 'full',
       checkDepth: 'deep',
     })
