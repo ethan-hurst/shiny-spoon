@@ -192,6 +192,16 @@ export async function deleteAlertRule(ruleId: string) {
 // Acknowledge alert
 export async function acknowledgeAlert(alertId: string) {
   try {
+    // Validate alertId is a valid UUID
+    const uuidSchema = z.string().uuid()
+    const validationResult = uuidSchema.safeParse(alertId)
+    
+    if (!validationResult.success) {
+      return { success: false, error: 'Invalid alert ID format' }
+    }
+    
+    const validatedAlertId = validationResult.data
+    
     const supabase = createClient()
 
     // Check authentication
@@ -200,8 +210,35 @@ export async function acknowledgeAlert(alertId: string) {
       return { success: false, error: 'Unauthorized' }
     }
 
+    // Get user's organization
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!orgUser) {
+      return { success: false, error: 'Organization not found' }
+    }
+
+    // Fetch alert and verify it belongs to user's organization
+    const { data: alert, error: alertError } = await supabase
+      .from('alerts')
+      .select('id, organization_id')
+      .eq('id', validatedAlertId)
+      .single()
+
+    if (alertError || !alert) {
+      return { success: false, error: 'Alert not found' }
+    }
+
+    // Verify the alert belongs to the user's organization
+    if (alert.organization_id !== orgUser.organization_id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
     const alertManager = new AlertManager()
-    const success = await alertManager.acknowledgeAlert(alertId, user.id)
+    const success = await alertManager.acknowledgeAlert(validatedAlertId, user.id)
 
     if (!success) {
       return { success: false, error: 'Failed to acknowledge alert' }
