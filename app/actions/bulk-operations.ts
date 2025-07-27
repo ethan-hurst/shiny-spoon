@@ -347,6 +347,9 @@ export async function getBulkOperationStats() {
  * @returns An object containing the CSV content as a string, the filename, and the MIME type
  */
 export async function downloadBulkOperationReport(operationId: string) {
+  // Validate operationId
+  const validatedId = operationIdSchema.parse(operationId)
+
   const supabase = createServerClient()
 
   const {
@@ -354,7 +357,7 @@ export async function downloadBulkOperationReport(operationId: string) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  const details = await getBulkOperationDetails(operationId)
+  const details = await getBulkOperationDetails(validatedId)
   
   // Generate CSV report
   const headers = ['Record Index', 'Action', 'Status', 'Error', 'Processed At']
@@ -374,7 +377,7 @@ export async function downloadBulkOperationReport(operationId: string) {
 
   return {
     content: csvContent,
-    filename: `bulk-operation-${operationId}-report.csv`,
+    filename: `bulk-operation-${validatedId}-report.csv`,
     mimeType: 'text/csv'
   }
 }
