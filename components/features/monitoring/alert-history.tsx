@@ -85,7 +85,7 @@ export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-medium">{alert.title}</h4>
-                  <Badge variant={getStatusColor(alert.status) as any} className="text-xs">
+                  <Badge variant={getStatusColor(alert.status)} className="text-xs">
                     {alert.status}
                   </Badge>
                 </div>
