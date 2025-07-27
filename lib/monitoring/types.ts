@@ -11,8 +11,8 @@ export interface DiscrepancyResult {
   entityType: string
   entityId: string
   fieldName: string
-  sourceValue: any
-  targetValue: any
+  sourceValue: unknown
+  targetValue: unknown
   discrepancyType: 'missing' | 'mismatch' | 'stale' | 'duplicate'
   severity: 'low' | 'medium' | 'high' | 'critical'
   confidence: number
@@ -42,9 +42,9 @@ export interface Discrepancy {
   entityType: string
   entityId: string
   fieldName: string
-  sourceValue: any
-  targetValue: any
-  expectedValue?: any
+  sourceValue: unknown
+  targetValue: unknown
+  expectedValue?: unknown
   discrepancyType: 'missing' | 'mismatch' | 'stale' | 'duplicate'
   severity: 'low' | 'medium' | 'high' | 'critical'
   confidenceScore: number
@@ -53,7 +53,7 @@ export interface Discrepancy {
   resolvedAt?: Date
   resolvedBy?: string
   detectedAt: Date
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
 export interface AlertRule {
@@ -70,7 +70,7 @@ export interface AlertRule {
   evaluationWindow: number // seconds
   notificationChannels: ('email' | 'sms' | 'in_app' | 'webhook')[]
   autoRemediate: boolean
-  escalationPolicy: Record<string, any>
+  escalationPolicy: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
   createdBy: string
@@ -84,13 +84,13 @@ export interface Alert {
   message: string
   severity: string
   triggeredBy: 'threshold' | 'anomaly' | 'pattern'
-  triggerValue: Record<string, any>
+  triggerValue: Record<string, unknown>
   accuracyCheckId?: string
   status: 'active' | 'acknowledged' | 'resolved' | 'snoozed'
   acknowledgedBy?: string
   acknowledgedAt?: Date
   resolvedAt?: Date
-  notificationsSent: Record<string, any>
+  notificationsSent: Record<string, unknown>
   createdAt: Date
 }
 
@@ -102,7 +102,7 @@ export interface NotificationLog {
   status: 'pending' | 'sent' | 'delivered' | 'failed'
   sentAt?: Date
   deliveredAt?: Date
-  providerResponse?: Record<string, any>
+  providerResponse?: Record<string, unknown>
   errorMessage?: string
   createdAt: Date
 }
@@ -112,12 +112,12 @@ export interface RemediationLog {
   discrepancyId: string
   organizationId: string
   actionType: 'sync_retry' | 'value_update' | 'cache_clear' | 'force_refresh' | 'rollback'
-  actionConfig: Record<string, any>
+  actionConfig: Record<string, unknown>
   status: 'pending' | 'running' | 'completed' | 'failed'
   startedAt?: Date
   completedAt?: Date
   success?: boolean
-  result?: Record<string, any>
+  result?: Record<string, unknown>
   errorMessage?: string
   createdAt: Date
 }
@@ -144,7 +144,7 @@ export interface NotificationConfig {
   message: string
   severity: string
   actionUrl?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // Check progress event
@@ -195,14 +195,14 @@ export interface AlertConfig {
   triggerReason: string
   accuracyScore: number
   discrepancyCount: number
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // Remediation action
 export interface RemediationAction {
   discrepancyId: string
   actionType: 'sync_retry' | 'value_update' | 'cache_clear' | 'force_refresh' | 'rollback'
-  actionConfig: Record<string, any>
+  actionConfig: Record<string, unknown>
   priority: 'low' | 'medium' | 'high'
   estimatedImpact: string
 }
