@@ -135,79 +135,24 @@ export async function updateShopifyIntegration(integrationId: string, formData: 
 
   const validatedData = shopifyConfigSchema.parse(rawData)
 
-  // Update integration config
-  const { error: updateIntegrationError } = await supabase
-    .from('integrations')
-    .update({
-      config: {
-        sync_frequency: validatedData.sync_frequency,
-        api_version: '2024-01'
-      },
-      updated_at: new Date().toISOString()
+  // Use RPC for atomic update
+  const { error: rpcError } = await supabase
+    .rpc('update_shopify_integration', {
+      p_integration_id: integrationId,
+      p_organization_id: integration.organization_id,
+      p_shop_domain: validatedData.shop_domain,
+      p_sync_frequency: validatedData.sync_frequency,
+      p_sync_products: validatedData.sync_products,
+      p_sync_inventory: validatedData.sync_inventory,
+      p_sync_orders: validatedData.sync_orders,
+      p_sync_customers: validatedData.sync_customers,
+      p_b2b_catalog_enabled: validatedData.b2b_catalog_enabled,
+      p_access_token: validatedData.access_token || null,
+      p_webhook_secret: validatedData.webhook_secret || null
     })
-    .eq('id', integrationId)
-    .eq('organization_id', integration.organization_id)
 
-  if (updateIntegrationError) {
-    throw new Error(`Failed to update integration: ${updateIntegrationError.message}`)
-  }
-
-  // Update Shopify config
-  const { error: configError } = await supabase
-    .from('shopify_config')
-    .update({
-      shop_domain: validatedData.shop_domain,
-      sync_products: validatedData.sync_products,
-      sync_inventory: validatedData.sync_inventory,
-      sync_orders: validatedData.sync_orders,
-      sync_customers: validatedData.sync_customers,
-      b2b_catalog_enabled: validatedData.b2b_catalog_enabled,
-      updated_at: new Date().toISOString()
-    })
-    .eq('integration_id', integrationId)
-
-  if (configError) {
-    throw new Error(`Failed to update config: ${configError.message}`)
-  }
-
-  // Update credentials if provided
-  if (validatedData.access_token || validatedData.webhook_secret) {
-    // First fetch existing credentials to preserve data
-    const { data: existingCreds, error: fetchError } = await supabase
-      .from('integration_credentials')
-      .select('credentials')
-      .eq('integration_id', integrationId)
-      .single()
-    
-    if (fetchError) {
-      throw new Error(`Failed to fetch existing credentials: ${fetchError.message}`)
-    }
-    
-    // Merge existing credentials with new ones
-    const updatedCredentials = {
-      ...(existingCreds?.credentials || {}),
-    }
-    
-    // Only update fields that have new values
-    if (validatedData.access_token) {
-      updatedCredentials.access_token = validatedData.access_token
-    }
-    if (validatedData.webhook_secret) {
-      updatedCredentials.webhook_secret = validatedData.webhook_secret
-    }
-    
-    // Update with merged credentials
-    const { error: credError } = await supabase
-      .from('integration_credentials')
-      .update({
-        credentials: updatedCredentials,
-        updated_at: new Date().toISOString()
-      })
-      .eq('integration_id', integrationId)
-
-    if (credError) {
-      throw new Error(`Failed to update credentials: ${credError.message}`)
-    }
+  if (rpcError) {
+    throw new Error(`Failed to update integration: ${rpcError.message}`)
   }
 
   revalidatePath('/integrations')
@@ -261,39 +206,22 @@ export async function updateShopifySyncSettings(
     throw new Error('Unauthorized')
   }
 
-  // Update integration config
-  const { error: updateIntegrationError } = await supabase
-    .from('integrations')
-    .update({
-      config: {
-        sync_frequency: settings.sync_frequency,
-        batch_size: settings.batch_size,
-        api_version: '2024-01'
-      },
-      updated_at: new Date().toISOString()
+  // Use RPC for atomic update
+  const { error: rpcError } = await supabase
+    .rpc('update_shopify_sync_settings', {
+      p_integration_id: integrationId,
+      p_organization_id: integration.organization_id,
+      p_sync_products: settings.sync_products,
+      p_sync_inventory: settings.sync_inventory,
+      p_sync_orders: settings.sync_orders,
+      p_sync_customers: settings.sync_customers,
+      p_b2b_catalog_enabled: settings.b2b_catalog_enabled,
+      p_sync_frequency: settings.sync_frequency,
+      p_batch_size: settings.batch_size
     })
-    .eq('id', integrationId)
-    .eq('organization_id', integration.organization_id)
 
-  if (updateIntegrationError) {
-    throw new Error(`Failed to update integration: ${updateIntegrationError.message}`)
-  }
-
-  // Update Shopify config
-  const { error: configError } = await supabase
-    .from('shopify_config')
-    .update({
-      sync_products: settings.sync_products,
-      sync_inventory: settings.sync_inventory,
-      sync_orders: settings.sync_orders,
-      sync_customers: settings.sync_customers,
-      b2b_catalog_enabled: settings.b2b_catalog_enabled,
-      updated_at: new Date().toISOString()
-    })
-    .eq('integration_id', integrationId)
-
-  if (configError) {
-    throw new Error(`Failed to update config: ${configError.message}`)
+  if (rpcError) {
+    throw new Error(`Failed to update sync settings: ${rpcError.message}`)
   }
 
   revalidatePath('/integrations')
