@@ -427,16 +427,23 @@ export class AutoRemediationService {
     // Get the accuracy check to find the integration
     const { data: check } = await this.supabase
       .from('accuracy_checks')
-      .select('integration_id')
+      .select('integration_id, organization_id')
       .eq('id', discrepancy.accuracyCheckId)
       .single()
 
     if (!check?.integration_id) return null
 
+    // Verify the check belongs to the same organization as the discrepancy
+    if (check.organization_id !== discrepancy.organizationId) {
+      console.error('Organization mismatch between check and discrepancy')
+      return null
+    }
+
     const { data: integration } = await this.supabase
       .from('integrations')
       .select('*')
       .eq('id', check.integration_id)
+      .eq('organization_id', discrepancy.organizationId)
       .single()
 
     return integration
