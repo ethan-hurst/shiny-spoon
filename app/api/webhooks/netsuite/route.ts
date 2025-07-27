@@ -44,7 +44,7 @@ function verifyWebhookSignature(
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get raw body for signature verification
     const rawBody = await request.text()
@@ -291,7 +291,7 @@ export async function POST(request: NextRequest) {
 // Webhook registration endpoint
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get authenticated user
     const { data: { user } } = await supabase.auth.getUser()
