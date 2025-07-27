@@ -220,8 +220,14 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
       const sourceField = mapping.sourceField === 'custom' ? mapping.customSourceField : mapping.sourceField
       const targetField = mapping.targetField === 'metadata' ? mapping.customTargetField : mapping.targetField
       
+      // Validate custom fields before saving
       if (sourceField && targetField) {
-        mappingsByEntity[mapping.entityType][sourceField] = targetField
+        const isValidSourceField = typeof sourceField === 'string' && sourceField.trim() !== '' && sourceField.length <= 100
+        const isValidTargetField = typeof targetField === 'string' && targetField.trim() !== '' && targetField.length <= 100
+        
+        if (isValidSourceField && isValidTargetField) {
+          mappingsByEntity[mapping.entityType][sourceField.trim()] = targetField.trim()
+        }
       }
     })
 
