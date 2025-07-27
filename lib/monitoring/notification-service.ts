@@ -14,6 +14,15 @@ interface NotificationResult {
   errorMessage?: string
 }
 
+interface NotificationSettings {
+  email_recipients?: string[]
+  sms_recipients?: string[]
+  webhook_urls?: string[]
+  default_email?: string
+  default_phone?: string
+  default_webhook?: string
+}
+
 export class NotificationService {
   private supabase = createAdminClient()
   private providers: Map<string, NotificationProvider>
@@ -123,15 +132,15 @@ export class NotificationService {
       return owner?.users?.email || null
     }
 
-    const settings = orgSettings.notification_settings as any
+    const settings = orgSettings.notification_settings as NotificationSettings
     
     switch (config.channel) {
       case 'email':
-        return settings.email_recipients?.[0] || settings.default_email
+        return settings.email_recipients?.[0] || settings.default_email || null
       case 'sms':
-        return settings.sms_recipients?.[0] || settings.default_phone
+        return settings.sms_recipients?.[0] || settings.default_phone || null
       case 'webhook':
-        return settings.webhook_urls?.[0] || settings.default_webhook
+        return settings.webhook_urls?.[0] || settings.default_webhook || null
       case 'in_app':
         return config.organizationId // For in-app, recipient is the org
       default:
@@ -161,7 +170,7 @@ export class NotificationService {
     // Process each notification
     for (const notification of pendingNotifications) {
       await this.send({
-        channel: notification.channel as any,
+        channel: notification.channel as 'email' | 'sms' | 'in_app' | 'webhook',
         alertId: notification.alert_id,
         organizationId: notification.alerts.organization_id,
         title: notification.alerts.title,
