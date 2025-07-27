@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { RealtimeChannel } from '@supabase/supabase-js'
+import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import type { AccuracyCheck, Alert, Discrepancy } from '@/lib/monitoring/types'
 
 interface UseAccuracyMonitorProps {
@@ -112,18 +112,18 @@ export function useAccuracyMonitor({
             table: 'accuracy_checks',
             filter: `organization_id=eq.${organizationId}`,
           },
-          (payload) => {
-            if (payload.eventType === 'INSERT') {
-              setRecentChecks(prev => [payload.new as any, ...prev.slice(0, 9)])
-            } else if (payload.eventType === 'UPDATE') {
+          (payload: RealtimePostgresChangesPayload<AccuracyCheck>) => {
+            if (payload.eventType === 'INSERT' && payload.new) {
+              setRecentChecks(prev => [payload.new, ...prev.slice(0, 9)])
+            } else if (payload.eventType === 'UPDATE' && payload.new) {
               setRecentChecks(prev => 
                 prev.map(check => 
-                  check.id === payload.new.id ? payload.new as any : check
+                  check.id === payload.new.id ? payload.new : check
                 )
               )
               // Update current accuracy if this check is completed
-              if (payload.new.status === 'completed' && payload.new.accuracy_score) {
-                setCurrentAccuracy(payload.new.accuracy_score)
+              if (payload.new.status === 'completed' && payload.new.accuracyScore) {
+                setCurrentAccuracy(payload.new.accuracyScore)
               }
             }
           }
@@ -136,13 +136,13 @@ export function useAccuracyMonitor({
             table: 'alerts',
             filter: `organization_id=eq.${organizationId}`,
           },
-          (payload) => {
-            if (payload.eventType === 'INSERT') {
-              setActiveAlerts(prev => [payload.new as any, ...prev])
-            } else if (payload.eventType === 'UPDATE') {
+          (payload: RealtimePostgresChangesPayload<Alert>) => {
+            if (payload.eventType === 'INSERT' && payload.new) {
+              setActiveAlerts(prev => [payload.new, ...prev])
+            } else if (payload.eventType === 'UPDATE' && payload.new) {
               setActiveAlerts(prev => 
                 prev.map(alert => 
-                  alert.id === payload.new.id ? payload.new as any : alert
+                  alert.id === payload.new.id ? payload.new : alert
                 ).filter(alert => ['active', 'acknowledged'].includes(alert.status))
               )
             }
@@ -156,13 +156,13 @@ export function useAccuracyMonitor({
             table: 'discrepancies',
             filter: `organization_id=eq.${organizationId}`,
           },
-          (payload) => {
-            if (payload.eventType === 'INSERT') {
-              setDiscrepancies(prev => [payload.new as any, ...prev.slice(0, 49)])
-            } else if (payload.eventType === 'UPDATE') {
+          (payload: RealtimePostgresChangesPayload<Discrepancy>) => {
+            if (payload.eventType === 'INSERT' && payload.new) {
+              setDiscrepancies(prev => [payload.new, ...prev.slice(0, 49)])
+            } else if (payload.eventType === 'UPDATE' && payload.new) {
               setDiscrepancies(prev => 
                 prev.map(disc => 
-                  disc.id === payload.new.id ? payload.new as any : disc
+                  disc.id === payload.new.id ? payload.new : disc
                 )
               )
             }
