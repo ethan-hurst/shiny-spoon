@@ -1,4 +1,4 @@
-import { Transform, Writable } from 'stream'
+import { Transform, Writable, Readable } from 'stream'
 import { pipeline } from 'stream/promises'
 import Papa from 'papaparse'
 
@@ -170,7 +170,7 @@ export class CSVStreamProcessor {
 
 // Usage example
 export async function processLargeCSV(
-  fileStream: NodeJS.ReadableStream,
+  fileStream: Readable,
   processor: (batch: any[]) => Promise<any[]>,
   onProgress: (progress: any) => void
 ): Promise<{ total: number; successful: number; failed: number }> {
