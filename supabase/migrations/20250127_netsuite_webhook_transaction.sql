@@ -31,6 +31,23 @@ BEGIN
     RAISE EXCEPTION 'event_id cannot be null';
   END IF;
   
+  -- Verify authorization: Check that integration belongs to organization
+  DECLARE
+    v_integration_org_id UUID;
+  BEGIN
+    SELECT organization_id INTO v_integration_org_id
+    FROM integrations
+    WHERE id = p_integration_id;
+    
+    IF v_integration_org_id IS NULL THEN
+      RAISE EXCEPTION 'Integration not found: %', p_integration_id;
+    END IF;
+    
+    IF v_integration_org_id != p_organization_id THEN
+      RAISE EXCEPTION 'Integration % does not belong to organization %', p_integration_id, p_organization_id;
+    END IF;
+  END;
+  
   -- Start transaction implicitly
   
   -- Get field mappings from integration config
