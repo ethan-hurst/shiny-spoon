@@ -117,6 +117,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(integration_id)) {
+      return NextResponse.json({ error: 'Invalid integration ID format' }, { status: 400 })
+    }
+
     // Get user's organization
     const { data: profile } = await supabase
       .from('user_profiles')
