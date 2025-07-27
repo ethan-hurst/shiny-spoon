@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/components/ui/use-toast'
-import { triggerAccuracyCheck } from '@/app/actions/monitoring'
+import { triggerAccuracyCheck, acknowledgeAlert, resolveDiscrepancy } from '@/app/actions/monitoring'
 import { useAccuracyMonitor } from '@/hooks/use-accuracy-monitor'
 import { AccuracyChart } from './accuracy-chart'
 import { AlertHistory } from './alert-history'
@@ -254,9 +254,28 @@ export function AccuracyDashboard({
           <DiscrepancyTable
             discrepancies={openDiscrepancies}
             onResolve={async (id) => {
-              // This would be implemented in the server action
-              console.log('Resolve discrepancy:', id)
-              await refresh()
+              try {
+                const result = await resolveDiscrepancy(id, 'manual_fixed')
+                if (result.success) {
+                  toast({
+                    title: 'Discrepancy resolved',
+                    description: 'The discrepancy has been marked as resolved.',
+                  })
+                  await refresh()
+                } else {
+                  toast({
+                    title: 'Failed to resolve',
+                    description: result.error || 'Failed to resolve discrepancy',
+                    variant: 'destructive',
+                  })
+                }
+              } catch (error) {
+                toast({
+                  title: 'Error',
+                  description: 'An unexpected error occurred',
+                  variant: 'destructive',
+                })
+              }
             }}
           />
         </CardContent>
@@ -274,9 +293,28 @@ export function AccuracyDashboard({
           <AlertHistory
             alerts={activeAlerts}
             onAcknowledge={async (id) => {
-              // This would be implemented in the server action
-              console.log('Acknowledge alert:', id)
-              await refresh()
+              try {
+                const result = await acknowledgeAlert(id)
+                if (result.success) {
+                  toast({
+                    title: 'Alert acknowledged',
+                    description: 'The alert has been acknowledged.',
+                  })
+                  await refresh()
+                } else {
+                  toast({
+                    title: 'Failed to acknowledge',
+                    description: result.error || 'Failed to acknowledge alert',
+                    variant: 'destructive',
+                  })
+                }
+              } catch (error) {
+                toast({
+                  title: 'Error',
+                  description: 'An unexpected error occurred',
+                  variant: 'destructive',
+                })
+              }
             }}
           />
         </CardContent>
