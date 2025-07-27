@@ -48,43 +48,49 @@ BEGIN
       BEGIN
         v_product_id := (v_item->>'product_id')::UUID;
       EXCEPTION
-        WHEN OTHERS THEN
-          RAISE EXCEPTION 'Invalid product_id format: %', v_item->>'product_id';
+        WHEN invalid_text_representation THEN
+          RAISE EXCEPTION 'Invalid product_id UUID format: %', v_item->>'product_id';
       END;
       
       -- Validate price is a valid decimal
       BEGIN
         v_price := (v_item->>'price')::DECIMAL(10,2);
-        IF v_price < 0 THEN
-          RAISE EXCEPTION 'Price cannot be negative: %', v_price;
-        END IF;
       EXCEPTION
-        WHEN OTHERS THEN
+        WHEN numeric_value_out_of_range OR invalid_text_representation THEN
           RAISE EXCEPTION 'Invalid price format: %', v_item->>'price';
       END;
+      
+      -- Check non-negativity after successful cast
+      IF v_price < 0 THEN
+        RAISE EXCEPTION 'Price cannot be negative: %', v_price;
+      END IF;
       
       -- Validate min_quantity is a valid integer
       BEGIN
         v_min_quantity := (v_item->>'min_quantity')::INTEGER;
-        IF v_min_quantity < 1 THEN
-          RAISE EXCEPTION 'Min quantity must be at least 1: %', v_min_quantity;
-        END IF;
       EXCEPTION
-        WHEN OTHERS THEN
+        WHEN numeric_value_out_of_range OR invalid_text_representation THEN
           RAISE EXCEPTION 'Invalid min_quantity format: %', v_item->>'min_quantity';
       END;
+      
+      -- Check min quantity validation after successful cast
+      IF v_min_quantity < 1 THEN
+        RAISE EXCEPTION 'Min quantity must be at least 1: %', v_min_quantity;
+      END IF;
       
       -- Validate max_quantity if provided
       IF v_item ? 'max_quantity' AND v_item->>'max_quantity' != '' AND v_item->>'max_quantity' IS NOT NULL THEN
         BEGIN
           v_max_quantity := (v_item->>'max_quantity')::INTEGER;
-          IF v_max_quantity < v_min_quantity THEN
-            RAISE EXCEPTION 'Max quantity (%) must be greater than or equal to min quantity (%)', v_max_quantity, v_min_quantity;
-          END IF;
         EXCEPTION
-          WHEN OTHERS THEN
+          WHEN numeric_value_out_of_range OR invalid_text_representation THEN
             RAISE EXCEPTION 'Invalid max_quantity format: %', v_item->>'max_quantity';
         END;
+        
+        -- Check max vs min after successful cast
+        IF v_max_quantity < v_min_quantity THEN
+          RAISE EXCEPTION 'Max quantity (%) must be greater than or equal to min quantity (%)', v_max_quantity, v_min_quantity;
+        END IF;
       END IF;
       
       -- Check if product exists
