@@ -27,17 +27,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import type { IntegrationFull, SyncJob } from '@/types/integration.types'
+import type { IntegrationFull, SyncJob, IntegrationStatusType, IntegrationPlatformType } from '@/types/integration.types'
 
 interface IntegrationItemProps {
   integration: IntegrationFull
   onSync: (id: string) => Promise<void> | void
-  onToggleStatus: (id: string, currentStatus: string) => Promise<void> | void
+  onToggleStatus: (id: string, currentStatus: IntegrationStatusType) => Promise<void> | void
   onDelete: (id: string) => Promise<void> | void
   isLoading: boolean
 }
 
-const platformIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const platformIcons: Record<IntegrationPlatformType, React.ComponentType<{ className?: string }>> = {
   shopify: ShoppingBag,
   netsuite: BarChart3,
   quickbooks: DollarSign,
@@ -46,7 +46,7 @@ const platformIcons: Record<string, React.ComponentType<{ className?: string }>>
   custom: Wrench,
 }
 
-const statusColors: Record<string, string> = {
+const statusColors: Record<IntegrationStatusType, string> = {
   active: 'bg-green-100 text-green-800',
   inactive: 'bg-gray-100 text-gray-800',
   error: 'bg-red-100 text-red-800',
@@ -74,7 +74,7 @@ export function IntegrationItem({
       ).length
     : 0
 
-  const IconComponent = platformIcons[integration.platform] || LinkIcon
+  const IconComponent = platformIcons[integration.platform as IntegrationPlatformType] || LinkIcon
 
   return (
     <div className="p-4 hover:bg-muted/50 transition-colors">
@@ -96,7 +96,7 @@ export function IntegrationItem({
               </Link>
               <Badge
                 variant="secondary"
-                className={statusColors[integration.status]}
+                className={statusColors[integration.status as IntegrationStatusType]}
               >
                 {integration.status}
               </Badge>
@@ -156,7 +156,7 @@ export function IntegrationItem({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => onToggleStatus(integration.id, integration.status)}
+                onClick={() => onToggleStatus(integration.id, integration.status as IntegrationStatusType)}
               >
                 {integration.status === 'active' ? (
                   <>
