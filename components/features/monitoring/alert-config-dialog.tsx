@@ -1,7 +1,7 @@
 // PRP-016: Data Accuracy Monitor - Alert Configuration Dialog
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -221,7 +221,10 @@ export function AlertConfigDialog({
                         min={0}
                         max={100}
                         {...field}
-                        onChange={e => field.onChange(parseFloat(e.target.value))}
+                        onChange={e => {
+                          const value = parseFloat(e.target.value)
+                          field.onChange(isNaN(value) ? 0 : value)
+                        }}
                       />
                     </FormControl>
                     <FormDescription>
@@ -243,7 +246,10 @@ export function AlertConfigDialog({
                         type="number"
                         min={1}
                         {...field}
-                        onChange={e => field.onChange(parseInt(e.target.value))}
+                        onChange={e => {
+                          const value = parseInt(e.target.value)
+                          field.onChange(isNaN(value) ? 1 : value)
+                        }}
                       />
                     </FormControl>
                     <FormDescription>
