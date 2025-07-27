@@ -14,6 +14,9 @@ import { isFile } from '@/lib/utils/file'
 
 const pipelineAsync = promisify(pipeline)
 
+// Constants
+const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+
 export class BulkOperationsEngine extends EventEmitter {
   private supabase: ReturnType<typeof createServerClient>
   private activeOperations = new Map<string, AbortController>()
@@ -28,6 +31,19 @@ export class BulkOperationsEngine extends EventEmitter {
     config: BulkOperationConfig,
     userId: string
   ): Promise<string> {
+    // Validate configuration
+    if (!config.operationType) {
+      throw new Error('Operation type is required')
+    }
+    if (!config.entityType) {
+      throw new Error('Entity type is required')
+    }
+
+    // Validate file size
+    if (isFile(file) && file.size > MAX_FILE_SIZE) {
+      throw new Error(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`)
+    }
+
     // Get user's organization
     const { data: userProfile } = await this.supabase
       .from('user_profiles')
