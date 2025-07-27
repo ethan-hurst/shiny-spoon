@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // Reusable status type for bulk operations
-export type BulkOperationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rolled_back' | 'rolling_back'
+export type BulkOperationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rolled_back'
 
 // Database types matching the schema
 export interface BulkOperation {
@@ -52,7 +52,7 @@ export interface BulkOperationRecord {
   after_data?: Record<string, any>
   
   // Status
-  status: Exclude<BulkOperationStatus, 'cancelled' | 'rolling_back'>
+  status: Exclude<BulkOperationStatus, 'cancelled'>
   error?: string
   processed_at?: string
 }
