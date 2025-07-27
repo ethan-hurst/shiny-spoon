@@ -36,7 +36,7 @@ describe('SyncEngine', () => {
       })),
       rpc: jest.fn(),
     }
-    ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
+    ;(createClient as jest.Mock).mockResolvedValue(mockSupabase)
 
     syncEngine = new SyncEngine()
   })
