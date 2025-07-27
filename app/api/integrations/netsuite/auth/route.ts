@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Integration ID required' }, { status: 400 })
     }
 
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(integrationId)) {
+      return NextResponse.json({ error: 'Invalid integration ID format' }, { status: 400 })
+    }
+
     // Get user's organization
     const { data: profile } = await supabase
       .from('user_profiles')
@@ -140,9 +146,6 @@ export async function POST(request: NextRequest) {
     await authManager.storeCredentials('oauth2', {
       client_id,
       client_secret,
-      // Placeholder values - will be filled during OAuth flow
-      access_token: '',
-      refresh_token: '',
     })
 
     // Update integration

@@ -63,10 +63,9 @@ export async function POST(
     })
   } catch (error) {
     console.error('Sync API error:', {
-      error,
+      error: error instanceof Error ? error.message : 'Unknown error',
       integrationId: params.id,
       userId: user?.id,
-      userEmail: user?.email,
       entityType,
       timestamp: new Date().toISOString()
     })

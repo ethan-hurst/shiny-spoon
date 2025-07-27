@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     // Verify cron secret
     const authHeader = request.headers.get('authorization')
     if (!CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
-      console.error('[CRON] Missing CRON_SECRET or invalid authorization')
+      console.error('[CRON] Authorization failed')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -108,13 +108,22 @@ export async function GET(request: NextRequest) {
     
     // Initialize sync engine to check its health
     let engineHealth = null
+    let syncEngine: SyncEngine | null = null
     try {
-      const syncEngine = new SyncEngine()
+      syncEngine = new SyncEngine()
       engineHealth = await syncEngine.getHealthStatus()
-      await syncEngine.shutdown()
     } catch (error) {
       console.error('[CRON] Error checking sync engine health:', error)
       issues.push(`Sync engine health check failed: ${error}`)
+    } finally {
+      // Always shutdown sync engine if it was created
+      if (syncEngine) {
+        try {
+          await syncEngine.shutdown()
+        } catch (shutdownError) {
+          console.error('[CRON] Error shutting down sync engine:', shutdownError)
+        }
+      }
     }
 
     // Determine overall status

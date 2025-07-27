@@ -110,7 +110,19 @@ export async function GET(
           const [startHour] = schedule.active_hours.start.split(':').map(Number)
           const [endHour] = schedule.active_hours.end.split(':').map(Number)
           
-          if (currentHour < startHour || currentHour >= endHour) {
+          // Handle case where active period spans midnight
+          const spansMidnight = endHour <= startHour
+          let isWithinActiveHours = false
+          
+          if (spansMidnight) {
+            // Active hours span midnight (e.g., 22:00 to 02:00)
+            isWithinActiveHours = currentHour >= startHour || currentHour < endHour
+          } else {
+            // Normal hours (e.g., 09:00 to 17:00)
+            isWithinActiveHours = currentHour >= startHour && currentHour < endHour
+          }
+          
+          if (!isWithinActiveHours) {
             console.log(`[CRON] Skipping schedule ${schedule.id} - outside active hours`)
             continue
           }
