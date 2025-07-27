@@ -241,8 +241,8 @@ export async function retrySyncJob(formData: FormData) {
       
       return { success: true, job: retryJob }
     } finally {
-      // JobManager doesn't have a cleanup method in current implementation
-      // If it had one, we would call it here: await jobManager.stop()
+      // Stop the job manager to release resources
+      await jobManager.stop()
     }
   })
 }
@@ -299,15 +299,29 @@ export async function updateSyncSchedule(formData: FormData) {
     throw new Error('Integration not found or access denied')
   }
 
+  // Check if schedule exists
+  const { data: existingSchedule } = await supabase
+    .from('sync_schedules')
+    .select('created_by')
+    .eq('integration_id', parsed.integration_id)
+    .single()
+
+  // Prepare upsert data
+  const scheduleData: any = {
+    integration_id: parsed.integration_id,
+    ...parsed,
+    updated_at: new Date().toISOString(),
+  }
+
+  // Only set created_by on insert
+  if (!existingSchedule) {
+    scheduleData.created_by = user.id
+  }
+
   // Upsert schedule
   const { error } = await supabase
     .from('sync_schedules')
-    .upsert({
-      integration_id: parsed.integration_id,
-      ...parsed,
-      created_by: user.id,
-      updated_at: new Date().toISOString(),
-    }, {
+    .upsert(scheduleData, {
       onConflict: 'integration_id',
     })
 
@@ -745,9 +759,9 @@ export async function getSyncHealthData() {
   // Get active jobs count for engine health
   const { count: activeJobsCount } = await supabase
     .from('sync_jobs')
-    .select('*', { count: 'exact', head: true })
+    .select('*, integrations!inner(organization_id)', { count: 'exact', head: true })
     .eq('status', 'running')
-    .eq('organization_id', profile.organization_id)
+    .eq('integrations.organization_id', profile.organization_id)
 
   return {
     integration_health: integrationHealth,
