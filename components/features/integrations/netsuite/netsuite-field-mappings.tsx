@@ -130,14 +130,18 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
   const [fieldMappings, setFieldMappings] = useState<ExtendedFieldMapping[]>(() => {
     // Convert existing mappings to array format
     const mappingArray: ExtendedFieldMapping[] = []
+    const validEntityTypes: FieldMapping['entityType'][] = ['product', 'inventory', 'pricing', 'customer', 'order']
+    
     Object.entries(mappings).forEach(([entityType, fields]) => {
-      if (typeof fields === 'object' && fields !== null) {
+      if (typeof fields === 'object' && fields !== null && validEntityTypes.includes(entityType as FieldMapping['entityType'])) {
         Object.entries(fields).forEach(([source, target]) => {
-          mappingArray.push({
-            sourceField: source,
-            targetField: target as string,
-            entityType: entityType as FieldMapping['entityType'],
-          })
+          if (typeof source === 'string' && typeof target === 'string' && source.trim() !== '' && target.trim() !== '') {
+            mappingArray.push({
+              sourceField: source,
+              targetField: target,
+              entityType: entityType as FieldMapping['entityType'],
+            })
+          }
         })
       }
     })
@@ -216,8 +220,14 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
       const sourceField = mapping.sourceField === 'custom' ? mapping.customSourceField : mapping.sourceField
       const targetField = mapping.targetField === 'metadata' ? mapping.customTargetField : mapping.targetField
       
+      // Validate custom fields before saving
       if (sourceField && targetField) {
-        mappingsByEntity[mapping.entityType][sourceField] = targetField
+        const isValidSourceField = typeof sourceField === 'string' && sourceField.trim() !== '' && sourceField.length <= 100
+        const isValidTargetField = typeof targetField === 'string' && targetField.trim() !== '' && targetField.length <= 100
+        
+        if (isValidSourceField && isValidTargetField) {
+          mappingsByEntity[mapping.entityType][sourceField.trim()] = targetField.trim()
+        }
       }
     })
 

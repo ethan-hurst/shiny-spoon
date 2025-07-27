@@ -27,17 +27,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import type { IntegrationFull, SyncJob } from '@/types/integration.types'
+import type { IntegrationFull, SyncJob, IntegrationStatusType, IntegrationPlatformType } from '@/types/integration.types'
 
 interface IntegrationItemProps {
   integration: IntegrationFull
-  onSync: (id: string) => void
-  onToggleStatus: (id: string, currentStatus: string) => void
-  onDelete: (id: string) => void
+  onSync: (id: string) => Promise<void> | void
+  onToggleStatus: (id: string, currentStatus: IntegrationStatusType) => Promise<void> | void
+  onDelete: (id: string) => Promise<void> | void
   isLoading: boolean
 }
 
-const platformIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const platformIcons: Record<IntegrationPlatformType, React.ComponentType<{ className?: string }>> = {
   shopify: ShoppingBag,
   netsuite: BarChart3,
   quickbooks: DollarSign,
@@ -46,7 +46,7 @@ const platformIcons: Record<string, React.ComponentType<{ className?: string }>>
   custom: Wrench,
 }
 
-const statusColors: Record<string, string> = {
+const statusColors: Record<IntegrationStatusType, string> = {
   active: 'bg-green-100 text-green-800',
   inactive: 'bg-gray-100 text-gray-800',
   error: 'bg-red-100 text-red-800',
@@ -62,14 +62,19 @@ export function IntegrationItem({
   isLoading 
 }: IntegrationItemProps) {
   const lastSyncDate = integration.last_sync_at
-    ? new Date(integration.last_sync_at)
+    ? (() => {
+        const date = new Date(integration.last_sync_at)
+        return !isNaN(date.getTime()) ? date : null
+      })()
     : null
   const hasError = integration.status === 'error'
-  const runningJobs = integration.sync_jobs?.filter(
-    (job) => (job as SyncJob).status === 'running'
-  ).length || 0
+  const runningJobs = Array.isArray(integration.sync_jobs)
+    ? integration.sync_jobs.filter(
+        (job): job is SyncJob => job && typeof job === 'object' && (job as SyncJob).status === 'running'
+      ).length
+    : 0
 
-  const IconComponent = platformIcons[integration.platform] || LinkIcon
+  const IconComponent = platformIcons[integration.platform as IntegrationPlatformType] || LinkIcon
 
   return (
     <div className="p-4 hover:bg-muted/50 transition-colors">
@@ -91,7 +96,7 @@ export function IntegrationItem({
               </Link>
               <Badge
                 variant="secondary"
-                className={statusColors[integration.status]}
+                className={statusColors[integration.status as IntegrationStatusType]}
               >
                 {integration.status}
               </Badge>
@@ -109,7 +114,14 @@ export function IntegrationItem({
                 <>
                   <span>•</span>
                   <span>
-                    Last sync: {format(lastSyncDate, 'MMM d, h:mm a')}
+                    Last sync: {(() => {
+                      try {
+                        return format(lastSyncDate, 'MMM d, h:mm a')
+                      } catch (error) {
+                        console.error('Invalid date format:', error)
+                        return 'Invalid date'
+                      }
+                    })()}
                   </span>
                 </>
               )}
@@ -132,8 +144,8 @@ export function IntegrationItem({
             onClick={() => onSync(integration.id)}
             disabled={isLoading || integration.status !== 'active'}
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Sync Now
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''} ${isLoading ? 'mr-2' : 'mr-1'}`} />
+            {isLoading ? 'Syncing...' : 'Sync Now'}
           </Button>
 
           <DropdownMenu>
@@ -144,7 +156,7 @@ export function IntegrationItem({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => onToggleStatus(integration.id, integration.status)}
+                onClick={() => onToggleStatus(integration.id, integration.status as IntegrationStatusType)}
               >
                 {integration.status === 'active' ? (
                   <>

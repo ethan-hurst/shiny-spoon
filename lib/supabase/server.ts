@@ -54,7 +54,7 @@ export async function createClient() {
 
 // Helper function to get the current user
 export async function getCurrentUser() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { user },
     error,

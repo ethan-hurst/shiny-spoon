@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { createBrowserClient } from '@/lib/supabase/client'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
 
 interface UseCustomerPricingRealtimeProps {
   customerId: string
@@ -22,10 +23,11 @@ export function useCustomerPricingRealtime({
     let channel: RealtimeChannel
 
     const setupRealtimeSubscription = async () => {
-      // Subscribe to customer pricing changes
-      channel = supabase
-        .channel(`customer-pricing-${customerId}`)
-        .on(
+      try {
+        // Subscribe to customer pricing changes
+        channel = supabase
+          .channel(`customer-pricing-${customerId}`)
+          .on(
           'postgres_changes',
           {
             event: '*',
@@ -33,7 +35,7 @@ export function useCustomerPricingRealtime({
             table: 'customer_pricing',
             filter: `customer_id=eq.${customerId}`,
           },
-          (_payload: any) => {
+          (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
             // Invalidate customer pricing queries
             queryClient.invalidateQueries({
               queryKey: ['customer-pricing', customerId],
@@ -51,7 +53,7 @@ export function useCustomerPricingRealtime({
             table: 'customer_contracts',
             filter: `customer_id=eq.${customerId}`,
           },
-          (_payload: any) => {
+          (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
             // Invalidate contract queries
             queryClient.invalidateQueries({
               queryKey: ['customer-contracts', customerId],
@@ -66,7 +68,7 @@ export function useCustomerPricingRealtime({
             table: 'price_approvals',
             filter: `customer_id=eq.${customerId}`,
           },
-          (_payload: any) => {
+          (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
             // Invalidate approval queries
             queryClient.invalidateQueries({
               queryKey: ['price-approvals', customerId],
@@ -84,7 +86,7 @@ export function useCustomerPricingRealtime({
             table: 'customer_price_history',
             filter: `customer_id=eq.${customerId}`,
           },
-          (_payload: any) => {
+          (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
             // Invalidate price history queries
             queryClient.invalidateQueries({
               queryKey: ['price-history', customerId],
@@ -92,6 +94,9 @@ export function useCustomerPricingRealtime({
           }
         )
         .subscribe()
+      } catch (error) {
+        console.error('Failed to setup realtime subscription:', error)
+      }
     }
 
     setupRealtimeSubscription()
@@ -152,6 +157,7 @@ export function useContractExpiryNotifications({
 export function usePriceApprovalNotifications(organizationId?: string) {
   const queryClient = useQueryClient()
   const supabase = createBrowserClient()
+  const router = useRouter()
 
   useEffect(() => {
     if (!organizationId) return
@@ -179,7 +185,7 @@ export function usePriceApprovalNotifications(organizationId?: string) {
             action: {
               label: 'Review',
               onClick: () => {
-                window.location.href = '/pricing/approvals'
+                router.push('/pricing/approvals')
               },
             },
           })
@@ -190,5 +196,5 @@ export function usePriceApprovalNotifications(organizationId?: string) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [organizationId, supabase, queryClient])
+  }, [organizationId, supabase, queryClient, router])
 }

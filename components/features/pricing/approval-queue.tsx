@@ -46,6 +46,7 @@ interface ApprovalQueueProps {
 }
 
 export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
+  const router = useRouter()
   const queryClient = useQueryClient()
   const [selectedApproval, setSelectedApproval] =
     useState<PriceApprovalWithDetails | null>(null)

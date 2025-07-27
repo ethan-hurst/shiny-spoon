@@ -12,8 +12,8 @@ import type {
 } from '@/types/netsuite.types'
 
 const tokenResponseSchema = z.object({
-  access_token: z.string(),
-  refresh_token: z.string(),
+  access_token: z.string().min(1, 'Access token cannot be empty'),
+  refresh_token: z.string().min(1, 'Refresh token cannot be empty'),
   expires_in: z.number(),
   token_type: z.string(),
   scope: z.string().optional(),

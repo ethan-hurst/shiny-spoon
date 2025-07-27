@@ -68,10 +68,9 @@ export async function GET(
       .eq('frequency', dbFrequency)
 
     if (scheduleError) {
-      console.error('[CRON] Error fetching schedules:', scheduleError)
+      console.error('[CRON] Error fetching schedules:', scheduleError.message || 'Unknown error')
       return NextResponse.json({ 
-        error: 'Failed to fetch schedules',
-        details: scheduleError 
+        error: 'Failed to fetch schedules'
       }, { status: 500 })
     }
 
@@ -110,7 +109,19 @@ export async function GET(
           const [startHour] = schedule.active_hours.start.split(':').map(Number)
           const [endHour] = schedule.active_hours.end.split(':').map(Number)
           
-          if (currentHour < startHour || currentHour >= endHour) {
+          // Handle case where active period spans midnight
+          const spansMidnight = endHour <= startHour
+          let isWithinActiveHours = false
+          
+          if (spansMidnight) {
+            // Active hours span midnight (e.g., 22:00 to 02:00)
+            isWithinActiveHours = currentHour >= startHour || currentHour < endHour
+          } else {
+            // Normal hours (e.g., 09:00 to 17:00)
+            isWithinActiveHours = currentHour >= startHour && currentHour < endHour
+          }
+          
+          if (!isWithinActiveHours) {
             console.log(`[CRON] Skipping schedule ${schedule.id} - outside active hours`)
             continue
           }
@@ -165,7 +176,7 @@ export async function GET(
         })
 
       } catch (error) {
-        console.error(`[CRON] Error processing schedule ${schedule.id}:`, error)
+        console.error(`[CRON] Error processing schedule ${schedule.id}:`, error instanceof Error ? error.message : 'Unknown error')
         results.push({
           schedule_id: schedule.id,
           integration_id: schedule.integration_id,
@@ -179,7 +190,7 @@ export async function GET(
       try {
         await syncEngine.shutdown()
       } catch (shutdownError) {
-        console.error('[CRON] Error during sync engine shutdown:', shutdownError)
+        console.error('[CRON] Error during sync engine shutdown:', shutdownError instanceof Error ? shutdownError.message : 'Unknown error')
       }
     }
 
@@ -193,10 +204,9 @@ export async function GET(
     })
 
   } catch (error) {
-    console.error('[CRON] Unexpected error:', error)
+    console.error('[CRON] Unexpected error:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error'
     }, { status: 500 })
   }
 }

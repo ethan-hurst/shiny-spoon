@@ -334,7 +334,8 @@ export class SyncJobManager {
         }
       } else {
         // Overnight case: end time is before start time (e.g., 22:00 - 6:00)
-        if (currentTimeMinutes < startTimeMinutes && currentTimeMinutes >= endTimeMinutes) {
+        // Should run if current time is >= start time OR < end time
+        if (currentTimeMinutes >= endTimeMinutes && currentTimeMinutes < startTimeMinutes) {
           return false
         }
       }

@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/health-check",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/accuracy",
+      "schedule": "*/15 * * * *"
     }
   ],
   "functions": {
@@ -42,6 +46,9 @@
     },
     "app/api/cron/health-check/route.ts": {
       "maxDuration": 30
+    },
+    "app/api/cron/accuracy/route.ts": {
+      "maxDuration": 300
     }
   }
 }

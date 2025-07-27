@@ -120,41 +120,20 @@ export async function updateContract(formData: FormData) {
     document_url: formData.get('document_url') || undefined,
   })
 
-  // Update contract
-  const { error: contractError } = await supabase
-    .from('customer_contracts')
-    .update({
-      ...contractData,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', contractId)
-
-  if (contractError) throw contractError
-
-  // Handle contract items
+  // Parse contract items
   const contractItemsJson = formData.get('contract_items') as string
   const contractItems = contractItemsJson ? JSON.parse(contractItemsJson) : []
 
-  // Delete existing items
-  const { error: deleteError } = await supabase
-    .from('contract_items')
-    .delete()
-    .eq('contract_id', contractId)
+  // Use RPC to update contract and items atomically in a single transaction
+  const { error: updateError } = await supabase.rpc('update_contract_with_items', {
+    p_contract_id: contractId,
+    p_contract_data: contractData,
+    p_contract_items: contractItems,
+    p_user_id: user.id
+  })
 
-  if (deleteError) throw deleteError
-
-  // Insert new items
-  if (contractItems.length > 0) {
-    const { error: itemsError } = await supabase
-      .from('contract_items')
-      .insert(
-        contractItems.map((item: ContractItem) => ({
-          ...item,
-          contract_id: contractId,
-        }))
-      )
-
-    if (itemsError) throw itemsError
+  if (updateError) {
+    throw new Error(`Failed to update contract: ${updateError.message}`)
   }
 
   revalidatePath(`/customers/${customerId}/pricing`)

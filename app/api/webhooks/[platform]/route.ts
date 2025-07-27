@@ -37,6 +37,13 @@ async function getIntegrationContext(
       case 'shopify': {
         const shopifyShop = headersList.get('x-shopify-shop-domain')
         if (!shopifyShop) return null
+        
+        // Validate shop domain format
+        const shopDomainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/
+        if (!shopDomainRegex.test(shopifyShop)) {
+          console.error('Invalid Shopify shop domain format:', shopifyShop)
+          return null
+        }
 
         const { data: integration } = await supabase
           .from('integrations')
@@ -91,10 +98,10 @@ export async function POST(
   { params }: { params: { platform: string } }
 ) {
   try {
-    const platform = params.platform as IntegrationPlatformType
+    const platform = params.platform
     
     // Validate platform
-    if (!VALID_PLATFORMS.includes(platform)) {
+    if (!VALID_PLATFORMS.includes(platform as IntegrationPlatformType)) {
       return NextResponse.json(
         { error: 'Invalid platform' },
         { status: 400 }
@@ -247,7 +254,7 @@ export async function GET(
   { params }: { params: { platform: string } }
 ) {
   // Some platforms use GET for webhook verification
-  const platform = params.platform as IntegrationPlatformType
+  const platform = params.platform
   
   if (platform === 'shopify') {
     // Shopify webhook verification
@@ -273,7 +280,8 @@ function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false
   
   // Check exact matches
-  if (ALLOWED_WEBHOOK_ORIGINS.includes(origin as any)) {
+  const allowedOrigins: readonly string[] = ALLOWED_WEBHOOK_ORIGINS
+  if (allowedOrigins.includes(origin)) {
     return true
   }
   

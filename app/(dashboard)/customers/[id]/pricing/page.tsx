@@ -130,8 +130,8 @@ async function getCustomerData(customerId: string) {
       custom_prices: 0,
       contract_prices: 0,
       average_discount: 0,
-      pending_approvals: pendingApprovalsCount || 0,
-      expiring_contracts: expiringContracts || 0,
+      pending_approvals: pendingApprovalsCount ?? 0,
+      expiring_contracts: expiringContracts ?? 0,
     },
     pendingApprovals: approvals || [],
   }
@@ -209,7 +209,7 @@ export default async function CustomerPricingPage(
             </div>
             <p className="text-xs text-muted-foreground">
               Tier discount:{' '}
-              {formatPercent(customer.customer_tiers?.discount_percentage || 0)}
+              {formatPercent(customer.customer_tiers?.discount_percentage ?? 0)}
             </p>
           </CardContent>
         </Card>

@@ -2,6 +2,7 @@
 import { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -90,8 +91,6 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
     if (data) {
       integration = data
       netsuiteConfig = data.netsuite_config?.[0]
-      // Redirect to specific integration page
-      redirect(`/integrations/netsuite?id=${data.id}`)
     }
   }
 
@@ -254,18 +253,16 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
                     <AlertTitle>Authentication Required</AlertTitle>
                     <AlertDescription>
                       Connect your NetSuite account using OAuth 2.0 to start syncing data.
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={() => {
-                          // This will be handled by the OAuth flow
-                          window.location.href = `/api/integrations/netsuite/auth?integration_id=${integration.id}`
-                        }}
-                      >
-                        Connect NetSuite Account
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
+                      <Link href={`/api/integrations/netsuite/auth?integration_id=${integration.id}`}>
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="mt-2"
+                        >
+                          Connect NetSuite Account
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link>
                     </AlertDescription>
                   </Alert>
                 )}

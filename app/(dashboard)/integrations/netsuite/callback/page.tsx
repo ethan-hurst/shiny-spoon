@@ -9,6 +9,59 @@ import { Loader2, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
 
+// Sanitize error messages to remove sensitive information
+function sanitizeErrorMessage(error: string): string {
+  // Remove URLs including query parameters and fragments
+  let sanitized = error.replace(
+    /https?:\/\/[a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=%]+/g,
+    '[URL]'
+  )
+  
+  // Remove various token patterns (OAuth, JWT, API keys, etc.)
+  // Handles base64, hex, and alphanumeric tokens of various lengths
+  sanitized = sanitized
+    .replace(/[a-zA-Z0-9_\-+/=]{32,}/g, '[TOKEN]') // Long tokens including base64
+    .replace(/[a-fA-F0-9]{32,}/g, '[TOKEN]') // Hex tokens (MD5, SHA, etc.)
+    .replace(/[a-zA-Z0-9]{16,}[-_][a-zA-Z0-9]{16,}/g, '[TOKEN]') // UUID-like tokens
+  
+  // Remove Bearer tokens and other authorization headers
+  sanitized = sanitized
+    .replace(/Bearer\s+[a-zA-Z0-9_\-+/=.]+/gi, 'Bearer [TOKEN]')
+    .replace(/Basic\s+[a-zA-Z0-9_\-+/=.]+/gi, 'Basic [TOKEN]')
+    .replace(/Token\s+[a-zA-Z0-9_\-+/=.]+/gi, 'Token [TOKEN]')
+  
+  // Remove account IDs with various delimiters and formats
+  sanitized = sanitized
+    .replace(/account[_-]?id\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/gi, 'account_id=[REDACTED]')
+    .replace(/account\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/gi, 'account=[REDACTED]')
+    .replace(/accountId\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/g, 'accountId=[REDACTED]')
+  
+  // Remove consumer keys and client IDs with various formats
+  sanitized = sanitized
+    .replace(/consumer[_-]?key\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi, 'consumer_key=[REDACTED]')
+    .replace(/client[_-]?id\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi, 'client_id=[REDACTED]')
+    .replace(/api[_-]?key\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi, 'api_key=[REDACTED]')
+  
+  // Remove secrets and passwords
+  sanitized = sanitized
+    .replace(/client[_-]?secret\s*[=:]\s*["']?[^\s"']+["']?/gi, 'client_secret=[REDACTED]')
+    .replace(/consumer[_-]?secret\s*[=:]\s*["']?[^\s"']+["']?/gi, 'consumer_secret=[REDACTED]')
+    .replace(/password\s*[=:]\s*["']?[^\s"']+["']?/gi, 'password=[REDACTED]')
+  
+  // Remove email addresses
+  sanitized = sanitized.replace(
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+    '[EMAIL]'
+  )
+  
+  // Remove IP addresses (IPv4 and IPv6)
+  sanitized = sanitized
+    .replace(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g, '[IP]')
+    .replace(/\b(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}\b/g, '[IP]')
+  
+  return sanitized
+}
+
 export const metadata: Metadata = {
   title: 'NetSuite OAuth Callback | TruthSource',
   description: 'Processing NetSuite authentication',
@@ -51,7 +104,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
 
   // Check for OAuth errors
   if (searchParams.error) {
-    errorMessage = searchParams.error_description || 'Authentication failed'
+    errorMessage = sanitizeErrorMessage(searchParams.error_description || 'Authentication failed')
   } else if (!searchParams.code || !searchParams.state) {
     errorMessage = 'Missing authorization code or state parameter'
   } else {
@@ -91,16 +144,21 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
         netsuiteConfig
       )
 
-      await auth.exchangeCodeForTokens(searchParams.code)
-
-      // Update integration status
-      await supabase
-        .from('integrations')
-        .update({ 
-          status: 'active',
-          credential_type: 'oauth2',
-        })
-        .eq('id', integrationId)
+      const tokenResult = await auth.exchangeCodeForTokens(searchParams.code)
+      
+      // Only update integration status if token exchange succeeded
+      if (tokenResult && tokenResult.access_token && tokenResult.refresh_token) {
+        // Update integration status
+        await supabase
+          .from('integrations')
+          .update({ 
+            status: 'active',
+            credential_type: 'oauth2',
+          })
+          .eq('id', integrationId)
+      } else {
+        throw new Error('Failed to exchange code for tokens - invalid token response')
+      }
 
       // Log successful authentication
       await supabase.rpc('log_integration_activity', {
@@ -123,7 +181,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
           p_log_type: 'auth',
           p_severity: 'error',
           p_message: 'NetSuite OAuth authentication failed',
-          p_details: { error: errorMessage },
+          p_details: { error: sanitizeErrorMessage(errorMessage) },
         })
       }
     }
