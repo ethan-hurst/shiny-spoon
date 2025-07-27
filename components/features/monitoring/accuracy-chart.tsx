@@ -13,9 +13,10 @@ import {
   Legend,
 } from 'recharts'
 import { format } from 'date-fns'
+import type { AccuracyCheck } from '@/lib/monitoring/types'
 
 interface AccuracyChartProps {
-  data: any[]
+  data: AccuracyCheck[]
   height?: number
 }
 
@@ -25,16 +26,16 @@ export function AccuracyChart({ data, height = 300 }: AccuracyChartProps) {
 
     // Sort by date and format for chart
     return data
-      .filter(check => check.status === 'completed' && check.accuracy_score !== null)
+      .filter(check => check.status === 'completed' && check.accuracyScore !== null && check.accuracyScore !== undefined)
       .sort((a, b) => 
-        new Date(a.completed_at || a.created_at).getTime() - 
-        new Date(b.completed_at || b.created_at).getTime()
+        new Date(a.completedAt || a.createdAt).getTime() - 
+        new Date(b.completedAt || b.createdAt).getTime()
       )
       .map(check => ({
-        date: format(new Date(check.completed_at || check.created_at), 'MMM dd HH:mm'),
-        accuracy: check.accuracy_score,
-        records: check.records_checked,
-        discrepancies: check.discrepancies_found,
+        date: format(new Date(check.completedAt || check.createdAt), 'MMM dd HH:mm'),
+        accuracy: check.accuracyScore,
+        records: check.recordsChecked,
+        discrepancies: check.discrepanciesFound,
       }))
   }, [data])
 
