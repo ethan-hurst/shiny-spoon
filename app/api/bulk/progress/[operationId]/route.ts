@@ -96,7 +96,8 @@ export async function GET(
       // Poll for updates if operation is running or being rolled back
       if (
         operation.status === 'processing' ||
-        (operation.status === 'rolled_back' && operation.results?.rollback_started)
+        operation.status === 'rolling_back' ||
+        (operation.results?.rollback_started && operation.status !== 'rolled_back')
       ) {
         const pollInterval = setInterval(async () => {
           const { data: updated } = await supabase
@@ -132,7 +133,7 @@ export async function GET(
             }
 
             // Close connection when operation is fully complete
-            if (updated.status !== 'processing' && !rollbackProgress) {
+            if (updated.status !== 'processing' && updated.status !== 'rolling_back' && !rollbackProgress) {
               clearInterval(pollInterval)
               controller.close()
             }
