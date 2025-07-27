@@ -137,8 +137,27 @@ export async function POST(request: NextRequest) {
         p_event_id: event.id
       })
 
+      // Enhanced error handling
       if (processingResult.error) {
-        throw new Error(processingResult.error)
+        console.error('RPC processing error:', processingResult.error)
+        throw new Error(
+          processingResult.error.message || 
+          processingResult.error.toString() || 
+          'Failed to process webhook'
+        )
+      }
+
+      // Verify the RPC returned valid data
+      if (!processingResult.data) {
+        console.error('RPC returned no data')
+        throw new Error('Webhook processing returned no data')
+      }
+
+      // Check if RPC indicated success
+      if (processingResult.data === false || processingResult.data.success === false) {
+        const errorMsg = processingResult.data?.error || 'Webhook processing failed'
+        console.error('RPC processing failed:', errorMsg)
+        throw new Error(errorMsg)
       }
 
       return NextResponse.json({ success: true })
