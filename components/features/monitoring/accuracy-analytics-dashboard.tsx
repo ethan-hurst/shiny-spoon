@@ -32,6 +32,7 @@ import { AccuracyHeatmap } from './accuracy-heatmap'
 import { AccuracyComparisonChart } from './accuracy-comparison-chart'
 import { getAccuracyReport } from '@/app/actions/monitoring'
 import { useToast } from '@/components/ui/use-toast'
+import { escapeCSVField } from '@/lib/utils/csv'
 
 interface AccuracyAnalyticsDashboardProps {
   organizationId: string
@@ -464,34 +465,6 @@ function generateInsights(
   return insights
 }
 
-/**
- * Escapes a value for safe inclusion in a CSV field.
- *
- * Converts null or undefined to an empty quoted string. Wraps the value in quotes if it contains quotes, commas, newlines, carriage returns, or starts with characters that could be interpreted as spreadsheet formulas. Internal quotes are doubled for CSV compatibility.
- *
- * @param value - The value to escape for CSV output
- * @returns The escaped CSV field as a string
- */
-function escapeCSVField(value: any): string {
-  if (value === null || value === undefined) {
-    return '""'
-  }
-  
-  const strValue = String(value)
-  
-  // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
-  if (strValue.includes('"') || strValue.includes('\n') || strValue.includes('\r') || strValue.includes(',')) {
-    // Escape quotes by doubling them and wrap in quotes
-    return `"${strValue.replace(/"/g, '""')}"`
-  }
-  
-  // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
-  if (/^[=+\-@\t\r]/.test(strValue)) {
-    return `"${strValue}"`
-  }
-  
-  return strValue
-}
 
 /**
  * Converts a report object containing summary, entity breakdown, and historical data into a CSV string.
