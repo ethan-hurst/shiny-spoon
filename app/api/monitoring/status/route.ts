@@ -64,7 +64,10 @@ export async function GET(request: NextRequest) {
       checkQuery.eq('integration_id', integrationId)
     }
 
-    const { data: latestCheck } = await checkQuery.single()
+    const { data: checkResult, error: checkError } = await checkQuery
+    
+    // Handle the case where no checks exist yet
+    const latestCheck = checkResult && checkResult.length > 0 ? checkResult[0] : null
 
     // Get active alerts count
     const { count: activeAlerts } = await supabase
