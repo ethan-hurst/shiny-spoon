@@ -276,7 +276,14 @@ export async function downloadBulkOperationReport(operationId: string) {
 
   // Helper function to properly escape CSV values
   const escapeCSVValue = (value: string | number): string => {
-    const strValue = String(value)
+    let strValue = String(value)
+    
+    // Protect against CSV formula injection
+    // If the value starts with =, +, -, or @, prepend a single quote
+    if (strValue.length > 0 && ['=', '+', '-', '@'].includes(strValue[0])) {
+      strValue = "'" + strValue
+    }
+    
     // If the value contains quotes, newlines, or commas, it needs to be quoted
     if (strValue.includes('"') || strValue.includes('\n') || strValue.includes(',')) {
       // Escape double quotes by doubling them
