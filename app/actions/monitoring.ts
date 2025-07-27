@@ -147,10 +147,23 @@ export async function deleteAlertRule(ruleId: string) {
       return { success: false, error: 'Unauthorized' }
     }
 
+    // Get user's organization
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!orgUser) {
+      return { success: false, error: 'Organization not found' }
+    }
+
+    // Delete only if the rule belongs to the user's organization
     const { error } = await supabase
       .from('alert_rules')
       .delete()
       .eq('id', ruleId)
+      .eq('organization_id', orgUser.organization_id)
 
     if (error) throw error
 

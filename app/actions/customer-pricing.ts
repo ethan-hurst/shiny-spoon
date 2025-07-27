@@ -135,27 +135,13 @@ export async function updateContract(formData: FormData) {
   const contractItemsJson = formData.get('contract_items') as string
   const contractItems = contractItemsJson ? JSON.parse(contractItemsJson) : []
 
-  // Delete existing items
-  const { error: deleteError } = await supabase
-    .from('contract_items')
-    .delete()
-    .eq('contract_id', contractId)
+  // Use RPC to atomically update contract items
+  const { error: updateItemsError } = await supabase.rpc('update_contract_items', {
+    p_contract_id: contractId,
+    p_items: contractItems
+  })
 
-  if (deleteError) throw deleteError
-
-  // Insert new items
-  if (contractItems.length > 0) {
-    const { error: itemsError } = await supabase
-      .from('contract_items')
-      .insert(
-        contractItems.map((item: ContractItem) => ({
-          ...item,
-          contract_id: contractId,
-        }))
-      )
-
-    if (itemsError) throw itemsError
-  }
+  if (updateItemsError) throw updateItemsError
 
   revalidatePath(`/customers/${customerId}/pricing`)
   revalidatePath(`/customers/${customerId}/pricing/contracts`)

@@ -60,68 +60,29 @@ export async function createShopifyIntegration(formData: FormData) {
 
   const validatedData = shopifyConfigSchema.parse(rawData)
 
-  // Create new integration
-  const { data: integration, error: integrationError } = await supabase
-    .from('integrations')
-    .insert({
-      organization_id: profile.organization_id,
-      platform: 'shopify',
-      name: `Shopify - ${validatedData.shop_domain}`,
-      status: 'configuring',
-      config: {
-        sync_frequency: validatedData.sync_frequency,
-        api_version: '2024-01'
-      }
-    })
-    .select()
-    .single()
-
-  if (integrationError) {
-    throw new Error(`Failed to create integration: ${integrationError.message}`)
-  }
-
-  // Create Shopify config
-  const { error: configError } = await supabase
-    .from('shopify_config')
-    .insert({
-      integration_id: integration.id,
-      shop_domain: validatedData.shop_domain,
-      sync_products: validatedData.sync_products,
-      sync_inventory: validatedData.sync_inventory,
-      sync_orders: validatedData.sync_orders,
-      sync_customers: validatedData.sync_customers,
-      b2b_catalog_enabled: validatedData.b2b_catalog_enabled
+  // Use RPC for atomic creation
+  const { data: integrationId, error: rpcError } = await supabase
+    .rpc('create_shopify_integration', {
+      p_organization_id: profile.organization_id,
+      p_shop_domain: validatedData.shop_domain,
+      p_sync_frequency: validatedData.sync_frequency,
+      p_sync_products: validatedData.sync_products,
+      p_sync_inventory: validatedData.sync_inventory,
+      p_sync_orders: validatedData.sync_orders,
+      p_sync_customers: validatedData.sync_customers,
+      p_b2b_catalog_enabled: validatedData.b2b_catalog_enabled,
+      p_access_token: validatedData.access_token,
+      p_storefront_access_token: validatedData.storefront_access_token || null
     })
 
-  if (configError) {
-    // Rollback integration on error
-    await supabase.from('integrations').delete().eq('id', integration.id)
-    throw new Error(`Failed to create config: ${configError.message}`)
-  }
-
-  // Store credentials
-  const { error: credError } = await supabase
-    .from('integration_credentials')
-    .insert({
-      integration_id: integration.id,
-      credential_type: 'api_key',
-      credentials: {
-        access_token: validatedData.access_token,
-        webhook_secret: validatedData.webhook_secret
-      }
-    })
-
-  if (credError) {
-    // Rollback on error
-    await supabase.from('shopify_config').delete().eq('integration_id', integration.id)
-    await supabase.from('integrations').delete().eq('id', integration.id)
-    throw new Error(`Failed to store credentials: ${credError.message}`)
+  if (rpcError) {
+    throw new Error(`Failed to create integration: ${rpcError.message}`)
   }
 
   revalidatePath('/integrations')
   revalidatePath('/integrations/shopify')
   
-  return { integrationId: integration.id }
+  return { integrationId }
 }
 
 export async function updateShopifyIntegration(integrationId: string, formData: FormData) {
