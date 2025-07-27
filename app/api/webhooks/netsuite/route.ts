@@ -341,13 +341,13 @@ export async function PUT(request: NextRequest) {
       .from('webhook_endpoints')
       .upsert({
         integration_id,
-        endpoint_url: callback_url,
+        url: callback_url,
         events,
         secret,
         is_active: true,
         created_by: user.id,
       }, {
-        onConflict: 'integration_id,endpoint_url',
+        onConflict: 'integration_id,url',
       })
       .select()
       .single()
