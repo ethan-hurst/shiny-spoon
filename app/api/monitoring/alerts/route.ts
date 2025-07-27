@@ -31,6 +31,24 @@ export async function GET(request: NextRequest) {
     const severity = searchParams.get('severity')
     const integrationId = searchParams.get('integrationId')
     
+    // Validate status parameter
+    const validStatuses = ['all', 'active', 'acknowledged', 'resolved']
+    if (status && !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `Invalid status parameter. Must be one of: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      )
+    }
+    
+    // Validate severity parameter
+    const validSeverities = ['critical', 'high', 'medium', 'low']
+    if (severity && !validSeverities.includes(severity)) {
+      return NextResponse.json(
+        { error: `Invalid severity parameter. Must be one of: ${validSeverities.join(', ')}` },
+        { status: 400 }
+      )
+    }
+    
     // Parse and validate pagination parameters
     const limitParam = searchParams.get('limit')
     const offsetParam = searchParams.get('offset')
