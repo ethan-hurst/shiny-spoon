@@ -23,8 +23,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { DataTable } from '@/components/ui/data-table'
 import { Progress } from '@/components/ui/progress'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { BulkProgressTracker } from './bulk-progress-tracker'
 import { BulkUploadDialog } from './bulk-upload-dialog'
@@ -34,6 +42,9 @@ export function BulkOperationsDashboard() {
     null
   )
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false)
+  const [selectedErrorLog, setSelectedErrorLog] = useState<any[]>([])
+  const [selectedOperationId, setSelectedOperationId] = useState<string>('')
   const supabase = createBrowserClient()
 
   const { data: operations, refetch } = useQuery({
@@ -211,11 +222,11 @@ export function BulkOperationsDashboard() {
               size="sm"
               variant="ghost"
               onClick={() => {
-                // Show error details
-                toast.error(`${row.original.failed_records} errors found`, {
-                  description: 'Download error log for details',
-                })
+                setSelectedErrorLog(row.original.error_log || [])
+                setSelectedOperationId(row.original.id)
+                setErrorDialogOpen(true)
               }}
+              title="View error details"
             >
               <AlertCircle className="h-4 w-4" />
             </Button>
@@ -303,6 +314,69 @@ export function BulkOperationsDashboard() {
           setUploadDialogOpen(false)
         }}
       />
+
+      {/* Error Details Dialog */}
+      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Error Log Details</DialogTitle>
+            <DialogDescription>
+              Operation ID: {selectedOperationId}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+            <div className="space-y-2">
+              {selectedErrorLog.map((error, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg border p-3 text-sm space-y-1"
+                >
+                  <div className="font-medium text-destructive">
+                    {error.message}
+                  </div>
+                  {error.timestamp && (
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(error.timestamp).toLocaleString()}
+                    </div>
+                  )}
+                  {error.details && (
+                    <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
+                      {JSON.stringify(error.details, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setErrorDialogOpen(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                // Download error log as JSON
+                const dataStr = JSON.stringify(selectedErrorLog, null, 2)
+                const dataBlob = new Blob([dataStr], { type: 'application/json' })
+                const url = URL.createObjectURL(dataBlob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = `error-log-${selectedOperationId}.json`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                URL.revokeObjectURL(url)
+                toast.success('Error log downloaded')
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Log
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
