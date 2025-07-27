@@ -188,8 +188,7 @@ export class AccuracyChecker extends EventEmitter {
       // Deep field comparison
       const fieldDiscrepancies = await this.compareProductFields(
         product,
-        mapping,
-        integration
+        mapping
       )
 
       discrepancies.push(...fieldDiscrepancies)
@@ -365,8 +364,7 @@ export class AccuracyChecker extends EventEmitter {
 
   private async compareProductFields(
     product: any,
-    mapping: any,
-    integration: any
+    mapping: any
   ): Promise<DiscrepancyResult[]> {
     const discrepancies: DiscrepancyResult[] = []
     
@@ -652,12 +650,24 @@ export class AccuracyChecker extends EventEmitter {
     entityType: string,
     identifier: string
   ): Promise<any> {
-    // This would query the sync history or cache to get last synced data
-    // For now, returning mock data structure
+    // Query the sync history to get last synced data
+    const { data } = await this.supabase
+      .from('sync_history')
+      .select('data, synced_at')
+      .eq('integration_id', integrationId)
+      .eq('entity_type', entityType)
+      .eq('entity_id', identifier)
+      .order('synced_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (!data) {
+      return null
+    }
+
     return {
-      quantity: 0,
-      price: 0,
-      last_sync: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
+      ...data.data,
+      last_sync: data.synced_at,
     }
   }
 
@@ -679,11 +689,33 @@ export class AccuracyChecker extends EventEmitter {
     sku: string,
     tierId?: string
   ): Promise<any> {
-    // This would query the integration's price data
-    // For now, returning mock data
+    // Query the integration's price sync data
+    const query = this.supabase
+      .from('integration_price_sync')
+      .select('price, tier_prices, synced_at')
+      .eq('integration_id', integrationId)
+      .eq('sku', sku)
+      .order('synced_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    const { data } = await query
+
+    if (!data) {
+      return null
+    }
+
+    // Return the appropriate price based on tier
+    if (tierId && data.tier_prices && data.tier_prices[tierId]) {
+      return {
+        price: data.tier_prices[tierId],
+        last_sync: data.synced_at,
+      }
+    }
+
     return {
-      price: 0,
-      last_sync: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      price: data.price,
+      last_sync: data.synced_at,
     }
   }
 
