@@ -52,7 +52,11 @@ export async function createClient() {
   )
 }
 
-// Helper function to get the current user
+/**
+ * Retrieves the currently authenticated user from the Supabase client.
+ *
+ * @returns The authenticated user object if available; otherwise, null.
+ */
 export async function getCurrentUser() {
   const supabase = await createClient()
   const {

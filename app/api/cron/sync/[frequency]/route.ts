@@ -9,13 +9,13 @@ import type { SyncJobConfig } from '@/types/sync-engine.types'
 const CRON_SECRET = process.env.CRON_SECRET
 
 /**
- * Handles scheduled synchronization jobs triggered by a cron request for a specific frequency.
+ * Processes scheduled synchronization jobs for a specified frequency in response to a cron-triggered GET request.
  *
- * Authenticates the request using a bearer token, validates the frequency parameter, and retrieves all enabled sync schedules matching the frequency from the database. For each valid schedule, checks integration availability and time constraints, creates and queues a sync job, updates schedule run times, and collects processing results. Returns a JSON response summarizing the outcome for all processed schedules, including errors if any.
+ * Authenticates the request using a bearer token, validates the frequency parameter, and retrieves all enabled sync schedules matching the frequency from the database. For each eligible schedule, checks integration presence and time constraints, creates and queues a sync job, updates schedule run times, and records the outcome. Returns a JSON response summarizing the processing results for all schedules, including any errors encountered.
  *
  * @param request - The incoming HTTP request
  * @param params - Route parameters containing the sync frequency
- * @returns A JSON response with the processing summary, including status and details for each schedule
+ * @returns A JSON response summarizing the processing status and results for each schedule
  */
 export async function GET(
   request: NextRequest,

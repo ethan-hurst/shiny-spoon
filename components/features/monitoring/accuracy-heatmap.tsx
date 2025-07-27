@@ -9,6 +9,14 @@ interface AccuracyHeatmapProps {
   height?: number
 }
 
+/**
+ * Displays a heatmap visualization of accuracy scores grouped by day of the week and hour of the day.
+ *
+ * Renders a color-coded grid where each cell represents the average accuracy for a specific day and hour. Cells are colored according to accuracy thresholds, with interactive tooltips and a legend indicating the color scale. If no data is provided, a placeholder message is shown.
+ *
+ * @param data - Array of accuracy data points, each with a timestamp and accuracy score.
+ * @param height - Optional height of the heatmap container in pixels (default: 400).
+ */
 export function AccuracyHeatmap({ data, height = 400 }: AccuracyHeatmapProps) {
   const heatmapData = useMemo(() => {
     if (!data || data.length === 0) return null

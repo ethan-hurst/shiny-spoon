@@ -3,8 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { AuthenticationError } from '@/types/integration.types'
 
 /**
- * Timing-safe comparison function compatible with Web Crypto API
- * Compares two Uint8Arrays in constant time to prevent timing attacks
+ * Performs a constant-time comparison of two Uint8Arrays to prevent timing attacks.
+ *
+ * Compares both arrays up to the length of the longer array, padding shorter arrays with zeros, and incorporates length differences into the result to ensure timing safety.
+ *
+ * @returns True if the arrays are equal in both length and content; otherwise, false.
  */
 function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   // Always compare up to the maximum length to avoid timing differences

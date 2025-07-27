@@ -30,6 +30,16 @@ interface AlertDetailViewProps {
   discrepancies: Discrepancy[]
 }
 
+/**
+ * Displays detailed information about a monitoring alert, including its status, metadata, notification history, accuracy check details, and related discrepancies.
+ *
+ * Provides UI controls to acknowledge or resolve the alert, and organizes alert-related data into tabs for notifications, accuracy checks, and discrepancies.
+ *
+ * @param alert - The alert object containing details to display
+ * @param notifications - List of notification logs associated with the alert
+ * @param discrepancies - List of discrepancy records related to the alert
+ * @returns The rendered alert detail view component
+ */
 export function AlertDetailView({
   alert,
   notifications,

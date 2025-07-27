@@ -288,7 +288,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Webhook registration endpoint
+/**
+ * Registers or updates a webhook endpoint for a NetSuite integration.
+ *
+ * Validates the authenticated user and their organization, ensures required fields are present, and verifies integration ownership. Creates or updates a webhook endpoint with the specified events and callback URL, generates a new secret, and logs the registration activity. Returns the webhook ID, secret, events, and callback URL on success.
+ *
+ * Returns a JSON response with appropriate status codes for authentication, authorization, validation, or server errors.
+ */
 export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient()

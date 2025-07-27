@@ -124,6 +124,11 @@ interface ExtendedFieldMapping extends FieldMapping {
   customTargetField?: string
 }
 
+/**
+ * Renders a UI for managing custom field mappings between NetSuite and TruthSource fields for a given integration.
+ *
+ * Allows users to add, edit, and remove field mappings for supported entity types, including custom fields. Validates input and persists changes to the backend. Displays both user-defined and default field mappings for reference.
+ */
 export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteFieldMappingsProps) {
   const queryClient = useQueryClient()
   

@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   description: 'Monitor data accuracy across all integrated systems',
 }
 
+/**
+ * Server component for the Data Accuracy Monitor dashboard page.
+ *
+ * Authenticates the user, retrieves their organization, and fetches initial dashboard data including the latest accuracy score, recent accuracy checks, active alerts, and recent discrepancies. Redirects unauthenticated users to the login page and users without an organization to onboarding. Renders the `AccuracyDashboard` component with the fetched data.
+ */
 export default async function MonitoringPage() {
   const supabase = await createClient()
   

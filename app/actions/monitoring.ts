@@ -30,7 +30,13 @@ const alertRuleSchema = z.object({
   autoRemediate: z.boolean(),
 })
 
-// Trigger accuracy check
+/**
+ * Initiates a data accuracy check for the specified scope and parameters.
+ *
+ * Validates input, ensures the user is authenticated, and triggers an accuracy check using the provided scope, check depth, optional integration ID, and sample size. Revalidates the monitoring cache path upon success.
+ *
+ * @returns An object indicating success and the check ID if successful, or an error message if the operation fails.
+ */
 export async function triggerAccuracyCheck(input: z.infer<typeof accuracyCheckSchema>) {
   try {
     const validated = accuracyCheckSchema.parse(input)
@@ -65,7 +71,15 @@ export async function triggerAccuracyCheck(input: z.infer<typeof accuracyCheckSc
   }
 }
 
-// Create or update alert rule
+/**
+ * Creates a new alert rule or updates an existing one for the authenticated user's organization.
+ *
+ * Validates the input data, ensures the user is authenticated and belongs to an organization, and then either inserts a new alert rule or updates an existing rule in the database. After the operation, the monitoring alerts cache is revalidated.
+ *
+ * @param ruleId - The ID of the alert rule to update, or undefined to create a new rule
+ * @param input - The alert rule data to create or update
+ * @returns An object indicating success or failure, and an error message if applicable
+ */
 export async function upsertAlertRule(
   ruleId: string | undefined,
   input: z.infer<typeof alertRuleSchema>
@@ -136,7 +150,12 @@ export async function upsertAlertRule(
   }
 }
 
-// Delete alert rule
+/**
+ * Deletes an alert rule by ID, ensuring it belongs to the authenticated user's organization.
+ *
+ * @param ruleId - The unique identifier of the alert rule to delete
+ * @returns An object indicating success or containing an error message if deletion fails
+ */
 export async function deleteAlertRule(ruleId: string) {
   try {
     // Validate ruleId is a valid UUID
@@ -189,7 +208,14 @@ export async function deleteAlertRule(ruleId: string) {
   }
 }
 
-// Acknowledge alert
+/**
+ * Marks an alert as acknowledged for the authenticated user's organization.
+ *
+ * Validates the alert ID, ensures the user is authenticated and belongs to the alert's organization, and updates the alert status to acknowledged.
+ *
+ * @param alertId - The unique identifier of the alert to acknowledge
+ * @returns An object indicating success or containing an error message
+ */
 export async function acknowledgeAlert(alertId: string) {
   try {
     // Validate alertId is a valid UUID
@@ -256,7 +282,14 @@ export async function acknowledgeAlert(alertId: string) {
   }
 }
 
-// Resolve alert
+/**
+ * Resolves an alert by its ID for the authenticated user's organization.
+ *
+ * Validates the alert ID, ensures the alert belongs to the user's organization, and marks it as resolved. Returns a success status or an error message.
+ *
+ * @param alertId - The unique identifier of the alert to resolve
+ * @returns An object indicating success or containing an error message
+ */
 export async function resolveAlert(alertId: string) {
   try {
     // Validate alertId is a valid UUID
@@ -323,7 +356,15 @@ export async function resolveAlert(alertId: string) {
   }
 }
 
-// Resolve discrepancy
+/**
+ * Resolves a discrepancy by updating its status and resolution type.
+ *
+ * Marks the specified discrepancy as resolved with the given resolution type, ensuring it belongs to the authenticated user's organization. Updates the resolver and timestamp, and revalidates monitoring data.
+ *
+ * @param discrepancyId - The unique identifier of the discrepancy to resolve
+ * @param resolutionType - The type of resolution applied: 'manual_fixed', 'false_positive', or 'ignored'
+ * @returns An object indicating success or failure, with an error message if unsuccessful
+ */
 export async function resolveDiscrepancy(
   discrepancyId: string,
   resolutionType: 'manual_fixed' | 'false_positive' | 'ignored'
@@ -408,7 +449,14 @@ export async function resolveDiscrepancy(
   }
 }
 
-// Trigger auto-remediation
+/**
+ * Initiates auto-remediation for a batch of discrepancies by their IDs, ensuring all belong to the authenticated user's organization.
+ *
+ * Validates input, enforces batch size limits, and verifies organizational ownership before triggering remediation. Returns the total, successful, and failed remediation counts, or an error message on failure.
+ *
+ * @param discrepancyIds - Array of discrepancy IDs to remediate
+ * @returns An object indicating success status, remediation counts if successful, or an error message if failed
+ */
 export async function triggerAutoRemediation(discrepancyIds: string[]) {
   try {
     // Validate input is a non-empty array
@@ -532,7 +580,16 @@ const accuracyReportSchema = z.object({
   return true
 }, 'Start date must be before or equal to end date')
 
-// Get accuracy report
+/**
+ * Retrieves an accuracy report for the authenticated user's organization, optionally filtered by date range and integration.
+ *
+ * Validates input parameters, ensures organization and integration access, applies default date range if not provided, and enforces a maximum range of one year.
+ *
+ * @param startDate - Optional start date for the report range
+ * @param endDate - Optional end date for the report range
+ * @param integrationId - Optional integration ID to filter the report
+ * @returns An object indicating success and containing the report data, or an error message on failure
+ */
 export async function getAccuracyReport(
   startDate?: Date,
   endDate?: Date,

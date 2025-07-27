@@ -186,7 +186,7 @@ export async function cancelSyncJob(formData: FormData) {
 }
 
 /**
- * Retries a failed sync job after verifying user authentication and job ownership.
+ * Retries a sync job after verifying user authentication and job ownership.
  *
  * Validates that the requesting user belongs to the same organization as the original job, then creates a retry job using the Sync Engine. Revalidates relevant sync and integration pages upon success.
  *
@@ -248,9 +248,9 @@ export async function retrySyncJob(formData: FormData) {
 }
 
 /**
- * Updates the synchronization schedule for a specified integration after validating user authorization and input data.
+ * Updates the synchronization schedule for a given integration after validating user authorization and input data.
  *
- * Throws an error if the user is unauthorized, the integration does not belong to the user's organization, or the update fails.
+ * Throws an error if the user is unauthorized, the integration does not belong to the user's organization, or the update operation fails.
  *
  * @returns An object indicating whether the update was successful.
  */
@@ -605,6 +605,15 @@ function getDateForPeriod(period: string): string {
   return now.toISOString()
 }
 
+/**
+ * Retrieves health metrics for all active integrations in the user's organization, as well as overall system and engine health.
+ *
+ * Returns an object containing per-integration health data (including status, metrics, and issues), aggregated system health (status, metrics, and issues), and engine health (status, active job count, connector count, and issues).
+ *
+ * Throws an error if the user is not authenticated or their profile cannot be found.
+ *
+ * @returns An object with `integration_health`, `system_health`, and `engine_health` describing the current sync health state.
+ */
 export async function getSyncHealthData() {
   const supabase = await createClient()
 

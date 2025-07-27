@@ -12,6 +12,13 @@ const requestSchema = z.object({
   sampleSize: z.number().min(1).max(10000).optional(),
 })
 
+/**
+ * Handles POST requests to initiate a manual data accuracy check and streams real-time progress updates via server-sent events (SSE).
+ *
+ * Authenticates the user, validates the request body, and starts an accuracy check for the user's organization. Progress, completion, and error events are streamed to the client as SSE messages. Returns appropriate HTTP status codes and error messages for authentication, validation, or internal failures.
+ *
+ * @returns An SSE stream with progress updates, or a JSON error response on failure.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient()

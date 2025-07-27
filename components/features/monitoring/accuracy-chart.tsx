@@ -24,6 +24,16 @@ interface AccuracyChartProps {
   height?: number
 }
 
+/**
+ * Renders a responsive line chart visualizing accuracy trends over time based on provided accuracy check data.
+ *
+ * Filters and sorts completed accuracy checks, formats their dates, and displays accuracy percentages, records checked, and discrepancies found. If no valid data is available, shows a placeholder message.
+ *
+ * @param data - Array of accuracy check records to visualize
+ * @param height - Optional chart height in pixels (defaults to 300)
+ *
+ * @returns A React element displaying the accuracy chart or a message if no data is available.
+ */
 export function AccuracyChart({ data, height = 300 }: AccuracyChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return []

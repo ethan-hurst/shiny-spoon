@@ -10,6 +10,12 @@ interface UseCustomerPricingRealtimeProps {
   enabled?: boolean
 }
 
+/**
+ * Sets up real-time subscriptions for customer pricing, contracts, and approvals, automatically invalidating relevant React Query caches when changes occur for the specified customer.
+ *
+ * @param customerId - The ID of the customer to subscribe to updates for
+ * @param enabled - Whether the real-time subscription should be active (defaults to true)
+ */
 export function useCustomerPricingRealtime({
   customerId,
   enabled = true,
@@ -153,7 +159,13 @@ export function useContractExpiryNotifications({
   }, [customerId, enabled, supabase, queryClient])
 }
 
-// Hook for approval notifications
+/**
+ * Subscribes to real-time price approval notifications for a given organization and displays a toast when new approvals are requested.
+ *
+ * When a new price approval request is inserted for the specified organization, invalidates the pending approvals query cache and prompts the user with a notification that links to the approvals page.
+ *
+ * @param organizationId - The ID of the organization to monitor for price approval requests
+ */
 export function usePriceApprovalNotifications(organizationId?: string) {
   const queryClient = useQueryClient()
   const supabase = createBrowserClient()

@@ -26,7 +26,15 @@ const VALID_PLATFORMS: IntegrationPlatformType[] = [
   'custom',
 ]
 
-// Helper function to get integration context based on platform
+/**
+ * Retrieves the integration context (ID and organization ID) for a given platform based on platform-specific headers.
+ *
+ * For Shopify, validates the shop domain format before querying. For Netsuite and Quickbooks, uses their respective account or realm ID headers. Returns `null` if required headers are missing, invalid, or if no matching integration is found.
+ *
+ * @param platform - The integration platform identifier (e.g., 'shopify', 'netsuite', 'quickbooks')
+ * @param headersList - The HTTP headers from the incoming request
+ * @returns An object containing the integration's `id` and `organization_id`, or `null` if not found or invalid
+ */
 async function getIntegrationContext(
   platform: string,
   headersList: Headers,
@@ -93,6 +101,13 @@ async function getIntegrationContext(
   }
 }
 
+/**
+ * Handles incoming POST webhook requests for supported integration platforms.
+ *
+ * Validates the platform, verifies the webhook signature, parses the payload, checks event configuration, creates a sync job, updates webhook metadata, and logs activities. Returns appropriate HTTP responses for invalid platforms, missing configuration, failed verification, unconfigured events, or processing errors.
+ *
+ * @returns A platform-specific success response, or an error response with the appropriate HTTP status code.
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { platform: string } }
@@ -248,7 +263,11 @@ export async function POST(
   }
 }
 
-// Handle other methods
+/**
+ * Handles GET requests for webhook verification, supporting Shopify and rejecting others.
+ *
+ * Returns a 200 OK response for Shopify webhook verification requests. For all other platforms, returns a 405 Method Not Allowed response.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { platform: string } }
@@ -276,6 +295,14 @@ const ALLOWED_WEBHOOK_ORIGINS = [
   'https://sandbox-quickbooks.api.intuit.com',
 ] as const
 
+/**
+ * Determines whether the given origin is permitted for webhook requests.
+ *
+ * Returns true if the origin matches an entry in the allowed origins list or matches the Shopify subdomain pattern; otherwise, returns false.
+ *
+ * @param origin - The origin to validate, or null if not provided
+ * @returns True if the origin is allowed; otherwise, false
+ */
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false
   

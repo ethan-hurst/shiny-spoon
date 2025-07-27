@@ -45,6 +45,16 @@ interface ApprovalQueueProps {
   customerId?: string
 }
 
+/**
+ * Displays a list of price change approval requests and provides actions to approve, reject, or view details for each request.
+ *
+ * Filters approvals by customer if a customer ID is provided. Allows users to approve or reject price change requests with appropriate UI feedback, including a dialog for entering a rejection reason. Navigates to the customer pricing page when viewing details.
+ *
+ * @param approvals - The list of price approval requests to display.
+ * @param customerId - Optional customer ID to filter the approvals list.
+ *
+ * @returns A React component rendering the approval queue UI.
+ */
 export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
   const router = useRouter()
   const queryClient = useQueryClient()

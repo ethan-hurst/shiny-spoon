@@ -62,6 +62,16 @@ interface AlertConfigDialogProps {
   children?: React.ReactNode
 }
 
+/**
+ * Displays a dialog for creating or editing an alert rule for data accuracy monitoring.
+ *
+ * Renders a form with fields for rule name, description, alert conditions, timing, and notification preferences. Supports both controlled and uncontrolled dialog open states. On submission, creates or updates the alert rule and provides user feedback via toast notifications.
+ *
+ * @param rule - The alert rule to edit, or undefined to create a new rule.
+ * @param open - Controls the open state of the dialog when provided.
+ * @param onOpenChange - Callback invoked when the dialog open state changes.
+ * @param children - Optional trigger element to open the dialog.
+ */
 export function AlertConfigDialog({
   rule,
   open,

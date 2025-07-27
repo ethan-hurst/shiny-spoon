@@ -35,6 +35,14 @@ interface PageProps {
   }
 }
 
+/**
+ * Renders the NetSuite Integration management page for TruthSource, allowing users to configure, authenticate, and manage their NetSuite ERP integration.
+ *
+ * Displays setup instructions and prerequisites if no integration exists, or provides a tabbed interface for managing configuration, sync settings, field mappings, and sync status for an existing integration. Redirects unauthenticated users to the login page and users without an organization profile to onboarding.
+ *
+ * @param searchParams - Optional search parameters, including an integration ID to load a specific NetSuite integration
+ * @returns The Next.js page component for NetSuite integration management
+ */
 export default async function NetSuiteIntegrationPage({ searchParams }: PageProps) {
   const supabase = await createClient()
   

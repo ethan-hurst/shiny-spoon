@@ -9,7 +9,14 @@ import { Loader2, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
 
-// Sanitize error messages to remove sensitive information
+/**
+ * Removes sensitive information such as URLs, tokens, credentials, email addresses, and IP addresses from an error message.
+ *
+ * Applies multiple redaction patterns to ensure that secrets and personally identifiable information are not exposed in logs or UI.
+ *
+ * @param error - The error message to sanitize
+ * @returns The sanitized error message with sensitive data replaced by placeholders
+ */
 function sanitizeErrorMessage(error: string): string {
   // Remove URLs including query parameters and fragments
   let sanitized = error.replace(
@@ -76,6 +83,14 @@ interface PageProps {
   }
 }
 
+/**
+ * Handles the NetSuite OAuth callback, processes authentication, updates integration status, logs activity, and renders the result UI.
+ *
+ * Redirects unauthenticated users to the login page and users without an organization profile to onboarding. Validates OAuth parameters, verifies the OAuth state, exchanges the authorization code for tokens, updates the integration status if successful, and logs authentication events. Displays a success, error, or loading UI based on the authentication outcome.
+ *
+ * @param searchParams - The URL search parameters containing OAuth callback data.
+ * @returns The rendered authentication result page.
+ */
 export default async function NetSuiteCallbackPage({ searchParams }: PageProps) {
   const supabase = await createClient()
   

@@ -37,6 +37,14 @@ interface AlertRulesListProps {
   organizationId: string
 }
 
+/**
+ * Displays and manages a list of alert rules for data accuracy monitoring, allowing users to view, activate/deactivate, edit, and delete rules.
+ *
+ * Renders a table of alert rules with their conditions, notification channels, auto-remediation status, and actions. Provides UI feedback for rule activation, deactivation, and deletion, and supports editing or creating rules via a dialog.
+ *
+ * @param rules - The list of alert rules to display and manage.
+ * @param organizationId - The identifier for the organization whose alert rules are shown.
+ */
 export function AlertRulesList({ rules, organizationId }: AlertRulesListProps) {
   const { toast } = useToast()
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null)

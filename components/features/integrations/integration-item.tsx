@@ -54,6 +54,17 @@ const statusColors: Record<IntegrationStatusType, string> = {
   suspended: 'bg-yellow-100 text-yellow-800',
 }
 
+/**
+ * Displays an integration item with status, sync controls, and management actions.
+ *
+ * Renders integration details including name, platform, status, last sync time, error count, and running sync jobs. Provides buttons and menu options to sync, pause/activate, view settings, view logs, or delete the integration.
+ *
+ * @param integration - The integration entity to display and manage.
+ * @param onSync - Callback to trigger a sync for the integration by ID.
+ * @param onToggleStatus - Callback to toggle the integration's active status by ID and current status.
+ * @param onDelete - Callback to delete the integration by ID.
+ * @param isLoading - Whether a sync operation is currently in progress.
+ */
 export function IntegrationItem({ 
   integration, 
   onSync, 

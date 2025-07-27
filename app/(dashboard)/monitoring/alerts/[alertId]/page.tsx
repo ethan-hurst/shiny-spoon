@@ -15,6 +15,14 @@ interface AlertDetailPageProps {
   }
 }
 
+/**
+ * Server component for displaying detailed information about a specific alert, including its rule, accuracy check, notification history, and related discrepancies.
+ *
+ * Redirects unauthenticated users to the login page. Returns a 404 Not Found response if the alert does not exist or on critical errors.
+ *
+ * @param params - Route parameters containing the alert ID to display
+ * @returns The rendered alert detail view component with associated data
+ */
 export default async function AlertDetailPage({ params }: AlertDetailPageProps) {
   const supabase = await createClient()
   

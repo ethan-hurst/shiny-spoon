@@ -13,6 +13,13 @@ export interface ProductOption {
   base_price: number
 }
 
+/**
+ * Fetches a list of products with their pricing information using React Query.
+ *
+ * Returns a query object that provides an array of product options, each containing the product's ID, SKU, name, and base price. The data is cached and managed according to specified query options for freshness and retry behavior.
+ *
+ * @returns A React Query result containing an array of product options with pricing details
+ */
 export function useProductsQuery() {
   const supabase = createBrowserClient()
 
