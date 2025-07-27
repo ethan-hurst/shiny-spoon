@@ -358,7 +358,8 @@ export async function POST(request: NextRequest) {
 
     const results: any[] = []
 
-    for (const integration of integrations) {
+    // Process health checks in parallel for better performance
+    const healthCheckPromises = integrations.map(async (integration) => {
       try {
         // Perform basic health check for each integration
         const { data: recentLogs } = await supabase
@@ -371,13 +372,6 @@ export async function POST(request: NextRequest) {
         const errorCount = recentLogs?.length || 0
         const status = errorCount > 10 ? 'unhealthy' : errorCount > 5 ? 'degraded' : 'healthy'
 
-        results.push({
-          integration_id: integration.id,
-          status,
-          error_count_1h: errorCount,
-          checked_at: new Date().toISOString(),
-        })
-
         // Alert if unhealthy
         if (status === 'unhealthy') {
           await supabase.rpc('log_integration_activity', {
@@ -389,15 +383,25 @@ export async function POST(request: NextRequest) {
             p_details: { error_count_1h: errorCount },
           })
         }
+
+        return {
+          integration_id: integration.id,
+          status,
+          error_count_1h: errorCount,
+          checked_at: new Date().toISOString(),
+        }
       } catch (error) {
-        results.push({
+        return {
           integration_id: integration.id,
           status: 'error',
           error: error instanceof Error ? error.message : 'Check failed',
           checked_at: new Date().toISOString(),
-        })
+        }
       }
-    }
+    })
+
+    // Wait for all health checks to complete
+    results = await Promise.all(healthCheckPromises)
 
     return NextResponse.json({
       status: 'ok',
