@@ -192,9 +192,12 @@ export async function processLargeCSV(
 
         if (result.error) {
           stats.failed += result.batch.length
-        } else {
+        } else if (result.results && Array.isArray(result.results)) {
           stats.successful += result.results.filter((r) => r.success).length
           stats.failed += result.results.filter((r) => !r.success).length
+        } else {
+          // If results is missing or not an array, assume all failed
+          stats.failed += result.batch.length
         }
 
         callback()
