@@ -259,6 +259,16 @@ export async function acknowledgeAlert(alertId: string) {
 // Resolve alert
 export async function resolveAlert(alertId: string) {
   try {
+    // Validate alertId is a valid UUID
+    const uuidSchema = z.string().uuid()
+    const validationResult = uuidSchema.safeParse(alertId)
+    
+    if (!validationResult.success) {
+      return { success: false, error: 'Invalid alert ID format' }
+    }
+    
+    const validatedAlertId = validationResult.data
+    
     const supabase = createClient()
 
     // Check authentication
@@ -267,8 +277,35 @@ export async function resolveAlert(alertId: string) {
       return { success: false, error: 'Unauthorized' }
     }
 
+    // Get user's organization
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!orgUser) {
+      return { success: false, error: 'Organization not found' }
+    }
+
+    // Fetch alert and verify it belongs to user's organization
+    const { data: alert, error: alertError } = await supabase
+      .from('alerts')
+      .select('id, organization_id')
+      .eq('id', validatedAlertId)
+      .single()
+
+    if (alertError || !alert) {
+      return { success: false, error: 'Alert not found' }
+    }
+
+    // Verify the alert belongs to the user's organization
+    if (alert.organization_id !== orgUser.organization_id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
     const alertManager = new AlertManager()
-    const success = await alertManager.resolveAlert(alertId)
+    const success = await alertManager.resolveAlert(validatedAlertId)
 
     if (!success) {
       return { success: false, error: 'Failed to resolve alert' }
@@ -292,6 +329,24 @@ export async function resolveDiscrepancy(
   resolutionType: 'manual_fixed' | 'false_positive' | 'ignored'
 ) {
   try {
+    // Validate discrepancyId is a valid UUID
+    const uuidSchema = z.string().uuid()
+    const validationResult = uuidSchema.safeParse(discrepancyId)
+    
+    if (!validationResult.success) {
+      return { success: false, error: 'Invalid discrepancy ID format' }
+    }
+    
+    const validatedDiscrepancyId = validationResult.data
+    
+    // Validate resolution type
+    const resolutionTypeSchema = z.enum(['manual_fixed', 'false_positive', 'ignored'])
+    const resolutionValidation = resolutionTypeSchema.safeParse(resolutionType)
+    
+    if (!resolutionValidation.success) {
+      return { success: false, error: 'Invalid resolution type' }
+    }
+    
     const supabase = createClient()
 
     // Check authentication
@@ -300,6 +355,34 @@ export async function resolveDiscrepancy(
       return { success: false, error: 'Unauthorized' }
     }
 
+    // Get user's organization
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!orgUser) {
+      return { success: false, error: 'Organization not found' }
+    }
+
+    // Fetch discrepancy and verify it belongs to user's organization
+    const { data: discrepancy, error: discrepancyError } = await supabase
+      .from('discrepancies')
+      .select('id, organization_id')
+      .eq('id', validatedDiscrepancyId)
+      .single()
+
+    if (discrepancyError || !discrepancy) {
+      return { success: false, error: 'Discrepancy not found' }
+    }
+
+    // Verify the discrepancy belongs to the user's organization
+    if (discrepancy.organization_id !== orgUser.organization_id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // Update the discrepancy
     const { error } = await supabase
       .from('discrepancies')
       .update({
@@ -308,7 +391,8 @@ export async function resolveDiscrepancy(
         resolved_at: new Date().toISOString(),
         resolved_by: user.id,
       })
-      .eq('id', discrepancyId)
+      .eq('id', validatedDiscrepancyId)
+      .eq('organization_id', orgUser.organization_id) // Extra safety check
 
     if (error) throw error
 
