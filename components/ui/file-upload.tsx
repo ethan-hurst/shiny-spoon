@@ -27,6 +27,7 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
   }, ref) => {
     const [isDragOver, setIsDragOver] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
 
     const handleFileSelect = async (file: File) => {
@@ -44,15 +45,21 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
           if (trimmed.startsWith('.')) {
             return file.name.toLowerCase().endsWith(trimmed.toLowerCase())
           }
-          return file.type.match(trimmed.replace('*', '.*'))
+          // Properly escape special regex characters and handle wildcards
+          const regexPattern = trimmed
+            .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Escape special chars
+            .replace(/\*/g, '.*') // Replace wildcards
+          return file.type.match(new RegExp(`^${regexPattern}$`))
         })) {
           throw new Error(`File type not supported. Accepted types: ${accept}`)
         }
 
+        setError(null)
         onChange?.(file)
       } catch (error) {
         console.error('File upload error:', error)
-        // You might want to show a toast or error message here
+        const errorMessage = error instanceof Error ? error.message : 'Failed to upload file'
+        setError(errorMessage)
         onChange?.(null)
       } finally {
         setIsUploading(false)
@@ -187,6 +194,13 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
             </div>
           )}
         </div>
+        
+        {error && (
+          <div className="mt-2 text-sm text-destructive flex items-center gap-2">
+            <X className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        )}
       </div>
     )
   }

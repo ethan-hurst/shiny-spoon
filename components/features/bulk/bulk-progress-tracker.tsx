@@ -107,7 +107,14 @@ export function BulkProgressTracker({
   }, [operationId, onComplete])
 
   const handleRollback = async () => {
+    // Guard against multiple rollback requests
+    if (isRollingBack) {
+      return
+    }
+
     try {
+      setIsRollingBack(true)
+      
       const response = await fetch('/api/bulk/rollback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,9 +124,8 @@ export function BulkProgressTracker({
       if (!response.ok) {
         throw new Error('Failed to start rollback')
       }
-
-      setIsRollingBack(true)
     } catch (err) {
+      setIsRollingBack(false)
       setError(err instanceof Error ? err.message : 'Failed to start rollback')
     }
   }
@@ -216,15 +222,25 @@ export function BulkProgressTracker({
 
           {showRollbackButton &&
             progress?.status === 'completed' &&
-            !isRollingBack && (
+            !rollbackProgress && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleRollback}
+                disabled={isRollingBack}
                 className="text-orange-600 border-orange-200 hover:bg-orange-50"
               >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Rollback
+                {isRollingBack ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Rollback
+                  </>
+                )}
               </Button>
             )}
         </div>

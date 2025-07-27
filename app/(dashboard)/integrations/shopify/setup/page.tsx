@@ -27,7 +27,14 @@ export default async function ShopifySetupPage() {
 
   if (profileError) {
     console.error('Error fetching user profile:', profileError)
-    redirect('/onboarding')
+    // Check if it's a "not found" error (no profile) vs actual database error
+    if (profileError.code === 'PGRST116') {
+      // No profile found - redirect to onboarding
+      redirect('/onboarding')
+    } else {
+      // Actual database error - show error page
+      throw new Error('Failed to fetch user profile')
+    }
   }
 
   if (!profile) {
@@ -35,12 +42,18 @@ export default async function ShopifySetupPage() {
   }
 
   // Check if integration already exists
-  const { data: existingIntegration } = await supabase
+  const { data: existingIntegration, error: integrationError } = await supabase
     .from('integrations')
     .select('id')
     .eq('platform', 'shopify')
     .eq('organization_id', profile.organization_id)
     .single()
+
+  if (integrationError && integrationError.code !== 'PGRST116') {
+    // Database error (not just "not found")
+    console.error('Error checking for existing integration:', integrationError)
+    throw new Error('Failed to check existing integrations')
+  }
 
   if (existingIntegration) {
     // Redirect to main integration page if already configured

@@ -14,11 +14,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { operationId } = await request.json()
+    let operationId: string
+    try {
+      const body = await request.json()
+      operationId = body.operationId
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid JSON input' },
+        { status: 400 }
+      )
+    }
 
     if (!operationId) {
       return NextResponse.json(
         { error: 'Operation ID required' },
+        { status: 400 }
+      )
+    }
+
+    // Get user's organization
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!userProfile?.organization_id) {
+      return NextResponse.json(
+        { error: 'User organization not found' },
         { status: 400 }
       )
     }
@@ -28,12 +51,13 @@ export async function POST(request: NextRequest) {
       .from('bulk_operations')
       .select('*')
       .eq('id', operationId)
+      .eq('organization_id', userProfile.organization_id)
       .single()
 
     if (!operation) {
       return NextResponse.json(
-        { error: 'Operation not found' },
-        { status: 404 }
+        { error: 'Operation not found or unauthorized' },
+        { status: 403 }
       )
     }
 
@@ -48,10 +72,47 @@ export async function POST(request: NextRequest) {
     // Start rollback process
     const engine = new BulkOperationsEngine()
 
-    // Start rollback asynchronously
-    engine.rollbackOperation(operationId).catch((err) => {
-      console.error(`Rollback operation ${operationId} failed:`, err)
-    })
+    // Update operation status to indicate rollback is starting
+    const { error: updateError } = await supabase
+      .from('bulk_operations')
+      .update({ 
+        status: 'processing',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', operationId)
+
+    if (updateError) {
+      console.error('Failed to update operation status:', updateError)
+      return NextResponse.json(
+        { error: 'Failed to initiate rollback' },
+        { status: 500 }
+      )
+    }
+
+    // Start rollback asynchronously but handle errors properly
+    engine.rollbackOperation(operationId)
+      .then(() => {
+        console.log(`Rollback operation ${operationId} completed successfully`)
+      })
+      .catch(async (err) => {
+        console.error(`Rollback operation ${operationId} failed:`, err)
+        // Update operation status to failed
+        try {
+          await supabase
+            .from('bulk_operations')
+            .update({ 
+              status: 'failed',
+              error_log: [{
+                message: err.message || 'Rollback failed',
+                timestamp: new Date().toISOString()
+              }],
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', operationId)
+        } catch (updateErr) {
+          console.error('Failed to update operation status after rollback error:', updateErr)
+        }
+      })
 
     return NextResponse.json({
       success: true,

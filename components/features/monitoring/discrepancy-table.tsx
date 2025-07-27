@@ -2,6 +2,8 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -114,7 +116,7 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant={getSeverityColor(discrepancy.severity) as any}>
+                <Badge variant={getSeverityColor(discrepancy.severity)}>
                   {discrepancy.severity}
                 </Badge>
               </TableCell>
@@ -151,9 +153,11 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
 
       {discrepancies.length > 10 && (
         <div className="text-center">
-          <Button variant="outline" size="sm">
-            View All Discrepancies
-          </Button>
+          <Link href="/monitoring/discrepancies">
+            <Button variant="outline" size="sm">
+              View All Discrepancies
+            </Button>
+          </Link>
         </div>
       )}
     </div>

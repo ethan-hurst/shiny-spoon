@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { validateCSVFile } from '@/lib/csv/parser'
 import { NextRequest, NextResponse } from 'next/server'
+import { BulkOperationConfig } from '@/types/bulk-operations.types'
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,8 +63,8 @@ export async function POST(request: NextRequest) {
     const operationId = await engine.startOperation(
       file,
       {
-        operationType: operationType as any,
-        entityType: entityType as any,
+        operationType: operationType as BulkOperationConfig['operationType'],
+        entityType: entityType as BulkOperationConfig['entityType'],
         validateOnly,
         rollbackOnError,
         chunkSize,
@@ -80,10 +81,13 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Bulk upload error:', error)
+    // Sanitize error messages to avoid exposing sensitive information
+    const errorMessage = error instanceof Error && error.message.includes('User') 
+      ? error.message // Auth-related errors are safe to show
+      : 'Internal server error'
+    
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : 'Internal server error' 
-      },
+      { error: errorMessage },
       { status: 500 }
     )
   }

@@ -100,6 +100,37 @@ export async function updateContract(formData: FormData) {
   const contractId = formData.get('id') as string
   const customerId = formData.get('customer_id') as string
 
+  // Get user's organization
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!userProfile?.organization_id) {
+    throw new Error('User organization not found')
+  }
+
+  // Verify the contract belongs to the user's organization by checking the customer
+  const { data: contract, error: contractError } = await supabase
+    .from('customer_contracts')
+    .select(`
+      id,
+      customers!inner (
+        organization_id
+      )
+    `)
+    .eq('id', contractId)
+    .single()
+
+  if (contractError || !contract) {
+    throw new Error('Contract not found')
+  }
+
+  if (contract.customers.organization_id !== userProfile.organization_id) {
+    throw new Error('Unauthorized: Contract belongs to a different organization')
+  }
+
   // Parse updated contract data
   const contractData = contractSchema.parse({
     customer_id: customerId,

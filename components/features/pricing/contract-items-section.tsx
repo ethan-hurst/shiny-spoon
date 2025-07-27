@@ -30,12 +30,18 @@ interface Product {
   base_price: number
 }
 
+type ContractItemFieldValue<K extends keyof ContractItemForm> = ContractItemForm[K]
+
 interface ContractItemsSectionProps {
   contractItems: ContractItemForm[]
   products: Product[]
   onAddItem: () => void
   onRemoveItem: (index: number) => void
-  onUpdateItem: (index: number, field: keyof ContractItemForm, value: any) => void
+  onUpdateItem: <K extends keyof ContractItemForm>(
+    index: number, 
+    field: K, 
+    value: ContractItemFieldValue<K>
+  ) => void
 }
 
 export function ContractItemsSection({
@@ -80,6 +86,7 @@ export function ContractItemsSection({
                   size="sm"
                   className="absolute right-2 top-2"
                   onClick={() => onRemoveItem(index)}
+                  aria-label="Remove item"
                 >
                   <X className="h-4 w-4" />
                 </Button>

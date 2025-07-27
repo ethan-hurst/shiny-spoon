@@ -13,7 +13,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { operationId } = await request.json()
+    let operationId: string
+    try {
+      const body = await request.json()
+      operationId = body.operationId
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid JSON input' },
+        { status: 400 }
+      )
+    }
 
     if (!operationId) {
       return NextResponse.json(

@@ -51,6 +51,7 @@ async function getContractsData(customerId: string) {
     .single()
 
   if (customerError || !customer) {
+    console.error('Error fetching customer:', customerError)
     return null
   }
 

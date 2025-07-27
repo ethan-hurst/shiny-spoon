@@ -124,6 +124,39 @@ export async function POST(request: NextRequest) {
       netsuiteConfig?.field_mappings || {}
     )
 
+    // Use a database transaction for all webhook processing
+    // Since Supabase doesn't have native transaction support in the client,
+    // we'll create an RPC function to handle the webhook processing atomically
+    try {
+      const processingResult = await supabase.rpc('process_netsuite_webhook', {
+        p_webhook_id: webhook.id,
+        p_integration_id: webhook.integration_id,
+        p_organization_id: webhook.integrations.organization_id,
+        p_event_type: validated.event_type,
+        p_record_data: validated.record.fields,
+        p_event_id: event.id
+      })
+
+      if (processingResult.error) {
+        throw new Error(processingResult.error)
+      }
+
+      return NextResponse.json({ success: true })
+
+    } catch (processingError) {
+      console.error('Webhook processing error:', processingError)
+      
+      // Mark webhook as failed
+      await handler.markWebhookFailed(event.id, {
+        error: processingError instanceof Error ? processingError.message : 'Processing failed',
+        response_status: 500,
+      })
+
+      throw processingError
+    }
+
+    // Original non-transactional code (keeping as reference, but not executed)
+    /*
     try {
       switch (validated.event_type) {
         case 'item.created':
@@ -274,6 +307,7 @@ export async function POST(request: NextRequest) {
 
       throw processingError
     }
+    */
 
   } catch (error) {
     console.error('NetSuite webhook error:', error)

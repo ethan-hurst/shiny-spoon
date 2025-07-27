@@ -210,7 +210,7 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
             onToggleStatus={handleToggleStatus}
             onDelete={setDeleteId}
             isLoading={
-              (syncMutation.isPending && syncMutation.variables === integration.id) ||
+              (syncMutation.isPending && syncMutation.variables?.id === integration.id) ||
               (statusMutation.isPending && statusMutation.variables?.id === integration.id) ||
               (deleteMutation.isPending && deleteMutation.variables === integration.id)
             }

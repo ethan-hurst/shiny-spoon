@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { PriceApprovalWithDetails } from '@/types/customer-pricing.types'
 import { queueEmail } from '@/lib/email/email-queue'
 
@@ -263,9 +264,14 @@ export function generateApprovalEmailHtml({
       ${(() => {
         try {
           const date = new Date(approval.requested_at)
-          return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleString()
-        } catch {
-          return 'Invalid date'
+          if (isNaN(date.getTime())) {
+            console.error('Invalid date:', approval.requested_at)
+            return 'Date unavailable'
+          }
+          return date.toLocaleString()
+        } catch (error) {
+          console.error('Date parsing error:', error)
+          return 'Date unavailable'
         }
       })()}
     </div>
@@ -306,7 +312,17 @@ Reason for Change:
 ${approval.change_reason}
 
 Requested by: ${approval.requested_by_user?.email || 'Unknown User'}
-Date: ${new Date(approval.requested_at).toLocaleString()}
+Date: ${(() => {
+  try {
+    const date = new Date(approval.requested_at)
+    if (isNaN(date.getTime())) {
+      return 'Date unavailable'
+    }
+    return date.toLocaleString()
+  } catch {
+    return 'Date unavailable'
+  }
+})()}
 
 Review and approve this request:
 ${actionUrl}
@@ -321,9 +337,11 @@ export async function sendApprovalEmail({
   approval,
   actionUrl,
 }: ApprovalEmailParams) {
-  // Validate email address
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(to)) {
+  // Validate email address with zod
+  const emailSchema = z.string().email()
+  try {
+    emailSchema.parse(to)
+  } catch (error) {
     throw new Error('Invalid email address')
   }
 
