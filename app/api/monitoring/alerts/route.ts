@@ -1,6 +1,7 @@
 // PRP-016: Data Accuracy Monitor - Alerts List API
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 
 export const runtime = 'edge'
 
@@ -25,58 +26,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
     }
 
-    // Get query parameters
+    // Define query parameters schema
+    const queryParamsSchema = z.object({
+      status: z.enum(['all', 'active', 'acknowledged', 'resolved']).default('active'),
+      severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+      integrationId: z.string().uuid().optional(),
+      limit: z.coerce.number().int().min(1).max(100).default(50),
+      offset: z.coerce.number().int().min(0).default(0)
+    })
+    
+    // Get and validate query parameters
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status') || 'active'
-    const severity = searchParams.get('severity')
-    const integrationId = searchParams.get('integrationId')
-    
-    // Validate status parameter
-    const validStatuses = ['all', 'active', 'acknowledged', 'resolved']
-    if (status && !validStatuses.includes(status)) {
-      return NextResponse.json(
-        { error: `Invalid status parameter. Must be one of: ${validStatuses.join(', ')}` },
-        { status: 400 }
-      )
+    const rawParams = {
+      status: searchParams.get('status') || 'active',
+      severity: searchParams.get('severity') || undefined,
+      integrationId: searchParams.get('integrationId') || undefined,
+      limit: searchParams.get('limit') || '50',
+      offset: searchParams.get('offset') || '0'
     }
     
-    // Validate severity parameter
-    const validSeverities = ['critical', 'high', 'medium', 'low']
-    if (severity && !validSeverities.includes(severity)) {
-      return NextResponse.json(
-        { error: `Invalid severity parameter. Must be one of: ${validSeverities.join(', ')}` },
-        { status: 400 }
-      )
-    }
-    
-    // Parse and validate pagination parameters
-    const limitParam = searchParams.get('limit')
-    const offsetParam = searchParams.get('offset')
-    
-    let limit = 50
-    let offset = 0
-    
-    if (limitParam) {
-      const parsedLimit = parseInt(limitParam)
-      if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
-        return NextResponse.json(
-          { error: 'Invalid limit parameter. Must be between 1 and 100.' },
-          { status: 400 }
-        )
+    // Validate parameters
+    let validatedParams
+    try {
+      validatedParams = queryParamsSchema.parse(rawParams)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+        return NextResponse.json({ error: `Invalid parameters: ${errors}` }, { status: 400 })
       }
-      limit = parsedLimit
+      return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 })
     }
     
-    if (offsetParam) {
-      const parsedOffset = parseInt(offsetParam)
-      if (isNaN(parsedOffset) || parsedOffset < 0) {
-        return NextResponse.json(
-          { error: 'Invalid offset parameter. Must be non-negative.' },
-          { status: 400 }
-        )
-      }
-      offset = parsedOffset
-    }
+    const { status, severity, integrationId, limit, offset } = validatedParams
 
     // Build query
     let query = supabase
