@@ -19,7 +19,8 @@ const shopifyConfigSchema = z.object({
   sync_orders: z.boolean().default(true),
   sync_customers: z.boolean().default(true),
   b2b_catalog_enabled: z.boolean().default(false),
-  sync_frequency: z.number().min(5).max(1440).default(15)
+  sync_frequency: z.number().min(5).max(1440).default(15),
+  storefront_access_token: z.string().optional()
 })
 
 export async function createShopifyIntegration(formData: FormData) {
@@ -55,7 +56,8 @@ export async function createShopifyIntegration(formData: FormData) {
     sync_orders: formData.get('sync_orders') === 'true',
     sync_customers: formData.get('sync_customers') === 'true',
     b2b_catalog_enabled: formData.get('b2b_catalog_enabled') === 'true',
-    sync_frequency: parseInt(formData.get('sync_frequency') as string || '15')
+    sync_frequency: parseInt(formData.get('sync_frequency') as string || '15'),
+    storefront_access_token: formData.get('storefront_access_token') as string || undefined
   }
 
   const validatedData = shopifyConfigSchema.parse(rawData)
