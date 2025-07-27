@@ -130,8 +130,8 @@ async function getCustomerData(customerId: string) {
       custom_prices: 0,
       contract_prices: 0,
       average_discount: 0,
-      pending_approvals: pendingApprovalsCount || 0,
-      expiring_contracts: expiringContracts || 0,
+      pending_approvals: pendingApprovalsCount ?? 0,
+      expiring_contracts: expiringContracts ?? 0,
     },
     pendingApprovals: approvals || [],
   }
