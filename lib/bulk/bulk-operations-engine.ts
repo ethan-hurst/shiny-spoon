@@ -189,28 +189,63 @@ export class BulkOperationsEngine extends EventEmitter {
     let headers: string[] | null = null
     let rowIndex = 0
 
+    // Configure Papa Parse with better defaults
+    const parseConfig: Papa.ParseConfig = {
+      delimiter: ',',
+      newline: '\n',
+      quoteChar: '"',
+      escapeChar: '"',
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_'),
+      transform: (value) => {
+        // Trim whitespace and handle empty values
+        const trimmed = value.trim()
+        return trimmed === '' ? null : trimmed
+      },
+    }
+
     return new Transform({
       objectMode: true,
       transform(chunk: any, encoding: string, callback: Function) {
         buffer += chunk.toString()
-        const lines = buffer.split('\n')
+        const lines = buffer.split(/\r?\n/)
         buffer = lines.pop() || ''
 
         for (const line of lines) {
+          if (!line.trim()) continue
+
           if (!headers) {
-            headers = Papa.parse(line).data[0] as string[]
+            const result = Papa.parse(line, parseConfig)
+            if (result.data && result.data[0]) {
+              headers = result.data[0] as string[]
+              // Remove any empty headers
+              headers = headers.filter(h => h && h.length > 0)
+            }
             continue
           }
 
-          const row = Papa.parse(line).data[0]
-          if (row && row.length > 0) {
+          const result = Papa.parse(line, parseConfig)
+          const row = result.data[0]
+          
+          if (row && Array.isArray(row) && row.length > 0) {
             const data: Record<string, any> = {}
+            let hasValidData = false
+            
             headers.forEach((header, index) => {
-              const mappedHeader = config.mapping?.[header] || header
-              data[mappedHeader] = row[index]
+              if (index < row.length) {
+                const mappedHeader = config.mapping?.[header] || header
+                const value = row[index]
+                if (value !== null && value !== undefined && value !== '') {
+                  hasValidData = true
+                }
+                data[mappedHeader] = value
+              }
             })
 
-            this.push({ index: rowIndex++, data })
+            // Only push rows that have at least one non-empty value
+            if (hasValidData) {
+              this.push({ index: rowIndex++, data })
+            }
           }
         }
 
@@ -218,15 +253,27 @@ export class BulkOperationsEngine extends EventEmitter {
       },
       flush(callback: Function) {
         if (buffer && headers) {
-          const row = Papa.parse(buffer).data[0]
-          if (row && row.length > 0) {
+          const result = Papa.parse(buffer, parseConfig)
+          const row = result.data[0]
+          
+          if (row && Array.isArray(row) && row.length > 0) {
             const data: Record<string, any> = {}
+            let hasValidData = false
+            
             headers.forEach((header, index) => {
-              const mappedHeader = config.mapping?.[header] || header
-              data[mappedHeader] = row[index]
+              if (index < row.length) {
+                const mappedHeader = config.mapping?.[header] || header
+                const value = row[index]
+                if (value !== null && value !== undefined && value !== '') {
+                  hasValidData = true
+                }
+                data[mappedHeader] = value
+              }
             })
 
-            this.push({ index: rowIndex++, data })
+            if (hasValidData) {
+              this.push({ index: rowIndex++, data })
+            }
           }
         }
         callback()
