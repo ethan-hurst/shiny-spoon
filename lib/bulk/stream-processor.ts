@@ -27,22 +27,20 @@ export class CSVStreamProcessor {
           if (!line.trim()) continue
 
           const parsed = Papa.parse(line, {
-            header: !headers,
+            header: false,
             skipEmptyLines: true,
           })
 
-          if (!headers && parsed.meta.fields) {
-            headers = parsed.meta.fields
+          if (!headers) {
+            headers = parsed.data[0]
             this.emit('headers', headers)
             continue
           }
 
-          if (parsed.data.length > 0) {
-            const row = headers
-              ? Object.fromEntries(
-                  headers.map((h, i) => [h, parsed.data[0][i]])
-                )
-              : parsed.data[0]
+          if (parsed.data.length > 0 && parsed.data[0].length > 0) {
+            const row = Object.fromEntries(
+              headers.map((h, i) => [h, parsed.data[0][i] || ''])
+            )
 
             this.push({
               index: rowCount++,
