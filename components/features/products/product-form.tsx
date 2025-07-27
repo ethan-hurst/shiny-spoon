@@ -23,22 +23,7 @@ import { createProduct, updateProduct } from '@/app/actions/products'
 import { Product } from '@/types/product.types'
 import { CategorySelect } from './category-select'
 import { ImageUpload } from './image-upload'
-
-// Isomorphic File check utility
-function isFile(obj: any): obj is File {
-  // In Node.js, File might not be defined, so we check for its existence first
-  if (typeof File !== 'undefined') {
-    return obj instanceof File
-  }
-  // In Node.js environments without File, check for File-like properties
-  return (
-    obj !== null &&
-    typeof obj === 'object' &&
-    typeof obj.name === 'string' &&
-    typeof obj.size === 'number' &&
-    typeof obj.stream === 'function'
-  )
-}
+import { isFile } from '@/lib/utils/file'
 
 interface ProductFormProps {
   product?: Product

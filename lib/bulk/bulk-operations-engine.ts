@@ -6,24 +6,9 @@ import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/database.types'
 import type { BulkOperationStatus } from '@/types/bulk-operations.types'
+import { isFile } from '@/lib/utils/file'
 
 const pipelineAsync = promisify(pipeline)
-
-// Isomorphic File check utility
-function isFile(obj: any): obj is File {
-  // In Node.js, File might not be defined, so we check for its existence first
-  if (typeof File !== 'undefined') {
-    return obj instanceof File
-  }
-  // In Node.js environments without File, check for File-like properties
-  return (
-    obj !== null &&
-    typeof obj === 'object' &&
-    typeof obj.name === 'string' &&
-    typeof obj.size === 'number' &&
-    typeof obj.stream === 'function'
-  )
-}
 
 export interface BulkOperationConfig {
   operationType: 'import' | 'export' | 'update' | 'delete'

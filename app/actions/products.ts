@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { productSchema } from '@/lib/validations/product'
+import { isFile } from '@/lib/utils/file'
 
 // Image upload configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -13,22 +14,6 @@ const ALLOWED_IMAGE_TYPES = [
   'image/webp',
 ]
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
-
-// Isomorphic File check utility
-function isFile(obj: any): obj is File {
-  // In Node.js, File might not be defined, so we check for its existence first
-  if (typeof File !== 'undefined') {
-    return obj instanceof File
-  }
-  // In Node.js environments without File, check for File-like properties
-  return (
-    obj !== null &&
-    typeof obj === 'object' &&
-    typeof obj.name === 'string' &&
-    typeof obj.size === 'number' &&
-    typeof obj.stream === 'function'
-  )
-}
 
 // Types for product operations
 interface ProductFilters {
