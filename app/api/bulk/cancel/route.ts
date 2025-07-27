@@ -1,6 +1,12 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+// Define Zod schema for request body
+const cancelRequestSchema = z.object({
+  operationId: z.string().uuid('Invalid operation ID format')
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,23 +19,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    let operationId: string
+    // Parse and validate request body
+    let body: unknown
     try {
-      const body = await request.json()
-      operationId = body.operationId
-    } catch (error) {
+      body = await request.json()
+    } catch {
       return NextResponse.json(
         { error: 'Invalid JSON input' },
         { status: 400 }
       )
     }
 
-    if (!operationId) {
+    // Validate with Zod schema
+    const validationResult = cancelRequestSchema.safeParse(body)
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Operation ID required' },
+        { 
+          error: 'Invalid request data',
+          details: validationResult.error.flatten().fieldErrors
+        },
         { status: 400 }
       )
     }
+
+    const { operationId } = validationResult.data
 
     // Check if the operation exists and belongs to the user's organization
     const { data: operation, error: operationError } = await supabase
