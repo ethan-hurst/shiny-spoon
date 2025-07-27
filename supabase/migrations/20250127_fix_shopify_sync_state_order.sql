@@ -88,7 +88,8 @@ BEGIN
     );
   END;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_catalog;
 
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION log_shopify_sync_activity TO authenticated;
