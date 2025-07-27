@@ -17,6 +17,20 @@ const pipelineAsync = promisify(pipeline)
 // Constants
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
+// Node.js version check for Readable.fromWeb support (available from 16.5.0)
+const versionMatch = process.version.match(/^v(\d+)\.(\d+)\.(\d+)/)
+const nodeVersion = versionMatch 
+  ? {
+      major: parseInt(versionMatch[1], 10),
+      minor: parseInt(versionMatch[2], 10),
+      patch: parseInt(versionMatch[3], 10)
+    }
+  : null
+
+const hasReadableFromWeb = nodeVersion 
+  ? nodeVersion.major > 16 || (nodeVersion.major === 16 && nodeVersion.minor >= 5)
+  : false
+
 export class BulkOperationsEngine extends EventEmitter {
   private supabase: ReturnType<typeof createServerClient>
   private activeOperations = new Map<string, AbortController>()
@@ -114,16 +128,6 @@ export class BulkOperationsEngine extends EventEmitter {
       // Create streams - only consume once
       let inputStream: Readable
       if (isFile(file)) {
-        // Check Node.js version for Readable.fromWeb support (available from 16.5.0)
-        const versionMatch = process.version.match(/^v(\d+)\.(\d+)\.(\d+)/)
-        if (!versionMatch) {
-          throw new Error(`Unable to parse Node.js version: ${process.version}`)
-        }
-        
-        const major = parseInt(versionMatch[1], 10)
-        const minor = parseInt(versionMatch[2], 10)
-        const hasReadableFromWeb = major > 16 || (major === 16 && minor >= 5)
-
         if (hasReadableFromWeb && Readable.fromWeb) {
           inputStream = Readable.fromWeb(file.stream())
         } else {
