@@ -52,24 +52,42 @@ export function AccuracyTrendChart({
     )
   }
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+  interface TooltipPayload {
+    value: number
+    payload: {
+      date: string
+      time: string
+      accuracy: number
+      records: number
+      discrepancies: number
+    }
+  }
+
+  interface CustomTooltipProps {
+    active?: boolean
+    payload?: TooltipPayload[]
+    label?: string
+  }
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+    if (active && payload && payload.length > 0 && payload[0]) {
+      const data = payload[0]
       return (
         <div className="bg-background border rounded-lg shadow-lg p-3">
           <p className="font-medium">{label}</p>
-          <p className="text-sm text-muted-foreground">{payload[0]?.payload?.time}</p>
+          <p className="text-sm text-muted-foreground">{data.payload.time}</p>
           <div className="mt-2 space-y-1">
             <p className="text-sm">
-              Accuracy: <span className="font-medium">{payload[0]?.value?.toFixed(2)}%</span>
+              Accuracy: <span className="font-medium">{data.value.toFixed(2)}%</span>
             </p>
-            {payload[0]?.payload?.records && (
+            {data.payload.records && (
               <p className="text-sm text-muted-foreground">
-                Records: {payload[0].payload.records.toLocaleString()}
+                Records: {data.payload.records.toLocaleString()}
               </p>
             )}
-            {payload[0]?.payload?.discrepancies !== undefined && (
+            {data.payload.discrepancies !== undefined && (
               <p className="text-sm text-muted-foreground">
-                Discrepancies: {payload[0].payload.discrepancies}
+                Discrepancies: {data.payload.discrepancies}
               </p>
             )}
           </div>
