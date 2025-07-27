@@ -185,12 +185,22 @@ export const netsuiteIntegrationConfigSchema = z.object({
   field_mappings: z.record(z.string(), z.string()).default({}),
 })
 
-// Runtime validation function
+/**
+ * Validates and parses a NetSuite integration configuration object.
+ *
+ * @param config - The configuration object to validate
+ * @returns The validated and typed NetSuiteIntegrationConfig object
+ * @throws If the input does not conform to the required schema
+ */
 export function validateNetSuiteConfig(config: unknown): NetSuiteIntegrationConfig {
   return netsuiteIntegrationConfigSchema.parse(config)
 }
 
-// Type guard function
+/**
+ * Determines whether the provided value is a valid NetSuite integration configuration.
+ *
+ * Returns true if the input conforms to the NetSuiteIntegrationConfig schema; otherwise, returns false.
+ */
 export function isNetSuiteIntegrationConfig(config: unknown): config is NetSuiteIntegrationConfig {
   try {
     netsuiteIntegrationConfigSchema.parse(config)
@@ -210,7 +220,11 @@ export interface NetSuiteSyncState {
   total_errors: number
 }
 
-// Type guards
+/**
+ * Determines whether the provided value is a NetSuiteApiError object.
+ *
+ * Returns true if the input has the required structure and types for a NetSuite API error.
+ */
 export function isNetSuiteApiError(error: any): error is NetSuiteApiError {
   return (
     error && 
@@ -227,6 +241,11 @@ export function isNetSuiteApiError(error: any): error is NetSuiteApiError {
   )
 }
 
+/**
+ * Determines whether the given object is a NetSuiteItem by checking for required properties.
+ *
+ * @returns True if the object has both 'id' and 'itemid' properties; otherwise, false.
+ */
 export function isNetSuiteItem(obj: any): obj is NetSuiteItem {
   return obj && typeof obj === 'object' && 'id' in obj && 'itemid' in obj
 }

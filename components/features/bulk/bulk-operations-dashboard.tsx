@@ -45,6 +45,11 @@ interface ErrorLogEntry {
   details?: any
 }
 
+/**
+ * Displays a dashboard for managing and monitoring bulk data operations.
+ *
+ * Provides a user interface to view the status and history of bulk operations, initiate new uploads, cancel or rollback operations, and inspect or download error logs. Integrates with a Supabase backend and supports real-time updates and user feedback.
+ */
 export function BulkOperationsDashboard() {
   const [selectedOperation, setSelectedOperation] = useState<string | null>(
     null

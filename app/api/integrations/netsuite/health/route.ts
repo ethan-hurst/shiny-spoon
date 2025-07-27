@@ -291,7 +291,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Monitor endpoint for automated health checks
+/**
+ * Performs automated health checks on all active NetSuite integrations for monitoring purposes.
+ *
+ * Authenticates requests using either an API key (with timing-safe comparison) or an admin user's bearer token. For each active NetSuite integration, checks recent error logs to determine health status (`healthy`, `degraded`, or `unhealthy`). Logs a critical alert for integrations deemed unhealthy. Returns a summary of health check results for all integrations, including error counts and timestamps.
+ *
+ * @returns A JSON response containing the overall status, number of integrations checked, individual health check results, and a timestamp.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

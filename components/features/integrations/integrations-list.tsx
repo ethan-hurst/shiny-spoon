@@ -89,6 +89,13 @@ const deleteIntegration = async (id: string) => {
   return response.json()
 }
 
+/**
+ * Displays a list of integrations with options to sync, activate/pause, and delete each integration.
+ *
+ * Provides UI controls and confirmation dialogs for managing integrations, including starting a sync process, toggling activation status, and deleting integrations. Handles API interactions, loading states, and user feedback for each action.
+ *
+ * @param integrations - The array of integration objects to display and manage
+ */
 export function IntegrationsList({ integrations }: IntegrationsListProps) {
   const router = useRouter()
   const queryClient = useQueryClient()

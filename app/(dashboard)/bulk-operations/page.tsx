@@ -3,6 +3,11 @@ import { BulkOperationsDashboard } from '@/components/features/bulk/bulk-operati
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
+/**
+ * Renders the Bulk Operations page with a header and asynchronously loaded dashboard content.
+ *
+ * Displays a loading skeleton while the dashboard is being fetched or rendered.
+ */
 export default function BulkOperationsPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -17,6 +22,11 @@ export default function BulkOperationsPage() {
   )
 }
 
+/**
+ * Displays a skeleton UI representing the loading state for the bulk operations page.
+ *
+ * Shows placeholder elements for the header, active operations section, and operations history to indicate content is loading.
+ */
 function BulkOperationsLoading() {
   return (
     <div className="space-y-6">

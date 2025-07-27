@@ -127,6 +127,12 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
 }
 
 
+/**
+ * Generates a CSV template string for product imports with headers and sample rows.
+ *
+ * The template includes properly escaped fields and example data for each required and optional column.
+ * @returns A CSV-formatted string containing headers and three sample product rows.
+ */
 export function generateProductCSVTemplate(): string {
   const headers = ['sku', 'name', 'description', 'category', 'base_price', 'cost', 'weight']
   const sampleRows = [

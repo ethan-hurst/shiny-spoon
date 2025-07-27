@@ -9,6 +9,11 @@ interface RefreshButtonProps {
   size?: 'default' | 'sm' | 'lg' | 'icon'
 }
 
+/**
+ * Renders a button that reloads the current page when clicked.
+ *
+ * Optionally accepts custom styling, variant, and size props for appearance customization.
+ */
 export function RefreshButton({ className, variant = 'outline', size = 'sm' }: RefreshButtonProps) {
   const handleRefresh = () => {
     window.location.reload()

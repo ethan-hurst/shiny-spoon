@@ -506,6 +506,14 @@ export async function importPricingRules(file: File) {
   return { successes, errors }
 }
 
+/**
+ * Exports all pricing rules as a CSV string with standardized field escaping.
+ *
+ * Retrieves all pricing rules from the database, ordered by priority, and formats them as a CSV file with properly escaped headers and values.
+ *
+ * @returns A CSV string containing all pricing rules.
+ * @throws If the user is not authenticated or a database error occurs.
+ */
 export async function exportPricingRules() {
   const supabase = await createClient()
 

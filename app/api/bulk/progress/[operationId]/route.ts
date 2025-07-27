@@ -1,6 +1,15 @@
 import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { createServerClient } from '@/lib/supabase/server'
 
+/**
+ * Streams real-time progress updates for a bulk operation as server-sent events (SSE).
+ *
+ * Authenticates the user, verifies organization and operation ownership, and streams progress and rollback updates for the specified bulk operation. Sends an initial state event, then pushes updates as the operation progresses or rolls back. Closes the stream when the operation completes or the client disconnects.
+ *
+ * @param request - The incoming HTTP request
+ * @param params - Route parameters containing the bulk operation ID
+ * @returns An HTTP response with an SSE stream of progress updates, or an error response if authentication or validation fails
+ */
 export async function GET(
   request: Request,
   { params }: { params: { operationId: string } }

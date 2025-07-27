@@ -39,6 +39,14 @@ export async function generateMetadata(
   }
 }
 
+/**
+ * Retrieves customer details and their price history by customer ID.
+ *
+ * Fetches the customer record and up to 100 price history entries. If the customer is not found, returns `null`. If an authentication or authorization error occurs while fetching price history, the error is re-thrown for middleware handling. For other errors, returns the customer data with an empty history array to allow the page to render.
+ *
+ * @param customerId - The unique identifier of the customer
+ * @returns An object containing the customer and their price history, or `null` if the customer does not exist
+ */
 async function getHistoryData(customerId: string) {
   const supabase = await createClient()
 
