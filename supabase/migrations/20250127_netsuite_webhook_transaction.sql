@@ -47,7 +47,7 @@ BEGIN
         COALESCE((p_record_data->>'rate')::DECIMAL, 0),
         (p_record_data->'weight')::JSONB,
         (p_record_data->'dimensions')::JSONB,
-        COALESCE((p_record_data->>'isinactive')::BOOLEAN, true),
+        NOT COALESCE((p_record_data->>'isinactive')::BOOLEAN, false),
         p_record_data->>'id',
         jsonb_build_object(
           'source', 'netsuite',
