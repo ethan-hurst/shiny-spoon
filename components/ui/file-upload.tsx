@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useRef, useState } from 'react'
+import React, { forwardRef, useRef, useState } from 'react'
 import { Cloud, File, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
