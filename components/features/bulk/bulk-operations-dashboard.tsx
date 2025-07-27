@@ -36,6 +36,14 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { BulkProgressTracker } from './bulk-progress-tracker'
 import { BulkUploadDialog } from './bulk-upload-dialog'
+import type { BulkOperation } from '@/types/bulk-operations.types'
+import type { Row } from '@tanstack/react-table'
+
+interface ErrorLogEntry {
+  message: string
+  timestamp?: string
+  details?: any
+}
 
 export function BulkOperationsDashboard() {
   const [selectedOperation, setSelectedOperation] = useState<string | null>(
@@ -43,7 +51,7 @@ export function BulkOperationsDashboard() {
   )
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [errorDialogOpen, setErrorDialogOpen] = useState(false)
-  const [selectedErrorLog, setSelectedErrorLog] = useState<any[]>([])
+  const [selectedErrorLog, setSelectedErrorLog] = useState<ErrorLogEntry[]>([])
   const [selectedOperationId, setSelectedOperationId] = useState<string>('')
   const supabase = createBrowserClient()
 
@@ -69,11 +77,26 @@ export function BulkOperationsDashboard() {
         body: JSON.stringify({ operationId }),
       })
 
-      if (!response.ok) throw new Error('Failed to cancel operation')
+      if (!response.ok) {
+        // Parse error response
+        let errorMessage = 'Failed to cancel operation'
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          }
+        } catch {
+          // Use default error message if parsing fails
+        }
+        throw new Error(errorMessage)
+      }
     },
     onSuccess: () => {
       toast.success('Operation cancelled')
       refetch()
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
     },
   })
 
@@ -85,11 +108,26 @@ export function BulkOperationsDashboard() {
         body: JSON.stringify({ operationId }),
       })
 
-      if (!response.ok) throw new Error('Failed to rollback operation')
+      if (!response.ok) {
+        // Parse error response
+        let errorMessage = 'Failed to rollback operation'
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          }
+        } catch {
+          // Use default error message if parsing fails
+        }
+        throw new Error(errorMessage)
+      }
     },
     onSuccess: () => {
       toast.success('Rollback initiated')
       refetch()
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
     },
   })
 
@@ -131,7 +169,7 @@ export function BulkOperationsDashboard() {
     {
       header: 'Status',
       accessorKey: 'status',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div className="flex items-center gap-2">
           {getStatusIcon(row.original.status)}
           <Badge variant={getStatusVariant(row.original.status)}>
@@ -142,7 +180,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Type',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div>
           <div className="font-medium capitalize">
             {row.original.operation_type} {row.original.entity_type}
@@ -155,7 +193,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Progress',
-      cell: ({ row }: any) => {
+      cell: ({ row }: { row: Row<BulkOperation> }) => {
         const total = row.original.total_records || 0
         const processed = row.original.processed_records || 0
         const percentage = total > 0 ? (processed / total) * 100 : 0
@@ -172,7 +210,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Results',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div className="text-sm">
           <div className="text-green-600">
             ✓ {row.original.successful_records || 0}
@@ -185,7 +223,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Created',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div className="text-sm text-muted-foreground">
           {formatDistanceToNow(new Date(row.original.created_at), {
             addSuffix: true,
@@ -195,7 +233,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Actions',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div className="flex items-center gap-2">
           {row.original.status === 'processing' && (
             <Button
