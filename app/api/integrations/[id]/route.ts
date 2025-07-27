@@ -123,7 +123,7 @@ export async function PATCH(
       method: 'PATCH',
       integrationId: params.id,
       userId: user?.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
       // Removed requestBody and userEmail to prevent logging sensitive data
     })
     return NextResponse.json(
@@ -175,7 +175,7 @@ export async function DELETE(
       method: 'DELETE',
       integrationId: params.id,
       userId: user?.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
       // Removed URL and userEmail to prevent logging sensitive data
     })
     return NextResponse.json(
