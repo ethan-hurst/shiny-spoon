@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { validateCSRFToken } from '@/lib/utils/csrf'
 
 // Define Zod schema for request body
 const cancelRequestSchema = z.object({
@@ -10,6 +11,15 @@ const cancelRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate CSRF token
+    const isValidCSRF = await validateCSRFToken(request)
+    if (!isValidCSRF) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      )
+    }
+
     const supabase = createServerClient()
 
     const {
