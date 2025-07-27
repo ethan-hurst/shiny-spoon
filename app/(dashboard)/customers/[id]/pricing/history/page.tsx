@@ -59,6 +59,22 @@ async function getHistoryData(customerId: string) {
     return { customer, history }
   } catch (error) {
     console.error('Error fetching price history:', error)
+    
+    // Check if it's an authentication error
+    if (error instanceof Error) {
+      // Check for common auth error patterns
+      const errorMessage = error.message.toLowerCase()
+      if (errorMessage.includes('auth') || 
+          errorMessage.includes('unauthorized') ||
+          errorMessage.includes('forbidden') ||
+          errorMessage.includes('401') ||
+          errorMessage.includes('403')) {
+        // Re-throw auth errors to be handled by the app's auth middleware
+        throw error
+      }
+    }
+    
+    // For other errors, return empty history to allow page to render
     return { customer, history: [] }
   }
 }
