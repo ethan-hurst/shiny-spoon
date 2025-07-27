@@ -404,7 +404,16 @@ export function AccuracyAnalyticsDashboard({
   )
 }
 
-// Helper function to generate insights
+/**
+ * Generates a list of actionable insights based on accuracy breakdown, trend analysis, and industry benchmark data.
+ *
+ * Insights highlight significant declines, high volatility, low accuracy by entity type, benchmark percentile status, and critical severity issues.
+ *
+ * @param breakdown - Accuracy breakdown by entity type and severity
+ * @param trend - Trend analysis including direction, change rate, and volatility
+ * @param benchmark - Object containing the percentile rank compared to industry
+ * @returns An array of insight strings relevant to the provided accuracy metrics
+ */
 function generateInsights(
   breakdown: AccuracyBreakdown,
   trend: TrendAnalysis,
@@ -455,7 +464,14 @@ function generateInsights(
   return insights
 }
 
-// Helper function to escape CSV field properly
+/**
+ * Escapes a value for safe inclusion in a CSV field.
+ *
+ * Converts null or undefined to an empty quoted string. Wraps the value in quotes if it contains quotes, commas, newlines, carriage returns, or starts with characters that could be interpreted as spreadsheet formulas. Internal quotes are doubled for CSV compatibility.
+ *
+ * @param value - The value to escape for CSV output
+ * @returns The escaped CSV field as a string
+ */
 function escapeCSVField(value: any): string {
   if (value === null || value === undefined) {
     return '""'
@@ -477,7 +493,14 @@ function escapeCSVField(value: any): string {
   return strValue
 }
 
-// Helper function to convert report to CSV
+/**
+ * Converts a report object containing summary, entity breakdown, and historical data into a CSV string.
+ *
+ * The CSV includes a header row and rows for each section of the report. If the report is missing or invalid, or if an error occurs during processing, a fallback row is added to indicate the issue.
+ *
+ * @param report - The report data to convert to CSV format
+ * @returns The CSV string representation of the report
+ */
 function convertReportToCSV(report: any): string {
   if (!report || typeof report !== 'object') {
     return 'Error,No data available\n'

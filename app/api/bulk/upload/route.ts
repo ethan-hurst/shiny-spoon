@@ -5,6 +5,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { BulkOperationConfig } from '@/types/bulk-operations.types'
 import { validateCSRFToken } from '@/lib/utils/csrf'
 
+/**
+ * Handles bulk upload operations via a POST request, including authentication, CSRF validation, form data parsing, and input validation.
+ *
+ * Validates the CSRF token and user authentication, ensures the user belongs to an organization, and parses multipart form data for required parameters and a CSV file. Checks operation and entity types, numeric and boolean options, and validates the CSV file. Initiates the bulk operation and returns a JSON response with the operation ID on success. Handles and sanitizes errors, returning appropriate HTTP status codes and messages.
+ *
+ * @returns A JSON response indicating success with an operation ID, or an error message with the appropriate HTTP status code.
+ */
 export async function POST(request: NextRequest) {
   try {
     // Validate CSRF token

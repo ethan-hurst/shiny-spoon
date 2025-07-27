@@ -46,6 +46,17 @@ interface ProgressData {
   }
 }
 
+/**
+ * Displays and tracks the real-time progress of a bulk operation, including rollback support and error handling.
+ *
+ * Subscribes to server-sent events for live updates on the operation's status, progress, and rollback state. Provides a UI with progress indicators, status badges, and a rollback button when applicable. Handles connection errors with automatic reconnection attempts and displays error messages if the connection fails.
+ *
+ * @param operationId - The unique identifier for the bulk operation to track.
+ * @param onComplete - Optional callback invoked when the operation or rollback completes, fails, or is cancelled.
+ * @param showRollbackButton - Whether to display the rollback button when eligible (default: true).
+ *
+ * @returns A React component rendering the progress tracker UI for the specified bulk operation.
+ */
 export function BulkProgressTracker({
   operationId,
   onComplete,

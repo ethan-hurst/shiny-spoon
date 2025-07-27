@@ -9,6 +9,13 @@ const cancelRequestSchema = z.object({
   operationId: z.string().uuid('Invalid operation ID format')
 })
 
+/**
+ * Handles POST requests to cancel a bulk operation after validating authentication, authorization, and operation status.
+ *
+ * Validates the CSRF token and user authentication, parses and validates the request body, checks operation existence and user permissions, and ensures the operation is in a cancellable state before invoking the cancellation. Returns appropriate error responses for invalid input, unauthorized access, or disallowed operation status.
+ *
+ * @returns A JSON response indicating success or an error with the relevant HTTP status code.
+ */
 export async function POST(request: NextRequest) {
   try {
     // Validate CSRF token

@@ -10,7 +10,15 @@ import {
 import { sendApprovalEmail } from '@/lib/email/price-approval-notification'
 import { escapeCSVField } from '@/lib/utils/csv'
 
-// Contract Actions
+/**
+ * Creates a new customer contract and associated contract items.
+ *
+ * Authenticates the user, validates contract data, ensures the customer belongs to the user's organization, and atomically creates the contract and its items using a Supabase RPC call. Revalidates relevant cache paths after creation.
+ *
+ * @param formData - Form data containing contract and contract item details
+ * @returns The created contract data
+ * @throws If the user is unauthorized, the customer is not found or not accessible, validation fails, or contract creation fails
+ */
 export async function createContract(formData: FormData) {
   const supabase = await createClient()
 
@@ -90,6 +98,13 @@ export async function createContract(formData: FormData) {
   return contract
 }
 
+/**
+ * Updates an existing customer contract and its items after validating user authorization and organization ownership.
+ *
+ * Throws an error if the user is unauthorized, the contract does not exist, or the contract does not belong to the user's organization.
+ * Validates and parses contract data and items from the provided form data, then updates the contract and its items atomically.
+ * Revalidates relevant cache paths upon successful update.
+ */
 export async function updateContract(formData: FormData) {
   const supabase = await createClient()
 
@@ -454,7 +469,15 @@ export async function rejectPriceChange(
   revalidatePath('/pricing/approvals')
 }
 
-// Export Actions
+/**
+ * Exports a customer's product pricing data as a CSV string.
+ *
+ * Retrieves all products with their base and customer-specific pricing for the given customer, formats the data into a CSV file with appropriate headers, and returns the CSV content as a string.
+ *
+ * @param customerId - The unique identifier of the customer whose pricing data will be exported.
+ * @returns A CSV string containing product pricing details for the specified customer.
+ * @throws If the user is unauthorized or if there is a database query error.
+ */
 export async function exportCustomerPrices(customerId: string) {
   const supabase = await createClient()
 

@@ -206,7 +206,16 @@ export class CSVStreamProcessor {
   }
 }
 
-// Usage example
+/**
+ * Processes a large CSV file stream in batches with concurrency and progress reporting.
+ *
+ * Streams the CSV data, parses and batches records, processes each batch concurrently using the provided processor function, and reports progress via a callback. Returns statistics on the total, successful, and failed records after processing completes.
+ *
+ * @param fileStream - Readable stream containing CSV data
+ * @param processor - Asynchronous function to process each batch of records
+ * @param onProgress - Callback invoked periodically with progress updates
+ * @returns An object containing the total, successful, and failed record counts
+ */
 export async function processLargeCSV(
   fileStream: Readable,
   processor: (batch: any[]) => Promise<any[]>,

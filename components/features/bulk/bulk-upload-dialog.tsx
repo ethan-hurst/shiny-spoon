@@ -54,6 +54,16 @@ interface BulkUploadDialogProps {
   onSuccess: () => void
 }
 
+/**
+ * Renders a dialog for uploading CSV files to perform bulk import or update operations on products, inventory, pricing, or customers.
+ *
+ * Allows users to select the operation type and entity type, configure validation and rollback options, download a CSV template, and upload a CSV file with enforced validation. Handles file upload with a 30-second timeout, displays user-friendly error or success messages, and invokes a callback upon successful operation start.
+ *
+ * @param open - Whether the dialog is visible
+ * @param onOpenChange - Callback to toggle dialog visibility
+ * @param onSuccess - Callback invoked after a successful bulk operation is initiated
+ * @returns The rendered dialog component
+ */
 export function BulkUploadDialog({
   open,
   onOpenChange,

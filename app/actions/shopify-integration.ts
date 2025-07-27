@@ -23,6 +23,15 @@ const shopifyConfigSchema = z.object({
   storefront_access_token: z.string().optional()
 })
 
+/**
+ * Creates a new Shopify integration for the authenticated user's organization.
+ *
+ * Validates the provided form data, ensures the user is authorized and belongs to an organization, and creates the integration using an atomic, encrypted database operation. The sync frequency is mapped from a numeric value to a descriptive label. Revalidates relevant cache paths upon success.
+ *
+ * @param formData - The form data containing Shopify integration configuration fields
+ * @returns An object containing the created integration's ID
+ * @throws If the user is unauthorized, the organization is not found, input validation fails, or the integration cannot be created
+ */
 export async function createShopifyIntegration(formData: FormData) {
   // Validate CSRF token
   await validateCsrfToken()
