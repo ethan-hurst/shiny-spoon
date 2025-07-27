@@ -411,6 +411,29 @@ export async function resolveDiscrepancy(
 // Trigger auto-remediation
 export async function triggerAutoRemediation(discrepancyIds: string[]) {
   try {
+    // Validate input is a non-empty array
+    if (!Array.isArray(discrepancyIds) || discrepancyIds.length === 0) {
+      return { success: false, error: 'No discrepancy IDs provided' }
+    }
+
+    // Validate all IDs are valid UUIDs
+    const uuidSchema = z.string().uuid()
+    const validatedIds: string[] = []
+    
+    for (const id of discrepancyIds) {
+      const validationResult = uuidSchema.safeParse(id)
+      if (!validationResult.success) {
+        return { success: false, error: `Invalid discrepancy ID format: ${id}` }
+      }
+      validatedIds.push(validationResult.data)
+    }
+
+    // Limit batch size to prevent abuse
+    const MAX_BATCH_SIZE = 100
+    if (validatedIds.length > MAX_BATCH_SIZE) {
+      return { success: false, error: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} items` }
+    }
+
     const supabase = createClient()
 
     // Check authentication
@@ -419,8 +442,57 @@ export async function triggerAutoRemediation(discrepancyIds: string[]) {
       return { success: false, error: 'Unauthorized' }
     }
 
+    // Get user's organization
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!orgUser) {
+      return { success: false, error: 'Organization not found' }
+    }
+
+    // Verify all discrepancies belong to the user's organization
+    const { data: discrepancies, error: queryError } = await supabase
+      .from('discrepancies')
+      .select('id, organization_id')
+      .in('id', validatedIds)
+
+    if (queryError) {
+      throw new Error('Failed to verify discrepancies')
+    }
+
+    if (!discrepancies || discrepancies.length === 0) {
+      return { success: false, error: 'No valid discrepancies found' }
+    }
+
+    // Check if all discrepancies belong to the user's organization
+    const unauthorizedIds = discrepancies
+      .filter(d => d.organization_id !== orgUser.organization_id)
+      .map(d => d.id)
+
+    if (unauthorizedIds.length > 0) {
+      return { 
+        success: false, 
+        error: 'Unauthorized: Some discrepancies belong to other organizations' 
+      }
+    }
+
+    // Check if all requested IDs were found
+    const foundIds = discrepancies.map(d => d.id)
+    const notFoundIds = validatedIds.filter(id => !foundIds.includes(id))
+    
+    if (notFoundIds.length > 0) {
+      return {
+        success: false,
+        error: `Discrepancies not found: ${notFoundIds.join(', ')}`
+      }
+    }
+
+    // Only remediate the verified discrepancies
     const remediationService = new AutoRemediationService()
-    const result = await remediationService.batchRemediate(discrepancyIds)
+    const result = await remediationService.batchRemediate(foundIds)
 
     revalidatePath('/monitoring')
 
