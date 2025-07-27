@@ -121,11 +121,14 @@ export class BulkOperationsEngine extends EventEmitter {
       let inputStream: Readable
       if (typeof File !== 'undefined' && file instanceof File) {
         // Check Node.js version for Readable.fromWeb support (available from 16.5.0)
-        const nodeVersion = process.version
-          .split('.')
-          .map((v) => parseInt(v.replace('v', '')))
-        const hasReadableFromWeb =
-          nodeVersion[0] > 16 || (nodeVersion[0] === 16 && nodeVersion[1] >= 5)
+        const versionMatch = process.version.match(/^v(\d+)\.(\d+)\.(\d+)/)
+        if (!versionMatch) {
+          throw new Error(`Unable to parse Node.js version: ${process.version}`)
+        }
+        
+        const major = parseInt(versionMatch[1], 10)
+        const minor = parseInt(versionMatch[2], 10)
+        const hasReadableFromWeb = major > 16 || (major === 16 && minor >= 5)
 
         if (hasReadableFromWeb && Readable.fromWeb) {
           inputStream = Readable.fromWeb(file.stream())
