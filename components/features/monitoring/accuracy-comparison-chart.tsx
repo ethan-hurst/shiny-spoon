@@ -93,7 +93,7 @@ export function AccuracyComparisonChart({
     } else {
       setLoading(false)
     }
-  }, [integrations, organizationId, supabase])
+  }, [integrations, organizationId])
 
   if (loading) {
     return (
