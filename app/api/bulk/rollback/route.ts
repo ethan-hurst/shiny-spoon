@@ -72,20 +72,23 @@ export async function POST(request: NextRequest) {
     // Start rollback process
     const engine = new BulkOperationsEngine()
 
-    // Update operation status to indicate rollback is starting
-    const { error: updateError } = await supabase
+    // Update operation status atomically - only if still completed
+    const { data: updatedOperation, error: updateError } = await supabase
       .from('bulk_operations')
       .update({ 
         status: 'processing',
         updated_at: new Date().toISOString()
       })
       .eq('id', operationId)
+      .eq('status', 'completed') // Atomic check - only update if still completed
+      .select()
+      .single()
 
-    if (updateError) {
+    if (updateError || !updatedOperation) {
       console.error('Failed to update operation status:', updateError)
       return NextResponse.json(
-        { error: 'Failed to initiate rollback' },
-        { status: 500 }
+        { error: 'Failed to initiate rollback - operation status may have changed' },
+        { status: 409 } // Conflict status
       )
     }
 
