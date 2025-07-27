@@ -4,13 +4,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { RealtimeChannel } from '@supabase/supabase-js'
+import type { AccuracyCheck, Alert, Discrepancy } from '@/lib/monitoring/types'
 
 interface UseAccuracyMonitorProps {
   organizationId: string
   initialAccuracy: number
-  initialChecks: any[]
-  initialAlerts: any[]
-  initialDiscrepancies: any[]
+  initialChecks: AccuracyCheck[]
+  initialAlerts: Alert[]
+  initialDiscrepancies: Discrepancy[]
 }
 
 export function useAccuracyMonitor({
@@ -46,7 +47,7 @@ export function useAccuracyMonitor({
           .eq('status', 'completed')
           .order('completed_at', { ascending: false })
           .limit(1)
-          .single(),
+          .maybeSingle(),
         
         // Get recent checks
         supabase
@@ -89,6 +90,8 @@ export function useAccuracyMonitor({
       if (discrepanciesData) {
         setDiscrepancies(discrepanciesData)
       }
+    } catch (error) {
+      console.error('Failed to refresh accuracy monitor data:', error)
     } finally {
       setIsLoading(false)
     }
