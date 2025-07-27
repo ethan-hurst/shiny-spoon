@@ -14,6 +14,23 @@ DECLARE
   v_customer_id UUID;
   v_field_mappings JSONB;
 BEGIN
+  -- Validate UUID parameters
+  IF p_webhook_id IS NULL THEN
+    RAISE EXCEPTION 'webhook_id cannot be null';
+  END IF;
+  
+  IF p_integration_id IS NULL THEN
+    RAISE EXCEPTION 'integration_id cannot be null';
+  END IF;
+  
+  IF p_organization_id IS NULL THEN
+    RAISE EXCEPTION 'organization_id cannot be null';
+  END IF;
+  
+  IF p_event_id IS NULL THEN
+    RAISE EXCEPTION 'event_id cannot be null';
+  END IF;
+  
   -- Start transaction implicitly
   
   -- Get field mappings from integration config
