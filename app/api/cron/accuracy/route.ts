@@ -63,7 +63,7 @@ export async function GET(request: Request) {
         
         if (!shouldRun) {
           console.log(`Skipping check for organization ${org.id} - not due yet`)
-          continue
+          return // Skip this organization
         }
 
         console.log(`Starting accuracy check for organization: ${org.name} (${org.id})`)
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
 
         if (!checkRecord) {
           console.error(`Failed to create check record for org ${org.id}`)
-          continue
+          return // Skip this organization
         }
 
         // Start the check and track the promise
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
       } catch (error) {
         console.error(`Error processing organization ${org.id}:`, error)
       }
-      }))}
+      }))
     }
 
     // Wait for all checks to complete
@@ -277,7 +277,6 @@ export async function POST(request: Request) {
     // Trigger check for specific organization
     const accuracyChecker = new AccuracyChecker()
     const checkId = await accuracyChecker.runCheck({
-      organizationId,
       scope: 'full',
       checkDepth: 'deep',
     })
