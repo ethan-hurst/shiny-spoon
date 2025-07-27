@@ -14,36 +14,70 @@ export async function startBulkOperation(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  // Get form data
-  const file = formData.get('file') as File
-  const operationType = formData.get('operationType') as string
-  const entityType = formData.get('entityType') as string
+  // Get form data with proper type checking
+  const fileEntry = formData.get('file')
+  const operationTypeEntry = formData.get('operationType')
+  const entityTypeEntry = formData.get('entityType')
   const validateOnly = formData.get('validateOnly') === 'true'
   const rollbackOnError = formData.get('rollbackOnError') === 'true'
-  const chunkSize = parseInt(formData.get('chunkSize') as string) || 500
-  const maxConcurrent = parseInt(formData.get('maxConcurrent') as string) || 3
+  
+  // Safe parsing of numeric values
+  const chunkSizeEntry = formData.get('chunkSize')
+  const chunkSize = chunkSizeEntry ? parseInt(String(chunkSizeEntry)) : 500
+  const maxConcurrentEntry = formData.get('maxConcurrent')
+  const maxConcurrent = maxConcurrentEntry ? parseInt(String(maxConcurrentEntry)) : 3
+
+  // Validate file is actually a File object
+  if (!(fileEntry instanceof File)) {
+    throw new Error('Invalid file input')
+  }
+  const file = fileEntry
+
+  // Validate string entries
+  const operationType = operationTypeEntry ? String(operationTypeEntry) : null
+  const entityType = entityTypeEntry ? String(entityTypeEntry) : null
 
   // Validate inputs
-  if (!file) {
-    throw new Error('File is required')
-  }
-
   if (!operationType || !entityType) {
     throw new Error('Operation type and entity type are required')
   }
 
-  if (!['import', 'export', 'update', 'delete'].includes(operationType)) {
+  // Define valid types
+  const VALID_OPERATION_TYPES = ['import', 'export', 'update', 'delete'] as const
+  const VALID_ENTITY_TYPES = ['products', 'inventory', 'pricing', 'customers'] as const
+  
+  type OperationType = typeof VALID_OPERATION_TYPES[number]
+  type EntityType = typeof VALID_ENTITY_TYPES[number]
+
+  if (!VALID_OPERATION_TYPES.includes(operationType as OperationType)) {
     throw new Error('Invalid operation type')
   }
 
-  if (!['products', 'inventory', 'pricing', 'customers'].includes(entityType)) {
+  if (!VALID_ENTITY_TYPES.includes(entityType as EntityType)) {
     throw new Error('Invalid entity type')
   }
 
-  // Validate file
+  // Validate file properties
+  if (!file.name || file.size === 0) {
+    throw new Error('File is empty or invalid')
+  }
+
+  // Check file MIME type and extension
+  const validMimeTypes = ['text/csv', 'application/csv', 'text/plain']
+  const fileExtension = file.name.toLowerCase().split('.').pop()
+  
+  if (fileExtension !== 'csv') {
+    throw new Error('File must be a CSV file')
+  }
+
+  if (file.type && !validMimeTypes.includes(file.type)) {
+    throw new Error('Invalid file type. Please upload a CSV file')
+  }
+
+  // Validate CSV content
   const validation = validateCSVFile(file)
   if (!validation.valid) {
-    throw new Error(validation.error!)
+    throw new Error(validation.error || 'Invalid CSV file')
   }
 
   // Create engine and start operation
@@ -51,8 +85,8 @@ export async function startBulkOperation(formData: FormData) {
   const operationId = await engine.startOperation(
     file,
     {
-      operationType: operationType as any,
-      entityType: entityType as any,
+      operationType: operationType as OperationType,
+      entityType: entityType as EntityType,
       validateOnly,
       rollbackOnError,
       chunkSize,
