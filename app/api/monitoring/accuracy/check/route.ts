@@ -52,6 +52,10 @@ export async function POST(request: NextRequest) {
 
     // Set up SSE to stream progress updates
     const encoder = new TextEncoder()
+    
+    // Store cleanup function outside stream for access in cancel
+    let cleanup: (() => void) | null = null
+    
     const stream = new ReadableStream({
       async start(controller) {
         // Send initial response
@@ -63,26 +67,39 @@ export async function POST(request: NextRequest) {
 
         // Subscribe to progress events
         const handleProgress = (progress: any) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'progress',
-            ...progress 
-          })}\n\n`))
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'progress',
+              ...progress 
+            })}\n\n`))
+          } catch (error) {
+            // Controller might be closed if client disconnected
+            console.log('Failed to send progress update:', error)
+          }
         }
 
         const handleComplete = (result: any) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'complete',
-            ...result 
-          })}\n\n`))
-          controller.close()
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'complete',
+              ...result 
+            })}\n\n`))
+            controller.close()
+          } catch (error) {
+            console.log('Failed to send complete event:', error)
+          }
         }
 
         const handleError = (error: any) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-            type: 'error',
-            error: error.message 
-          })}\n\n`))
-          controller.close()
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'error',
+              error: error.message 
+            })}\n\n`))
+            controller.close()
+          } catch (error) {
+            console.log('Failed to send error event:', error)
+          }
         }
 
         checker.on(`progress-${checkId}`, handleProgress)
@@ -91,14 +108,12 @@ export async function POST(request: NextRequest) {
 
         // Timeout after 5 minutes
         const timeoutId = setTimeout(() => {
-          checker.removeListener(`progress-${checkId}`, handleProgress)
-          checker.removeListener(`complete-${checkId}`, handleComplete)
-          checker.removeListener(`error-${checkId}`, handleError)
+          if (cleanup) cleanup()
           controller.close()
         }, 5 * 60 * 1000)
 
-        // Store cleanup function for cancel
-        ;(controller as any).cleanup = () => {
+        // Define cleanup function
+        cleanup = () => {
           clearTimeout(timeoutId)
           checker.removeListener(`progress-${checkId}`, handleProgress)
           checker.removeListener(`complete-${checkId}`, handleComplete)
@@ -107,9 +122,9 @@ export async function POST(request: NextRequest) {
       },
       cancel(reason) {
         // Clean up event listeners if client disconnects
-        const controller = this as any
-        if (controller.cleanup) {
-          controller.cleanup()
+        if (cleanup) {
+          cleanup()
+          cleanup = null
         }
         console.log('SSE stream cancelled:', reason)
       },
