@@ -58,8 +58,8 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
       sync_pricing: config?.sync_pricing ?? true,
       sync_customers: config?.sync_customers ?? false,
       sync_orders: config?.sync_orders ?? false,
-      inventory_locations: config?.inventory_locations?.join(',') || '',
-      price_levels: config?.price_levels?.join(',') || '',
+      inventory_locations: Array.isArray(config?.inventory_locations) ? config.inventory_locations.join(',') : '',
+      price_levels: Array.isArray(config?.price_levels) ? config.price_levels.join(',') : '',
       batch_size: config?.batch_size || 100,
     },
   })
