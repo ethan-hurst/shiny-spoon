@@ -8,6 +8,7 @@ import {
   ContractItem,
 } from '@/types/customer-pricing.types'
 import { sendApprovalEmail } from '@/lib/email/price-approval-notification'
+import { escapeCSVField } from '@/lib/utils/csv'
 
 // Contract Actions
 export async function createContract(formData: FormData) {
@@ -538,33 +539,6 @@ export async function exportCustomerPrices(customerId: string) {
       customerPricing?.updated_by || '',
     ]
   })
-
-  // Helper function to escape CSV field properly
-  const escapeCSVField = (value: any): string => {
-    if (value === null || value === undefined) {
-      return '""'
-    }
-
-    const strValue = String(value)
-
-    // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
-    if (
-      strValue.includes('"') ||
-      strValue.includes('\n') ||
-      strValue.includes('\r') ||
-      strValue.includes(',')
-    ) {
-      // Escape quotes by doubling them and wrap in quotes
-      return `"${strValue.replace(/"/g, '""')}"`
-    }
-
-    // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
-    if (/^[=+\-@\t\r]/.test(strValue)) {
-      return `"${strValue}"`
-    }
-
-    return strValue
-  }
 
   // Generate CSV content
   const csvContent = [
