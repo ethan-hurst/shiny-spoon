@@ -6,6 +6,15 @@ import { validateCSVFile } from '@/lib/csv/parser'
 import { createServerClient } from '@/lib/supabase/server'
 import { isFile } from '@/lib/utils/file'
 
+/**
+ * Initiates a new bulk operation for the authenticated user using the provided CSV file and operation parameters.
+ *
+ * Validates the user's authentication, form data, file type, and CSV content before starting the operation. Supports options for validation-only mode, rollback on error, chunk size, and concurrency. Returns the unique ID of the created bulk operation.
+ *
+ * @param formData - Form data containing the CSV file and operation parameters
+ * @returns An object containing the operation ID of the newly started bulk operation
+ * @throws If the user is unauthorized, required fields are missing, or file validation fails
+ */
 export async function startBulkOperation(formData: FormData) {
   const supabase = createServerClient()
 
@@ -102,6 +111,11 @@ export async function startBulkOperation(formData: FormData) {
   return { operationId }
 }
 
+/**
+ * Cancels an ongoing bulk operation for the authenticated user.
+ *
+ * Throws an error if the user is not authenticated.
+ */
 export async function cancelBulkOperation(operationId: string) {
   const supabase = createServerClient()
 
@@ -116,6 +130,14 @@ export async function cancelBulkOperation(operationId: string) {
   revalidatePath('/bulk-operations')
 }
 
+/**
+ * Initiates an asynchronous rollback of a bulk operation for the authenticated user.
+ *
+ * Returns immediately with a success status; rollback errors are logged but do not affect the response.
+ *
+ * @param operationId - The ID of the bulk operation to roll back
+ * @returns An object indicating the rollback request was initiated
+ */
 export async function rollbackBulkOperation(operationId: string) {
   const supabase = createServerClient()
 
@@ -135,6 +157,12 @@ export async function rollbackBulkOperation(operationId: string) {
   return { success: true }
 }
 
+/**
+ * Retrieves the latest 50 bulk operations for the authenticated user's organization.
+ *
+ * @returns An array of bulk operation records ordered by creation date, most recent first.
+ * @throws If the user is unauthorized or does not belong to an organization.
+ */
 export async function getBulkOperations() {
   const supabase = createServerClient()
 
@@ -166,6 +194,12 @@ export async function getBulkOperations() {
   return data
 }
 
+/**
+ * Retrieves the progress details of a specific bulk operation for the authenticated user.
+ *
+ * @param operationId - The unique identifier of the bulk operation
+ * @returns The progress data for the specified bulk operation
+ */
 export async function getBulkOperationProgress(operationId: string) {
   const supabase = createServerClient()
 
@@ -182,6 +216,12 @@ export async function getBulkOperationProgress(operationId: string) {
   return data
 }
 
+/**
+ * Retrieves detailed information about a specific bulk operation and up to 1000 of its associated records.
+ *
+ * @param operationId - The unique identifier of the bulk operation to retrieve
+ * @returns An object containing the bulk operation details and an array of its records
+ */
 export async function getBulkOperationDetails(operationId: string) {
   const supabase = createServerClient()
 
@@ -215,6 +255,11 @@ export async function getBulkOperationDetails(operationId: string) {
   }
 }
 
+/**
+ * Retrieves aggregated statistics for bulk operations performed by the authenticated user's organization over the past 30 days.
+ *
+ * @returns An object containing totals and breakdowns of operations, including counts of completed and failed operations, records processed and failed, operations grouped by type and entity, and operations grouped by day.
+ */
 export async function getBulkOperationStats() {
   const supabase = createServerClient()
 
@@ -268,6 +313,14 @@ export async function getBulkOperationStats() {
   return stats
 }
 
+/**
+ * Generates and returns a CSV report for a specified bulk operation.
+ *
+ * The report includes details for each record in the operation, with proper escaping to prevent CSV injection and formatting issues.
+ *
+ * @param operationId - The ID of the bulk operation to generate the report for
+ * @returns An object containing the CSV content as a string, the filename, and the MIME type
+ */
 export async function downloadBulkOperationReport(operationId: string) {
   const supabase = createServerClient()
 

@@ -299,6 +299,14 @@ export async function bulkUpdateInventory(csvData: string) {
   }
 }
 
+/**
+ * Exports inventory data as a CSV file, applying optional filters for warehouse, search term, and low stock.
+ *
+ * If provided, filters the inventory by warehouse ID, product name or SKU, and/or includes only items at or below their reorder point. The exported CSV includes product, warehouse, quantity, and reorder information, with all fields properly escaped for CSV format.
+ *
+ * @param filters - Optional filters to restrict the exported inventory data
+ * @returns An object containing the CSV content, filename, row count, and success status, or an error message if the operation fails
+ */
 export async function exportInventory(filters?: {
   warehouse_id?: string
   search?: string

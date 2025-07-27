@@ -42,6 +42,11 @@ function verifyWebhookSignature(
   )
 }
 
+/**
+ * Handles incoming NetSuite webhook POST requests, verifying signature, validating payload, recording the event, and processing it atomically via a Supabase RPC.
+ *
+ * Returns a JSON response indicating success or an error with appropriate HTTP status codes for invalid signatures, missing headers, inactive webhooks, or processing failures.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

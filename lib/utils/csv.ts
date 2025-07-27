@@ -3,9 +3,12 @@
  */
 
 /**
- * Escapes a CSV field value according to RFC 4180 standards
- * @param value - The value to escape
- * @returns The properly escaped CSV field value
+ * Escapes a value for safe inclusion as a CSV field according to RFC 4180, handling special characters and preventing CSV injection.
+ *
+ * Converts the input to a string, returns an empty quoted string for `null` or `undefined`, doubles internal quotes, and wraps fields in quotes if they contain quotes, newlines, carriage returns, commas, or begin with characters that could trigger CSV injection.
+ *
+ * @param value - The value to escape for CSV output
+ * @returns The escaped CSV field as a string
  */
 export function escapeCSVField(value: any): string {
   if (value === null || value === undefined) {
@@ -35,10 +38,13 @@ export function escapeCSVField(value: any): string {
 }
 
 /**
- * Converts an array of objects to CSV format
- * @param data - Array of objects to convert
- * @param headers - Optional custom headers (if not provided, uses object keys)
- * @returns CSV string
+ * Converts an array of objects into a CSV-formatted string.
+ *
+ * If headers are provided, they determine the column order; otherwise, the keys of the first object are used as headers. All fields are escaped for CSV compatibility.
+ *
+ * @param data - The array of objects to convert to CSV
+ * @param headers - Optional array of header names to use as columns
+ * @returns The resulting CSV string
  */
 export function arrayToCSV<T extends Record<string, any>>(
   data: T[],
@@ -59,10 +65,13 @@ export function arrayToCSV<T extends Record<string, any>>(
 }
 
 /**
- * Generates a CSV download blob
+ * Creates a Blob containing CSV data with a UTF-8 BOM for Excel compatibility.
+ *
+ * Prepends a UTF-8 Byte Order Mark (BOM) to the CSV content to ensure correct encoding in spreadsheet applications.
+ *
  * @param csvContent - The CSV content as a string
- * @param filename - The filename for the download
- * @returns Blob object for download
+ * @param filename - The intended filename for the download (not used in this function)
+ * @returns A Blob object containing the CSV data with BOM and the appropriate MIME type
  */
 export function createCSVBlob(csvContent: string, filename: string): Blob {
   // Add BOM for Excel compatibility with UTF-8

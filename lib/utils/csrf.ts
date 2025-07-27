@@ -2,7 +2,12 @@ import { NextRequest } from 'next/server'
 import { headers } from 'next/headers'
 import crypto from 'crypto'
 
-// CSRF token validation helper
+/**
+ * Validates the CSRF token in an incoming request by comparing the token from the request header with the token from the request cookie using a timing-safe comparison.
+ *
+ * @param request - The incoming Next.js request object containing headers and cookies
+ * @returns `true` if both tokens exist and match; otherwise, `false`
+ */
 export async function validateCSRFToken(request: NextRequest): Promise<boolean> {
   try {
     const headersList = headers()

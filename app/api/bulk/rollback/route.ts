@@ -2,6 +2,13 @@ import { createServerClient } from '@/lib/supabase/server'
 import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { NextRequest, NextResponse } from 'next/server'
 
+/**
+ * Handles POST requests to initiate a rollback of a completed bulk operation for an authenticated user.
+ *
+ * Validates the user's authentication, parses the request body for an operation ID, verifies the user's organization and operation ownership, and ensures the operation is eligible for rollback. Updates the operation status to "processing" and triggers the rollback asynchronously. Returns a JSON response indicating the rollback initiation or an appropriate error message.
+ *
+ * @returns A JSON response confirming rollback initiation or an error message with the corresponding HTTP status code.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServerClient()

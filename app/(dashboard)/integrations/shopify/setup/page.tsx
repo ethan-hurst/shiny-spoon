@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ShopifySetupWizard } from '@/components/features/integrations/shopify/shopify-setup-wizard'
 
 /**
- * Renders the Shopify integration setup page, guiding authenticated users through connecting their Shopify store.
+ * Displays the Shopify integration setup page for authenticated users, handling redirects based on authentication, user profile, and existing integration status.
  *
- * Redirects unauthenticated users to the login page, users without a profile to onboarding, and users with an existing Shopify integration to the main integration page. If no integration exists, displays a setup wizard for the user's organization.
+ * Authenticated users without a profile are redirected to onboarding. Users with an existing Shopify integration are redirected to the main integration page. If no integration exists, presents a setup wizard to guide the user through connecting their Shopify store.
  */
 export default async function ShopifySetupPage() {
   const supabase = await createClient()
