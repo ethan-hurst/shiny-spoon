@@ -3,9 +3,19 @@ import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { validateCSVFile } from '@/lib/csv/parser'
 import { NextRequest, NextResponse } from 'next/server'
 import { BulkOperationConfig } from '@/types/bulk-operations.types'
+import { validateCSRFToken } from '@/lib/utils/csrf'
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate CSRF token
+    const isValidCSRF = await validateCSRFToken(request)
+    if (!isValidCSRF) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      )
+    }
+
     const supabase = createServerClient()
 
     // Get user
@@ -14,6 +24,20 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get user's organization
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (profileError || !userProfile?.organization_id) {
+      return NextResponse.json(
+        { error: 'User does not belong to an organization' },
+        { status: 403 }
+      )
     }
 
     // Parse form data
