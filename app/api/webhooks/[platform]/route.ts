@@ -91,10 +91,10 @@ export async function POST(
   { params }: { params: { platform: string } }
 ) {
   try {
-    const platform = params.platform as IntegrationPlatformType
+    const platform = params.platform
     
     // Validate platform
-    if (!VALID_PLATFORMS.includes(platform)) {
+    if (!VALID_PLATFORMS.includes(platform as IntegrationPlatformType)) {
       return NextResponse.json(
         { error: 'Invalid platform' },
         { status: 400 }
@@ -247,7 +247,7 @@ export async function GET(
   { params }: { params: { platform: string } }
 ) {
   // Some platforms use GET for webhook verification
-  const platform = params.platform as IntegrationPlatformType
+  const platform = params.platform
   
   if (platform === 'shopify') {
     // Shopify webhook verification
