@@ -457,8 +457,64 @@ function generateInsights(
 
 // Helper function to convert report to CSV
 function convertReportToCSV(report: any): string {
-  // Implementation would convert the report object to CSV format
-  return 'Date,Accuracy Score,Entity Type,Discrepancies\n...'
+  if (!report || typeof report !== 'object') {
+    return 'Error,No data available\n'
+  }
+
+  const rows: string[] = []
+  
+  // Add header row
+  rows.push('Date,Entity Type,Accuracy Score,Total Records,Discrepancies,Error Rate')
+  
+  try {
+    // Process report data sections
+    if (report.summary) {
+      const summary = report.summary
+      rows.push(`Summary,Overall,${summary.overall_accuracy || 0},${summary.total_records || 0},${summary.total_discrepancies || 0},${summary.error_rate || 0}`)
+    }
+    
+    // Process entity-specific data
+    if (report.entity_breakdown && Array.isArray(report.entity_breakdown)) {
+      report.entity_breakdown.forEach((entity: any) => {
+        const date = entity.date || new Date().toISOString().split('T')[0]
+        const entityType = entity.entity_type || 'Unknown'
+        const accuracy = entity.accuracy_score || 0
+        const totalRecords = entity.total_records || 0
+        const discrepancies = entity.discrepancies_count || 0
+        const errorRate = entity.error_rate || 0
+        
+        // Escape and quote fields that might contain commas
+        const escapedEntityType = `"${String(entityType).replace(/"/g, '""')}"`
+        rows.push(`${date},${escapedEntityType},${accuracy},${totalRecords},${discrepancies},${errorRate}`)
+      })
+    }
+    
+    // Process historical data if available
+    if (report.historical_data && Array.isArray(report.historical_data)) {
+      report.historical_data.forEach((entry: any) => {
+        const date = entry.date || new Date().toISOString().split('T')[0]
+        const entityType = entry.entity_type || 'Historical'
+        const accuracy = entry.accuracy || entry.accuracy_score || 0
+        const totalRecords = entry.total_records || 0
+        const discrepancies = entry.discrepancies || 0
+        const errorRate = entry.error_rate || 0
+        
+        const escapedEntityType = `"${String(entityType).replace(/"/g, '""')}"`
+        rows.push(`${date},${escapedEntityType},${accuracy},${totalRecords},${discrepancies},${errorRate}`)
+      })
+    }
+    
+    // If no data was processed, add a fallback row
+    if (rows.length === 1) {
+      rows.push(`${new Date().toISOString().split('T')[0]},No Data,0,0,0,0`)
+    }
+    
+  } catch (error) {
+    console.error('Error converting report to CSV:', error)
+    rows.push(`Error,Failed to process data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
+  
+  return rows.join('\n')
 }
 
 // Helper function to download CSV
