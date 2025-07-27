@@ -117,6 +117,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate non-empty strings
+    if (typeof client_id !== 'string' || client_id.trim() === '' ||
+        typeof client_secret !== 'string' || client_secret.trim() === '') {
+      return NextResponse.json(
+        { error: 'Client ID and secret cannot be empty' },
+        { status: 400 }
+      )
+    }
+
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     if (!uuidRegex.test(integration_id)) {
