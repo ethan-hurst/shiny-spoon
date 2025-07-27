@@ -105,7 +105,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
       const tokenResult = await auth.exchangeCodeForTokens(searchParams.code)
       
       // Only update integration status if token exchange succeeded
-      if (tokenResult) {
+      if (tokenResult && tokenResult.access_token && tokenResult.refresh_token) {
         // Update integration status
         await supabase
           .from('integrations')
@@ -115,7 +115,7 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
           })
           .eq('id', integrationId)
       } else {
-        throw new Error('Failed to exchange code for tokens')
+        throw new Error('Failed to exchange code for tokens - invalid token response')
       }
 
       // Log successful authentication
