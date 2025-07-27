@@ -89,6 +89,11 @@ export async function createContract(formData: FormData) {
   return contract
 }
 
+/**
+ * Updates an existing customer contract and its items atomically.
+ *
+ * Parses and validates updated contract data and items from the provided form data, then updates the contract and its items in a single transaction using a Supabase RPC call. Throws an error if the update fails. Revalidates relevant customer pricing paths after completion.
+ */
 export async function updateContract(formData: FormData) {
   const supabase = await createClient()
 

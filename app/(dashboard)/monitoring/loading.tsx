@@ -2,6 +2,11 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
+/**
+ * Renders a skeleton-based loading UI for the monitoring dashboard.
+ *
+ * Displays placeholder elements simulating the layout of the dashboard, including a header, metric cards, a chart area, and tables, to indicate loading while data is being fetched.
+ */
 export default function MonitoringLoading() {
   return (
     <div className="space-y-6">

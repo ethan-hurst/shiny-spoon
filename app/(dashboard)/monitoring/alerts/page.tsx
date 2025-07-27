@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   description: 'Configure accuracy monitoring alert rules',
 }
 
+/**
+ * Renders the Alert Configuration page for authenticated users, allowing them to view and manage alert rules for their organization.
+ *
+ * Redirects unauthenticated users to the login page and users without an associated organization to the onboarding page. Fetches and displays alert rules for the user's organization, providing options to create new rules.
+ */
 export default async function AlertsPage() {
   const supabase = await createClient()
   

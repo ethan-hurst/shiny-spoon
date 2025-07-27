@@ -9,6 +9,11 @@ import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
 // Shared UUID schema
 const uuidSchema = z.string().uuid('Invalid integration ID format')
 
+/**
+ * Initiates the NetSuite OAuth authorization flow for a given integration.
+ *
+ * Validates the integration ID from the query parameters, verifies user authentication and organization ownership, retrieves the NetSuite configuration, generates and stores an OAuth state, and redirects the client to the NetSuite authorization URL. Returns appropriate error responses for invalid input, missing resources, or authentication failures.
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -102,6 +107,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Stores OAuth2 client credentials for a NetSuite integration after validating input and verifying user ownership.
+ *
+ * Expects a JSON body containing `integration_id`, `client_id`, and `client_secret`. Validates input, ensures the authenticated user owns the integration, stores the credentials, updates the integration status, logs the activity, and returns a success response. Returns appropriate error responses for authentication failure, validation errors, missing resources, or storage failures.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

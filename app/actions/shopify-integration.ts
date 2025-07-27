@@ -23,6 +23,15 @@ const shopifyConfigSchema = z.object({
   storefront_access_token: z.string().optional()
 })
 
+/**
+ * Creates a new Shopify integration for the authenticated user's organization.
+ *
+ * Validates the provided form data, ensures the user is authorized and belongs to an organization, and creates the integration using an atomic database operation. Revalidates relevant integration pages upon success.
+ *
+ * @param formData - The form data containing Shopify integration configuration fields
+ * @returns An object containing the created integration ID
+ * @throws If the user is unauthorized, the organization is not found, input validation fails, or the integration creation fails
+ */
 export async function createShopifyIntegration(formData: FormData) {
   // Validate CSRF token
   await validateCsrfToken()
@@ -87,6 +96,16 @@ export async function createShopifyIntegration(formData: FormData) {
   return { integrationId }
 }
 
+/**
+ * Updates an existing Shopify integration with new configuration data.
+ *
+ * Validates user authentication and authorization, parses and validates form data, and performs an atomic update of the integration using a Supabase RPC call. Revalidates relevant integration cache paths upon success.
+ *
+ * @param integrationId - The ID of the Shopify integration to update
+ * @param formData - The form data containing updated Shopify configuration fields
+ * @returns An object containing the updated integration ID
+ * @throws If the user is unauthorized, the integration is not found, or the update operation fails
+ */
 export async function updateShopifyIntegration(integrationId: string, formData: FormData) {
   // Validate CSRF token
   await validateCsrfToken()
@@ -163,6 +182,15 @@ export async function updateShopifyIntegration(integrationId: string, formData: 
   return { integrationId }
 }
 
+/**
+ * Updates the sync settings for a Shopify integration.
+ *
+ * Validates user authorization and updates the specified integration's sync configuration using an atomic RPC call. Throws an error if the user is unauthorized or the integration is not found.
+ *
+ * @param integrationId - The ID of the Shopify integration to update
+ * @param settings - An object containing the sync settings to apply
+ * @returns An object indicating success
+ */
 export async function updateShopifySyncSettings(
   integrationId: string, 
   settings: {

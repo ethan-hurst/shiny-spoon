@@ -10,6 +10,11 @@ export const metadata: Metadata = {
   description: 'Analyze data accuracy trends and patterns',
 }
 
+/**
+ * Server component for the Accuracy Analytics dashboard page.
+ *
+ * Authenticates the user, retrieves their organization, fetches accuracy analytics data and active integrations, and renders the dashboard. Redirects to login or onboarding if authentication or organization lookup fails. Provides fallback data if analytics queries fail.
+ */
 export default async function AnalyticsPage() {
   const supabase = await createClient()
   

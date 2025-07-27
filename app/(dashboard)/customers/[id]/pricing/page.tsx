@@ -55,6 +55,14 @@ export async function generateMetadata(
   }
 }
 
+/**
+ * Fetches detailed customer data, pricing statistics, pending price approvals, and expiring contract counts for a given customer.
+ *
+ * Returns an object containing customer details (with tiers), pricing stats (with defaults if missing), and a list of pending approval requests. Returns `null` if the customer is not found or an error occurs.
+ *
+ * @param customerId - The unique identifier of the customer to retrieve data for.
+ * @returns An object with `customer`, `stats`, and `pendingApprovals` properties, or `null` if the customer does not exist.
+ */
 async function getCustomerData(customerId: string) {
   const supabase = await createClient()
 
@@ -137,6 +145,11 @@ async function getCustomerData(customerId: string) {
   }
 }
 
+/**
+ * Renders the customer pricing management page with tabs for pricing, contracts, history, and approvals.
+ *
+ * Displays customer-specific pricing statistics, action buttons, and tabbed views for managing product prices, contracts, price change history, and pending approval requests. If the customer is not found, triggers a 404 page.
+ */
 export default async function CustomerPricingPage(
   props: CustomerPricingPageProps
 ) {

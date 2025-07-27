@@ -21,6 +21,14 @@ interface AlertHistoryProps {
   onAcknowledge: (id: string) => Promise<void>
 }
 
+/**
+ * Displays a list of alert notifications with details and allows acknowledging active alerts.
+ *
+ * Renders each alert with severity icon, status badge, truncated message, creation time, and optional rule and accuracy information. Provides an acknowledgment button for active alerts, showing a loading indicator while processing. If no alerts are present, displays a message indicating no active alerts. Shows a "View All Alerts" button if more than five alerts exist.
+ *
+ * @param alerts - Array of alert objects to display
+ * @param onAcknowledge - Callback invoked to acknowledge an alert by its ID
+ */
 export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
   const [acknowledgingIds, setAcknowledgingIds] = useState<Set<string>>(new Set())
 

@@ -18,9 +18,9 @@ const HEALTH_THRESHOLDS = {
 }
 
 /**
- * Handles a secured cron API request to perform health checks on all active integrations and the overall system.
+ * Handles a secured cron API request to perform health checks on all active integrations and the overall sync system.
  *
- * Authenticates the request using a secret token, gathers health metrics for each integration, checks system and sync engine health, triggers notifications for critical issues, and returns a comprehensive health report as a JSON response.
+ * Authenticates the request using a bearer token, gathers health metrics for each integration, checks system and sync engine health, triggers notifications for critical issues, and returns a comprehensive health report as a JSON response.
  *
  * Returns a 401 response if authentication fails, or a 500 response for unexpected errors.
  */

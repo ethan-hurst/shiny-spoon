@@ -10,6 +10,14 @@ import { AccuracyCheckConfig } from '@/lib/monitoring/types'
 
 export const maxDuration = 300 // 5 minutes max
 
+/**
+ * Handles scheduled accuracy checks for all organizations with active integrations.
+ *
+ * Verifies authorization, retrieves eligible organizations, and initiates scheduled accuracy checks in batches. For each organization due for a check, creates a new accuracy check record, runs the check, and evaluates alert rules based on the results. After all checks complete, processes notification queues and expired alert snoozes. Returns a JSON response summarizing the number of checks started and the organizations checked.
+ *
+ * @param request - The incoming HTTP request
+ * @returns A JSON response indicating the outcome of the scheduled accuracy checks
+ */
 export async function GET(request: Request) {
   try {
     // Verify this is called by Vercel Cron
@@ -172,7 +180,14 @@ export async function GET(request: Request) {
   }
 }
 
-// Determine if a scheduled check should run for an organization
+/**
+ * Determines whether a scheduled accuracy check should run for the specified organization based on its active alert rule frequencies and the time since the last completed check.
+ *
+ * If no active alert rules exist, a default frequency of 1 hour is used.
+ *
+ * @param organizationId - The unique identifier of the organization to evaluate
+ * @returns `true` if a scheduled check should run; otherwise, `false`
+ */
 async function shouldRunScheduledCheck(
   supabase: any,
   organizationId: string
@@ -197,7 +212,13 @@ async function shouldRunScheduledCheck(
   return await checkLastRunTime(supabase, organizationId, minFrequency)
 }
 
-// Check if enough time has passed since the last run
+/**
+ * Determines whether a scheduled accuracy check should run based on the elapsed time since the last completed check.
+ *
+ * @param organizationId - The ID of the organization to check
+ * @param frequencySeconds - The minimum interval, in seconds, required between scheduled checks
+ * @returns `true` if enough time has passed since the last completed scheduled check, or if no previous check exists; otherwise, `false`
+ */
 async function checkLastRunTime(
   supabase: any,
   organizationId: string,
@@ -225,7 +246,11 @@ async function checkLastRunTime(
   return timeSinceLastRun >= frequencySeconds
 }
 
-// Optional: Add a POST endpoint for manual trigger (with auth)
+/**
+ * Handles manual triggering of a full, deep accuracy check for a specified organization.
+ *
+ * Authenticates the request using a bearer token, verifies the user's access to the organization, and initiates an accuracy check. Returns the check ID on success or an appropriate error response on failure.
+ */
 export async function POST(request: Request) {
   try {
     // Verify authentication

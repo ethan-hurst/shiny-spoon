@@ -46,6 +46,20 @@ interface AccuracyAnalyticsDashboardProps {
   integrations: any[]
 }
 
+/**
+ * Renders a comprehensive analytics dashboard for monitoring and visualizing data accuracy metrics across an organization's integrations.
+ *
+ * Displays current accuracy, trends, forecasts, industry benchmarks, and detailed breakdowns by entity type and severity. Includes interactive charts, AI-generated insights, volatility analysis, and export functionality for downloading accuracy reports as CSV files. Supports filtering analytics by integration.
+ *
+ * @param organizationId - The unique identifier for the organization whose data is displayed.
+ * @param accuracyBreakdown - Object containing overall accuracy and breakdowns by entity type and severity.
+ * @param trendAnalysis - Object describing trend direction, rate of change, forecasted accuracy, and volatility.
+ * @param historicalData - Array of historical accuracy data points for trend visualization.
+ * @param benchmarkData - Object with organization score, industry average, and percentile rank for benchmarking.
+ * @param integrations - Array of integration objects available for filtering dashboard data.
+ *
+ * @returns A React component rendering the accuracy analytics dashboard UI.
+ */
 export function AccuracyAnalyticsDashboard({
   organizationId,
   accuracyBreakdown,
@@ -404,7 +418,13 @@ export function AccuracyAnalyticsDashboard({
   )
 }
 
-// Helper function to generate insights
+/**
+ * Generates a list of actionable insights based on accuracy breakdown, trend analysis, and industry benchmark percentile.
+ *
+ * Insights highlight significant declines, high volatility, low entity accuracy, benchmark standing, and critical severity issues.
+ *
+ * @returns An array of insight strings relevant to the provided accuracy metrics.
+ */
 function generateInsights(
   breakdown: AccuracyBreakdown,
   trend: TrendAnalysis,
@@ -455,7 +475,14 @@ function generateInsights(
   return insights
 }
 
-// Helper function to convert report to CSV
+/**
+ * Converts a report object containing accuracy analytics data into a CSV string.
+ *
+ * The CSV includes summary, entity breakdown, and historical data sections if present. Fields are safely escaped for CSV format. Returns an error row if the input is invalid or processing fails.
+ *
+ * @param report - The report object to convert to CSV format
+ * @returns The CSV string representation of the report data
+ */
 function convertReportToCSV(report: any): string {
   if (!report || typeof report !== 'object') {
     return 'Error,No data available\n'
@@ -517,7 +544,12 @@ function convertReportToCSV(report: any): string {
   return rows.join('\n')
 }
 
-// Helper function to download CSV
+/**
+ * Initiates a browser download of a CSV file with the specified filename.
+ *
+ * @param csv - The CSV data as a string
+ * @param filename - The desired name for the downloaded file
+ */
 function downloadCSV(csv: string, filename: string) {
   const blob = new Blob([csv], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)

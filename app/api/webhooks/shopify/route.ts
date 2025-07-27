@@ -79,11 +79,11 @@ function checkRateLimit(shopDomain: string): boolean {
 }
 
 /**
- * Handles incoming Shopify webhook POST requests, performing validation, rate limiting, signature verification, payload parsing, and processing.
+ * Handles incoming Shopify webhook POST requests, including validation, rate limiting, signature verification, payload parsing, and asynchronous processing.
  *
- * Validates required headers and enforces a per-shop rate limit. Retrieves the Shopify integration configuration from Supabase and verifies the webhook signature. Parses and validates the webhook payload according to the topic. Processes the webhook asynchronously and logs the outcome. Handles recoverable errors by returning a 500 status to trigger Shopify retries, and stores non-recoverable errors for manual reprocessing.
+ * Validates required headers and shop domain format, enforces a per-shop rate limit, and retrieves the Shopify integration configuration. Verifies the webhook signature, parses and validates the payload according to the topic, and processes the webhook. Logs processing outcomes and distinguishes between recoverable and non-recoverable errors, returning appropriate HTTP status codes to control Shopify retry behavior. Non-recoverable errors are stored for manual reprocessing.
  *
- * @returns A JSON response indicating success, error, or warning, with appropriate HTTP status codes.
+ * @returns A JSON response indicating success, error, or warning, with an appropriate HTTP status code.
  */
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -330,9 +330,12 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Returns webhook registration and configuration details for a given Shopify shop domain.
+ * Retrieves webhook configuration details for a specified Shopify shop domain.
  *
- * Responds with the webhook endpoint URL, supported topics, and verification method if the shop exists; otherwise, returns an error.
+ * Responds with the webhook endpoint URL, supported topics, and verification method if the shop exists. Returns an error if the shop domain is missing, invalid, or not found.
+ *
+ * @param request - The incoming HTTP request containing the `shop` query parameter specifying the Shopify shop domain.
+ * @returns A JSON response with webhook configuration details or an error message.
  */
 export async function GET(request: NextRequest) {
   // This endpoint can be used to verify webhook configuration

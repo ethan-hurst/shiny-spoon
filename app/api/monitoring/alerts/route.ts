@@ -5,6 +5,11 @@ import { z } from 'zod'
 
 export const runtime = 'edge'
 
+/**
+ * Handles GET requests to retrieve a paginated and filtered list of data accuracy alerts for the authenticated user's organization.
+ *
+ * Validates query parameters for filtering by status, severity, and integration ID, and supports pagination via limit and offset. Returns alerts with related rule and integration data, pagination metadata, and summary statistics by status and severity. Responds with appropriate error messages for authentication, validation, or database errors.
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient()

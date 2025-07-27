@@ -9,6 +9,11 @@ const requestSchema = z.object({
   note: z.string().optional(),
 })
 
+/**
+ * Handles acknowledgment of an alert by an authenticated user.
+ *
+ * Validates the user's authentication and organization membership, ensures the alert exists and is active, and processes the acknowledgment using an atomic RPC call. Accepts an optional note in the request body. Returns a JSON response indicating success or error details.
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -91,7 +96,11 @@ export async function POST(
   }
 }
 
-// Get alert details
+/**
+ * Retrieves detailed information about a specific alert, including related alert rules and discrepancies, for the authenticated user's organization.
+ *
+ * Returns a JSON response with the alert data on success, or an error message with the appropriate HTTP status code if the user is unauthorized, the organization or alert is not found, or an internal error occurs.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

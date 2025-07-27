@@ -29,6 +29,18 @@ interface AccuracyDashboardProps {
   initialDiscrepancies: any[]
 }
 
+/**
+ * Displays a comprehensive dashboard for monitoring data accuracy metrics, discrepancies, and alerts for a specified organization.
+ *
+ * Presents key accuracy statistics, recent trends, active discrepancies, and alerts, with interactive controls for refreshing data, running manual checks, resolving discrepancies, and acknowledging alerts. Provides visual feedback and notifications for user actions and system events.
+ *
+ * @param organizationId - The unique identifier of the organization whose data accuracy is being monitored.
+ * @param initialAccuracy - The initial overall accuracy percentage to display before live data loads.
+ * @param initialChecks - The initial list of recent accuracy check records.
+ * @param initialAlerts - The initial list of active alerts.
+ * @param initialDiscrepancies - The initial list of data discrepancies.
+ * @returns The rendered accuracy monitoring dashboard UI.
+ */
 export function AccuracyDashboard({
   organizationId,
   initialAccuracy,

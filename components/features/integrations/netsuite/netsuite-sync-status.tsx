@@ -64,6 +64,13 @@ const statusColors = {
   skipped: 'outline',
 } as const
 
+/**
+ * Displays the synchronization status, detailed statistics, and activity logs for a NetSuite integration.
+ *
+ * Provides an interface to monitor sync health, view per-entity sync details, inspect recent activity logs, and manually trigger resyncs for specific entity types. Handles loading and error states, and updates data in real time after sync actions.
+ *
+ * @param integrationId - The identifier for the NetSuite integration to display status for.
+ */
 export function NetSuiteSyncStatus({ 
   integrationId
 }: NetSuiteSyncStatusProps) {

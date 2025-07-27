@@ -14,6 +14,18 @@ interface UseAccuracyMonitorProps {
   initialDiscrepancies: Discrepancy[]
 }
 
+/**
+ * React hook for real-time monitoring of data accuracy metrics for a specific organization using Supabase.
+ *
+ * Initializes with provided accuracy, checks, alerts, and discrepancies, and maintains up-to-date state by subscribing to relevant Supabase tables. Provides a manual refresh function to reload all monitored data.
+ *
+ * @param organizationId - The unique identifier of the organization to monitor
+ * @param initialAccuracy - The initial accuracy score to seed the state
+ * @param initialChecks - The initial list of recent accuracy checks
+ * @param initialAlerts - The initial list of active alerts
+ * @param initialDiscrepancies - The initial list of recent discrepancies
+ * @returns An object containing the current accuracy score, recent checks, active alerts, discrepancies, loading state, and a refresh function
+ */
 export function useAccuracyMonitor({
   organizationId,
   initialAccuracy,

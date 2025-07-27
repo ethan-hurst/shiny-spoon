@@ -5,7 +5,11 @@ import { triggerSync } from '@/app/actions/integrations'
 // Allowed entity types for sync operations
 const ALLOWED_ENTITY_TYPES = ['products', 'inventory', 'orders', 'customers', 'pricing']
 
-// Trigger manual sync
+/**
+ * Handles POST requests to trigger a manual synchronization job for a specified integration.
+ *
+ * Authenticates the user, validates the optional `entityType` in the request body, and initiates a sync job for the given integration ID. Responds with appropriate status codes and messages based on authentication, validation, and sync initiation outcomes.
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }

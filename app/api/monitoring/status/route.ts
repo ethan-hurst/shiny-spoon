@@ -6,6 +6,11 @@ import { z } from 'zod'
 
 export const runtime = 'edge'
 
+/**
+ * Handles GET requests to retrieve monitoring status and metrics for the authenticated user's organization.
+ *
+ * Authenticates the user, validates query parameters for integration ID and time range, and gathers monitoring data including the latest accuracy check, active alerts count, recent discrepancies, accuracy breakdown, and trend analysis. Returns a JSON response with health status, metrics, and relevant details. Responds with appropriate HTTP status codes and error messages for authentication, validation, or data retrieval failures.
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient()

@@ -57,6 +57,14 @@ interface NetSuiteSyncSettingsProps {
   config?: NetSuiteSyncConfig
 }
 
+/**
+ * Renders a form and controls for configuring and managing NetSuite data synchronization settings.
+ *
+ * Allows users to enable or disable automatic sync, select sync frequency, choose data types to sync, specify advanced options, and manually trigger sync operations for products, inventory, or pricing. Provides validation, user feedback, and persists changes via API.
+ *
+ * @param integrationId - The unique identifier for the NetSuite integration instance.
+ * @param config - Optional initial sync configuration to pre-populate the form.
+ */
 export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSettingsProps) {
   const queryClient = useQueryClient()
   const [isSyncing, setIsSyncing] = useState(false)

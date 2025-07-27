@@ -27,6 +27,15 @@ interface DiscrepancyTableProps {
   onResolve: (id: string) => Promise<void>
 }
 
+/**
+ * Displays a table of data discrepancies with details and actions to resolve them.
+ *
+ * Renders a list of discrepancies, showing entity information, field, type with icon, severity with color-coded badges, detection time, status, and an actions menu. Allows users to mark discrepancies as resolved, managing UI state to prevent duplicate actions. If no discrepancies are present, displays a message indicating data is in sync.
+ *
+ * @param discrepancies - The list of discrepancy objects to display
+ * @param onResolve - Callback invoked to mark a discrepancy as resolved by its ID
+ * @returns A React element rendering the discrepancies table or a message if none exist
+ */
 export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableProps) {
   const [resolvingIds, setResolvingIds] = useState<Set<string>>(new Set())
 

@@ -23,6 +23,16 @@ interface AccuracyTrendChartProps {
   referenceValue?: number
 }
 
+/**
+ * Renders an interactive area chart visualizing accuracy trends over time.
+ *
+ * Displays accuracy scores with formatted tooltips, a responsive layout, and an optional reference line indicating a target threshold. If no data is provided, shows a placeholder message.
+ *
+ * @param data - Array of accuracy trend points to visualize
+ * @param height - Optional chart height in pixels (default: 300)
+ * @param showReference - Whether to display the reference line (default: true)
+ * @param referenceValue - Value for the reference line (default: 95)
+ */
 export function AccuracyTrendChart({ 
   data, 
   height = 300,

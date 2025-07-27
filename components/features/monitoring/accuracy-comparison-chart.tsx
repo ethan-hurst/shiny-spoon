@@ -31,6 +31,15 @@ interface ComparisonData {
   discrepancies: number
 }
 
+/**
+ * Displays a bar chart comparing average data accuracy metrics across multiple integrations for a given organization.
+ *
+ * Fetches recent accuracy metrics for each integration, calculates average accuracy, total checks, and discrepancies, and visualizes the results in a color-coded bar chart. Handles loading and empty data states gracefully.
+ *
+ * @param integrations - List of integrations to compare
+ * @param organizationId - The organization identifier for which to fetch metrics
+ * @returns A responsive bar chart visualizing accuracy metrics per integration
+ */
 export function AccuracyComparisonChart({ 
   integrations, 
   organizationId 
