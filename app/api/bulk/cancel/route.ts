@@ -31,6 +31,48 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if the operation exists and belongs to the user's organization
+    const { data: operation, error: operationError } = await supabase
+      .from('bulk_operations')
+      .select('id, created_by, organization_id, status')
+      .eq('id', operationId)
+      .single()
+
+    if (operationError || !operation) {
+      return NextResponse.json(
+        { error: 'Operation not found' },
+        { status: 404 }
+      )
+    }
+
+    // Get user's organization
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    // Verify user has permission to cancel this operation
+    const canCancel = (
+      operation.created_by === user.id || // User created the operation
+      (userProfile && operation.organization_id === userProfile.organization_id) // Same organization
+    )
+
+    if (!canCancel) {
+      return NextResponse.json(
+        { error: 'Unauthorized to cancel this operation' },
+        { status: 403 }
+      )
+    }
+
+    // Check if operation can be cancelled
+    if (!['pending', 'processing'].includes(operation.status)) {
+      return NextResponse.json(
+        { error: `Cannot cancel operation with status: ${operation.status}` },
+        { status: 400 }
+      )
+    }
+
     const engine = new BulkOperationsEngine()
     await engine.cancelOperation(operationId, user.id)
 
