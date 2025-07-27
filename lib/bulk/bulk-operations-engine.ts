@@ -444,7 +444,7 @@ export class BulkOperationsEngine extends EventEmitter {
 
           if (chunk.length >= chunkSize) {
             try {
-              await processChunk()
+              await processChunk.call(this)
             } catch (error) {
               return callback(error)
             }
@@ -455,7 +455,7 @@ export class BulkOperationsEngine extends EventEmitter {
       },
       async flush(callback: Function) {
         try {
-          await processChunk()
+          await processChunk.call(this)
 
           // Final update of total records
           await this.supabase
