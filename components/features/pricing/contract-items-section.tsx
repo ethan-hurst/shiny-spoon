@@ -38,8 +38,8 @@ interface ContractItemsSectionProps {
   onAddItem: () => void
   onRemoveItem: (index: number) => void
   onUpdateItem: <K extends keyof ContractItemForm>(
-    index: number, 
-    field: K, 
+    index: number,
+    field: K,
     value: ContractItemFieldValue<K>
   ) => void
 }
