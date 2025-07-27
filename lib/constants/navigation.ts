@@ -2,6 +2,7 @@ import {
   BarChart3,
   DollarSign,
   FileText,
+  FileUp,
   LayoutDashboard,
   Package,
   Settings,
@@ -77,6 +78,16 @@ export const navigation: NavSection[] = [
         title: 'Insights',
         href: '/insights',
         icon: BarChart3,
+      },
+    ],
+  },
+  {
+    title: 'Operations',
+    items: [
+      {
+        title: 'Bulk Operations',
+        href: '/bulk-operations',
+        icon: FileUp,
       },
     ],
   },
