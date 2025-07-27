@@ -12,6 +12,9 @@ import { z } from 'zod'
 const VALID_OPERATION_TYPES = ['import', 'export', 'update', 'delete'] as const
 const VALID_ENTITY_TYPES = ['products', 'inventory', 'pricing', 'customers'] as const
 
+// Define the schema for operation ID validation
+const operationIdSchema = z.string().uuid('Invalid operation ID format')
+
 // Define the schema for bulk operation parameters
 const bulkOperationSchema = z.object({
   operationType: z.enum(VALID_OPERATION_TYPES, {
@@ -118,6 +121,9 @@ export async function startBulkOperation(formData: FormData) {
  * Throws an error if the user is not authenticated.
  */
 export async function cancelBulkOperation(operationId: string) {
+  // Validate operationId
+  const validatedId = operationIdSchema.parse(operationId)
+
   const supabase = createServerClient()
 
   const {
@@ -126,7 +132,7 @@ export async function cancelBulkOperation(operationId: string) {
   if (!user) throw new Error('Unauthorized')
 
   const engine = new BulkOperationsEngine()
-  await engine.cancelOperation(operationId, user.id)
+  await engine.cancelOperation(validatedId, user.id)
 
   revalidatePath('/bulk-operations')
 }
