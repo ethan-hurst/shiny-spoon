@@ -143,7 +143,7 @@ export class AnomalyDetector {
         new Date()
       )
       const actualCount = discrepancies.length
-      const deviation = Math.abs(actualCount - expectedCount) / expectedCount
+      const deviation = expectedCount > 0 ? Math.abs(actualCount - expectedCount) / expectedCount : 0
 
       if (deviation > 0.5) { // 50% deviation from pattern
         anomalies.push({
@@ -212,7 +212,7 @@ export class AnomalyDetector {
     const staleCount = discrepancies.filter(
       d => d.discrepancyType === 'stale'
     ).length
-    const stalePercentage = (staleCount / discrepancies.length) * 100
+    const stalePercentage = discrepancies.length > 0 ? (staleCount / discrepancies.length) * 100 : 0
 
     if (stalePercentage > 30) {
       anomalies.push({
@@ -317,7 +317,7 @@ export class AnomalyDetector {
     )
 
     // Pattern confidence based on variance reduction
-    const confidence = overallVariance > 0
+    const confidence = overallVariance > 0 && dayCount > 0
       ? 1 - (totalVariance / dayCount) / overallVariance
       : 0
 
