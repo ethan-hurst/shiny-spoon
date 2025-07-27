@@ -455,6 +455,28 @@ function generateInsights(
   return insights
 }
 
+// Helper function to escape CSV field properly
+function escapeCSVField(value: any): string {
+  if (value === null || value === undefined) {
+    return '""'
+  }
+  
+  const strValue = String(value)
+  
+  // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
+  if (strValue.includes('"') || strValue.includes('\n') || strValue.includes('\r') || strValue.includes(',')) {
+    // Escape quotes by doubling them and wrap in quotes
+    return `"${strValue.replace(/"/g, '""')}"`
+  }
+  
+  // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
+  if (/^[=+\-@\t\r]/.test(strValue)) {
+    return `"${strValue}"`
+  }
+  
+  return strValue
+}
+
 // Helper function to convert report to CSV
 function convertReportToCSV(report: any): string {
   if (!report || typeof report !== 'object') {
@@ -464,54 +486,72 @@ function convertReportToCSV(report: any): string {
   const rows: string[] = []
   
   // Add header row
-  rows.push('Date,Entity Type,Accuracy Score,Total Records,Discrepancies,Error Rate')
+  const headers = ['Date', 'Entity Type', 'Accuracy Score', 'Total Records', 'Discrepancies', 'Error Rate']
+  rows.push(headers.map(escapeCSVField).join(','))
   
   try {
     // Process report data sections
     if (report.summary) {
       const summary = report.summary
-      rows.push(`Summary,Overall,${summary.overall_accuracy || 0},${summary.total_records || 0},${summary.total_discrepancies || 0},${summary.error_rate || 0}`)
+      const summaryRow = [
+        'Summary',
+        'Overall',
+        summary.overall_accuracy || 0,
+        summary.total_records || 0,
+        summary.total_discrepancies || 0,
+        summary.error_rate || 0
+      ]
+      rows.push(summaryRow.map(escapeCSVField).join(','))
     }
     
     // Process entity-specific data
     if (report.entity_breakdown && Array.isArray(report.entity_breakdown)) {
       report.entity_breakdown.forEach((entity: any) => {
-        const date = entity.date || new Date().toISOString().split('T')[0]
-        const entityType = entity.entity_type || 'Unknown'
-        const accuracy = entity.accuracy_score || 0
-        const totalRecords = entity.total_records || 0
-        const discrepancies = entity.discrepancies_count || 0
-        const errorRate = entity.error_rate || 0
-        
-        // Escape and quote fields that might contain commas
-        const escapedEntityType = `"${String(entityType).replace(/"/g, '""')}"`
-        rows.push(`${date},${escapedEntityType},${accuracy},${totalRecords},${discrepancies},${errorRate}`)
+        const entityRow = [
+          entity.date || new Date().toISOString().split('T')[0],
+          entity.entity_type || 'Unknown',
+          entity.accuracy_score || 0,
+          entity.total_records || 0,
+          entity.discrepancies_count || 0,
+          entity.error_rate || 0
+        ]
+        rows.push(entityRow.map(escapeCSVField).join(','))
       })
     }
     
     // Process historical data if available
     if (report.historical_data && Array.isArray(report.historical_data)) {
       report.historical_data.forEach((entry: any) => {
-        const date = entry.date || new Date().toISOString().split('T')[0]
-        const entityType = entry.entity_type || 'Historical'
-        const accuracy = entry.accuracy || entry.accuracy_score || 0
-        const totalRecords = entry.total_records || 0
-        const discrepancies = entry.discrepancies || 0
-        const errorRate = entry.error_rate || 0
-        
-        const escapedEntityType = `"${String(entityType).replace(/"/g, '""')}"`
-        rows.push(`${date},${escapedEntityType},${accuracy},${totalRecords},${discrepancies},${errorRate}`)
+        const historyRow = [
+          entry.date || new Date().toISOString().split('T')[0],
+          entry.entity_type || 'Historical',
+          entry.accuracy || entry.accuracy_score || 0,
+          entry.total_records || 0,
+          entry.discrepancies || 0,
+          entry.error_rate || 0
+        ]
+        rows.push(historyRow.map(escapeCSVField).join(','))
       })
     }
     
     // If no data was processed, add a fallback row
     if (rows.length === 1) {
-      rows.push(`${new Date().toISOString().split('T')[0]},No Data,0,0,0,0`)
+      const emptyRow = [
+        new Date().toISOString().split('T')[0],
+        'No Data',
+        0,
+        0,
+        0,
+        0
+      ]
+      rows.push(emptyRow.map(escapeCSVField).join(','))
     }
     
   } catch (error) {
     console.error('Error converting report to CSV:', error)
-    rows.push(`Error,Failed to process data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    // Don't include error messages in CSV output to avoid exposing sensitive information
+    const errorRow = ['Error', 'Failed to process data', 0, 0, 0, 0]
+    rows.push(errorRow.map(escapeCSVField).join(','))
   }
   
   return rows.join('\n')

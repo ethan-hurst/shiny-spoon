@@ -388,20 +388,42 @@ export async function exportInventory(filters?: {
     'Last Updated',
   ]
 
+  // Helper function to escape CSV field properly
+  const escapeCSVField = (value: any): string => {
+    if (value === null || value === undefined) {
+      return '""'
+    }
+    
+    const strValue = String(value)
+    
+    // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
+    if (strValue.includes('"') || strValue.includes('\n') || strValue.includes('\r') || strValue.includes(',')) {
+      // Escape quotes by doubling them and wrap in quotes
+      return `"${strValue.replace(/"/g, '""')}"`
+    }
+    
+    // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
+    if (/^[=+\-@\t\r]/.test(strValue)) {
+      return `"${strValue}"`
+    }
+    
+    return strValue
+  }
+
   const csvRows = [
-    headers.join(','),
+    headers.map(escapeCSVField).join(','),
     ...exportData.map((row) =>
       [
-        `"${row.sku}"`,
-        `"${row.product_name}"`,
-        `"${row.warehouse}"`,
+        row.sku,
+        row.product_name,
+        row.warehouse,
         row.quantity,
         row.reserved_quantity,
         row.available_quantity,
         row.reorder_point,
         row.reorder_quantity,
-        `"${row.last_updated}"`,
-      ].join(',')
+        row.last_updated,
+      ].map(escapeCSVField).join(',')
     ),
   ]
 

@@ -134,9 +134,26 @@ export function generateProductCSVTemplate(): string {
     ['TOOL-003', 'Professional Tool', 'Heavy duty tool for professionals', 'Tools', '299.99', '150.00', '5.0'],
   ]
 
+  // Helper function to escape CSV field properly
+  const escapeCSVField = (value: string): string => {
+    // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
+    if (value.includes('"') || value.includes('\n') || value.includes('\r') || value.includes(',')) {
+      // Escape quotes by doubling them and wrap in quotes
+      return `"${value.replace(/"/g, '""')}"`
+    }
+    
+    // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
+    if (/^[=+\-@\t\r]/.test(value)) {
+      return `"${value}"`
+    }
+    
+    // Wrap all values in quotes for consistency in sample template
+    return `"${value}"`
+  }
+
   const csvLines = [
-    headers.join(','),
-    ...sampleRows.map(row => row.map(cell => `"${cell}"`).join(','))
+    headers.map(escapeCSVField).join(','),
+    ...sampleRows.map(row => row.map(cell => escapeCSVField(cell)).join(','))
   ]
 
   return csvLines.join('\n')

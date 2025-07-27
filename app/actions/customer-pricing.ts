@@ -539,23 +539,36 @@ export async function exportCustomerPrices(customerId: string) {
     ]
   })
 
+  // Helper function to escape CSV field properly
+  const escapeCSVField = (value: any): string => {
+    if (value === null || value === undefined) {
+      return '""'
+    }
+    
+    const strValue = String(value)
+    
+    // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
+    if (strValue.includes('"') || strValue.includes('\n') || strValue.includes('\r') || strValue.includes(',')) {
+      // Escape quotes by doubling them and wrap in quotes
+      return `"${strValue.replace(/"/g, '""')}"`
+    }
+    
+    // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
+    if (/^[=+\-@\t\r]/.test(strValue)) {
+      return `"${strValue}"`
+    }
+    
+    return strValue
+  }
+
   // Generate CSV content
   const csvContent = [
-    `Customer Price Sheet - ${customer?.display_name || customer?.company_name}`,
-    `Generated on: ${new Date().toLocaleDateString()}`,
+    escapeCSVField(`Customer Price Sheet - ${customer?.display_name || customer?.company_name}`),
+    escapeCSVField(`Generated on: ${new Date().toLocaleDateString()}`),
     '',
-    headers.join(','),
+    headers.map(escapeCSVField).join(','),
     ...rows.map((row: (string | number)[]) =>
-      row
-        .map((cell: string | number) => {
-          // Escape CSV values that contain commas, quotes, or newlines
-          const value = cell.toString()
-          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-            return `"${value.replace(/"/g, '""')}"`
-          }
-          return value
-        })
-        .join(',')
+      row.map((cell: string | number) => escapeCSVField(cell)).join(',')
     ),
   ].join('\n')
 
