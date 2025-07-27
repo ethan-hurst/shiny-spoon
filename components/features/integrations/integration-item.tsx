@@ -139,8 +139,8 @@ export function IntegrationItem({
             onClick={() => onSync(integration.id)}
             disabled={isLoading || integration.status !== 'active'}
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Sync Now
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''} ${isLoading ? 'mr-2' : 'mr-1'}`} />
+            {isLoading ? 'Syncing...' : 'Sync Now'}
           </Button>
 
           <DropdownMenu>
