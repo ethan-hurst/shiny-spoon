@@ -31,9 +31,9 @@ import type { IntegrationFull, SyncJob } from '@/types/integration.types'
 
 interface IntegrationItemProps {
   integration: IntegrationFull
-  onSync: (id: string) => void
-  onToggleStatus: (id: string, currentStatus: string) => void
-  onDelete: (id: string) => void
+  onSync: (id: string) => Promise<void> | void
+  onToggleStatus: (id: string, currentStatus: string) => Promise<void> | void
+  onDelete: (id: string) => Promise<void> | void
   isLoading: boolean
 }
 
