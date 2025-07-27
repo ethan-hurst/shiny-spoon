@@ -30,8 +30,35 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || 'active'
     const severity = searchParams.get('severity')
     const integrationId = searchParams.get('integrationId')
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    
+    // Parse and validate pagination parameters
+    const limitParam = searchParams.get('limit')
+    const offsetParam = searchParams.get('offset')
+    
+    let limit = 50
+    let offset = 0
+    
+    if (limitParam) {
+      const parsedLimit = parseInt(limitParam)
+      if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+        return NextResponse.json(
+          { error: 'Invalid limit parameter. Must be between 1 and 100.' },
+          { status: 400 }
+        )
+      }
+      limit = parsedLimit
+    }
+    
+    if (offsetParam) {
+      const parsedOffset = parseInt(offsetParam)
+      if (isNaN(parsedOffset) || parsedOffset < 0) {
+        return NextResponse.json(
+          { error: 'Invalid offset parameter. Must be non-negative.' },
+          { status: 400 }
+        )
+      }
+      offset = parsedOffset
+    }
 
     // Build query
     let query = supabase
