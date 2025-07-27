@@ -139,6 +139,16 @@ export async function upsertAlertRule(
 // Delete alert rule
 export async function deleteAlertRule(ruleId: string) {
   try {
+    // Validate ruleId is a valid UUID
+    const uuidSchema = z.string().uuid()
+    const validationResult = uuidSchema.safeParse(ruleId)
+    
+    if (!validationResult.success) {
+      return { success: false, error: 'Invalid rule ID format' }
+    }
+    
+    const validatedRuleId = validationResult.data
+    
     const supabase = createClient()
 
     // Check authentication
@@ -162,7 +172,7 @@ export async function deleteAlertRule(ruleId: string) {
     const { error } = await supabase
       .from('alert_rules')
       .delete()
-      .eq('id', ruleId)
+      .eq('id', validatedRuleId)
       .eq('organization_id', orgUser.organization_id)
 
     if (error) throw error
