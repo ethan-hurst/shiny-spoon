@@ -738,12 +738,12 @@ export class BulkOperationsEngine extends EventEmitter {
 // Entity processors
 abstract class EntityProcessor {
   abstract schema: z.ZodSchema
-  abstract async process(
+  abstract process(
     record: any,
     config: BulkOperationConfig,
     supabase: ReturnType<typeof createServerClient>
   ): Promise<any>
-  abstract async rollback(
+  abstract rollback(
     record: any,
     supabase: ReturnType<typeof createServerClient>
   ): Promise<void>
