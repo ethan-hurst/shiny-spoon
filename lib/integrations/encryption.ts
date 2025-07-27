@@ -7,13 +7,15 @@ import { AuthenticationError } from '@/types/integration.types'
  * Compares two Uint8Arrays in constant time to prevent timing attacks
  */
 function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) {
-    return false
-  }
+  // Always compare up to the maximum length to avoid timing differences
+  const maxLength = Math.max(a.length, b.length)
+  let result = a.length ^ b.length // Include length difference in result
   
-  let result = 0
-  for (let i = 0; i < a.length; i++) {
-    result |= a[i] ^ b[i]
+  for (let i = 0; i < maxLength; i++) {
+    // Use 0 as default for out-of-bounds indices
+    const aVal = i < a.length ? a[i] : 0
+    const bVal = i < b.length ? b[i] : 0
+    result |= aVal ^ bVal
   }
   
   return result === 0
@@ -133,7 +135,7 @@ export class EncryptionService {
    * Hash sensitive data for comparison without storing plaintext
    * Uses HMAC-SHA256 for deterministic hashing
    */
-  async hash(data: string, salt: string = 'default-salt'): Promise<string> {
+  async hash(data: string, salt: string): Promise<string> {
     try {
       const encoder = new TextEncoder()
       
@@ -200,9 +202,14 @@ export class EncryptionService {
 
     // Check if it's base64 encoded and has proper length
     try {
-      const decoded = Buffer.from(data, 'base64')
+      // Use atob to decode base64, then convert to byte array
+      const binaryString = atob(data)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
       // Encrypted data should have nonce (24 bytes) + ciphertext + tag
-      return decoded.length >= 40 // Minimum reasonable length
+      return bytes.length >= 40 // Minimum reasonable length
     } catch {
       return false
     }
@@ -317,21 +324,18 @@ export const encryptionUtils = {
       )
 
       // Convert signature to hex string
-      const computedSignature = Array.from(new Uint8Array(signatureBuffer))
+      const computedSignatureArray = new Uint8Array(signatureBuffer)
+      const computedSignature = Array.from(computedSignatureArray)
         .map(b => b.toString(16).padStart(2, '0'))
         .join('')
 
-      // Timing-safe comparison
-      if (computedSignature.length !== signature.length) {
-        return false
-      }
+      // Convert both signatures to Uint8Array for byte-level comparison
+      const encoder = new TextEncoder()
+      const computedBytes = encoder.encode(computedSignature)
+      const signatureBytes = encoder.encode(signature)
 
-      let result = 0
-      for (let i = 0; i < computedSignature.length; i++) {
-        result |= computedSignature.charCodeAt(i) ^ signature.charCodeAt(i)
-      }
-
-      return result === 0
+      // Use the timing-safe comparison function
+      return timingSafeEqual(computedBytes, signatureBytes)
     } catch {
       return false
     }
