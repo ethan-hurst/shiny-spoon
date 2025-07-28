@@ -165,7 +165,7 @@ export interface SyncSettings {
   sync_frequency_minutes?: number
   batch_size?: number
   field_mappings?: Record<string, string>
-  filters?: Record<string, any>
+  filters?: Record<string, string | number | boolean | null>
 }
 
 // OAuth types
@@ -194,14 +194,14 @@ export type CredentialData =
   | OAuthCredentials
   | ApiKeyCredentials
   | BasicAuthCredentials
-  | Record<string, any>
+  | Record<string, string | number | boolean>
 
 // Webhook types
 export interface WebhookEvent {
   id: string
   platform: IntegrationPlatformType
   event_type: string
-  payload: any
+  payload: Record<string, unknown>
   signature?: string
   timestamp: string
   integration_id: string
@@ -216,7 +216,7 @@ export interface WebhookVerification {
 export interface SyncJobPayload {
   entity_type: 'products' | 'inventory' | 'pricing' | 'customers' | 'orders'
   operation: 'full' | 'incremental' | 'delta'
-  filters?: Record<string, any>
+  filters?: Record<string, string | number | boolean | null>
   cursor?: string
   batch_size?: number
 }
@@ -224,11 +224,11 @@ export interface SyncJobPayload {
 export interface WebhookJobPayload {
   webhook_id: string
   event_type: string
-  event_data: any
+  event_data: Record<string, unknown>
   received_at: string
 }
 
-export type JobPayload = SyncJobPayload | WebhookJobPayload | Record<string, any>
+export type JobPayload = SyncJobPayload | WebhookJobPayload | Record<string, unknown>
 
 // Result types
 export interface SyncResult {
@@ -239,10 +239,10 @@ export interface SyncResult {
   errors: Array<{
     item_id?: string
     error: string
-    details?: any
+    details?: Record<string, unknown>
   }>
   next_cursor?: string
-  summary?: Record<string, any>
+  summary?: Record<string, string | number | boolean | null>
 }
 
 // Validation schemas
@@ -258,7 +258,7 @@ export const integrationSchema = z.object({
   ]),
   description: z.string().optional(),
   status: z.enum(['active', 'inactive', 'error', 'configuring', 'suspended']).optional(),
-  config: z.record(z.any()).optional(),
+  config: z.record(z.unknown()).optional(),
   sync_settings: z.object({
     sync_products: z.boolean().default(true),
     sync_inventory: z.boolean().default(true),
@@ -269,13 +269,13 @@ export const integrationSchema = z.object({
     sync_frequency_minutes: z.number().min(5).max(1440).optional(),
     batch_size: z.number().min(1).max(1000).optional(),
     field_mappings: z.record(z.string()).optional(),
-    filters: z.record(z.any()).optional(),
+    filters: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
   }).optional(),
 })
 
 export const credentialSchema = z.object({
   credential_type: z.enum(['oauth2', 'api_key', 'basic_auth', 'custom']),
-  credentials: z.record(z.any()),
+  credentials: z.record(z.union([z.string(), z.number(), z.boolean()])),
 })
 
 export const webhookEndpointSchema = z.object({
@@ -287,7 +287,7 @@ export const webhookEndpointSchema = z.object({
 
 export const syncJobSchema = z.object({
   job_type: z.enum(['full_sync', 'incremental_sync', 'webhook', 'manual']),
-  payload: z.record(z.any()).optional(),
+  payload: z.record(z.unknown()).optional(),
   priority: z.number().min(1).max(10).default(5),
   scheduled_for: z.string().datetime().optional(),
 })
@@ -297,7 +297,7 @@ export class IntegrationError extends Error {
   constructor(
     message: string,
     public code: string | number,
-    public details?: any,
+    public details?: Record<string, unknown>,
     public retryable: boolean = false
   ) {
     super(message)
@@ -313,7 +313,7 @@ export class RateLimitError extends IntegrationError {
   constructor(
     message: string,
     public retryAfter: number,
-    details?: any
+    details?: Record<string, unknown>
   ) {
     super(message, 'RATE_LIMIT_EXCEEDED', details, true)
     this.name = 'RateLimitError'
@@ -325,7 +325,7 @@ export class RateLimitError extends IntegrationError {
 }
 
 export class AuthenticationError extends IntegrationError {
-  constructor(message: string, details?: any) {
+  constructor(message: string, details?: Record<string, unknown>) {
     super(message, 'AUTHENTICATION_FAILED', details, false)
     this.name = 'AuthenticationError'
     // Preserve stack trace in V8 engines

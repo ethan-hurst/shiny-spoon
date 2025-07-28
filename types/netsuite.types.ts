@@ -14,8 +14,8 @@ export interface NetSuiteItem {
   lastmodifieddate: string
   category?: string
   itemtype: 'Inventory' | 'NonInventory' | 'Kit' | 'Assembly' | 'Service'
-  // Custom fields
-  [key: `custitem_${string}`]: any
+  // Custom fields - using union type for known NetSuite field values
+  [key: `custitem_${string}`]: string | number | boolean | null | undefined
 }
 
 // NetSuite Inventory Balance
@@ -75,8 +75,8 @@ export interface NetSuiteTokenResponse {
   scope?: string
 }
 
-// NetSuite SuiteQL response
-export interface NetSuiteSuiteQLResponse<T = any> {
+// NetSuite SuiteQL response with proper generic constraint
+export interface NetSuiteSuiteQLResponse<T = Record<string, unknown>> {
   items: T[]
   hasMore: boolean
   totalResults?: number
@@ -111,8 +111,8 @@ export interface NetSuiteWebhookEvent {
   // Additional fields based on event type
   changes?: Array<{
     field: string
-    oldValue: any
-    newValue: any
+    oldValue: string | number | boolean | null
+    newValue: string | number | boolean | null
   }>
 }
 
@@ -215,7 +215,7 @@ export interface NetSuiteSyncState {
   entity_type: 'product' | 'inventory' | 'pricing'
   last_sync_date?: Date
   last_sync_token?: string
-  sync_cursor?: any
+  sync_cursor?: string | number | null
   total_synced: number
   total_errors: number
 }
@@ -225,19 +225,19 @@ export interface NetSuiteSyncState {
  *
  * Returns true if the input has the required structure and types for a NetSuite API error.
  */
-export function isNetSuiteApiError(error: any): error is NetSuiteApiError {
+export function isNetSuiteApiError(error: unknown): error is NetSuiteApiError {
   return (
     error && 
     typeof error === 'object' && 
     'type' in error && 
-    typeof error.type === 'string' &&
+    typeof (error as Record<string, unknown>).type === 'string' &&
     'status' in error && 
-    typeof error.status === 'number' &&
+    typeof (error as Record<string, unknown>).status === 'number' &&
     'title' in error && 
-    typeof error.title === 'string' &&
+    typeof (error as Record<string, unknown>).title === 'string' &&
     // Optional properties type checks
-    (!('detail' in error) || typeof error.detail === 'string') &&
-    (!('o:errorCode' in error) || typeof error['o:errorCode'] === 'string')
+    (!('detail' in error) || typeof (error as Record<string, unknown>).detail === 'string') &&
+    (!('o:errorCode' in error) || typeof (error as Record<string, unknown>)['o:errorCode'] === 'string')
   )
 }
 
@@ -246,8 +246,31 @@ export function isNetSuiteApiError(error: any): error is NetSuiteApiError {
  *
  * @returns True if the object has both 'id' and 'itemid' properties; otherwise, false.
  */
-export function isNetSuiteItem(obj: any): obj is NetSuiteItem {
+export function isNetSuiteItem(obj: unknown): obj is NetSuiteItem {
   return obj && typeof obj === 'object' && 'id' in obj && 'itemid' in obj
+}
+
+/**
+ * Validates and transforms a raw NetSuite API response to ensure type safety.
+ * Throws a validation error if the data doesn't match the expected schema.
+ */
+export function validateNetSuiteItem(data: unknown): NetSuiteItem {
+  const result = netsuiteItemSchema.safeParse(data)
+  if (!result.success) {
+    throw new Error(`Invalid NetSuite item data: ${result.error.message}`)
+  }
+  return result.data as NetSuiteItem
+}
+
+/**
+ * Type guard that checks if an error response is a valid NetSuite API error.
+ * Provides runtime type safety for external API error handling.
+ */
+export function validateNetSuiteApiError(error: unknown): NetSuiteApiError {
+  if (!isNetSuiteApiError(error)) {
+    throw new Error('Invalid NetSuite API error format')
+  }
+  return error
 }
 
 // Transform result types
@@ -261,7 +284,7 @@ export interface ProductTransformResult {
   is_active: boolean
   external_id: string
   external_updated_at: string
-  metadata: Record<string, any>
+  metadata: Record<string, string | number | boolean | null>
 }
 
 export interface InventoryTransformResult {
