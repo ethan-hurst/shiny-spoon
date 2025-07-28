@@ -1,66 +1,26 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-echo "🔍 Running pre-commit checks..."
+echo "🛡️  Running development guard checks..."
 
-# Run lint-staged for basic formatting and linting
-echo "📝 Running lint-staged..."
-npx lint-staged
+# 1. TypeScript strict compilation
+echo "📝 Checking TypeScript..."
+npm run type-check || exit 1
 
-# Type checking (skip for now due to existing codebase issues)
-echo "🔍 Skipping TypeScript type check (existing codebase issues need resolution)..."
-# npm run type-check
+# 2. Security pattern verification
+echo "🔒 Verifying security patterns..."
+node scripts/check-security-patterns.js || exit 1
 
-# Run tests (skip for now due to existing test issues)
-echo "🧪 Skipping tests (existing test issues need resolution)..."
-# npm run test
+# 3. Performance checks
+echo "⚡ Checking performance patterns..."
+node scripts/check-performance-patterns.js || exit 1
 
-# Check for security patterns - no 'any' types
-echo "🔒 Checking for security violations..."
+# 4. Code quality checks
+echo "✨ Running quality checks..."
+npm run lint || exit 1
 
-# Check for 'any' types (skip for now due to existing codebase issues)
-echo "🔒 Skipping 'any' type check (existing codebase issues need resolution)..."
-# ANY_TYPES=$(grep -r ": any\|: any\[\]" --include="*.ts" --include="*.tsx" app lib components cli || true)
-# if [ ! -z "$ANY_TYPES" ]; then
-#   echo "❌ Found 'any' types in code. Use 'unknown' and type guards instead:"
-#   echo "$ANY_TYPES"
-#   exit 1
-# fi
+# 5. Test coverage verification (if tests exist)
+echo "🧪 Verifying test coverage..."
+npm run test:coverage -- --passWithNoTests --silent || exit 1
 
-# Check for missing rate limits in API routes
-echo "🚦 Checking for missing rate limits in API routes..."
-API_ROUTES_WITHOUT_RATE_LIMIT=$(find app/api -name "route.ts" -exec grep -L "rateLimit\|createRouteHandler" {} \; 2>/dev/null || true)
-if [ ! -z "$API_ROUTES_WITHOUT_RATE_LIMIT" ]; then
-  echo "⚠️  API routes without rate limiting found:"
-  echo "$API_ROUTES_WITHOUT_RATE_LIMIT"
-  echo "Consider using createRouteHandler wrapper for security"
-fi
-
-# Check for TODO/FIXME comments indicating incomplete implementation
-echo "📋 Checking for incomplete implementations..."
-TODOS=$(grep -r "TODO.*implement\|FIXME" --include="*.ts" --include="*.tsx" app lib components cli || true)
-if [ ! -z "$TODOS" ]; then
-  echo "⚠️  Found incomplete implementations:"
-  echo "$TODOS"
-  echo "Please complete implementations before committing"
-fi
-
-# Check for console.log in production code (excluding tests and dev files)
-echo "🧹 Checking for console.log statements..."
-CONSOLE_LOGS=$(grep -r "console\.log" --include="*.ts" --include="*.tsx" app lib components cli --exclude-dir=__tests__ --exclude-dir=tests || true)
-if [ ! -z "$CONSOLE_LOGS" ]; then
-  echo "⚠️  Found console.log statements in production code:"
-  echo "$CONSOLE_LOGS"
-  echo "Consider using proper logging or removing debug statements"
-fi
-
-# Check for hardcoded secrets or keys
-echo "🔐 Checking for potential secrets..."
-SECRETS=$(grep -ri "api[_-]key\|secret\|password\|token" --include="*.ts" --include="*.tsx" app lib components cli | grep -v "process.env\|config\|types\|interface\|placeholder" || true)
-if [ ! -z "$SECRETS" ]; then
-  echo "⚠️  Potential hardcoded secrets found:"
-  echo "$SECRETS"
-  echo "Ensure all secrets use environment variables"
-fi
-
-echo "✅ Pre-commit checks completed successfully!"
+echo "✅ All pre-commit checks passed!"

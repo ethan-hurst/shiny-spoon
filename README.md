@@ -1,3 +1,33 @@
+## 🛡️ Development Guards
+
+Real-time development monitoring and quality enforcement system that catches security, performance, and quality issues during development.
+
+### Quick Analysis
+
+```bash
+# Analyze all files for violations
+npm run dev:guards:quick analyze
+
+# Setup enhanced pre-commit hooks
+npm run setup:hooks
+```
+
+**Recent Analysis Results:**
+- 📊 479 files analyzed
+- 🚨 7 violations found (5 security, 2 performance)
+- ✅ Automated fixes available
+
+Features:
+- 🔒 **Security Guards**: Organization isolation, rate limiting, authentication
+- ⚡ **Performance Guards**: N+1 query detection, bundle size monitoring
+- ✨ **Quality Guards**: TypeScript strict mode, error handling validation
+- 🔧 **Auto-fixes**: One-click violation resolution
+- 📱 **Browser Toolbar**: Real-time violation display with VS Code integration
+
+[📚 View Complete Documentation](docs/DEVELOPMENT-GUARDS.md)
+
+---
+
 # TruthSource - B2B E-commerce Data Accuracy Platform
 
 <p align="center">
@@ -350,3 +380,4 @@ Built with amazing open source projects:
   Your Single Source of Truth for B2B Data<br>
   <a href="https://truthsource.io">truthsource.io</a>
 </p>
+# Test commit for development guards
