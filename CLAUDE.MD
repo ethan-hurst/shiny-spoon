@@ -1210,3 +1210,556 @@ Before marking any implementation as complete:
 ---
 
 **Remember**: You're building a system handling critical B2B data. Prioritize data accuracy, security (RLS), type safety, and user experience. When in doubt, choose reliability over complexity. **NEVER use mock implementations, simulated behavior, or untyped code in production.**
+
+## ✅ Definition of Done - MANDATORY for ALL Features
+
+Every feature/fix MUST include:
+
+### 1. Core Implementation
+- [ ] Feature code complete with proper error handling
+- [ ] All TypeScript strict mode errors resolved
+- [ ] No `any` types used
+- [ ] All functions have explicit return types
+- [ ] Input validation with Zod schemas
+
+### 2. Testing (REQUIRED)
+- [ ] Unit tests for business logic (min 80% coverage)
+- [ ] Integration tests for API endpoints
+- [ ] E2E tests for critical user flows
+- [ ] Edge case testing (network failures, malformed data)
+- [ ] Performance tests meet SLA requirements
+
+### 3. Security
+- [ ] Input validation with Zod schemas
+- [ ] Rate limiting on all API endpoints
+- [ ] CSRF protection for mutations
+- [ ] Authorization checks at all layers
+- [ ] Security review checklist completed
+- [ ] No sensitive data in logs or errors
+
+### 4. Performance & Scalability
+- [ ] Load tested with expected volume (specify: ___ req/sec)
+- [ ] Database queries optimized (no N+1)
+- [ ] Proper indexes added and verified
+- [ ] Memory usage profiled for large operations
+- [ ] Response time < 200ms p95
+
+### 5. Error Handling & Recovery
+- [ ] Retry logic for transient failures
+- [ ] Graceful degradation under load
+- [ ] Rollback mechanism for failed operations
+- [ ] Dead letter queue for failed records
+- [ ] User-friendly error messages
+
+### 6. Monitoring & Observability
+- [ ] Structured logging implemented
+- [ ] Key metrics instrumented
+- [ ] Error tracking configured
+- [ ] Alerts defined for failures
+- [ ] Dashboard created
+
+### 7. Documentation
+- [ ] API documentation updated
+- [ ] Error codes documented
+- [ ] Runbook for troubleshooting
+- [ ] CLAUDE.md context updated
+- [ ] Architecture decision recorded
+
+### 8. Operations
+- [ ] Feature flags for gradual rollout
+- [ ] Database migrations reversible
+- [ ] Cleanup jobs for temporary data
+- [ ] Resource limits configured
+- [ ] Deployment instructions clear
+
+## 🚀 Before Starting ANY Feature
+
+### First, Try Code Generation (5-Minute Rule)
+```bash
+# Don't write from scratch! Generate with all requirements built-in:
+npm run generate:feature <feature-name>
+
+# Examples:
+npm run generate:api products/bulk-upload
+npm run generate:service inventory-sync
+npm run generate:repository customers
+```
+
+### Enable Development Guards
+```bash
+# Run BEFORE coding to catch issues in real-time
+npm run dev:guards
+```
+
+### Then Ask Yourself:
+
+1. **Scale**: What happens with 1M records? Have I designed for this?
+2. **Failure**: How does it fail gracefully? What's the recovery path?
+3. **Security**: What are the attack vectors? How am I protecting against them?
+4. **Testing**: How will I test edge cases? What could go wrong?
+5. **Monitoring**: How will I know if it breaks in production?
+6. **Recovery**: How do users recover from errors? Is there a manual override?
+7. **Cost**: What's the computational/storage cost at scale?
+8. **Compliance**: Does this meet our data handling requirements?
+
+## ⚠️ Common Implementation Pitfalls
+
+### Missing Rate Limiting
+```typescript
+// ❌ BAD - No rate limiting
+export async function POST(request: Request) {
+  const data = await request.json()
+  return processRequest(data)
+}
+
+// ✅ GOOD - With rate limiting
+import { ratelimit } from '@/lib/ratelimiter'
+
+export async function POST(request: Request) {
+  // Use IP or user ID as identifier
+  const identifier = request.headers.get('x-forwarded-for') || 
+    request.headers.get('x-real-ip') || 
+    'anonymous'
+  
+  const { success, limit, reset, remaining } = await ratelimit.limit(identifier)
+  
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': new Date(reset).toISOString(),
+          'Retry-After': Math.floor((reset - Date.now()) / 1000).toString()
+        }
+      }
+    )
+  }
+  
+  const data = await request.json()
+  return processRequest(data)
+}
+```
+
+### Missing Transaction Handling
+```typescript
+// ❌ BAD - Partial failure possible
+async function createOrder(orderData: OrderInput) {
+  const order = await supabase.from('orders').insert(orderData).single()
+  
+  // If this fails, order is created but inventory not updated!
+  await supabase.from('inventory').update({ 
+    quantity: quantity - orderData.quantity 
+  })
+  
+  await sendOrderEmail(order.id) // If this fails, no rollback!
+}
+
+// ✅ GOOD - Atomic transaction with rollback
+async function createOrder(orderData: OrderInput) {
+  // Use database transaction
+  const { data, error } = await supabase.rpc('create_order_transaction', {
+    order_data: orderData,
+    inventory_updates: calculateInventoryUpdates(orderData)
+  })
+  
+  if (error) {
+    throw new OrderError('Failed to create order', 'ORDER_CREATION_FAILED', 500)
+  }
+  
+  // Non-critical operations outside transaction
+  try {
+    await sendOrderEmail(data.order_id)
+  } catch (emailError) {
+    // Log but don't fail the order
+    await logError('email_failed', { orderId: data.order_id, error: emailError })
+  }
+  
+  return data
+}
+```
+
+### Missing Test Coverage
+```typescript
+// ❌ BAD - Feature without tests
+export function calculateDiscount(price: number, quantity: number): number {
+  return price * quantity * 0.1
+}
+
+// ✅ GOOD - With comprehensive tests
+// calculate-discount.ts
+export function calculateDiscount(
+  price: number, 
+  quantity: number, 
+  customerTier?: 'bronze' | 'silver' | 'gold'
+): number {
+  if (price < 0 || quantity < 0) {
+    throw new Error('Price and quantity must be positive')
+  }
+  
+  const baseDiscount = 0.1
+  const tierMultipliers = { bronze: 1, silver: 1.5, gold: 2 }
+  const multiplier = tierMultipliers[customerTier || 'bronze']
+  
+  return Math.round(price * quantity * baseDiscount * multiplier * 100) / 100
+}
+
+// calculate-discount.test.ts
+describe('calculateDiscount', () => {
+  it('calculates standard discount correctly', () => {
+    expect(calculateDiscount(100, 2)).toBe(20)
+  })
+  
+  it('handles zero quantity', () => {
+    expect(calculateDiscount(100, 0)).toBe(0)
+  })
+  
+  it('throws on negative prices', () => {
+    expect(() => calculateDiscount(-100, 2)).toThrow('positive')
+  })
+  
+  it('handles tier multipliers', () => {
+    expect(calculateDiscount(100, 1, 'gold')).toBe(20)
+  })
+  
+  it('handles floating point precision', () => {
+    expect(calculateDiscount(10.99, 3)).toBe(3.30)
+  })
+  
+  it('handles maximum safe integer', () => {
+    expect(calculateDiscount(Number.MAX_SAFE_INTEGER, 1)).toBeDefined()
+  })
+})
+```
+
+### Missing Error Recovery
+```typescript
+// ❌ BAD - No recovery mechanism
+async function syncInventory() {
+  const products = await fetchProducts()
+  
+  for (const product of products) {
+    await updateInventory(product) // If one fails, rest are skipped
+  }
+}
+
+// ✅ GOOD - With retry and error recovery
+async function syncInventory() {
+  const products = await fetchProducts()
+  const errors: SyncError[] = []
+  const maxRetries = 3
+  
+  // Process in batches with concurrency control
+  const batchSize = 10
+  for (let i = 0; i < products.length; i += batchSize) {
+    const batch = products.slice(i, i + batchSize)
+    
+    await Promise.all(
+      batch.map(async (product) => {
+        let lastError: Error | null = null
+        
+        // Retry logic with exponential backoff
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          try {
+            await updateInventory(product)
+            return // Success
+          } catch (error) {
+            lastError = error as Error
+            
+            // Don't retry on permanent errors
+            if (isPermanentError(error)) break
+            
+            // Exponential backoff
+            const delay = Math.min(1000 * Math.pow(2, attempt), 10000)
+            await new Promise(resolve => setTimeout(resolve, delay))
+          }
+        }
+        
+        // Track failed items for manual recovery
+        errors.push({
+          productId: product.id,
+          error: lastError,
+          timestamp: new Date(),
+          attempts: maxRetries
+        })
+      })
+    )
+  }
+  
+  // Handle failures
+  if (errors.length > 0) {
+    await saveToDeadLetterQueue(errors)
+    await notifyOpsTeam(errors)
+  }
+  
+  return {
+    total: products.length,
+    successful: products.length - errors.length,
+    failed: errors.length,
+    errors
+  }
+}
+```
+
+### Missing Monitoring
+```typescript
+// ❌ BAD - No visibility into operations
+async function processPayment(paymentData: PaymentInput) {
+  const result = await paymentGateway.charge(paymentData)
+  return result
+}
+
+// ✅ GOOD - Full observability
+import { metrics, tracer, logger } from '@/lib/monitoring'
+
+async function processPayment(paymentData: PaymentInput) {
+  const span = tracer.startSpan('processPayment')
+  const startTime = Date.now()
+  
+  try {
+    // Log attempt
+    logger.info('Processing payment', {
+      amount: paymentData.amount,
+      currency: paymentData.currency,
+      customerId: paymentData.customerId
+    })
+    
+    // Track attempt
+    metrics.increment('payments.attempted', {
+      currency: paymentData.currency
+    })
+    
+    const result = await paymentGateway.charge(paymentData)
+    
+    // Track success
+    metrics.increment('payments.succeeded', {
+      currency: paymentData.currency
+    })
+    
+    metrics.histogram('payments.amount', paymentData.amount, {
+      currency: paymentData.currency
+    })
+    
+    const duration = Date.now() - startTime
+    metrics.histogram('payments.duration', duration)
+    
+    logger.info('Payment processed successfully', {
+      paymentId: result.id,
+      duration
+    })
+    
+    return result
+  } catch (error) {
+    // Track failure
+    metrics.increment('payments.failed', {
+      currency: paymentData.currency,
+      error_code: error.code || 'unknown'
+    })
+    
+    logger.error('Payment processing failed', {
+      error: error.message,
+      code: error.code,
+      customerId: paymentData.customerId
+    })
+    
+    span.setStatus({ code: 2, message: error.message })
+    throw error
+  } finally {
+    span.end()
+  }
+}
+```
+
+## 🎯 Production Readiness Scorecard
+
+Rate each item 0-10. Feature is ready when all scores ≥ 8:
+
+| Category | Score | Notes |
+|----------|-------|-------|
+| **Functionality** | _/10 | All requirements met? |
+| **Performance** | _/10 | Meets SLA under load? |
+| **Security** | _/10 | Threat model addressed? |
+| **Reliability** | _/10 | <0.1% error rate? |
+| **Observability** | _/10 | Can diagnose issues? |
+| **Maintainability** | _/10 | Well documented/tested? |
+| **Scalability** | _/10 | Works at 10x load? |
+| **Recoverability** | _/10 | Can rollback/recover? |
+| **Usability** | _/10 | Good user experience? |
+| **Compliance** | _/10 | Meets requirements? |
+
+**Total Score**: _/100 (Must be ≥ 80)
+
+## 🚨 CRITICAL: When to STOP Development
+
+IMMEDIATELY stop and escalate if you discover:
+
+1. **Security Issues**
+   - Authentication bypass possible
+   - Data leakage between organizations
+   - SQL injection vulnerability
+   - Unencrypted sensitive data
+
+2. **Data Integrity Issues**
+   - Race conditions in critical paths
+   - Missing transaction boundaries
+   - Incorrect RLS policies
+   - Data loss scenarios
+
+3. **Performance Issues**
+   - Response time >5x requirement
+   - Memory leak detected
+   - Unbounded query results
+   - Missing database indexes
+
+4. **Missing Core Requirements**
+   - No error recovery mechanism
+   - No monitoring/alerting
+   - No rollback capability
+   - No rate limiting on public endpoints
+
+Remember: **It's better to delay a feature than to break production.** If in doubt, ask for help.
+
+## 🤖 Automated Quality Enforcement
+
+### Pre-Commit Hooks (Install Once)
+```bash
+npm run setup:hooks
+```
+
+This automatically checks before EVERY commit:
+- ✅ TypeScript errors
+- ✅ Missing tests for new files
+- ✅ Rate limiting on APIs
+- ✅ Organization filtering
+- ✅ No `any` types
+
+### Real-Time Development Monitoring
+```bash
+# Run in separate terminal
+npm run dev:monitor
+```
+
+Shows live status:
+- 🔴 Security violations
+- 🟡 Performance issues
+- 🔵 Missing tests
+- 🟢 All good!
+
+### Development Toolbar (Auto-Enabled in Dev)
+
+The toolbar appears at the bottom of your screen showing:
+```
+⚠️ Fix before commit: 🔴 Missing rate limit: /api/products | 🟡 Untyped export: calculatePrice | 🔵 No test: inventory-service.ts
+```
+
+Click any issue for a quick fix!
+
+### Base Classes & Templates
+
+Always extend our base classes instead of writing from scratch:
+
+```typescript
+// ❌ BAD - Writing from scratch
+export class ProductService {
+  async createProduct(data: any) {
+    try {
+      return await supabase.from('products').insert(data)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+}
+
+// ✅ GOOD - Extending BaseService
+export class ProductService extends BaseService<Product> {
+  protected entityName = 'product'
+  
+  async createProduct(data: CreateProductInput) {
+    // Automatic: retry logic, monitoring, circuit breaker, proper errors
+    return this.withRetry(() => 
+      this.repository.create(data)
+    )
+  }
+}
+```
+
+### Copy-Paste Templates
+
+Located in `/templates` directory:
+- `api-route.template.ts` - Rate-limited API routes
+- `service.template.ts` - Service with retry/monitoring
+- `repository.template.ts` - Repository with org isolation
+- `component.template.tsx` - UI component with loading/error states
+
+## 📚 Additional Resources
+
+- [Execute PRP Guide](/.claude/commands/execute-prp.md) - Implementation automation
+- [TypeScript Strict Mode](https://www.typescriptlang.org/tsconfig#strict)
+- [Supabase RLS Guide](https://supabase.com/docs/guides/auth/row-level-security)
+- [Next.js Performance](https://nextjs.org/docs/app/building-your-application/optimizing)
+- [OWASP Security Checklist](https://owasp.org/www-project-web-security-testing-guide/)
+
+## 🎯 Git Commit Strategy for TODO Items
+
+### Automatic Commits on TODO Completion
+
+When working through TODO items using the TodoWrite tool, Claude should create a commit when marking each significant TODO item as completed. This ensures clean, atomic commits with clear diffs.
+
+### Commit Message Format
+
+Follow the established project conventions:
+
+```bash
+# Feature additions
+git commit -m "feat(module): implement feature description"
+
+# Bug fixes
+git commit -m "fix(module): resolve specific issue"
+
+# Documentation
+git commit -m "docs(module): update/add documentation"
+
+# Code improvements
+git commit -m "refactor(module): improve code structure"
+
+# Tests
+git commit -m "test(module): add/update tests"
+
+# Build/tooling
+git commit -m "chore(module): update build configuration"
+```
+
+### When to Commit
+
+1. **After completing a TODO item** - When marking a TODO as completed
+2. **Logical grouping** - Small related changes can be grouped
+3. **Before switching context** - Always commit before moving to unrelated work
+
+### Example Workflow
+
+```typescript
+// 1. Complete BaseRepository implementation
+// Files: lib/base/base-repository.ts
+await TodoWrite({ id: "3.1", status: "completed" })
+// COMMIT: "feat(base): implement BaseRepository with org isolation"
+
+// 2. Complete BaseService implementation
+// Files: lib/base/base-service.ts, lib/resilience/circuit-breaker.ts
+await TodoWrite({ id: "3.2", status: "completed" })
+// COMMIT: "feat(base): add BaseService with retry logic and circuit breaker"
+
+// 3. Complete API route handler
+// Files: lib/api/route-handler.ts, lib/utils/ratelimit.ts
+await TodoWrite({ id: "3.3", status: "completed" })
+// COMMIT: "feat(api): create secure route handler with auth and rate limiting"
+```
+
+### Commit Guidelines
+
+1. **Atomic commits** - Each commit should represent one logical change
+2. **Clear messages** - Describe what and why, not how
+3. **Reference PRPs** - Include PRP number when relevant: `"feat(api): implement rate limiting (PRP-018A)"`
+4. **Test before commit** - Ensure TypeScript/lint checks pass
+5. **No WIP commits** - Only commit completed, working code

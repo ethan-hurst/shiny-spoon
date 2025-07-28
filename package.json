@@ -22,7 +22,14 @@
     "test:perf": "RUN_PERF_TESTS=1 jest --testPathPattern=__tests__/performance",
     "validate:setup": "node scripts/validate-setup.js",
     "validate:migrations": "node scripts/validate-migrations.js",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "generate": "./generate.sh",
+    "generate:api": "./generate.sh api",
+    "generate:service": "./generate.sh service",
+    "generate:repository": "./generate.sh repository",
+    "generate:component": "./generate.sh component",
+    "generate:integration": "./generate.sh integration",
+    "generate:check": "./generate.sh check"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",

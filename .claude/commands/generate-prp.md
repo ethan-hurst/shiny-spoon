@@ -2,7 +2,19 @@
 
 ## Feature file: $ARGUMENTS
 
-Generate a complete, self-sufficient PRP (Product Requirements Plan) for feature implementation with comprehensive research and validation. The PRP must contain all context needed for successful one-pass implementation.
+Generate a complete, self-sufficient PRP (Product Requirements Plan) for feature implementation with comprehensive research, validation, and automated quality enforcement built-in from the start.
+
+## 🚀 Quick Start: Automation-First Approach
+
+Before creating the PRP, identify which generators and base classes will be used:
+
+```bash
+# Available generators the implementation will use:
+npm run generate:api <name>        # APIs with rate limiting
+npm run generate:service <name>    # Services with retry logic
+npm run generate:repository <name> # Repositories with RLS
+npm run generate:component <name>  # Components with loading states
+```
 
 ## Pre-Generation Validation
 
@@ -16,11 +28,15 @@ Generate a complete, self-sufficient PRP (Product Requirements Plan) for feature
    - Review PRP-STATUS.md for required dependencies
    - Identify prerequisite PRPs that must be implemented first
    - Map integration points with existing features
+   - **Check which base classes to extend**
+   - **Identify reusable templates**
 
 3. **Context Gathering**
    - Read IMPLEMENTATION-STANDARD.md for requirements
    - Read COMPLETE-IMPLEMENTATION-GUIDE.md for patterns
    - Analyze project structure and conventions
+   - **Map to existing base classes (BaseService, BaseRepository)**
+   - **Identify which templates to copy**
 
 ## Research Process
 
@@ -31,30 +47,33 @@ Generate a complete, self-sufficient PRP (Product Requirements Plan) for feature
 - Identify acceptance criteria and success metrics
 - Note any specific patterns or approaches mentioned
 
-### 2. **Codebase Research** (Systematic and Thorough)
+### 2. **Codebase Research** (Focus on Reusability)
 
-- **Pattern Discovery**:
+- **Base Class Discovery**:
 
   ```bash
-  # Find similar features
-  grep -r "similar_feature" --include="*.tsx" --include="*.ts"
+  # Find base classes to extend
+  find . -name "base-*.ts" -path "*/lib/*"
+  grep -r "extends Base" --include="*.ts"
 
-  # Analyze component patterns
-  find . -name "*.tsx" -path "*/components/*" | head -20
+  # Find templates to copy
+  find . -path "*/templates/*" -name "*.template.*"
 
-  # Review server actions
-  find . -name "*.ts" -path "*/actions/*"
+  # Find existing generators
+  grep -r "generate:" package.json
   ```
 
-- **Convention Analysis**:
-  - Database query patterns
-  - Error handling approaches
-  - Form validation strategies
-  - State management patterns
-- **Test Pattern Review**:
-  - Unit test structure
-  - Integration test approaches
-  - E2E test scenarios
+- **Pattern Analysis**:
+  - Which base classes provide needed functionality
+  - Which templates match the use case
+  - Which generators can scaffold the feature
+  - Existing middleware/wrappers to reuse
+  
+- **Security Pattern Review**:
+  - Rate limiting implementations
+  - Organization isolation patterns
+  - CSRF protection methods
+  - Auth middleware usage
 
 ### 3. **External Research** (Document Everything)
 
@@ -117,87 +136,108 @@ Generate a complete, self-sufficient PRP (Product Requirements Plan) for feature
 - **Dependencies**: Required PRPs and libraries
 - **Gotchas**: Known issues, version conflicts, workarounds
 
-### 5. **Implementation Blueprint**
+### 5. **Implementation Blueprint** (Automation-First)
 
-- **Approach Overview**: High-level strategy
-- **Pseudocode**: Clear implementation steps with REAL operations
-- **File Structure**: New files and modifications
-- **Task Breakdown**: Ordered implementation tasks
-- **Error Handling**: Specific strategies for failures
-- **NO MOCK IMPLEMENTATIONS**:
-
-  ```typescript
-  // ❌ NEVER include mock implementations like:
-  // setTimeout(() => setProgress(50), 1000)
-  // const mockData = [{id: 1, name: 'Test'}]
-  // const fakeUsers = generateFakeUsers(10)
-  // const dummyResponse = {success: true}
-  // console.log('Simulating API call...')
-  // await sleep(1000) // artificial delay
-  // function stubFunction() { return true }
-  // <div>TODO: Implement this feature</div>
-  // alert('Feature not implemented yet')
-
-  // ✅ ALWAYS show real implementation patterns:
-  // const { data } = await supabase.from('table').select()
-  // const result = await processItems(items)
-  // setProgress(processed / total * 100)
-  // const response = await fetch('/api/endpoint')
-  // toast.success('Operation completed')
+- **Generation Strategy**: Which parts to generate vs extend
+  ```bash
+  # Step 1: Generate base files
+  npm run generate:api feature-name
+  npm run generate:service feature-name
+  
+  # Step 2: Extend base classes
+  class FeatureService extends BaseService<Feature> {
+    // Only implement feature-specific logic
+  }
   ```
 
-### 6. **Validation Gates** (Must be Executable)
+- **Base Class Usage**: Show exactly which to extend
+  ```typescript
+  // API Route - Use createRouteHandler
+  export const POST = createRouteHandler({
+    schema: inputSchema,
+    rateLimit: { requests: 100, window: '1h' },
+    handler: async ({ input, user, supabase }) => {
+      // Feature logic here
+    }
+  })
+  
+  // Service - Extend BaseService
+  class FeatureService extends BaseService<Feature> {
+    protected entityName = 'feature'
+    // Automatic: retry, monitoring, circuit breaker
+  }
+  
+  // Repository - Extend BaseRepository  
+  class FeatureRepository extends BaseRepository<Feature> {
+    protected tableName = 'features'
+    // Automatic: org isolation, soft deletes, audit
+  }
+  ```
+
+- **Template References**: Which templates to copy
+- **Task Breakdown**: Ordered implementation with generators first
+- **Built-in Quality**: What's automatically included
+
+### 6. **Automated Quality Gates** (Built-In From Start)
+
+Include these automated checks in the PRP:
 
 ```bash
-# Level 1: Syntax & Style
-pnpm lint && pnpm prettier --check . && pnpm tsc --noEmit
+# Pre-commit hooks (automatic)
+npm run setup:hooks
 
-# Level 2: Build
-pnpm build
+# Real-time development guards
+npm run dev:guards
 
-# Level 3: Mock Detection
-grep -r "setTimeout.*progress" --include="*.ts" --include="*.tsx" || echo "No mock progress found ✓"
-grep -r "mock[A-Z]" --include="*.ts" --include="*.tsx" || echo "No mock data found ✓"
-grep -r "fake[A-Z]" --include="*.ts" --include="*.tsx" || echo "No fake data found ✓"
-grep -r "dummy[A-Z]" --include="*.ts" --include="*.tsx" || echo "No dummy data found ✓"
-grep -r "stub[A-Z]" --include="*.ts" --include="*.tsx" || echo "No stub functions found ✓"
-grep -r "TODO.*implement" --include="*.ts" --include="*.tsx" || echo "No TODOs found ✓"
-grep -r "FIXME" --include="*.ts" --include="*.tsx" || echo "No FIXMEs found ✓"
-grep -r "console\.log.*simula" --include="*.ts" --include="*.tsx" || echo "No simulations found ✓"
-grep -r "alert\(" --include="*.ts" --include="*.tsx" || echo "No alerts found ✓"
-grep -r "sleep\(" --include="*.ts" --include="*.tsx" || echo "No sleep delays found ✓"
+# Automated validation suite
+npm run check:all
 
-# Level 4: Tests (if applicable)
-pnpm test [specific test files]
-
-# Level 5: Feature Validation
-# Specific commands to verify feature works with REAL data
-# Must include actual database operations
+# Specific feature validation
+npm run validate:feature <feature-name>
 ```
 
-## ULTRATHINK Phase (REQUIRED)
+**What Gets Checked Automatically:**
+- ✅ Rate limiting on all APIs (pre-commit blocks if missing)
+- ✅ Organization filtering on queries (dev guards catch immediately)
+- ✅ TypeScript strict mode (no any types allowed)
+- ✅ Test coverage >80% (CI/CD enforces)
+- ✅ Security patterns (CSRF, auth, validation)
+
+**Manual Validation Commands:**
+```bash
+# Only what automation can't check
+npm run test:integration <feature>
+npm run test:e2e <feature>
+npm run perf:benchmark <feature>
+```
+
+## ULTRATHINK Phase (UPDATED)
 
 Before writing the PRP, perform deep analysis:
 
-1. **Completeness Check**
-   - Can an AI implement this with ONLY the PRP content?
-   - Are all external references included with URLs?
-   - Are code patterns explicitly shown?
+1. **Automation Assessment**
+   - Which parts can be generated automatically?
+   - Which base classes solve common requirements?
+   - Which templates provide the structure?
+   - What custom logic is actually needed?
 
-2. **Risk Assessment**
-   - What could go wrong during implementation?
-   - What error cases need handling?
-   - What performance issues might arise?
+2. **Built-In Quality Check**
+   - What quality measures are automatic with base classes?
+   - What security is inherited from templates?
+   - What monitoring comes built-in?
+   - What additional checks are needed?
 
-3. **Integration Planning**
-   - How does this affect existing features?
-   - What migrations are needed?
+3. **5-Minute Rule Application**
+   - Can developer implement in <5 minutes with generators?
+   - Are instructions clear for using automation?
+   - Is manual work minimized?
+   - Are quick-start commands provided?
+
+4. **Integration Planning**
+   - How does this extend existing patterns?
+   - Which middleware/wrappers to reuse?
    - What backwards compatibility concerns exist?
-
-4. **Quality Gates**
-   - Are validation commands actually executable?
-   - Do success criteria cover all requirements?
-   - Are test scenarios comprehensive?
+   - How to maintain consistency with base classes?
 
 ## Output Generation
 
@@ -219,44 +259,50 @@ Before writing the PRP, perform deep analysis:
 - Mark as "📄 Documented"
 - List dependencies
 
-## Quality Checklist
+## Quality Checklist (Automation-First)
 
+- [ ] **Generators identified** for scaffolding
+- [ ] **Base classes specified** for extending
+- [ ] **Templates referenced** for copying
+- [ ] **Automation commands** provided upfront
+- [ ] **Pre-commit hooks** mentioned for quality
+- [ ] **Dev guards** specified for real-time checks
 - [ ] Feature file thoroughly analyzed
 - [ ] All needed context included in PRP
-- [ ] Validation gates are executable commands
-- [ ] References include specific URLs/files/lines
-- [ ] Implementation blueprint is detailed
-- [ ] Error handling explicitly documented
-- [ ] Dependencies clearly listed
+- [ ] Quick-start commands at the beginning
+- [ ] 5-minute implementation possible
+- [ ] Built-in quality measures documented
+- [ ] Manual work minimized
 - [ ] Success criteria are measurable
 - [ ] No assumptions about external knowledge
 - [ ] PRP is self-contained for implementation
-- [ ] **NO mock implementations or placeholders**
-- [ ] **All code examples use real database/API calls**
-- [ ] **Progress tracking shows actual async operations**
-- [ ] **Test data comes from real sources**
 
-## Confidence Scoring
+## Confidence Scoring (Updated Criteria)
 
 Rate the PRP on these factors (1-10 each):
 
-- **Completeness**: All information present
+- **Automation**: How much can be generated/extended (vs written)
 - **Clarity**: Easy to understand and follow
-- **Executability**: Can be implemented without questions
-- **Validation**: Clear success/failure criteria
-- **Context**: All references and examples included
+- **Speed**: Can be implemented in <30 minutes
+- **Quality**: Built-in checks prevent errors
+- **Completeness**: All information present
 
 **Overall Score**: [Average of above] / 10
 
 **Target**: Minimum 8/10 for release
 
+**Bonus Points**:
+- +1 if 80%+ can be generated
+- +1 if extends existing base classes
+- +1 if includes real-time validation
+
 ## Common Pitfalls to Avoid
 
-1. **Vague References**: "Follow existing patterns" without showing them
-2. **Missing Context**: Assuming knowledge of libraries/frameworks
-3. **Unclear Validation**: "Test that it works" vs specific commands
-4. **Incomplete Research**: Not checking for similar implementations
-5. **Poor Structure**: Missing required sections or unclear organization
+1. **Not Using Generators**: Writing from scratch when generators exist
+2. **Not Extending Base Classes**: Reimplementing retry/monitoring/auth
+3. **Manual Quality Checks**: Not leveraging automated enforcement
+4. **Missing Quick Start**: No upfront automation commands
+5. **Assuming Manual Work**: Not showing the automated path first
 
 ## Post-Generation Verification
 
@@ -266,7 +312,100 @@ Rate the PRP on these factors (1-10 each):
 4. Ensure validation commands are correct
 5. Confirm PRP number is unique
 
-Remember: The goal is ONE-PASS implementation success. Every piece of context matters.
+Remember: The goal is ONE-PASS implementation success with MINIMAL manual work.
+
+## 📋 PRP Template Structure (Automation-First)
+
+Each PRP should follow this structure:
+
+```markdown
+# PRP-XXX: [Feature Name]
+
+## 🚀 Quick Start
+
+```bash
+# Generate the feature structure
+npm run generate:api <feature-name>
+npm run generate:service <feature-name>
+npm run generate:repository <feature-name>
+
+# Enable real-time quality checks
+npm run dev:guards
+
+# Your feature will have these automatically:
+✅ Rate limiting on APIs
+✅ Retry logic in services  
+✅ Organization isolation in queries
+✅ Error handling and monitoring
+✅ TypeScript types and validation
+```
+
+## Goal
+[What we're building - 1-2 sentences]
+
+## Why This Matters
+[Business value and problems solved]
+
+## Implementation Approach
+
+### Step 1: Use Generators (2 minutes)
+```bash
+npm run generate:api products/bulk-import
+npm run generate:service bulk-import
+```
+
+### Step 2: Extend Base Classes (3 minutes)
+```typescript
+// Only implement feature-specific logic
+export class BulkImportService extends BaseService<BulkImport> {
+  protected entityName = 'bulk-import'
+  
+  async processBatch(items: Item[]): Promise<Result> {
+    // Your logic here - retry/monitoring/circuit breaker included
+    return this.withRetry(() => this.repository.createMany(items))
+  }
+}
+```
+
+### Step 3: Use Templates (2 minutes)
+```bash
+cp templates/api-route.ts app/api/bulk-import/route.ts
+# Modify only the handler logic
+```
+
+## What's Built-In
+
+When you extend our base classes, you get:
+- 🔄 Automatic retry with exponential backoff
+- 📊 Metrics and monitoring
+- 🔌 Circuit breaker pattern
+- 🔒 Organization isolation
+- 📝 Audit logging
+- ❌ Proper error handling
+
+## Custom Implementation Required
+
+[Only list what can't be generated or inherited]
+
+## Validation
+
+### Automated (Pre-commit)
+- TypeScript compilation
+- Rate limit verification
+- Test coverage check
+- Security pattern scan
+
+### Manual Testing
+```bash
+npm run test:feature bulk-import
+```
+
+## Success Criteria
+- [ ] All generated files pass validation
+- [ ] Custom logic implemented and tested
+- [ ] Feature works with real data
+- [ ] Performance meets requirements
+```
 
 ## 🚫 CRITICAL: Production-Ready Code Only
 

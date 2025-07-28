@@ -1,13 +1,40 @@
 # Execute BASE PRP
 
-Implement a feature using the PRP file with robust error handling and validation.
+Implement a feature using the PRP file with robust error handling, validation, and automated quality enforcement.
 
 ## PRP File: $ARGUMENTS
 
+## 🚀 Quick Start: The 5-Minute Rule
+
+Before manual implementation, try automated generation:
+
+```bash
+# Generate complete feature with all requirements
+npm run generate:feature <feature-name>
+
+# Examples:
+npm run generate:api products/bulk-upload
+npm run generate:service inventory-sync  
+npm run generate:repository customers
+```
+
 ## Execution Process
 
-### 1. **Pre-Execution Validation**
+### 1. **Pre-Execution Setup & Validation**
 
+#### Enable Development Guards
+```typescript
+// Activate real-time checks BEFORE coding
+npm run dev:guards
+```
+
+This enables:
+- Organization filter validation on ALL queries
+- Rate limit checking on API routes
+- Type safety enforcement
+- Error handling verification
+
+#### Pre-Implementation Checklist
 - Verify PRP file exists at specified path
 - Check if PRP is already implemented (check PRP-STATUS.md)
 - **CRITICAL: Even if marked as implemented, verify against current standards:**
@@ -34,69 +61,92 @@ Implement a feature using the PRP file with robust error handling and validation
   - Files to create/modify specified
 - Perform additional research if needed:
   - Search existing codebase for patterns
-  - Web searches for technical requirements
+  - Use our base classes/templates first
   - Analyze related components and services
 
 ### 3. **ULTRATHINK - Comprehensive Planning**
 
-- Create detailed implementation plan addressing ALL requirements
+#### Use Smart Defaults First
+```typescript
+// Check for existing base classes to extend
+- BaseService (retry, monitoring, circuit breaker built-in)
+- BaseRepository (org isolation, soft deletes built-in)
+- createRouteHandler (rate limiting, auth built-in)
+```
+
+#### Create Implementation Plan
 - Use TodoWrite tool to create granular task list including:
-  - Pre-implementation checks
+  - Type definitions FIRST (no implementation without types)
+  - Database migrations with RLS
+  - Use code generators where available
+  - Copy from templates directory
   - Core feature implementation
-  - Database migrations/changes
-  - UI components
-  - Server actions/API endpoints
-  - Validation implementation
-  - Test creation
+  - Test creation (required for each file)
   - Documentation updates
-- Identify potential risks and mitigation strategies
-- Map existing code patterns to follow
-- Plan for all 4 validation levels
+- Identify which base classes to extend
+- Map to existing patterns (don't reinvent)
+- Plan automated validation checks
 
 ### 4. **Execute Implementation**
 
+#### Real-Time Quality Checks
+```bash
+# Run in separate terminal during development
+npm run dev:monitor
+```
+Shows live dashboard with:
+- ❌ Missing rate limits
+- ❌ Untyped exports  
+- ❌ Missing tests
+- ❌ Organization filter violations
+
+#### Implementation Rules
 - Work through todos systematically
+- **Start with templates/generators:**
+  ```bash
+  # Don't write from scratch!
+  cp templates/api-route.ts app/api/my-feature/route.ts
+  npm run generate:types my-feature
+  ```
 - For each major change:
-  - Implement the change with REAL functionality
-  - Run Level 1 validation (syntax/style)
-  - Fix any immediate issues
-- Follow established patterns:
-  - Use proper TypeScript types (no `any`)
-  - Follow shadcn/ui component patterns
-  - Implement proper error handling
-  - Add loading and error states
+  - Use base classes (BaseService, BaseRepository)
+  - Run real-time validation
+  - Fix issues IMMEDIATELY (shown in dev toolbar)
 - **CRITICAL: Production-Ready Requirements**
   - NO mock data - use real Supabase queries
   - NO setTimeout for progress - track actual async operations
   - NO placeholder functions - implement complete logic
   - NO hardcoded test data - fetch from database
   - NO console.log instead of real operations
-- Commit frequently with descriptive messages
+  - NO `any` types - use `unknown` and type guards
+- Tests required for EVERY file (pre-commit will block)
 
-### 5. **Validation Loops**
+### 5. **Automated Validation (Not Manual Checks)**
 
-**Level 0 - PRP-Specific File Validation:**
-
-- Check ALL files listed in PRP "Files" section exist
-- Validate configuration files match PRP specifications:
-  - `.prettierrc` with exact config from PRP
-  - `tsconfig.json` with ALL required settings
-  - `.env.example` (not `.env.template`)
-  - Package dependencies match requirements
-- Run PRP-specific validation commands if any
-
-**Level 1 - Syntax & Style Check:**
-
+**Pre-Commit Validation (Automatic):**
 ```bash
-pnpm lint && pnpm prettier --check . && pnpm tsc --noEmit
+# This runs automatically on git commit
+✓ Type checking
+✓ Test coverage check
+✓ Rate limit verification
+✓ Organization isolation check
+✓ Bundle size limits
 ```
 
-- Fix any linting errors
-- Format code with prettier if needed
-- Resolve all TypeScript errors
+**Level 0 - PRP-Specific File Validation:**
+```bash
+npm run validate:prp <prp-name>
+```
+
+**Level 1 - Syntax & Style Check:**
+```bash
+npm run check:all
+```
+- Includes security patterns
+- Validates no `any` types
+- Checks for missing tests
 
 **Level 2 - Build Validation:**
-
 ```bash
 pnpm build
 ```
@@ -257,3 +307,45 @@ When checking PRPs marked as "Implemented":
    - Update PRP-STATUS.md only after full compliance
 
 Note: This process ensures robust, error-free implementations that meet all TruthSource platform standards.
+
+## 🎯 Quick Reference Card
+
+### Code Generation Commands
+```bash
+npm run generate:api <name>        # API with rate limiting
+npm run generate:service <name>    # Service with retry logic  
+npm run generate:repository <name> # Repository with RLS
+npm run generate:component <name>  # UI with loading states
+npm run generate:types <name>      # TypeScript types from schema
+```
+
+### Development Commands
+```bash
+npm run dev:guards    # Enable real-time validation
+npm run dev:monitor   # Show quality dashboard
+npm run check:all     # Run all validations
+npm run test:watch    # Auto-run tests on change
+```
+
+### Base Classes to Extend
+```typescript
+import { BaseService } from '@/lib/base/base-service'
+import { BaseRepository } from '@/lib/base/base-repository'
+import { createRouteHandler } from '@/lib/api/route-handler'
+```
+
+### Templates Location
+```
+/templates/
+├── api-route.template.ts
+├── service.template.ts
+├── repository.template.ts
+└── component.template.tsx
+```
+
+## Remember: Make the Right Way the Easy Way!
+
+- ✅ Generate don't write
+- ✅ Extend don't implement
+- ✅ Copy templates don't start blank
+- ✅ Fix immediately don't defer
