@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
+import { Badge, badgeVariants } from '@/components/ui/badge'
 import { 
   Table,
   TableBody,
@@ -10,6 +10,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Activity, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import type { VariantProps } from 'class-variance-authority'
+
+type BadgeVariant = VariantProps<typeof badgeVariants>['variant']
 
 interface UsageBreakdownProps {
   topEndpoints: Array<{ endpoint: string; count: number }>
@@ -19,7 +22,7 @@ interface UsageBreakdownProps {
 export function UsageBreakdown({ topEndpoints, totalApiCalls }: UsageBreakdownProps) {
   const getMethodBadge = (endpoint: string) => {
     const method = endpoint.split(' ')[0]
-    const variants: Record<string, any> = {
+    const variants: Record<string, BadgeVariant> = {
       GET: 'secondary',
       POST: 'default',
       PUT: 'outline',

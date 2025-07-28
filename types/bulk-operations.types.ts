@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Reusable status type for bulk operations
 export type BulkOperationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rolled_back'
@@ -29,7 +30,7 @@ export interface BulkOperation {
   
   // Configuration and results
   config: BulkOperationConfig
-  results: Record<string, any>
+  results: Record<string, string | number | boolean | null>
   error_log: Array<{ message: string; timestamp: string }>
   
   // Audit
@@ -48,8 +49,8 @@ export interface BulkOperationRecord {
   
   // Change tracking
   action: 'create' | 'update' | 'delete'
-  before_data?: Record<string, any>
-  after_data?: Record<string, any>
+  before_data?: Record<string, string | number | boolean | null>
+  after_data?: Record<string, string | number | boolean | null>
   
   // Status
   status: Exclude<BulkOperationStatus, 'cancelled'>
@@ -191,7 +192,7 @@ export interface BulkOperationError {
   recordIndex: number
   field?: string
   message: string
-  value?: any
+  value?: unknown
   code?: string
 }
 
@@ -226,16 +227,16 @@ export interface StreamProcessorOptions {
   onError?: (error: BulkOperationError) => void
 }
 
-// Entity processor interface
-export interface EntityProcessor {
-  schema: z.ZodSchema
+// Entity processor interface with proper typing
+export interface EntityProcessor<T = Record<string, unknown>> {
+  schema: z.ZodSchema<T>
   process(
-    record: any,
+    record: T,
     config: BulkOperationConfig,
-    supabase: any
-  ): Promise<any>
-  rollback(record: BulkOperationRecord, supabase: any): Promise<void>
-  validateBatch?(records: any[]): Promise<BulkOperationError[]>
+    supabase: SupabaseClient
+  ): Promise<T>
+  rollback(record: BulkOperationRecord, supabase: SupabaseClient): Promise<void>
+  validateBatch?(records: T[]): Promise<BulkOperationError[]>
 }
 
 // API response types
