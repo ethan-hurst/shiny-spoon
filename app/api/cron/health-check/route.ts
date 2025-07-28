@@ -1,5 +1,6 @@
 // PRP-015: Cron API Route for Health Checks
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createPublicRouteHandler } from '@/lib/api/route-handler'
 import { createClient } from '@/lib/supabase/server'
 import { SyncEngine } from '@/lib/sync/sync-engine'
 import type { SyncHealthStatus } from '@/types/sync-engine.types'
@@ -19,13 +20,9 @@ const HEALTH_THRESHOLDS = {
 
 /**
  * Handles a secured cron API request to perform health checks on all active integrations and the overall system.
- *
- * Authenticates the request using a secret token, gathers health metrics for each integration, checks system and sync engine health, triggers notifications for critical issues, and returns a comprehensive health report as a JSON response.
- *
- * Returns a 401 response if authentication fails, or a 500 response for unexpected errors.
  */
-export async function GET(request: NextRequest) {
-  try {
+export const GET = createPublicRouteHandler(
+  async ({ request }) => {
     // Verify cron secret
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !CRON_SECRET || authHeader !== `Bearer ${CRON_SECRET}`) {
@@ -155,15 +152,11 @@ export async function GET(request: NextRequest) {
         unhealthy: unhealthyCount,
       },
     })
-
-  } catch (error) {
-    console.error('[CRON] Unexpected error in health check:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+  },
+  {
+    rateLimit: { requests: 20, window: '1m' }
   }
-}
+)
 
 /**
  * Evaluates the health status of a specific integration by analyzing recent sync statistics, queue depth, and job age.
