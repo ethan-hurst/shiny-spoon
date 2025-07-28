@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Next.js Application
+  nextjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_AI_SERVICE_URL=http://ai-service:8000
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    depends_on:
+      - ai-service
+    networks:
+      - truthsource-network
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_KEY}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=false
+      - NEXTJS_API_URL=http://nextjs-app:3000
+    volumes:
+      - ./ai-service:/app
+    networks:
+      - truthsource-network
+
+networks:
+  truthsource-network:
+    driver: bridge
+
+volumes:
+  ai-data:
+    driver: local

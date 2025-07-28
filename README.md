@@ -82,7 +82,18 @@ pnpm supabase gen types typescript --local > lib/database.types.ts
 pnpm dev
 ```
 
+6. **Set up AI Service (optional but recommended)**
+
+```bash
+# Set up Python AI service
+pnpm ai:setup
+
+# In a separate terminal, start the AI service
+pnpm ai:dev
+```
+
 Open [http://localhost:3000](http://localhost:3000) to see the application.
+The AI service will be available at [http://localhost:8000](http://localhost:8000).
 
 ## 🛠 Tech Stack
 
@@ -122,6 +133,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 - ✅ **Order Accuracy Monitor** - Detect and prevent errors before they happen
 - ✅ **Multi-tenant Architecture** - Secure data isolation with RLS
 - ✅ **Audit Trail** - Complete history of all changes
+- ✅ **AI-Powered Insights** - Demand forecasting, delivery prediction, and anomaly detection
 
 ### Integrations
 
@@ -133,8 +145,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ### Coming Soon
 
-- 📅 AI-powered demand forecasting
-- 📅 Automated reorder suggestions
+- 🚀 **Advanced AI Features** - Enhanced forecasting algorithms and real-time optimization
 - 📅 Mobile app for warehouse management
 - 📅 Advanced analytics dashboard
 
@@ -147,12 +158,18 @@ truthsource/
 │   ├── (dashboard)/       # Protected dashboard routes
 │   ├── api/               # API routes for webhooks
 │   └── actions/           # Server actions
+├── ai-service/            # Python AI service with Pydantic AI
+│   ├── agents/           # AI agents for forecasting and detection
+│   ├── models/           # Request/response models
+│   └── services/         # Supporting services
 ├── components/            # React components
 │   ├── ui/               # Base UI components (shadcn/ui)
-│   └── features/         # Feature-specific components
+│   ├── features/         # Feature-specific components
+│   └── ai/               # AI-related components
 ├── lib/                   # Utilities and configurations
 │   ├── supabase/         # Supabase client setup
 │   ├── integrations/     # External API integrations
+│   ├── ai/               # AI service client
 │   └── utils/           # Helper functions
 ├── hooks/                # Custom React hooks
 ├── types/               # TypeScript type definitions
@@ -164,7 +181,7 @@ truthsource/
 
 ## 🏗 Architecture
 
-TruthSource uses a modern, serverless architecture:
+TruthSource uses a modern, serverless architecture with integrated AI capabilities:
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
@@ -172,8 +189,11 @@ TruthSource uses a modern, serverless architecture:
 │  (Vercel Edge)  │     │   (PostgreSQL)  │     │ (ERP/E-comm)   │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
          │                       │                        │
-         └───────────────────────┴────────────────────────┘
-                              Real-time
+         │               ┌─────────────────┐               │
+         └──────────────▶│  AI Service     │◀──────────────┘
+                         │ (Pydantic AI)   │
+                         └─────────────────┘
+                              Real-time Intelligence
 ```
 
 Key architectural decisions:
@@ -271,6 +291,10 @@ SUPABASE_SERVICE_ROLE_KEY=
 # App
 NEXT_PUBLIC_APP_URL=
 
+# AI Service
+NEXT_PUBLIC_AI_SERVICE_URL=
+OPENAI_API_KEY=
+
 # Integrations (optional)
 NETSUITE_ACCOUNT_ID=
 NETSUITE_CONSUMER_KEY=
@@ -285,6 +309,7 @@ SHOPIFY_WEBHOOK_SECRET=
 ## 📚 Documentation
 
 - [Architecture Overview](ARCHITECTURE.md)
+- [AI Service Guide](AI_SERVICE_GUIDE.md)
 - [Contributing Guide](CONTRIBUTING.md)
 - [Supabase Integration Guide](docs/technical/supabase-integration-guide.md)
 - [API Documentation](docs/technical/api-specification.md)
