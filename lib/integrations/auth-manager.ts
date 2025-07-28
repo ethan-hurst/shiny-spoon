@@ -279,7 +279,12 @@ export class AuthManager {
     // Handle platform-specific URL patterns
     let authUrl = mergedConfig.authorizationUrl
     if (platform === 'shopify' && config.additionalParams?.shop) {
-      authUrl = authUrl.replace('{shop}', config.additionalParams.shop)
+      const shop = config.additionalParams.shop
+      // Validate shop parameter to prevent injection
+      if (!this.isValidShopifyShop(shop)) {
+        throw new AuthenticationError('Invalid shop parameter format')
+      }
+      authUrl = authUrl.replace('{shop}', shop)
     }
 
     return `${authUrl}?${params.toString()}`
@@ -311,7 +316,12 @@ export class AuthManager {
       // Handle platform-specific URL patterns
       let tokenUrl = mergedConfig.tokenUrl
       if (platform === 'shopify' && config.additionalParams?.shop) {
-        tokenUrl = tokenUrl.replace('{shop}', config.additionalParams.shop)
+        const shop = config.additionalParams.shop
+        // Validate shop parameter to prevent injection
+        if (!this.isValidShopifyShop(shop)) {
+          throw new AuthenticationError('Invalid shop parameter format')
+        }
+        tokenUrl = tokenUrl.replace('{shop}', shop)
       }
 
       // Exchange code for token
@@ -419,7 +429,12 @@ export class AuthManager {
 
       let tokenUrl = platformConfig.tokenUrl
       if (integration.platform === 'shopify' && integration.config?.shop) {
-        tokenUrl = tokenUrl.replace('{shop}', integration.config.shop)
+        const shop = integration.config.shop
+        // Validate shop parameter to prevent injection
+        if (!this.isValidShopifyShop(shop)) {
+          throw new Error('Invalid shop parameter format')
+        }
+        tokenUrl = tokenUrl.replace('{shop}', shop)
       }
 
       const response = await fetch(tokenUrl, {
@@ -494,6 +509,29 @@ export class AuthManager {
     const array = new Uint8Array(32)
     crypto.getRandomValues(array)
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+  }
+
+  // Validate Shopify shop parameter
+  private isValidShopifyShop(shop: string): boolean {
+    if (!shop || typeof shop !== 'string') return false
+    
+    // Shopify shop names must:
+    // - Be 3-60 characters long
+    // - Contain only lowercase letters, numbers, and hyphens
+    // - Start with a letter
+    // - Not end with a hyphen
+    // - Not contain consecutive hyphens
+    // - End with .myshopify.com (if full domain provided)
+    
+    // Remove .myshopify.com if present to validate the subdomain
+    const subdomain = shop.replace(/\.myshopify\.com$/, '')
+    
+    // Check length
+    if (subdomain.length < 3 || subdomain.length > 60) return false
+    
+    // Check format
+    const shopRegex = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/
+    return shopRegex.test(subdomain)
   }
 
   // Validate API key format
