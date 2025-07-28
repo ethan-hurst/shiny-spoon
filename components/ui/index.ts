@@ -1,6 +1,4 @@
 /**
- * Testbutton exports
+ * UI Component exports
+ * Auto-generated file - add your UI component exports here
  */
-
-export { Testbutton } from './test-button'
-export type { TestbuttonProps } from './test-button.types'
