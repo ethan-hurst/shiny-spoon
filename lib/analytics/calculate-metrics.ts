@@ -1,5 +1,5 @@
 // PRP-018: Analytics Dashboard - Metrics Calculation Service
-import { endOfDay, format, startOfDay, subDays } from 'date-fns'
+import { format } from 'date-fns'
 import { createServerClient } from '@/lib/supabase/server'
 
 export interface DateRange {

@@ -1,7 +1,7 @@
 // PRP-018: Analytics Dashboard - Main Dashboard Page
 import { Suspense } from 'react'
 import { createServerClient } from '@/lib/supabase/server'
-import { startOfMonth, endOfDay, subDays } from 'date-fns'
+import { endOfDay, subDays } from 'date-fns'
 import { AnalyticsCalculator } from '@/lib/analytics/calculate-metrics'
 import { MetricsCards } from '@/components/features/analytics/metrics-cards'
 import { AccuracyChart } from '@/components/features/analytics/accuracy-chart'

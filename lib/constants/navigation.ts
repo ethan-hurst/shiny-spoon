@@ -8,6 +8,7 @@ import {
   Settings,
   Users,
   Warehouse,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -69,6 +70,11 @@ export const navigation: NavSection[] = [
   {
     title: 'Analytics',
     items: [
+      {
+        title: 'Analytics Dashboard',
+        href: '/analytics',
+        icon: TrendingUp,
+      },
       {
         title: 'Reports',
         href: '/reports',
