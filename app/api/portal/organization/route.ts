@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createRouteHandler } from '@/lib/api/route-handler'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
@@ -16,14 +17,9 @@ const updateOrgSchema = z.object({
   }).optional(),
 })
 
-export async function GET(_request: NextRequest) {
-  try {
+export const GET = createRouteHandler(
+  async ({ user }) => {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     const { data: profile } = await supabase
       .from('user_profiles')
@@ -36,23 +32,15 @@ export async function GET(_request: NextRequest) {
     }
 
     return NextResponse.json({ organization: profile.organizations })
-  } catch (error) {
-    console.error('Error fetching organization:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch organization' },
-      { status: 500 }
-    )
+  },
+  {
+    rateLimit: { requests: 50, window: '1m' }
   }
-}
+)
 
-export async function PATCH(request: NextRequest) {
-  try {
+export const PATCH = createRouteHandler(
+  async ({ user, body }) => {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     const { data: profile } = await supabase
       .from('user_profiles')
@@ -64,13 +52,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    const body = await request.json()
-    const parsed = updateOrgSchema.parse(body)
-
     const { data, error } = await supabase
       .from('organizations')
       .update({
-        ...parsed,
+        ...body,
         updated_at: new Date().toISOString(),
       })
       .eq('id', profile.organization_id)
@@ -80,11 +65,13 @@ export async function PATCH(request: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ organization: data })
-  } catch (error) {
-    console.error('Error updating organization:', error)
-    return NextResponse.json(
-      { error: 'Failed to update organization' },
-      { status: 500 }
-    )
+  },
+  {
+    schema: { body: updateOrgSchema },
+    rateLimit: { 
+      requests: 10, 
+      window: '1m',
+      identifier: (req) => req.user?.id || 'anonymous'
+    }
   }
-}
+)

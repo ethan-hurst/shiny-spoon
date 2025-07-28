@@ -1,21 +1,24 @@
 // PRP-016: Data Accuracy Monitor - Alerts List API
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createRouteHandler } from '@/lib/api/route-handler'
 import { z } from 'zod'
 
 export const runtime = 'edge'
 
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = createClient()
-    
-    // Verify authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+const querySchema = z.object({
+  status: z.enum(['all', 'active', 'acknowledged', 'resolved']).default('active'),
+  severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
+  integrationId: z.string().uuid().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0)
+})
 
-    // Get user's organization
+export const GET = createRouteHandler(
+  async ({ user, query }) => {
+    const supabase = createClient()
+
+    // Get user's organization (already validated by wrapper)
     const { data: orgUser } = await supabase
       .from('organization_users')
       .select('organization_id')
@@ -26,41 +29,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
     }
 
-    // Define query parameters schema
-    const queryParamsSchema = z.object({
-      status: z.enum(['all', 'active', 'acknowledged', 'resolved']).default('active'),
-      severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
-      integrationId: z.string().uuid().optional(),
-      limit: z.coerce.number().int().min(1).max(100).default(50),
-      offset: z.coerce.number().int().min(0).default(0)
-    })
-    
-    // Get and validate query parameters
-    const { searchParams } = new URL(request.url)
-    const rawParams = {
-      status: searchParams.get('status') || 'active',
-      severity: searchParams.get('severity') || undefined,
-      integrationId: searchParams.get('integrationId') || undefined,
-      limit: searchParams.get('limit') || '50',
-      offset: searchParams.get('offset') || '0'
-    }
-    
-    // Validate parameters
-    let validatedParams
-    try {
-      validatedParams = queryParamsSchema.parse(rawParams)
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
-        return NextResponse.json({ error: `Invalid parameters: ${errors}` }, { status: 400 })
-      }
-      return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 })
-    }
-    
-    const { status, severity, integrationId, limit, offset } = validatedParams
+    const { status, severity, integrationId, limit, offset } = query
 
-    // Build query
-    let query = supabase
+    // Build query with org isolation (automatic from context)
+    let alertQuery = supabase
       .from('alerts')
       .select(`
         *,
@@ -83,18 +55,18 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (status !== 'all') {
-      query = query.eq('status', status)
+      alertQuery = alertQuery.eq('status', status)
     }
 
     if (severity) {
-      query = query.eq('severity', severity)
+      alertQuery = alertQuery.eq('severity', severity)
     }
 
     if (integrationId) {
-      query = query.eq('integration_id', integrationId)
+      alertQuery = alertQuery.eq('integration_id', integrationId)
     }
 
-    const { data: alerts, count, error } = await query
+    const { data: alerts, count, error } = await alertQuery
 
     if (error) {
       throw error
@@ -139,11 +111,9 @@ export async function GET(request: NextRequest) {
         summary,
       },
     })
-  } catch (error) {
-    console.error('Alerts list API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch alerts' },
-      { status: 500 }
-    )
+  },
+  {
+    schema: { query: querySchema },
+    rateLimit: { requests: 100, window: '1m' }
   }
-}
+)
