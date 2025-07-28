@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
+    "dev:guards": "node scripts/dev-guards.js",
+    "dev:guards:quick": "node scripts/dev-guards-quick.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -23,13 +25,15 @@
     "validate:setup": "node scripts/validate-setup.js",
     "validate:migrations": "node scripts/validate-migrations.js",
     "prepare": "husky install",
+    "setup:hooks": "node scripts/setup-enhanced-hooks.js",
     "generate": "./generate.sh",
     "generate:api": "./generate.sh api",
     "generate:service": "./generate.sh service",
     "generate:repository": "./generate.sh repository",
     "generate:component": "./generate.sh component",
     "generate:integration": "./generate.sh integration",
-    "generate:check": "./generate.sh check"
+    "generate:check": "./generate.sh check",
+    "generate:template": "./generate.sh template"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -84,6 +88,7 @@
     "framer-motion": "^11.1.9",
     "fuse.js": "^7.1.0",
     "geist": "^1.3.0",
+    "glob": "^11.0.3",
     "html-react-parser": "^5.1.12",
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.436.0",
@@ -152,7 +157,7 @@
       "prettier --write"
     ],
     "*.{js,jsx}": [
-      "eslint --fix", 
+      "eslint --fix",
       "prettier --write"
     ],
     "*.{json,md,yml,yaml}": [
