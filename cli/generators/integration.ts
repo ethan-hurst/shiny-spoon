@@ -6,9 +6,13 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as Handlebars from 'handlebars'
+import { writeFile } from '../utils/files'
+import { registerHelpers } from '../utils/handlebars-helpers'
 import { logger } from '../utils/logger'
-import { toKebabCase, toPascalCase, toCamelCase, toSnakeCase } from '../utils/strings'
-import { ensureDir, writeFile } from '../utils/files'
+import { toKebabCase, toPascalCase } from '../utils/strings'
+
+// Register Handlebars helpers
+registerHelpers()
 
 interface IntegrationGeneratorOptions {
   type?: 'oauth' | 'api-key' | 'webhook'
@@ -23,7 +27,7 @@ interface IntegrationGeneratorOptions {
 export const integrationGenerator = {
   async generate(name: string, options: IntegrationGeneratorOptions = {}) {
     logger.info(`Generating integration: ${name}`)
-    
+
     const {
       type = 'api-key',
       webhook = false,
@@ -31,7 +35,7 @@ export const integrationGenerator = {
       withTypes = true,
       withTests = true,
       withDocs = true,
-      description = `${name} integration`
+      description = `${name} integration`,
     } = options
 
     try {
@@ -39,12 +43,16 @@ export const integrationGenerator = {
       const kebabName = toKebabCase(name)
       const integrationName = toPascalCase(name)
       const connectorName = integrationName + 'Connector'
-      const serviceName = integrationName + 'Service'
-      
+
       // Create integration directory structure
-      const integrationsDir = path.join(process.cwd(), 'lib', 'integrations', kebabName)
+      const integrationsDir = path.join(
+        process.cwd(),
+        'lib',
+        'integrations',
+        kebabName
+      )
       await fs.mkdir(integrationsDir, { recursive: true })
-      
+
       // Generate connector file
       const connectorFile = path.join(integrationsDir, 'connector.ts')
       await this.generateConnectorFile(connectorFile, {
@@ -54,52 +62,64 @@ export const integrationGenerator = {
         description,
         type,
         sync,
-        webhook
+        webhook,
       })
-      
+
       // Generate auth file
       const authFile = path.join(integrationsDir, 'auth.ts')
       await this.generateAuthFile(authFile, {
         integrationName,
         kebabName,
-        type
+        type,
       })
-      
+
       // Generate API client file
       const clientFile = path.join(integrationsDir, 'api-client.ts')
       await this.generateApiClientFile(clientFile, {
         integrationName,
         kebabName,
-        type
+        type,
       })
-      
+
       // Generate transformers file
       const transformersFile = path.join(integrationsDir, 'transformers.ts')
       await this.generateTransformersFile(transformersFile, {
         integrationName,
-        kebabName
+        kebabName,
       })
 
       // Generate webhook handler if needed
       if (webhook) {
-        const webhookDir = path.join(process.cwd(), 'app', 'api', 'webhooks', kebabName)
+        const webhookDir = path.join(
+          process.cwd(),
+          'app',
+          'api',
+          'webhooks',
+          kebabName
+        )
         await fs.mkdir(webhookDir, { recursive: true })
         const webhookFile = path.join(webhookDir, 'route.ts')
         await this.generateWebhookFile(webhookFile, {
           integrationName,
-          kebabName
+          kebabName,
         })
       }
 
       // Generate UI components
-      const uiDir = path.join(process.cwd(), 'app', '(dashboard)', 'integrations', kebabName)
+      const uiDir = path.join(
+        process.cwd(),
+        'app',
+        '(dashboard)',
+        'integrations',
+        kebabName
+      )
       await fs.mkdir(uiDir, { recursive: true })
       const uiFile = path.join(uiDir, 'page.tsx')
       await this.generateUIFile(uiFile, {
         integrationName,
         kebabName,
         type,
-        webhook
+        webhook,
       })
 
       // Generate types file if needed
@@ -110,28 +130,33 @@ export const integrationGenerator = {
         await this.generateTypesFile(typesFile, {
           integrationName,
           kebabName,
-          type
+          type,
         })
       }
-      
+
       // Generate test files if needed
       if (withTests) {
-        const testsDir = path.join(process.cwd(), '__tests__', 'integrations', kebabName)
+        const testsDir = path.join(
+          process.cwd(),
+          '__tests__',
+          'integrations',
+          kebabName
+        )
         await fs.mkdir(testsDir, { recursive: true })
-        
+
         const connectorTestFile = path.join(testsDir, 'connector.test.ts')
         await this.generateTestFile(connectorTestFile, {
           connectorName,
           integrationName,
           kebabName,
-          type: 'connector'
+          type: 'connector',
         })
 
         const authTestFile = path.join(testsDir, 'auth.test.ts')
         await this.generateTestFile(authTestFile, {
           integrationName,
           kebabName,
-          type: 'auth'
+          type: 'auth',
         })
       }
 
@@ -145,10 +170,10 @@ export const integrationGenerator = {
           kebabName,
           type,
           webhook,
-          sync
+          sync,
         })
       }
-      
+
       logger.success(`Integration ${integrationName} generated successfully!`)
       logger.info('Generated files:')
       logger.info(`  - ${path.relative(process.cwd(), connectorFile)}`)
@@ -156,7 +181,7 @@ export const integrationGenerator = {
       logger.info(`  - ${path.relative(process.cwd(), clientFile)}`)
       logger.info(`  - ${path.relative(process.cwd(), transformersFile)}`)
       logger.info(`  - ${path.relative(process.cwd(), uiFile)}`)
-      
+
       if (webhook) {
         logger.info(`  - app/api/webhooks/${kebabName}/route.ts`)
       }
@@ -169,7 +194,7 @@ export const integrationGenerator = {
       if (withDocs) {
         logger.info(`  - lib/integrations/${kebabName}/docs/README.md`)
       }
-      
+
       logger.info('\nNext steps:')
       logger.info('1. Configure integration credentials in the UI')
       logger.info('2. Implement specific API endpoints in the connector')
@@ -178,7 +203,6 @@ export const integrationGenerator = {
       if (webhook) {
         logger.info('5. Configure webhook URL in the external service')
       }
-      
     } catch (error) {
       logger.error('Failed to generate integration:', error)
       throw error
@@ -456,9 +480,9 @@ interface ${context.integrationName}Config {
 export default function ${context.integrationName}IntegrationPage() {
   const [config, setConfig] = useState<${context.integrationName}Config>({
     enabled: false,
-    ${context.type === 'oauth' ? 'clientId: \'\',\n    clientSecret: \'\',' : 'apiKey: \'\',\n    apiSecret: \'\','}
+    ${context.type === 'oauth' ? "clientId: '',\n    clientSecret: ''," : "apiKey: '',\n    apiSecret: '',"}
     baseUrl: '',
-    ${context.webhook ? 'webhookSecret: \'\',' : ''}
+    ${context.webhook ? "webhookSecret: ''," : ''}
     syncFrequency: 'hourly',
     syncEntities: {
       products: true,
@@ -586,7 +610,9 @@ export default function ${context.integrationName}IntegrationPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${context.type === 'oauth' ? `
+                ${
+                  context.type === 'oauth'
+                    ? `
                 <div>
                   <Label htmlFor="clientId">Client ID</Label>
                   <Input
@@ -606,7 +632,8 @@ export default function ${context.integrationName}IntegrationPage() {
                     placeholder="Enter your ${context.integrationName} client secret"
                   />
                 </div>
-                ` : `
+                `
+                    : `
                 <div>
                   <Label htmlFor="apiKey">API Key</Label>
                   <Input
@@ -626,7 +653,8 @@ export default function ${context.integrationName}IntegrationPage() {
                     placeholder="Enter your ${context.integrationName} API secret"
                   />
                 </div>
-                `}
+                `
+                }
               </div>
 
               <div>
@@ -707,7 +735,9 @@ export default function ${context.integrationName}IntegrationPage() {
           </Card>
         </TabsContent>
 
-        ${context.webhook ? `
+        ${
+          context.webhook
+            ? `
         <TabsContent value="webhooks">
           <Card>
             <CardHeader>
@@ -739,7 +769,9 @@ export default function ${context.integrationName}IntegrationPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        ` : ''}
+        `
+            : ''
+        }
       </Tabs>
     </div>
   )
@@ -1126,7 +1158,9 @@ ${context.webhook ? '- Real-time updates via webhooks' : ''}
 
 ### Authentication
 
-${context.type === 'oauth' ? `
+${
+  context.type === 'oauth'
+    ? `
 This integration uses OAuth 2.0 authentication. You'll need:
 
 1. **Client ID**: Your ${context.integrationName} application client ID
@@ -1138,7 +1172,8 @@ This integration uses OAuth 2.0 authentication. You'll need:
 2. Enter your Client ID and Client Secret
 3. Click "Authorize" to complete the OAuth flow
 4. Test the connection to verify setup
-` : `
+`
+    : `
 This integration uses API key authentication. You'll need:
 
 1. **API Key**: Your ${context.integrationName} API key
@@ -1149,7 +1184,8 @@ This integration uses API key authentication. You'll need:
 1. Navigate to Integrations > ${context.integrationName}
 2. Enter your API credentials
 3. Test the connection to verify setup
-`}
+`
+}
 
 ### Sync Configuration
 
@@ -1165,7 +1201,9 @@ Set sync frequency:
 - **Hourly**: Automatic sync every hour
 - **Daily**: Automatic sync once per day
 
-${context.webhook ? `
+${
+  context.webhook
+    ? `
 ### Webhook Configuration
 
 Real-time updates can be enabled using webhooks:
@@ -1182,7 +1220,9 @@ Supported webhook events:
 - customer.updated
 - order.created
 - order.updated
-` : ''}
+`
+    : ''
+}
 
 ## Data Mapping
 
@@ -2046,18 +2086,19 @@ export class {{integrationName}}ApiClient {
   async interactive() {
     try {
       const inquirer = (await import('inquirer')).default
-      
+
       const answers = await inquirer.prompt([
         {
           type: 'input',
           name: 'name',
           message: 'Integration name:',
-          validate: (input: string) => input.trim().length > 0 || 'Integration name is required'
+          validate: (input: string) =>
+            input.trim().length > 0 || 'Integration name is required',
         },
         {
           type: 'input',
           name: 'description',
-          message: 'Integration description (optional):'
+          message: 'Integration description (optional):',
         },
         {
           type: 'list',
@@ -2066,39 +2107,39 @@ export class {{integrationName}}ApiClient {
           choices: [
             { name: 'OAuth 2.0', value: 'oauth' },
             { name: 'API Key', value: 'api-key' },
-            { name: 'Webhook Only', value: 'webhook' }
-          ]
+            { name: 'Webhook Only', value: 'webhook' },
+          ],
         },
         {
           type: 'confirm',
           name: 'webhook',
           message: 'Include webhook support?',
-          default: true
+          default: true,
         },
         {
           type: 'confirm',
           name: 'sync',
           message: 'Include sync functionality?',
-          default: true
+          default: true,
         },
         {
           type: 'confirm',
           name: 'withTypes',
           message: 'Generate TypeScript types?',
-          default: true
+          default: true,
         },
         {
           type: 'confirm',
           name: 'withTests',
           message: 'Generate test files?',
-          default: true
+          default: true,
         },
         {
           type: 'confirm',
           name: 'withDocs',
           message: 'Generate documentation?',
-          default: true
-        }
+          default: true,
+        },
       ])
 
       const options = {
@@ -2108,7 +2149,7 @@ export class {{integrationName}}ApiClient {
         withTypes: answers.withTypes,
         withTests: answers.withTests,
         withDocs: answers.withDocs,
-        description: answers.description || `${answers.name} integration`
+        description: answers.description || `${answers.name} integration`,
       }
 
       await this.generate(answers.name, options)
@@ -2116,5 +2157,5 @@ export class {{integrationName}}ApiClient {
       logger.error('Interactive integration generation failed:', error)
       throw error
     }
-  }
+  },
 }

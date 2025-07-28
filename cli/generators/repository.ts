@@ -6,9 +6,13 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as Handlebars from 'handlebars'
+import { writeFile } from '../utils/files'
+import { registerHelpers } from '../utils/handlebars-helpers'
 import { logger } from '../utils/logger'
-import { toKebabCase, toPascalCase, toCamelCase, toSnakeCase } from '../utils/strings'
-import { ensureDir, writeFile } from '../utils/files'
+import { toKebabCase, toPascalCase, toSnakeCase } from '../utils/strings'
+
+// Register Handlebars helpers
+registerHelpers()
 
 interface RepositoryGeneratorOptions {
   table?: string
@@ -22,14 +26,14 @@ interface RepositoryGeneratorOptions {
 export const repositoryGenerator = {
   async generate(name: string, options: RepositoryGeneratorOptions = {}) {
     logger.info(`Generating repository: ${name}`)
-    
+
     const {
       table,
       softDelete = true,
       withTypes = true,
       withValidation = true,
       withTests = true,
-      description = `${name} repository`
+      description = `${name} repository`,
     } = options
 
     try {
@@ -38,13 +42,16 @@ export const repositoryGenerator = {
       const repositoryName = toPascalCase(name) + 'Repository'
       const entityName = toPascalCase(name)
       const tableName = table || toSnakeCase(name) + 's'
-      
+
       // Create repository directory
       const repositoriesDir = path.join(process.cwd(), 'lib', 'repositories')
       await fs.mkdir(repositoriesDir, { recursive: true })
-      
+
       // Generate repository file
-      const repositoryFile = path.join(repositoriesDir, `${kebabName}.repository.ts`)
+      const repositoryFile = path.join(
+        repositoriesDir,
+        `${kebabName}.repository.ts`
+      )
       await this.generateRepositoryFile(repositoryFile, {
         repositoryName,
         entityName,
@@ -52,9 +59,9 @@ export const repositoryGenerator = {
         tableName,
         description,
         softDelete,
-        withValidation
+        withValidation,
       })
-      
+
       // Generate types file if needed
       if (withTypes) {
         const typesDir = path.join(process.cwd(), 'types')
@@ -63,10 +70,10 @@ export const repositoryGenerator = {
         await this.generateTypesFile(typesFile, {
           entityName,
           kebabName,
-          tableName
+          tableName,
         })
       }
-      
+
       // Generate test file if needed
       if (withTests) {
         const testsDir = path.join(process.cwd(), '__tests__', 'repositories')
@@ -75,10 +82,10 @@ export const repositoryGenerator = {
         await this.generateTestFile(testFile, {
           repositoryName,
           entityName,
-          kebabName
+          kebabName,
         })
       }
-      
+
       logger.success(`Repository ${repositoryName} generated successfully!`)
       logger.info('Generated files:')
       logger.info(`  - ${path.relative(process.cwd(), repositoryFile)}`)
@@ -86,15 +93,22 @@ export const repositoryGenerator = {
         logger.info(`  - types/${kebabName}.types.ts`)
       }
       if (withTests) {
-        logger.info(`  - __tests__/repositories/${kebabName}.repository.test.ts`)
+        logger.info(
+          `  - __tests__/repositories/${kebabName}.repository.test.ts`
+        )
       }
-      
+
       logger.info('\nNext steps:')
-      logger.info('1. Update the types in the types file to match your database schema')
+      logger.info(
+        '1. Update the types in the types file to match your database schema'
+      )
       logger.info('2. Implement any custom query methods in the repository')
       logger.info('3. Create the corresponding database table/migration')
-      logger.info('4. Run the tests: npm test __tests__/repositories/' + kebabName + '.repository.test.ts')
-      
+      logger.info(
+        '4. Run the tests: npm test __tests__/repositories/' +
+          kebabName +
+          '.repository.test.ts'
+      )
     } catch (error) {
       logger.error('Failed to generate repository:', error)
       throw error
@@ -102,8 +116,11 @@ export const repositoryGenerator = {
   },
 
   async generateRepositoryFile(filePath: string, context: any) {
-    const templatePath = path.join(__dirname, '../templates/repository/repository.hbs')
-    
+    const templatePath = path.join(
+      __dirname,
+      '../templates/repository/repository.hbs'
+    )
+
     // Check if template exists, if not use inline template
     let template: string
     try {
@@ -112,7 +129,7 @@ export const repositoryGenerator = {
       // Use inline template as fallback
       template = this.getRepositoryTemplate()
     }
-    
+
     const compiled = Handlebars.compile(template)
     const content = compiled(context)
     await writeFile(filePath, content)
@@ -492,48 +509,50 @@ export class {{repositoryName}} extends BaseRepository<{{entityName}}> {
   async interactive() {
     try {
       const inquirer = (await import('inquirer')).default
-      
+
       const answers = await inquirer.prompt([
         {
           type: 'input',
           name: 'name',
           message: 'Repository name:',
-          validate: (input: string) => input.trim().length > 0 || 'Repository name is required'
+          validate: (input: string) =>
+            input.trim().length > 0 || 'Repository name is required',
         },
         {
           type: 'input',
           name: 'description',
-          message: 'Repository description (optional):'
+          message: 'Repository description (optional):',
         },
         {
           type: 'input',
           name: 'table',
-          message: 'Database table name (optional, will auto-generate if empty):'
+          message:
+            'Database table name (optional, will auto-generate if empty):',
         },
         {
           type: 'confirm',
           name: 'softDelete',
           message: 'Enable soft deletes?',
-          default: true
+          default: true,
         },
         {
           type: 'confirm',
           name: 'withTypes',
           message: 'Generate TypeScript types?',
-          default: true
+          default: true,
         },
         {
           type: 'confirm',
           name: 'withValidation',
           message: 'Include data validation?',
-          default: true
+          default: true,
         },
         {
           type: 'confirm',
           name: 'withTests',
           message: 'Generate test file?',
-          default: true
-        }
+          default: true,
+        },
       ])
 
       const options = {
@@ -542,7 +561,7 @@ export class {{repositoryName}} extends BaseRepository<{{entityName}}> {
         withTypes: answers.withTypes,
         withValidation: answers.withValidation,
         withTests: answers.withTests,
-        description: answers.description || `${answers.name} repository`
+        description: answers.description || `${answers.name} repository`,
       }
 
       await this.generate(answers.name, options)
@@ -550,5 +569,5 @@ export class {{repositoryName}} extends BaseRepository<{{entityName}}> {
       logger.error('Interactive repository generation failed:', error)
       throw error
     }
-  }
+  },
 }

@@ -4,13 +4,12 @@
  * TruthSource Code Generator CLI
  * Generates boilerplate code following best practices
  */
-
 import { Command } from 'commander'
 import { apiGenerator } from './generators/api'
-import { serviceGenerator } from './generators/service'
-import { repositoryGenerator } from './generators/repository'
-import { integrationGenerator } from './generators/integration'
 import { componentGenerator } from './generators/component'
+import { integrationGenerator } from './generators/integration'
+import { repositoryGenerator } from './generators/repository'
+import { serviceGenerator } from './generators/service'
 import { checkPrerequisites } from './utils/checks'
 import { logger } from './utils/logger'
 
@@ -18,14 +17,20 @@ const program = new Command()
 
 program
   .name('truthsource')
-  .description('TruthSource code generator - create components following best practices')
+  .description(
+    'TruthSource code generator - create components following best practices'
+  )
   .version('1.0.0')
 
 // API Route Generator
 program
   .command('api <name>')
   .description('Generate a new API route with security and error handling')
-  .option('-m, --methods <methods>', 'HTTP methods (comma-separated)', 'GET,POST')
+  .option(
+    '-m, --methods <methods>',
+    'HTTP methods (comma-separated)',
+    'GET,POST'
+  )
   .option('-a, --auth', 'Require authentication (default: true)', true)
   .option('-r, --rate-limit', 'Enable rate limiting', false)
   .option('-p, --path <path>', 'Custom path (default: /api/<name>)')
@@ -44,7 +49,11 @@ program
 program
   .command('service <name>')
   .description('Generate a new service with retry logic and monitoring')
-  .option('-t, --type <type>', 'Service type (business, integration)', 'business')
+  .option(
+    '-t, --type <type>',
+    'Service type (business, integration)',
+    'business'
+  )
   .option('-r, --with-repository', 'Include repository', false)
   .action(async (name, options) => {
     try {
@@ -62,11 +71,20 @@ program
   .command('repository <name>')
   .description('Generate a new repository with organization isolation')
   .option('-t, --table <table>', 'Database table name')
-  .option('-s, --soft-delete', 'Enable soft deletes', true)
+  .option('--soft-delete', 'Enable soft deletes', true)
+  .option('--with-types', 'Generate TypeScript types', true)
+  .option('--with-validation', 'Include data validation', true)
+  .option('--with-tests', 'Generate test file', true)
   .action(async (name, options) => {
     try {
       await checkPrerequisites()
-      await repositoryGenerator.generate(name, options)
+      await repositoryGenerator.generate(name, {
+        table: options.table,
+        softDelete: options.softDelete,
+        withTypes: options.withTypes,
+        withValidation: options.withValidation,
+        withTests: options.withTests,
+      })
       logger.success(`Repository '${name}' generated successfully!`)
     } catch (error) {
       logger.error('Failed to generate repository:', error)
@@ -78,12 +96,27 @@ program
 program
   .command('integration <name>')
   .description('Generate a new integration with auth and sync')
-  .option('-t, --type <type>', 'Integration type (oauth, api-key)', 'api-key')
-  .option('-w, --webhook', 'Include webhook support', false)
+  .option(
+    '-t, --type <type>',
+    'Integration type (oauth, api-key, webhook)',
+    'api-key'
+  )
+  .option('--webhook', 'Include webhook support', false)
+  .option('--sync', 'Include sync functionality', true)
+  .option('--with-types', 'Generate TypeScript types', true)
+  .option('--with-tests', 'Generate test files', true)
+  .option('--with-docs', 'Generate documentation', true)
   .action(async (name, options) => {
     try {
       await checkPrerequisites()
-      await integrationGenerator.generate(name, options)
+      await integrationGenerator.generate(name, {
+        type: options.type,
+        webhook: options.webhook,
+        sync: options.sync,
+        withTypes: options.withTypes,
+        withTests: options.withTests,
+        withDocs: options.withDocs,
+      })
       logger.success(`Integration '${name}' generated successfully!`)
     } catch (error) {
       logger.error('Failed to generate integration:', error)
@@ -98,10 +131,22 @@ program
   .option('-t, --type <type>', 'Component type (page, feature, ui)', 'feature')
   .option('-s, --server', 'Server component', false)
   .option('-f, --with-form', 'Include form handling', false)
+  .option('--with-state', 'Include state management', true)
+  .option('--with-props', 'Generate TypeScript props interface', true)
+  .option('--with-tests', 'Generate test file', true)
+  .option('--with-storybook', 'Generate Storybook story', false)
   .action(async (name, options) => {
     try {
       await checkPrerequisites()
-      await componentGenerator.generate(name, options)
+      await componentGenerator.generate(name, {
+        type: options.type,
+        server: options.server,
+        withForm: options.withForm,
+        withState: options.withState,
+        withProps: options.withProps,
+        withTests: options.withTests,
+        withStorybook: options.withStorybook,
+      })
       logger.success(`Component '${name}' generated successfully!`)
     } catch (error) {
       logger.error('Failed to generate component:', error)
@@ -117,7 +162,7 @@ program
   .action(async () => {
     try {
       const inquirer = (await import('inquirer')).default
-      
+
       const { generatorType } = await inquirer.prompt([
         {
           type: 'list',
@@ -128,9 +173,9 @@ program
             { name: 'Service', value: 'service' },
             { name: 'Repository', value: 'repository' },
             { name: 'Integration', value: 'integration' },
-            { name: 'Component', value: 'component' }
-          ]
-        }
+            { name: 'Component', value: 'component' },
+          ],
+        },
       ])
 
       // Route to appropriate generator in interactive mode

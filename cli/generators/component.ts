@@ -6,9 +6,13 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as Handlebars from 'handlebars'
+import { writeFile } from '../utils/files'
+import { registerHelpers } from '../utils/handlebars-helpers'
 import { logger } from '../utils/logger'
-import { toKebabCase, toPascalCase, toCamelCase, toSnakeCase } from '../utils/strings'
-import { ensureDir, writeFile } from '../utils/files'
+import { toKebabCase, toPascalCase } from '../utils/strings'
+
+// Register Handlebars helpers
+registerHelpers()
 
 interface ComponentGeneratorOptions {
   type?: 'page' | 'feature' | 'ui'
@@ -24,7 +28,7 @@ interface ComponentGeneratorOptions {
 export const componentGenerator = {
   async generate(name: string, options: ComponentGeneratorOptions = {}) {
     logger.info(`Generating component: ${name}`)
-    
+
     const {
       type = 'feature',
       server = false,
@@ -33,7 +37,7 @@ export const componentGenerator = {
       withProps = true,
       withTests = true,
       withStorybook = false,
-      description = `${name} component`
+      description = `${name} component`,
     } = options
 
     try {
@@ -41,7 +45,7 @@ export const componentGenerator = {
       const kebabName = toKebabCase(name)
       const componentName = toPascalCase(name)
       const fileName = kebabName
-      
+
       // Determine base directory based on component type
       let baseDir: string
       switch (type) {
@@ -53,14 +57,22 @@ export const componentGenerator = {
           break
         case 'feature':
         default:
-          baseDir = path.join(process.cwd(), 'components', 'features', kebabName)
+          baseDir = path.join(
+            process.cwd(),
+            'components',
+            'features',
+            kebabName
+          )
           break
       }
-      
+
       await fs.mkdir(baseDir, { recursive: true })
-      
+
       // Generate main component file
-      const componentFile = path.join(baseDir, type === 'page' ? 'page.tsx' : `${fileName}.tsx`)
+      const componentFile = path.join(
+        baseDir,
+        type === 'page' ? 'page.tsx' : `${fileName}.tsx`
+      )
       await this.generateComponentFile(componentFile, {
         componentName,
         kebabName,
@@ -70,9 +82,9 @@ export const componentGenerator = {
         server,
         withForm,
         withState,
-        withProps
+        withProps,
       })
-      
+
       // Generate types file if using props
       if (withProps && type !== 'page') {
         const typesFile = path.join(baseDir, `${fileName}.types.ts`)
@@ -80,23 +92,28 @@ export const componentGenerator = {
           componentName,
           kebabName,
           withForm,
-          withState
+          withState,
         })
       }
-      
+
       // Generate index file for easier imports (except for pages)
       if (type !== 'page') {
         const indexFile = path.join(baseDir, 'index.ts')
         await this.generateIndexFile(indexFile, {
           componentName,
           fileName,
-          withProps
+          withProps,
         })
       }
-      
+
       // Generate test file if needed
       if (withTests) {
-        const testsDir = path.join(process.cwd(), '__tests__', 'components', type === 'ui' ? 'ui' : 'features')
+        const testsDir = path.join(
+          process.cwd(),
+          '__tests__',
+          'components',
+          type === 'ui' ? 'ui' : 'features'
+        )
         await fs.mkdir(testsDir, { recursive: true })
         const testFile = path.join(testsDir, `${kebabName}.test.tsx`)
         await this.generateTestFile(testFile, {
@@ -104,10 +121,10 @@ export const componentGenerator = {
           kebabName,
           withForm,
           withState,
-          server
+          server,
         })
       }
-      
+
       // Generate Storybook story if needed
       if (withStorybook && type !== 'page') {
         const storiesDir = path.join(process.cwd(), 'stories')
@@ -118,27 +135,31 @@ export const componentGenerator = {
           kebabName,
           type,
           withProps,
-          withForm
+          withForm,
         })
       }
-      
+
       logger.success(`Component ${componentName} generated successfully!`)
       logger.info('Generated files:')
       logger.info(`  - ${path.relative(process.cwd(), componentFile)}`)
-      
+
       if (withProps && type !== 'page') {
-        logger.info(`  - ${path.relative(process.cwd(), baseDir)}/${fileName}.types.ts`)
+        logger.info(
+          `  - ${path.relative(process.cwd(), baseDir)}/${fileName}.types.ts`
+        )
       }
       if (type !== 'page') {
         logger.info(`  - ${path.relative(process.cwd(), baseDir)}/index.ts`)
       }
       if (withTests) {
-        logger.info(`  - __tests__/components/${type === 'ui' ? 'ui' : 'features'}/${kebabName}.test.tsx`)
+        logger.info(
+          `  - __tests__/components/${type === 'ui' ? 'ui' : 'features'}/${kebabName}.test.tsx`
+        )
       }
       if (withStorybook && type !== 'page') {
         logger.info(`  - stories/${componentName}.stories.tsx`)
       }
-      
+
       logger.info('\nNext steps:')
       logger.info('1. Customize the component logic and styling')
       if (withForm) {
@@ -150,7 +171,6 @@ export const componentGenerator = {
       if (type === 'ui') {
         logger.info('4. Add component to ui/index.ts for easier imports')
       }
-      
     } catch (error) {
       logger.error('Failed to generate component:', error)
       throw error
@@ -180,7 +200,9 @@ export interface ${context.componentName}Props {
   // Add your custom props here
 }
 
-${context.withForm ? `
+${
+  context.withForm
+    ? `
 // Form data interface
 export interface FormData {
   // Define your form fields here
@@ -197,16 +219,22 @@ export const formSchema = z.object({
 })
 
 export type FormData = z.infer<typeof formSchema>
-` : ''}
+`
+    : ''
+}
 
-${context.withState ? `
+${
+  context.withState
+    ? `
 // Component state interface
 export interface ${context.componentName}State {
   loading: boolean
   error: string | null
   // Add your state properties here
 }
-` : ''}
+`
+    : ''
+}
 
 // Event handler types
 export interface ${context.componentName}Handlers {
@@ -247,11 +275,15 @@ ${context.server ? '// Mock Next.js server components for testing' : ''}
 ${context.server ? "jest.mock('next/navigation', () => ({\n  useRouter: () => ({\n    push: jest.fn(),\n    refresh: jest.fn()\n  })\n}))" : ''}
 
 describe('${context.componentName}', () => {
-  ${context.withState ? `
+  ${
+    context.withState
+      ? `
   const defaultProps = {
     // Add default props here
   }
-  ` : ''}
+  `
+      : ''
+  }
 
   beforeEach(() => {
     // Setup before each test
@@ -273,16 +305,22 @@ describe('${context.componentName}', () => {
       expect(screen.getByTestId('${context.kebabName}')).toHaveClass(customClass)
     })
 
-    ${context.withForm ? `
+    ${
+      context.withForm
+        ? `
     it('should render form elements', () => {
       render(<${context.componentName}${context.withState ? ' {...defaultProps}' : ''} />)
       expect(screen.getByRole('form')).toBeInTheDocument()
       expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
     })
-    ` : ''}
+    `
+        : ''
+    }
   })
 
-  ${context.withForm ? `
+  ${
+    context.withForm
+      ? `
   describe('form interaction', () => {
     it('should handle form submission', async () => {
       const user = userEvent.setup()
@@ -335,9 +373,13 @@ describe('${context.componentName}', () => {
       })
     })
   })
-  ` : ''}
+  `
+      : ''
+  }
 
-  ${context.withState ? `
+  ${
+    context.withState
+      ? `
   describe('state management', () => {
     it('should handle loading state', () => {
       // Test loading state rendering
@@ -351,7 +393,9 @@ describe('${context.componentName}', () => {
       // Add specific error state tests
     })
   })
-  ` : ''}
+  `
+      : ''
+  }
 
   describe('accessibility', () => {
     it('should have proper ARIA attributes', () => {
@@ -360,12 +404,16 @@ describe('${context.componentName}', () => {
       expect(component).toHaveAttribute('role')
     })
 
-    ${context.withForm ? `
+    ${
+      context.withForm
+        ? `
     it('should have proper form labels', () => {
       render(<${context.componentName}${context.withState ? ' {...defaultProps}' : ''} />)
       expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
     })
-    ` : ''}
+    `
+        : ''
+    }
   })
 
   describe('user interactions', () => {
@@ -410,11 +458,15 @@ const meta: Meta<typeof ${context.componentName}> = {
     className: {
       control: 'text',
       description: 'Additional CSS classes'
-    }${context.withForm ? `,
+    }${
+      context.withForm
+        ? `,
     onSubmit: {
       action: 'submitted',
       description: 'Form submission handler'
-    }` : ''}
+    }`
+        : ''
+    }
   }
 }
 
@@ -428,7 +480,9 @@ export const Default: Story = {
   }
 }
 
-${context.withForm ? `
+${
+  context.withForm
+    ? `
 // Form story
 export const WithForm: Story = {
   args: {
@@ -451,7 +505,9 @@ export const WithValidationErrors: Story = {
     await userEvent.click(submitButton)
   }
 }
-` : ''}
+`
+    : ''
+}
 
 // Loading state story
 export const Loading: Story = {
@@ -661,18 +717,19 @@ export function {{componentName}}({{#if withProps}}{
   async interactive() {
     try {
       const inquirer = (await import('inquirer')).default
-      
+
       const answers = await inquirer.prompt([
         {
           type: 'input',
           name: 'name',
           message: 'Component name:',
-          validate: (input: string) => input.trim().length > 0 || 'Component name is required'
+          validate: (input: string) =>
+            input.trim().length > 0 || 'Component name is required',
         },
         {
           type: 'input',
           name: 'description',
-          message: 'Component description (optional):'
+          message: 'Component description (optional):',
         },
         {
           type: 'list',
@@ -681,49 +738,49 @@ export function {{componentName}}({{#if withProps}}{
           choices: [
             { name: 'Page Component', value: 'page' },
             { name: 'Feature Component', value: 'feature' },
-            { name: 'UI Component', value: 'ui' }
-          ]
+            { name: 'UI Component', value: 'ui' },
+          ],
         },
         {
           type: 'confirm',
           name: 'server',
           message: 'Server component?',
           default: false,
-          when: (answers) => answers.type === 'page'
+          when: (answers) => answers.type === 'page',
         },
         {
           type: 'confirm',
           name: 'withForm',
           message: 'Include form handling?',
-          default: false
+          default: false,
         },
         {
           type: 'confirm',
           name: 'withState',
           message: 'Include state management?',
           default: true,
-          when: (answers) => !answers.server
+          when: (answers) => !answers.server,
         },
         {
           type: 'confirm',
           name: 'withProps',
           message: 'Generate TypeScript props interface?',
           default: true,
-          when: (answers) => answers.type !== 'page'
+          when: (answers) => answers.type !== 'page',
         },
         {
           type: 'confirm',
           name: 'withTests',
           message: 'Generate test file?',
-          default: true
+          default: true,
         },
         {
           type: 'confirm',
           name: 'withStorybook',
           message: 'Generate Storybook story?',
           default: false,
-          when: (answers) => answers.type !== 'page'
-        }
+          when: (answers) => answers.type !== 'page',
+        },
       ])
 
       const options = {
@@ -734,7 +791,7 @@ export function {{componentName}}({{#if withProps}}{
         withProps: answers.withProps || false,
         withTests: answers.withTests,
         withStorybook: answers.withStorybook || false,
-        description: answers.description || `${answers.name} component`
+        description: answers.description || `${answers.name} component`,
       }
 
       await this.generate(answers.name, options)
@@ -742,5 +799,5 @@ export function {{componentName}}({{#if withProps}}{
       logger.error('Interactive component generation failed:', error)
       throw error
     }
-  }
+  },
 }
