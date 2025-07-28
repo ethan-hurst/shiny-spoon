@@ -1,9 +1,10 @@
 import { generateRssFeed } from '@/lib/rss'
 import { readFileSync } from 'fs'
 import { NextResponse } from 'next/server'
+import { createPublicRouteHandler } from '@/lib/api/route-handler'
 
-export async function GET() {
-  try {
+export const GET = createPublicRouteHandler(
+  async () => {
     // Generate the RSS feed
     await generateRssFeed()
     
@@ -17,8 +18,8 @@ export async function GET() {
         'Cache-Control': 'public, max-age=3600, s-maxage=3600',
       },
     })
-  } catch (error) {
-    console.error('Failed to generate RSS feed:', error)
-    return new NextResponse('Failed to generate RSS feed', { status: 500 })
+  },
+  {
+    rateLimit: { requests: 60, window: '1m' }
   }
-}
+)
