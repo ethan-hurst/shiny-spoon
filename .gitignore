@@ -40,3 +40,31 @@ next-env.d.ts
 
 # generated files
 public/rss.xml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# AI Service
+ai-service/.env
+ai-service/venv/
+ai-service/.venv/
+ai-service/__pycache__/
+ai-service/*.pyc

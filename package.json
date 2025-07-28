@@ -22,6 +22,11 @@
     "test:perf": "RUN_PERF_TESTS=1 jest --testPathPattern=__tests__/performance",
     "validate:setup": "node scripts/validate-setup.js",
     "validate:migrations": "node scripts/validate-migrations.js",
+    "ai:setup": "cd ai-service && ./run.sh setup",
+    "ai:dev": "cd ai-service && ./run.sh run",
+    "ai:docker": "cd ai-service && ./run.sh docker",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
     "prepare": "husky install"
   },
   "dependencies": {
