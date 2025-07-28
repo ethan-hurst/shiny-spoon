@@ -1,58 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createPublicRouteHandler } from '@/lib/api/route-handler'
 import { contactSchema } from '@/lib/schemas/contact'
 import { createClient } from '@/lib/supabase/server'
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
 import { queueEmail } from '@/lib/email/email-queue'
 
-// Rate limiting: 5 submissions per hour per IP
-let ratelimit: Ratelimit | null = null
-
-try {
-  if (process.env.UPSTASH_REDIS_REST_URL && 
-      process.env.UPSTASH_REDIS_REST_TOKEN &&
-      process.env.UPSTASH_REDIS_REST_URL.startsWith('https://')) {
-    ratelimit = new Ratelimit({
-      redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(5, '1 h'),
-      analytics: true,
-    })
-  }
-} catch (error) {
-  console.warn('Rate limiting disabled: Redis configuration invalid')
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    // Rate limiting check
-    if (ratelimit) {
-      const forwarded = request.headers.get('x-forwarded-for')
-      const realIp = request.headers.get('x-real-ip')
-      const ip = forwarded?.split(',')[0]?.trim() || realIp || '127.0.0.1'
-      const { success, limit, reset, remaining } = await ratelimit.limit(ip)
-      
-      if (!success) {
-        return NextResponse.json(
-          { 
-            error: 'Too many requests. Please try again later.',
-            details: `Rate limit exceeded. Try again in ${Math.round((reset - Date.now()) / 1000 / 60)} minutes.`
-          },
-          { 
-            status: 429,
-            headers: {
-              'X-RateLimit-Limit': limit.toString(),
-              'X-RateLimit-Remaining': remaining.toString(),
-              'X-RateLimit-Reset': reset.toString(),
-            }
-          }
-        )
-      }
-    }
-    const body = await request.json()
-    
-    // Validate the request body
-    const validatedData = contactSchema.parse(body)
-    
+export const POST = createPublicRouteHandler(
+  async ({ body }) => {
     // Get supabase client
     const supabase = await createClient()
     
@@ -60,14 +13,13 @@ export async function POST(request: NextRequest) {
     const { error: dbError } = await supabase
       .from('contact_submissions')
       .insert({
-        name: validatedData.name,
-        email: validatedData.email,
-        company: validatedData.company,
-        phone: validatedData.phone,
-        subject: validatedData.subject,
-        message: validatedData.message,
+        name: body.name,
+        email: body.email,
+        company: body.company,
+        phone: body.phone,
+        subject: body.subject,
+        message: body.message,
         status: 'new',
-        // Remove manual timestamp - let database handle created_at automatically
       })
     
     if (dbError) {
@@ -82,18 +34,18 @@ export async function POST(request: NextRequest) {
     const salesEmailResult = await queueEmail({
       from: 'TruthSource <noreply@truthsource.io>',
       to: ['sales@truthsource.io'],
-      subject: `New ${validatedData.subject} inquiry from ${validatedData.name}`,
+      subject: `New ${body.subject} inquiry from ${body.name}`,
       html: `
         <h2>New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${validatedData.name}</p>
-        <p><strong>Email:</strong> ${validatedData.email}</p>
-        <p><strong>Company:</strong> ${validatedData.company}</p>
-        <p><strong>Phone:</strong> ${validatedData.phone || 'Not provided'}</p>
-        <p><strong>Subject:</strong> ${validatedData.subject}</p>
+        <p><strong>Name:</strong> ${body.name}</p>
+        <p><strong>Email:</strong> ${body.email}</p>
+        <p><strong>Company:</strong> ${body.company}</p>
+        <p><strong>Phone:</strong> ${body.phone || 'Not provided'}</p>
+        <p><strong>Subject:</strong> ${body.subject}</p>
         <p><strong>Message:</strong></p>
-        <p>${validatedData.message}</p>
+        <p>${body.message}</p>
       `,
-      text: `New Contact Form Submission\n\nName: ${validatedData.name}\nEmail: ${validatedData.email}\nCompany: ${validatedData.company}\nPhone: ${validatedData.phone || 'Not provided'}\nSubject: ${validatedData.subject}\n\nMessage:\n${validatedData.message}`,
+      text: `New Contact Form Submission\n\nName: ${body.name}\nEmail: ${body.email}\nCompany: ${body.company}\nPhone: ${body.phone || 'Not provided'}\nSubject: ${body.subject}\n\nMessage:\n${body.message}`,
     })
     
     if (!salesEmailResult.success) {
@@ -103,16 +55,16 @@ export async function POST(request: NextRequest) {
     // Queue auto-reply email to user
     const autoReplyResult = await queueEmail({
       from: 'TruthSource <noreply@truthsource.io>',
-      to: [validatedData.email],
+      to: [body.email],
       subject: 'Thank you for contacting TruthSource',
       html: `
         <h2>Thank you for reaching out!</h2>
-        <p>Hi ${validatedData.name},</p>
+        <p>Hi ${body.name},</p>
         <p>We've received your message and will get back to you within 24 hours.</p>
         <p>In the meantime, feel free to explore our <a href="https://truthsource.io/docs">documentation</a> or <a href="https://truthsource.io/blog">blog</a>.</p>
         <p>Best regards,<br>The TruthSource Team</p>
       `,
-      text: `Thank you for reaching out!\n\nHi ${validatedData.name},\n\nWe've received your message and will get back to you within 24 hours.\n\nIn the meantime, feel free to explore our documentation at https://truthsource.io/docs or blog at https://truthsource.io/blog.\n\nBest regards,\nThe TruthSource Team`,
+      text: `Thank you for reaching out!\n\nHi ${body.name},\n\nWe've received your message and will get back to you within 24 hours.\n\nIn the meantime, feel free to explore our documentation at https://truthsource.io/docs or blog at https://truthsource.io/blog.\n\nBest regards,\nThe TruthSource Team`,
     })
     
     if (!autoReplyResult.success) {
@@ -123,19 +75,15 @@ export async function POST(request: NextRequest) {
       { message: 'Message sent successfully' },
       { status: 200 }
     )
-  } catch (error) {
-    console.error('Contact form error:', error)
-    
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Invalid form data' },
-        { status: 400 }
-      )
+  },
+  {
+    schema: { body: contactSchema },
+    rateLimit: { 
+      requests: 5, 
+      window: '1h',
+      identifier: (req) => req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                            req.headers.get('x-real-ip') || 
+                            'anonymous'
     }
-    
-    return NextResponse.json(
-      { error: 'Failed to send message' },
-      { status: 500 }
-    )
   }
-}
+)

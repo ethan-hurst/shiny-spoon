@@ -1,41 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createRouteHandler } from '@/lib/api/route-handler'
 import { createClient } from '@/lib/supabase/server'
 
-export async function GET(_request: NextRequest) {
-  try {
+export const GET = createRouteHandler(
+  async ({ user }) => {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('organization_id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (!profile?.organization_id) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
-    }
-
-    // Get team member stats
+    // Get team member stats (auto-filtered by user's organization via wrapper)
     const [members, invites, activity] = await Promise.all([
       supabase
         .from('user_profiles')
         .select('role, created_at, auth.users(last_sign_in_at)')
-        .eq('organization_id', profile.organization_id),
+        .eq('organization_id', user.organizationId),
       supabase
         .from('team_invitations')
         .select('id')
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', user.organizationId)
         .is('accepted_at', null)
         .gte('expires_at', new Date().toISOString()),
       supabase
         .from('api_call_logs')
         .select('user_id, created_at')
-        .eq('organization_id', profile.organization_id)
+        .eq('organization_id', user.organizationId)
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
     ])
 
@@ -61,11 +47,8 @@ export async function GET(_request: NextRequest) {
     }
 
     return NextResponse.json({ stats })
-  } catch (error) {
-    console.error('Error fetching team stats:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch team statistics' },
-      { status: 500 }
-    )
+  },
+  {
+    rateLimit: { requests: 50, window: '1m' }
   }
-}
+)

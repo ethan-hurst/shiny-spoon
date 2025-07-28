@@ -1,20 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createPublicRouteHandler } from '@/lib/api/route-handler'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { z } from 'zod'
 import crypto from 'crypto'
 
-export async function POST(request: NextRequest) {
-  try {
-    const { apiKey } = await request.json()
-    
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key is required' }, { status: 400 })
-    }
+const validateKeySchema = z.object({
+  apiKey: z.string().min(1, 'API key is required'),
+})
 
+export const POST = createPublicRouteHandler(
+  async ({ body }) => {
     // Extract key prefix for lookup
-    const keyPrefix = apiKey.substring(0, 12)
+    const keyPrefix = body.apiKey.substring(0, 12)
     
     // Hash the full key for comparison
-    const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex')
+    const keyHash = crypto.createHash('sha256').update(body.apiKey).digest('hex')
 
     // Find the API key
     const { data: apiKeyRecord } = await supabaseAdmin
@@ -48,11 +48,15 @@ export async function POST(request: NextRequest) {
         name: apiKeyRecord.organizations?.name,
       },
     })
-  } catch (error) {
-    console.error('Error validating API key:', error)
-    return NextResponse.json(
-      { error: 'Failed to validate API key' },
-      { status: 500 }
-    )
+  },
+  {
+    schema: { body: validateKeySchema },
+    rateLimit: { 
+      requests: 60, 
+      window: '1m',
+      identifier: (req) => req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+                            req.headers.get('x-real-ip') || 
+                            'anonymous'
+    }
   }
-}
+)

@@ -7,9 +7,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/utils/supabase/server'
 import { ratelimit } from '@/lib/utils/ratelimit'
+import { validateCSRFToken } from '@/lib/utils/csrf'
 
 export interface RouteHandlerOptions {
   auth?: boolean
+  csrf?: boolean
   rateLimit?: {
     identifier?: (req: NextRequest) => string
     requests?: number
@@ -48,6 +50,7 @@ export function createRouteHandler(
 ): (request: NextRequest, props?: any) => Promise<NextResponse> {
   const {
     auth = true,
+    csrf = ['POST', 'PUT', 'PATCH', 'DELETE'].includes,
     rateLimit,
     schema,
     requiredPermissions = [],
@@ -59,7 +62,27 @@ export function createRouteHandler(
     const requestId = crypto.randomUUID()
     
     try {
-      // 1. Rate limiting
+      // 1. CSRF protection for mutations
+      if (csrf && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+        const isValidCSRF = await validateCSRFToken(request)
+        if (!isValidCSRF) {
+          return NextResponse.json(
+            { 
+              error: 'Invalid or missing CSRF token',
+              requestId,
+              message: 'CSRF protection failed'
+            },
+            { 
+              status: 403,
+              headers: {
+                'X-Request-Id': requestId
+              }
+            }
+          )
+        }
+      }
+
+      // 2. Rate limiting
       if (rateLimit) {
         const identifier = rateLimit.identifier
           ? rateLimit.identifier(request)
@@ -87,7 +110,7 @@ export function createRouteHandler(
         }
       }
 
-      // 2. Authentication
+      // 3. Authentication
       let user = null
       if (auth) {
         const supabase = await createClient()
@@ -139,7 +162,7 @@ export function createRouteHandler(
           role: profile.role
         }
 
-        // 3. Permission checking
+        // 4. Permission checking
         if (requiredPermissions.length > 0) {
           // Check if user has required permissions
           // This is a simplified check - implement proper RBAC as needed
@@ -168,7 +191,7 @@ export function createRouteHandler(
         }
       }
 
-      // 4. Input validation
+      // 5. Input validation
       let body = null
       let query = null
       const params = props?.params
@@ -247,7 +270,7 @@ export function createRouteHandler(
         }
       }
 
-      // 5. Execute handler
+      // 6. Execute handler
       const context: RouteContext = {
         request,
         params,
@@ -258,11 +281,11 @@ export function createRouteHandler(
 
       const response = await handler(context)
 
-      // 6. Add standard headers
+      // 7. Add standard headers
       response.headers.set('X-Request-Id', requestId)
       response.headers.set('X-Response-Time', `${Date.now() - startTime}ms`)
 
-      // 7. Log success metrics
+      // 8. Log success metrics
       if (monitoring) {
         console.log('[API]', {
           requestId,

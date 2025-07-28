@@ -1,6 +1,7 @@
 // PRP-016: Data Accuracy Monitor - Manual Accuracy Check API
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createRouteHandler } from '@/lib/api/route-handler'
 import { AccuracyChecker } from '@/lib/monitoring/accuracy-checker'
 import { z } from 'zod'
 
@@ -12,17 +13,11 @@ const requestSchema = z.object({
   sampleSize: z.number().min(1).max(10000).optional(),
 })
 
-export async function POST(request: NextRequest) {
-  try {
+export const POST = createRouteHandler(
+  async ({ user, body }) => {
     const supabase = createClient()
-    
-    // Verify authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
-    // Get user's organization
+    // Get user's organization (already validated by wrapper)
     const { data: orgUser } = await supabase
       .from('organization_users')
       .select('organization_id, role')
@@ -33,17 +28,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
     }
 
-    // Parse and validate request body
-    const body = await request.json()
-    const validatedData = requestSchema.parse(body)
-
     // Create accuracy check configuration
     const config = {
       organizationId: orgUser.organization_id,
-      entityTypes: validatedData.entityTypes || ['product', 'inventory', 'pricing'],
-      integrationId: validatedData.integrationId,
+      entityTypes: body.entityTypes || ['product', 'inventory', 'pricing'],
+      integrationId: body.integrationId,
       checkType: 'manual' as const,
-      sampleSize: validatedData.sampleSize || 100,
+      sampleSize: body.sampleSize || 100,
     }
 
     // Initialize accuracy checker and run check
@@ -137,19 +128,13 @@ export async function POST(request: NextRequest) {
         'Connection': 'keep-alive',
       },
     })
-  } catch (error) {
-    console.error('Accuracy check API error:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      )
+  },
+  {
+    schema: { body: requestSchema },
+    rateLimit: { 
+      requests: 10, 
+      window: '1h',
+      identifier: (req) => req.user?.id || 'anonymous'
     }
-
-    return NextResponse.json(
-      { error: 'Failed to start accuracy check' },
-      { status: 500 }
-    )
   }
-}
+)

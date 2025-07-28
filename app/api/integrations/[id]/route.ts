@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { createRouteHandler } from '@/lib/api/route-handler'
 import { updateIntegration, deleteIntegration } from '@/app/actions/integrations'
-import { headers } from 'next/headers'
-import crypto from 'crypto'
 import { z } from 'zod'
+
+const paramsSchema = z.object({
+  id: z.string().uuid()
+})
 
 // Schema for PATCH request body validation
 const updateIntegrationRequestSchema = z.object({
@@ -27,84 +29,20 @@ const updateIntegrationRequestSchema = z.object({
   credentials: z.record(z.any()).optional(),
 })
 
-// CSRF token validation helper
-async function validateCSRFToken(request: NextRequest): Promise<boolean> {
-  try {
-    const headersList = headers()
-    
-    // Get CSRF token from header and cookie
-    const csrfTokenFromHeader = headersList.get('x-csrf-token')
-    const csrfTokenFromCookie = request.cookies.get('csrf-token')?.value
-    
-    // Both tokens must exist
-    if (!csrfTokenFromHeader || !csrfTokenFromCookie) {
-      return false
-    }
-    
-    // Use timing-safe comparison to prevent timing attacks
-    return crypto.timingSafeEqual(
-      Buffer.from(csrfTokenFromHeader),
-      Buffer.from(csrfTokenFromCookie)
-    )
-  } catch {
-    return false
-  }
-}
-
 /**
  * Handles PATCH requests to update an integration resource.
  *
- * Validates the CSRF token and user authentication, parses and validates the request body, and updates the specified integration using the provided data. Returns appropriate JSON responses for validation errors, authentication failures, or update errors.
+ * Updates the specified integration using the provided data with automatic CSRF protection and auth validation.
  *
  * @returns A JSON response containing the updated integration data on success, or an error message with the corresponding HTTP status code on failure.
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  // CSRF Protection
-  const isValidCSRF = await validateCSRFToken(request)
-  if (!isValidCSRF) {
-    return NextResponse.json(
-      { error: 'Invalid or missing CSRF token' },
-      { status: 403 }
-    )
-  }
-
-  let user: { id: string; email?: string } | null = null
-  let body: any = null
-  
-  try {
-    const supabase = createClient()
-    const { data: authData } = await supabase.auth.getUser()
-    user = authData.user
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    body = await request.json()
-    
-    // Validate request body with Zod schema
-    const validationResult = updateIntegrationRequestSchema.safeParse(body)
-    
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { 
-          error: 'Invalid request body',
-          details: validationResult.error.flatten()
-        },
-        { status: 400 }
-      )
-    }
-    
-    const validatedBody = validationResult.data
-    
+export const PATCH = createRouteHandler(
+  async ({ params, body, user }) => {
     // Convert to FormData for server action
     const formData = new FormData()
     formData.append('id', params.id)
     
-    Object.entries(validatedBody).forEach(([key, value]) => {
+    Object.entries(body).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         formData.append(key, typeof value === 'object' ? JSON.stringify(value) : String(value))
       }
@@ -117,51 +55,27 @@ export async function PATCH(
     }
 
     return NextResponse.json(result.data)
-  } catch (error) {
-    console.error('Integration PATCH API error:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      method: 'PATCH',
-      integrationId: params.id,
-      userId: user?.id,
-      timestamp: new Date().toISOString(),
-      // Removed requestBody and userEmail to prevent logging sensitive data
-    })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+  },
+  {
+    schema: { 
+      params: paramsSchema,
+      body: updateIntegrationRequestSchema 
+    },
+    rateLimit: { 
+      requests: 20, 
+      window: '1m',
+      identifier: (req) => req.user?.id || 'anonymous'
+    }
   }
-}
+)
 
 /**
  * Handles HTTP DELETE requests to remove an integration resource.
  *
- * Validates the CSRF token and user authentication before attempting deletion. Returns appropriate JSON responses for authorization errors, validation failures, or internal errors.
+ * Validates authentication and CSRF token before attempting deletion.
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  // CSRF Protection
-  const isValidCSRF = await validateCSRFToken(request)
-  if (!isValidCSRF) {
-    return NextResponse.json(
-      { error: 'Invalid or missing CSRF token' },
-      { status: 403 }
-    )
-  }
-
-  let user: { id: string; email?: string } | null = null
-  
-  try {
-    const supabase = createClient()
-    const { data: authData } = await supabase.auth.getUser()
-    user = authData.user
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+export const DELETE = createRouteHandler(
+  async ({ params }) => {
     const result = await deleteIntegration(params.id)
     
     if (!result.success) {
@@ -169,18 +83,13 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Integration DELETE API error:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      method: 'DELETE',
-      integrationId: params.id,
-      userId: user?.id,
-      timestamp: new Date().toISOString(),
-      // Removed URL and userEmail to prevent logging sensitive data
-    })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+  },
+  {
+    schema: { params: paramsSchema },
+    rateLimit: { 
+      requests: 10, 
+      window: '1m',
+      identifier: (req) => req.user?.id || 'anonymous'
+    }
   }
-}
+)

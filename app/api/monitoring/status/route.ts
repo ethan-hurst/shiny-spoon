@@ -1,22 +1,22 @@
 // PRP-016: Data Accuracy Monitor - Monitoring Status API
 import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createRouteHandler } from '@/lib/api/route-handler'
 import { AccuracyScorer } from '@/lib/monitoring/accuracy-scorer'
 import { z } from 'zod'
 
 export const runtime = 'edge'
 
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = createClient()
-    
-    // Verify authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+const querySchema = z.object({
+  integrationId: z.string().uuid().optional(),
+  timeRange: z.enum(['1h', '24h', '7d', '30d']).default('24h')
+})
 
-    // Get user's organization
+export const GET = createRouteHandler(
+  async ({ user, query }) => {
+    const supabase = createClient()
+
+    // Get user's organization (already validated by wrapper)
     const { data: orgUser } = await supabase
       .from('organization_users')
       .select('organization_id')
@@ -27,32 +27,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
     }
 
-    // Define query parameters schema
-    const queryParamsSchema = z.object({
-      integrationId: z.string().uuid().optional(),
-      timeRange: z.enum(['1h', '24h', '7d', '30d']).default('24h')
-    })
-    
-    // Get and validate query parameters
-    const { searchParams } = new URL(request.url)
-    const rawParams = {
-      integrationId: searchParams.get('integrationId') || undefined,
-      timeRange: searchParams.get('timeRange') || '24h'
-    }
-    
-    // Validate parameters
-    let validatedParams
-    try {
-      validatedParams = queryParamsSchema.parse(rawParams)
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
-        return NextResponse.json({ error: `Invalid parameters: ${errors}` }, { status: 400 })
-      }
-      return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 })
-    }
-    
-    const { integrationId, timeRange } = validatedParams
+    const { integrationId, timeRange } = query
 
     // Calculate date range
     const now = new Date()
@@ -189,11 +164,9 @@ export async function GET(request: NextRequest) {
         })) || [],
       },
     })
-  } catch (error) {
-    console.error('Monitoring status API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch monitoring status' },
-      { status: 500 }
-    )
+  },
+  {
+    schema: { query: querySchema },
+    rateLimit: { requests: 100, window: '1m' }
   }
-}
+)
