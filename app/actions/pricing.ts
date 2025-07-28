@@ -5,6 +5,7 @@ import { z } from 'zod'
 import {
   clearPricingCache,
 } from '@/lib/pricing/calculate-price'
+import { escapeCSVField } from '@/lib/utils/csv'
 import {
   createCustomerPricingSchema,
   createPricingRuleSchema,
@@ -505,6 +506,14 @@ export async function importPricingRules(file: File) {
   return { successes, errors }
 }
 
+/**
+ * Exports all pricing rules as a CSV string with standardized field escaping.
+ *
+ * Retrieves all pricing rules from the database, ordered by priority, and formats them as a CSV file with properly escaped headers and values.
+ *
+ * @returns A CSV string containing all pricing rules.
+ * @throws If the user is not authenticated or a database error occurs.
+ */
 export async function exportPricingRules() {
   const supabase = await createClient()
 
@@ -532,28 +541,6 @@ export async function exportPricingRules() {
     'start_date',
     'end_date',
   ]
-
-  // Helper function to escape CSV field properly
-  const escapeCSVField = (value: any): string => {
-    if (value === null || value === undefined) {
-      return '""'
-    }
-    
-    const strValue = String(value)
-    
-    // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
-    if (strValue.includes('"') || strValue.includes('\n') || strValue.includes('\r') || strValue.includes(',')) {
-      // Escape quotes by doubling them and wrap in quotes
-      return `"${strValue.replace(/"/g, '""')}"`
-    }
-    
-    // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
-    if (/^[=+\-@\t\r]/.test(strValue)) {
-      return `"${strValue}"`
-    }
-    
-    return strValue
-  }
 
   const csvContent = [
     headers.map(escapeCSVField).join(','),

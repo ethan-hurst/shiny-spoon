@@ -142,7 +142,7 @@ export class AccuracyScorer {
     const byEntityType = await this.calculateEntityBreakdown(
       discrepancies,
       latestCheck.records_checked,
-      organizationId
+      config.organizationId
     )
     
     const bySeverity = this.calculateSeverityBreakdown(

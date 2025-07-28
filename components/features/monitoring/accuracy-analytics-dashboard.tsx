@@ -32,6 +32,7 @@ import { AccuracyHeatmap } from './accuracy-heatmap'
 import { AccuracyComparisonChart } from './accuracy-comparison-chart'
 import { getAccuracyReport } from '@/app/actions/monitoring'
 import { useToast } from '@/components/ui/use-toast'
+import { escapeCSVField } from '@/lib/utils/csv'
 
 interface AccuracyAnalyticsDashboardProps {
   organizationId: string
@@ -404,7 +405,16 @@ export function AccuracyAnalyticsDashboard({
   )
 }
 
-// Helper function to generate insights
+/**
+ * Generates a list of actionable insights based on accuracy breakdown, trend analysis, and industry benchmark data.
+ *
+ * Insights highlight significant declines, high volatility, low accuracy by entity type, benchmark percentile status, and critical severity issues.
+ *
+ * @param breakdown - Accuracy breakdown by entity type and severity
+ * @param trend - Trend analysis including direction, change rate, and volatility
+ * @param benchmark - Object containing the percentile rank compared to industry
+ * @returns An array of insight strings relevant to the provided accuracy metrics
+ */
 function generateInsights(
   breakdown: AccuracyBreakdown,
   trend: TrendAnalysis,
@@ -455,29 +465,15 @@ function generateInsights(
   return insights
 }
 
-// Helper function to escape CSV field properly
-function escapeCSVField(value: any): string {
-  if (value === null || value === undefined) {
-    return '""'
-  }
-  
-  const strValue = String(value)
-  
-  // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
-  if (strValue.includes('"') || strValue.includes('\n') || strValue.includes('\r') || strValue.includes(',')) {
-    // Escape quotes by doubling them and wrap in quotes
-    return `"${strValue.replace(/"/g, '""')}"`
-  }
-  
-  // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
-  if (/^[=+\-@\t\r]/.test(strValue)) {
-    return `"${strValue}"`
-  }
-  
-  return strValue
-}
 
-// Helper function to convert report to CSV
+/**
+ * Converts a report object containing summary, entity breakdown, and historical data into a CSV string.
+ *
+ * The CSV includes a header row and rows for each section of the report. If the report is missing or invalid, or if an error occurs during processing, a fallback row is added to indicate the issue.
+ *
+ * @param report - The report data to convert to CSV format
+ * @returns The CSV string representation of the report
+ */
 function convertReportToCSV(report: any): string {
   if (!report || typeof report !== 'object') {
     return 'Error,No data available\n'

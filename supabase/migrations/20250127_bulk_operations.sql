@@ -221,10 +221,13 @@ RETURNS JSON AS $$
 DECLARE
   operation_data RECORD;
   progress_data JSON;
+  user_org_id UUID;
+  operation_org_id UUID;
 BEGIN
-  -- Get operation details
+  -- Get operation details with organization_id
   SELECT 
     id,
+    organization_id,
     status,
     total_records,
     processed_records,
@@ -240,6 +243,16 @@ BEGIN
   -- Return null if operation not found
   IF NOT FOUND THEN
     RETURN NULL;
+  END IF;
+
+  -- Get current user's organization
+  SELECT organization_id INTO user_org_id
+  FROM user_profiles
+  WHERE user_id = auth.uid();
+
+  -- Check if user belongs to the same organization as the operation
+  IF user_org_id IS NULL OR user_org_id != operation_data.organization_id THEN
+    RETURN NULL; -- Return null to prevent unauthorized access
   END IF;
 
   -- Build progress JSON

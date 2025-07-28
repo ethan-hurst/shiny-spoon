@@ -1,12 +1,15 @@
 import { z } from 'zod'
 
+// Reusable status type for bulk operations
+export type BulkOperationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rolled_back'
+
 // Database types matching the schema
 export interface BulkOperation {
   id: string
   organization_id: string
   operation_type: 'import' | 'export' | 'update' | 'delete'
   entity_type: 'products' | 'inventory' | 'pricing' | 'customers'
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rolled_back'
+  status: BulkOperationStatus
   
   // File information
   file_name?: string
@@ -49,7 +52,7 @@ export interface BulkOperationRecord {
   after_data?: Record<string, any>
   
   // Status
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'rolled_back'
+  status: Exclude<BulkOperationStatus, 'cancelled'>
   error?: string
   processed_at?: string
 }
@@ -63,6 +66,7 @@ export interface BulkOperationConfig {
   validateOnly?: boolean
   rollbackOnError?: boolean
   mapping?: Record<string, string>
+  organization_id?: string
 }
 
 // Progress tracking types
@@ -136,9 +140,26 @@ export const CustomerBulkSchema = z.object({
 
 // Form schemas for UI
 export const BulkUploadFormSchema = z.object({
-  file: z.instanceof(File).refine(
+  file: z.custom<File>((val) => {
+    // Enhanced file validation for better cross-environment compatibility
+    if (typeof File !== 'undefined' && val instanceof File) {
+      return true;
+    }
+    // Check for File-like properties in environments where File might not be available
+    return (
+      val !== null &&
+      typeof val === 'object' &&
+      typeof (val as any).name === 'string' &&
+      typeof (val as any).size === 'number' &&
+      typeof (val as any).type === 'string' &&
+      typeof (val as any).stream === 'function'
+    );
+  }, 'Must be a valid file').refine(
     (file) => file.name.endsWith('.csv'),
     'File must be a CSV'
+  ).refine(
+    (file) => file.size <= 100 * 1024 * 1024, // 100MB limit
+    'File size must not exceed 100MB'
   ),
   operationType: z.enum(['import', 'update']),
   entityType: z.enum(['products', 'inventory', 'pricing', 'customers']),

@@ -14,6 +14,40 @@ DECLARE
   v_customer_id UUID;
   v_field_mappings JSONB;
 BEGIN
+  -- Validate UUID parameters
+  IF p_webhook_id IS NULL THEN
+    RAISE EXCEPTION 'webhook_id cannot be null';
+  END IF;
+  
+  IF p_integration_id IS NULL THEN
+    RAISE EXCEPTION 'integration_id cannot be null';
+  END IF;
+  
+  IF p_organization_id IS NULL THEN
+    RAISE EXCEPTION 'organization_id cannot be null';
+  END IF;
+  
+  IF p_event_id IS NULL THEN
+    RAISE EXCEPTION 'event_id cannot be null';
+  END IF;
+  
+  -- Verify authorization: Check that integration belongs to organization
+  DECLARE
+    v_integration_org_id UUID;
+  BEGIN
+    SELECT organization_id INTO v_integration_org_id
+    FROM integrations
+    WHERE id = p_integration_id;
+    
+    IF v_integration_org_id IS NULL THEN
+      RAISE EXCEPTION 'Integration not found: %', p_integration_id;
+    END IF;
+    
+    IF v_integration_org_id != p_organization_id THEN
+      RAISE EXCEPTION 'Integration % does not belong to organization %', p_integration_id, p_organization_id;
+    END IF;
+  END;
+  
   -- Start transaction implicitly
   
   -- Get field mappings from integration config
@@ -23,6 +57,11 @@ BEGIN
   FROM integration_configs ic
   WHERE ic.integration_id = p_integration_id
   LIMIT 1;
+  
+  -- Set default empty object if field_mappings is null
+  IF v_field_mappings IS NULL THEN
+    v_field_mappings := '{}'::jsonb;
+  END IF;
 
   -- Process based on event type
   CASE 
@@ -47,7 +86,7 @@ BEGIN
         COALESCE((p_record_data->>'rate')::DECIMAL, 0),
         (p_record_data->'weight')::JSONB,
         (p_record_data->'dimensions')::JSONB,
-        COALESCE((p_record_data->>'isinactive')::BOOLEAN, true),
+        NOT COALESCE((p_record_data->>'isinactive')::BOOLEAN, false),
         p_record_data->>'id',
         jsonb_build_object(
           'source', 'netsuite',
@@ -106,7 +145,7 @@ BEGIN
             COALESCE((p_record_data->>'quantityavailable')::INTEGER, 0),
             COALESCE((p_record_data->>'quantitycommitted')::INTEGER, 0),
             COALESCE((p_record_data->>'quantityonorder')::INTEGER, 0),
-            COALESCE((p_record_data->>'quantityonorder')::INTEGER, 0),
+            COALESCE((p_record_data->>'quantitybackordered')::INTEGER, 0),
             COALESCE((p_record_data->>'reorderpoint')::INTEGER, 0),
             NOW(),
             'synced'

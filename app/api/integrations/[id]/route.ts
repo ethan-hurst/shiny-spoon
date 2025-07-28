@@ -51,7 +51,13 @@ async function validateCSRFToken(request: NextRequest): Promise<boolean> {
   }
 }
 
-// Update integration
+/**
+ * Handles PATCH requests to update an integration resource.
+ *
+ * Validates the CSRF token and user authentication, parses and validates the request body, and updates the specified integration using the provided data. Returns appropriate JSON responses for validation errors, authentication failures, or update errors.
+ *
+ * @returns A JSON response containing the updated integration data on success, or an error message with the corresponding HTTP status code on failure.
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -117,7 +123,7 @@ export async function PATCH(
       method: 'PATCH',
       integrationId: params.id,
       userId: user?.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
       // Removed requestBody and userEmail to prevent logging sensitive data
     })
     return NextResponse.json(
@@ -127,7 +133,11 @@ export async function PATCH(
   }
 }
 
-// Delete integration
+/**
+ * Handles HTTP DELETE requests to remove an integration resource.
+ *
+ * Validates the CSRF token and user authentication before attempting deletion. Returns appropriate JSON responses for authorization errors, validation failures, or internal errors.
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -165,7 +175,7 @@ export async function DELETE(
       method: 'DELETE',
       integrationId: params.id,
       userId: user?.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
       // Removed URL and userEmail to prevent logging sensitive data
     })
     return NextResponse.json(

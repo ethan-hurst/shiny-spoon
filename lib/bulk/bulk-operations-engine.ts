@@ -5,36 +5,31 @@ import Papa from 'papaparse'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/database.types'
+import type { 
+  BulkOperationStatus, 
+  BulkOperationConfig, 
+  BulkOperationProgress 
+} from '@/types/bulk-operations.types'
+import { isFile } from '@/lib/utils/file'
 
 const pipelineAsync = promisify(pipeline)
 
-export interface BulkOperationConfig {
-  operationType: 'import' | 'export' | 'update' | 'delete'
-  entityType: 'products' | 'inventory' | 'pricing' | 'customers'
-  chunkSize?: number
-  maxConcurrent?: number
-  validateOnly?: boolean
-  rollbackOnError?: boolean
-  mapping?: Record<string, string>
-}
+// Constants
+const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
-export interface BulkOperationProgress {
-  operationId: string
-  status:
-    | 'pending'
-    | 'processing'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'rolled_back'
-  totalRecords: number
-  processedRecords: number
-  successfulRecords: number
-  failedRecords: number
-  estimatedTimeRemaining?: number
-  currentChunk?: number
-  totalChunks?: number
-}
+// Node.js version check for Readable.fromWeb support (available from 16.5.0)
+const versionMatch = process.version.match(/^v(\d+)\.(\d+)\.(\d+)/)
+const nodeVersion = versionMatch 
+  ? {
+      major: parseInt(versionMatch[1], 10),
+      minor: parseInt(versionMatch[2], 10),
+      patch: parseInt(versionMatch[3], 10)
+    }
+  : null
+
+const hasReadableFromWeb = nodeVersion 
+  ? nodeVersion.major > 16 || (nodeVersion.major === 16 && nodeVersion.minor >= 5)
+  : false
 
 export class BulkOperationsEngine extends EventEmitter {
   private supabase: ReturnType<typeof createServerClient>
@@ -50,6 +45,19 @@ export class BulkOperationsEngine extends EventEmitter {
     config: BulkOperationConfig,
     userId: string
   ): Promise<string> {
+    // Validate configuration
+    if (!config.operationType) {
+      throw new Error('Operation type is required')
+    }
+    if (!config.entityType) {
+      throw new Error('Entity type is required')
+    }
+
+    // Validate file size
+    if (isFile(file) && file.size > MAX_FILE_SIZE) {
+      throw new Error(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`)
+    }
+
     // Get user's organization
     const { data: userProfile } = await this.supabase
       .from('user_profiles')
@@ -68,8 +76,8 @@ export class BulkOperationsEngine extends EventEmitter {
         organization_id: userProfile.organization_id,
         operation_type: config.operationType,
         entity_type: config.entityType,
-        file_name: file instanceof File ? file.name : 'stream',
-        file_size_bytes: file instanceof File ? file.size : null,
+        file_name: isFile(file) ? file.name : 'stream',
+        file_size_bytes: isFile(file) ? file.size : null,
         status: 'pending',
         config,
         created_by: userId,
@@ -83,11 +91,11 @@ export class BulkOperationsEngine extends EventEmitter {
     const abortController = new AbortController()
     this.activeOperations.set(operation.id, abortController)
 
-    // Start processing in background
+    // Start processing in background with organization_id
     this.processOperation(
       operation.id,
       file,
-      config,
+      { ...config, organization_id: userProfile.organization_id },
       abortController.signal
     ).catch((err) => {
       console.error(`Bulk operation ${operation.id} failed:`, err)
@@ -119,14 +127,7 @@ export class BulkOperationsEngine extends EventEmitter {
 
       // Create streams - only consume once
       let inputStream: Readable
-      if (typeof File !== 'undefined' && file instanceof File) {
-        // Check Node.js version for Readable.fromWeb support (available from 16.5.0)
-        const nodeVersion = process.version
-          .split('.')
-          .map((v) => parseInt(v.replace('v', '')))
-        const hasReadableFromWeb =
-          nodeVersion[0] > 16 || (nodeVersion[0] === 16 && nodeVersion[1] >= 5)
-
+      if (isFile(file)) {
         if (hasReadableFromWeb && Readable.fromWeb) {
           inputStream = Readable.fromWeb(file.stream())
         } else {
@@ -186,28 +187,63 @@ export class BulkOperationsEngine extends EventEmitter {
     let headers: string[] | null = null
     let rowIndex = 0
 
+    // Configure Papa Parse with better defaults
+    const parseConfig: Papa.ParseConfig = {
+      delimiter: ',',
+      newline: '\n',
+      quoteChar: '"',
+      escapeChar: '"',
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_'),
+      transform: (value) => {
+        // Trim whitespace and handle empty values
+        const trimmed = value.trim()
+        return trimmed === '' ? null : trimmed
+      },
+    }
+
     return new Transform({
       objectMode: true,
       transform(chunk: any, encoding: string, callback: Function) {
         buffer += chunk.toString()
-        const lines = buffer.split('\n')
+        const lines = buffer.split(/\r?\n/)
         buffer = lines.pop() || ''
 
         for (const line of lines) {
+          if (!line.trim()) continue
+
           if (!headers) {
-            headers = Papa.parse(line).data[0] as string[]
+            const result = Papa.parse(line, parseConfig)
+            if (result.data && result.data[0]) {
+              headers = result.data[0] as string[]
+              // Remove any empty headers
+              headers = headers.filter(h => h && h.length > 0)
+            }
             continue
           }
 
-          const row = Papa.parse(line).data[0]
-          if (row && row.length > 0) {
+          const result = Papa.parse(line, parseConfig)
+          const row = result.data[0]
+          
+          if (row && Array.isArray(row) && row.length > 0) {
             const data: Record<string, any> = {}
+            let hasValidData = false
+            
             headers.forEach((header, index) => {
-              const mappedHeader = config.mapping?.[header] || header
-              data[mappedHeader] = row[index]
+              if (index < row.length) {
+                const mappedHeader = config.mapping?.[header] || header
+                const value = row[index]
+                if (value !== null && value !== undefined && value !== '') {
+                  hasValidData = true
+                }
+                data[mappedHeader] = value
+              }
             })
 
-            this.push({ index: rowIndex++, data })
+            // Only push rows that have at least one non-empty value
+            if (hasValidData) {
+              this.push({ index: rowIndex++, data })
+            }
           }
         }
 
@@ -215,15 +251,27 @@ export class BulkOperationsEngine extends EventEmitter {
       },
       flush(callback: Function) {
         if (buffer && headers) {
-          const row = Papa.parse(buffer).data[0]
-          if (row && row.length > 0) {
+          const result = Papa.parse(buffer, parseConfig)
+          const row = result.data[0]
+          
+          if (row && Array.isArray(row) && row.length > 0) {
             const data: Record<string, any> = {}
+            let hasValidData = false
+            
             headers.forEach((header, index) => {
-              const mappedHeader = config.mapping?.[header] || header
-              data[mappedHeader] = row[index]
+              if (index < row.length) {
+                const mappedHeader = config.mapping?.[header] || header
+                const value = row[index]
+                if (value !== null && value !== undefined && value !== '') {
+                  hasValidData = true
+                }
+                data[mappedHeader] = value
+              }
             })
 
-            this.push({ index: rowIndex++, data })
+            if (hasValidData) {
+              this.push({ index: rowIndex++, data })
+            }
           }
         }
         callback()
@@ -271,7 +319,16 @@ export class BulkOperationsEngine extends EventEmitter {
     config: BulkOperationConfig,
     signal: AbortSignal
   ): Transform {
-    const chunkSize = config.chunkSize || 100
+    // Validate and sanitize chunkSize
+    let chunkSize = config.chunkSize || 100
+    if (chunkSize < 1) {
+      console.warn(`Invalid chunkSize ${chunkSize}, using minimum of 1`)
+      chunkSize = 1
+    } else if (chunkSize > 1000) {
+      console.warn(`chunkSize ${chunkSize} exceeds maximum, capping at 1000`)
+      chunkSize = 1000
+    }
+    
     let chunk: any[] = []
     let totalProcessed = 0
     let totalSuccess = 0
@@ -385,7 +442,7 @@ export class BulkOperationsEngine extends EventEmitter {
 
           if (chunk.length >= chunkSize) {
             try {
-              await processChunk()
+              await processChunk.call(this)
             } catch (error) {
               return callback(error)
             }
@@ -396,7 +453,7 @@ export class BulkOperationsEngine extends EventEmitter {
       },
       async flush(callback: Function) {
         try {
-          await processChunk()
+          await processChunk.call(this)
 
           // Final update of total records
           await this.supabase
@@ -616,7 +673,7 @@ export class BulkOperationsEngine extends EventEmitter {
 
   private async updateOperationStatus(
     operationId: string,
-    status: Database['public']['Tables']['bulk_operations']['Row']['status'],
+    status: BulkOperationStatus,
     additionalData?: Record<string, any>
   ): Promise<void> {
     const updateData: any = { status }
@@ -685,16 +742,18 @@ export class BulkOperationsEngine extends EventEmitter {
 // Entity processors
 abstract class EntityProcessor {
   abstract schema: z.ZodSchema
-  abstract async process(
+  abstract process(
     record: any,
     config: BulkOperationConfig,
     supabase: ReturnType<typeof createServerClient>
   ): Promise<any>
-  abstract async rollback(
+  abstract rollback(
     record: any,
     supabase: ReturnType<typeof createServerClient>
   ): Promise<void>
 }
+
+type SupabaseClient = ReturnType<typeof createServerClient>
 
 class InventoryProcessor extends EntityProcessor {
   schema = z.object({
@@ -705,17 +764,29 @@ class InventoryProcessor extends EntityProcessor {
     notes: z.string().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: any) {
+  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     // Implementation for inventory processing
     const { sku, warehouse_code, quantity, reason, notes } = record.data
 
-    // Look up product and warehouse
+    // Get organization_id from config
+    const organization_id = config.organization_id
+    if (!organization_id) {
+      throw new Error('Organization ID not found in config')
+    }
+
+    // Look up product and warehouse within the organization
     const [productResult, warehouseResult] = await Promise.all([
-      supabase.from('products').select('id').eq('sku', sku).single(),
+      supabase
+        .from('products')
+        .select('id')
+        .eq('sku', sku)
+        .eq('organization_id', organization_id)
+        .single(),
       supabase
         .from('warehouses')
         .select('id')
         .eq('code', warehouse_code)
+        .eq('organization_id', organization_id)
         .single(),
     ])
 
@@ -723,7 +794,7 @@ class InventoryProcessor extends EntityProcessor {
       throw new Error('Product or warehouse not found')
     }
 
-    // Update inventory
+    // Update inventory within the organization
     const { data, error } = await supabase
       .from('inventory')
       .update({
@@ -732,6 +803,7 @@ class InventoryProcessor extends EntityProcessor {
       })
       .eq('product_id', productResult.data.id)
       .eq('warehouse_id', warehouseResult.data.id)
+      .eq('organization_id', organization_id)
       .select()
       .single()
 
@@ -739,7 +811,7 @@ class InventoryProcessor extends EntityProcessor {
     return data
   }
 
-  async rollback(record: any, supabase: any) {
+  async rollback(record: any, supabase: SupabaseClient) {
     if (record.before_data) {
       await supabase
         .from('inventory')
@@ -758,8 +830,14 @@ class ProductProcessor extends EntityProcessor {
     price: z.number().positive().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: any) {
+  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     const { sku, name, description, category, price } = record.data
+
+    // Get organization_id from config
+    const organization_id = config.organization_id
+    if (!organization_id) {
+      throw new Error('Organization ID not found in config')
+    }
 
     if (config.operationType === 'import') {
       const { data, error } = await supabase
@@ -770,6 +848,7 @@ class ProductProcessor extends EntityProcessor {
           description,
           category,
           price,
+          organization_id: organization_id,
         })
         .select()
         .single()
@@ -781,6 +860,7 @@ class ProductProcessor extends EntityProcessor {
         .from('products')
         .update({ name, description, category, price })
         .eq('sku', sku)
+        .eq('organization_id', organization_id)
         .select()
         .single()
 
@@ -789,7 +869,7 @@ class ProductProcessor extends EntityProcessor {
     }
   }
 
-  async rollback(record: any, supabase: any) {
+  async rollback(record: any, supabase: SupabaseClient) {
     if (record.action === 'create') {
       await supabase.from('products').delete().eq('id', record.entity_id)
     } else if (record.action === 'update' && record.before_data) {
@@ -809,15 +889,22 @@ class PricingProcessor extends EntityProcessor {
     min_quantity: z.number().int().min(1).optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: any) {
+  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     // Implementation for pricing processing
     const { sku, price_tier, price, min_quantity } = record.data
 
-    // Look up product
+    // Get organization_id from config
+    const organization_id = config.organization_id
+    if (!organization_id) {
+      throw new Error('Organization ID not found in config')
+    }
+
+    // Look up product within the organization
     const { data: product, error: productError } = await supabase
       .from('products')
       .select('id')
       .eq('sku', sku)
+      .eq('organization_id', organization_id)
       .single()
 
     if (productError) throw new Error('Product not found')
@@ -829,6 +916,7 @@ class PricingProcessor extends EntityProcessor {
         price_tier,
         price,
         min_quantity: min_quantity || 1,
+        organization_id: userProfile.organization_id,
       })
       .select()
       .single()
@@ -837,7 +925,7 @@ class PricingProcessor extends EntityProcessor {
     return data
   }
 
-  async rollback(record: any, supabase: any) {
+  async rollback(record: any, supabase: SupabaseClient) {
     if (record.action === 'create') {
       await supabase.from('product_pricing').delete().eq('id', record.entity_id)
     } else if (record.before_data) {
@@ -857,8 +945,14 @@ class CustomerProcessor extends EntityProcessor {
     price_tier: z.string().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: any) {
+  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
     const { email, name, company, price_tier } = record.data
+
+    // Get organization_id from config
+    const organization_id = config.organization_id
+    if (!organization_id) {
+      throw new Error('Organization ID not found in config')
+    }
 
     const { data, error } = await supabase
       .from('customers')
@@ -867,6 +961,7 @@ class CustomerProcessor extends EntityProcessor {
         name,
         company,
         price_tier: price_tier || 'standard',
+        organization_id: organization_id,
       })
       .select()
       .single()
@@ -875,7 +970,7 @@ class CustomerProcessor extends EntityProcessor {
     return data
   }
 
-  async rollback(record: any, supabase: any) {
+  async rollback(record: any, supabase: SupabaseClient) {
     if (record.action === 'create') {
       await supabase.from('customers').delete().eq('id', record.entity_id)
     } else if (record.before_data) {

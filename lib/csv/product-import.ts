@@ -3,6 +3,7 @@ import Papa from 'papaparse'
 import { productSchema } from '@/lib/validations/product'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database.types'
+import { escapeCSVField } from '@/lib/utils/csv'
 
 export interface CSVParseResult {
   success: boolean
@@ -126,6 +127,12 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
 }
 
 
+/**
+ * Generates a CSV template string for product imports with headers and sample rows.
+ *
+ * The template includes properly escaped fields and example data for each required and optional column.
+ * @returns A CSV-formatted string containing headers and three sample product rows.
+ */
 export function generateProductCSVTemplate(): string {
   const headers = ['sku', 'name', 'description', 'category', 'base_price', 'cost', 'weight']
   const sampleRows = [
@@ -133,23 +140,6 @@ export function generateProductCSVTemplate(): string {
     ['GADGET-002', 'Super Gadget', 'Amazing gadget with multiple features', 'Electronics', '149.99', '75.00', '1.2'],
     ['TOOL-003', 'Professional Tool', 'Heavy duty tool for professionals', 'Tools', '299.99', '150.00', '5.0'],
   ]
-
-  // Helper function to escape CSV field properly
-  const escapeCSVField = (value: string): string => {
-    // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
-    if (value.includes('"') || value.includes('\n') || value.includes('\r') || value.includes(',')) {
-      // Escape quotes by doubling them and wrap in quotes
-      return `"${value.replace(/"/g, '""')}"`
-    }
-    
-    // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
-    if (/^[=+\-@\t\r]/.test(value)) {
-      return `"${value}"`
-    }
-    
-    // Wrap all values in quotes for consistency in sample template
-    return `"${value}"`
-  }
 
   const csvLines = [
     headers.map(escapeCSVField).join(','),

@@ -23,6 +23,13 @@ interface TestResults {
   message: string
 }
 
+/**
+ * Handles a POST request to test a NetSuite integration connection and returns a detailed report of the results.
+ *
+ * Validates user authentication, integration existence, user access, and NetSuite configuration. Executes a series of connectivity and permission tests against the NetSuite API, including OAuth token validation, API connectivity, permissions check, and data retrieval. Aggregates and returns the results, updates the integration status, and logs the activity.
+ *
+ * Returns a JSON response containing the test results, overall status, and summary message. Responds with appropriate HTTP status codes and error messages for authentication, authorization, validation, or unexpected errors.
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()

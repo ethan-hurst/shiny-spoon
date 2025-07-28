@@ -23,17 +23,41 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { DataTable } from '@/components/ui/data-table'
 import { Progress } from '@/components/ui/progress'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { BulkProgressTracker } from './bulk-progress-tracker'
 import { BulkUploadDialog } from './bulk-upload-dialog'
+import type { BulkOperation } from '@/types/bulk-operations.types'
+import type { Row } from '@tanstack/react-table'
 
+interface ErrorLogEntry {
+  message: string
+  timestamp?: string
+  details?: any
+}
+
+/**
+ * Displays a dashboard for managing and monitoring bulk data operations.
+ *
+ * Provides a user interface to view the status and history of bulk operations, initiate new uploads, cancel or rollback operations, and inspect or download error logs. Integrates with a Supabase backend and supports real-time updates and user feedback.
+ */
 export function BulkOperationsDashboard() {
   const [selectedOperation, setSelectedOperation] = useState<string | null>(
     null
   )
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false)
+  const [selectedErrorLog, setSelectedErrorLog] = useState<ErrorLogEntry[]>([])
+  const [selectedOperationId, setSelectedOperationId] = useState<string>('')
   const supabase = createBrowserClient()
 
   const { data: operations, refetch } = useQuery({
@@ -58,11 +82,26 @@ export function BulkOperationsDashboard() {
         body: JSON.stringify({ operationId }),
       })
 
-      if (!response.ok) throw new Error('Failed to cancel operation')
+      if (!response.ok) {
+        // Parse error response
+        let errorMessage = 'Failed to cancel operation'
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          }
+        } catch {
+          // Use default error message if parsing fails
+        }
+        throw new Error(errorMessage)
+      }
     },
     onSuccess: () => {
       toast.success('Operation cancelled')
       refetch()
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
     },
   })
 
@@ -74,11 +113,26 @@ export function BulkOperationsDashboard() {
         body: JSON.stringify({ operationId }),
       })
 
-      if (!response.ok) throw new Error('Failed to rollback operation')
+      if (!response.ok) {
+        // Parse error response
+        let errorMessage = 'Failed to rollback operation'
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          }
+        } catch {
+          // Use default error message if parsing fails
+        }
+        throw new Error(errorMessage)
+      }
     },
     onSuccess: () => {
       toast.success('Rollback initiated')
       refetch()
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
     },
   })
 
@@ -120,7 +174,7 @@ export function BulkOperationsDashboard() {
     {
       header: 'Status',
       accessorKey: 'status',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div className="flex items-center gap-2">
           {getStatusIcon(row.original.status)}
           <Badge variant={getStatusVariant(row.original.status)}>
@@ -131,7 +185,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Type',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div>
           <div className="font-medium capitalize">
             {row.original.operation_type} {row.original.entity_type}
@@ -144,7 +198,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Progress',
-      cell: ({ row }: any) => {
+      cell: ({ row }: { row: Row<BulkOperation> }) => {
         const total = row.original.total_records || 0
         const processed = row.original.processed_records || 0
         const percentage = total > 0 ? (processed / total) * 100 : 0
@@ -161,7 +215,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Results',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div className="text-sm">
           <div className="text-green-600">
             ✓ {row.original.successful_records || 0}
@@ -174,7 +228,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Created',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div className="text-sm text-muted-foreground">
           {formatDistanceToNow(new Date(row.original.created_at), {
             addSuffix: true,
@@ -184,7 +238,7 @@ export function BulkOperationsDashboard() {
     },
     {
       header: 'Actions',
-      cell: ({ row }: any) => (
+      cell: ({ row }: { row: Row<BulkOperation> }) => (
         <div className="flex items-center gap-2">
           {row.original.status === 'processing' && (
             <Button
@@ -211,11 +265,11 @@ export function BulkOperationsDashboard() {
               size="sm"
               variant="ghost"
               onClick={() => {
-                // Show error details
-                toast.error(`${row.original.failed_records} errors found`, {
-                  description: 'Download error log for details',
-                })
+                setSelectedErrorLog(row.original.error_log || [])
+                setSelectedOperationId(row.original.id)
+                setErrorDialogOpen(true)
               }}
+              title="View error details"
             >
               <AlertCircle className="h-4 w-4" />
             </Button>
@@ -303,6 +357,69 @@ export function BulkOperationsDashboard() {
           setUploadDialogOpen(false)
         }}
       />
+
+      {/* Error Details Dialog */}
+      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Error Log Details</DialogTitle>
+            <DialogDescription>
+              Operation ID: {selectedOperationId}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[400px] w-full rounded-md border p-4">
+            <div className="space-y-2">
+              {selectedErrorLog.map((error, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg border p-3 text-sm space-y-1"
+                >
+                  <div className="font-medium text-destructive">
+                    {error.message}
+                  </div>
+                  {error.timestamp && (
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(error.timestamp).toLocaleString()}
+                    </div>
+                  )}
+                  {error.details && (
+                    <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
+                      {JSON.stringify(error.details, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setErrorDialogOpen(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                // Download error log as JSON
+                const dataStr = JSON.stringify(selectedErrorLog, null, 2)
+                const dataBlob = new Blob([dataStr], { type: 'application/json' })
+                const url = URL.createObjectURL(dataBlob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = `error-log-${selectedOperationId}.json`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                URL.revokeObjectURL(url)
+                toast.success('Error log downloaded')
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Log
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -70,25 +70,56 @@ BEGIN
       ELSE p_entity_type
     END;
     
-    -- Insert log entry
-    INSERT INTO integration_logs (
-      integration_id,
-      log_type,
-      severity,
-      message,
-      details,
-      created_at
-    ) VALUES (
-      p_integration_id,
-      'sync',
-      'info',
-      format('Shopify %s %s', v_normalized_entity_type, p_action),
-      p_details,
-      NOW()
-    );
+    -- Prepare sanitized details (encrypt sensitive data)
+    DECLARE
+      v_sanitized_details JSONB;
+    BEGIN
+      v_sanitized_details := p_details;
+      
+      -- Remove or encrypt sensitive fields if present
+      IF v_sanitized_details ? 'credentials' THEN
+        v_sanitized_details := v_sanitized_details - 'credentials';
+        v_sanitized_details := v_sanitized_details || jsonb_build_object(
+          'credentials_encrypted', pgp_sym_encrypt(
+            (p_details->>'credentials')::text,
+            current_setting('app.encryption_key', true),
+            'compress-algo=1, cipher-algo=aes256'
+          )
+        );
+      END IF;
+      
+      -- Remove other sensitive fields
+      IF v_sanitized_details ? 'api_key' THEN
+        v_sanitized_details := v_sanitized_details - 'api_key' || 
+          jsonb_build_object('api_key', '[REDACTED]');
+      END IF;
+      
+      IF v_sanitized_details ? 'access_token' THEN
+        v_sanitized_details := v_sanitized_details - 'access_token' || 
+          jsonb_build_object('access_token', '[REDACTED]');
+      END IF;
+      
+      -- Insert log entry with sanitized details
+      INSERT INTO integration_logs (
+        integration_id,
+        log_type,
+        severity,
+        message,
+        details,
+        created_at
+      ) VALUES (
+        p_integration_id,
+        'sync',
+        'info',
+        format('Shopify %s %s', v_normalized_entity_type, p_action),
+        v_sanitized_details,
+        NOW()
+      );
+    END;
   END;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public, pg_catalog;
 
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION log_shopify_sync_activity TO authenticated;

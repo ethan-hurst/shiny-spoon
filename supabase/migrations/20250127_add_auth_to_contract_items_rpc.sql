@@ -1,9 +1,9 @@
--- PRP-017A: Add JSONB validation and parameter validation to update_contract_items RPC
+-- PRP-017B: Add authorization checks to update_contract_items SECURITY DEFINER function
 
 -- Drop the existing function first
 DROP FUNCTION IF EXISTS update_contract_items(UUID, JSONB);
 
--- Function to atomically update contract items with validation
+-- Function to atomically update contract items with validation and authorization
 CREATE OR REPLACE FUNCTION update_contract_items(
   p_contract_id UUID,
   p_items JSONB
@@ -18,15 +18,44 @@ DECLARE
   v_price DECIMAL(10,2);
   v_min_quantity INTEGER;
   v_max_quantity INTEGER;
+  v_user_id UUID;
+  v_user_org_id UUID;
+  v_contract_org_id UUID;
 BEGIN
+  -- Get the current user ID
+  v_user_id := auth.uid();
+  
+  -- Check if user is authenticated
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+  
+  -- Get user's organization
+  SELECT organization_id INTO v_user_org_id
+  FROM user_profiles
+  WHERE user_id = v_user_id;
+  
+  IF v_user_org_id IS NULL THEN
+    RAISE EXCEPTION 'User does not belong to an organization';
+  END IF;
+  
   -- Validate p_contract_id parameter
   IF p_contract_id IS NULL THEN
     RAISE EXCEPTION 'Contract ID cannot be null';
   END IF;
   
-  -- Check if contract exists
-  IF NOT EXISTS (SELECT 1 FROM contracts WHERE id = p_contract_id) THEN
+  -- Check if contract exists and get its organization
+  SELECT organization_id INTO v_contract_org_id
+  FROM customer_contracts
+  WHERE id = p_contract_id;
+  
+  IF v_contract_org_id IS NULL THEN
     RAISE EXCEPTION 'Contract with ID % not found', p_contract_id;
+  END IF;
+  
+  -- Verify user has access to this contract (same organization)
+  IF v_contract_org_id != v_user_org_id THEN
+    RAISE EXCEPTION 'Access denied: Contract belongs to a different organization';
   END IF;
   
   -- Validate JSONB structure if items are provided
@@ -93,9 +122,13 @@ BEGIN
         END IF;
       END IF;
       
-      -- Check if product exists
-      IF NOT EXISTS (SELECT 1 FROM products WHERE id = v_product_id) THEN
-        RAISE EXCEPTION 'Product with ID % not found', v_product_id;
+      -- Check if product exists and belongs to the same organization
+      IF NOT EXISTS (
+        SELECT 1 FROM products 
+        WHERE id = v_product_id 
+        AND organization_id = v_user_org_id
+      ) THEN
+        RAISE EXCEPTION 'Product with ID % not found or access denied', v_product_id;
       END IF;
     END LOOP;
   END IF;
@@ -126,5 +159,6 @@ $$;
 
 -- Add comment for documentation
 COMMENT ON FUNCTION update_contract_items(UUID, JSONB) IS 
-'Atomically updates contract items with comprehensive validation. 
-Validates JSONB structure, data types, and referential integrity before making changes.';
+'Atomically updates contract items with comprehensive validation and authorization. 
+Validates user authentication, organization access, JSONB structure, data types, and referential integrity before making changes.
+Only users from the same organization as the contract can update its items.';

@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { parse } from 'papaparse'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { escapeCSVField } from '@/lib/utils/csv'
 import {
   adjustmentSchema,
   bulkUpdateSchema,
@@ -298,6 +299,14 @@ export async function bulkUpdateInventory(csvData: string) {
   }
 }
 
+/**
+ * Exports inventory data as a CSV file, applying optional filters for warehouse, search term, and low stock.
+ *
+ * If provided, filters the inventory by warehouse ID, product name or SKU, and/or includes only items at or below their reorder point. The exported CSV includes product, warehouse, quantity, and reorder information, with all fields properly escaped for CSV format.
+ *
+ * @param filters - Optional filters to restrict the exported inventory data
+ * @returns An object containing the CSV content, filename, row count, and success status, or an error message if the operation fails
+ */
 export async function exportInventory(filters?: {
   warehouse_id?: string
   search?: string
@@ -387,28 +396,6 @@ export async function exportInventory(filters?: {
     'Reorder Quantity',
     'Last Updated',
   ]
-
-  // Helper function to escape CSV field properly
-  const escapeCSVField = (value: any): string => {
-    if (value === null || value === undefined) {
-      return '""'
-    }
-    
-    const strValue = String(value)
-    
-    // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
-    if (strValue.includes('"') || strValue.includes('\n') || strValue.includes('\r') || strValue.includes(',')) {
-      // Escape quotes by doubling them and wrap in quotes
-      return `"${strValue.replace(/"/g, '""')}"`
-    }
-    
-    // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
-    if (/^[=+\-@\t\r]/.test(strValue)) {
-      return `"${strValue}"`
-    }
-    
-    return strValue
-  }
 
   const csvRows = [
     headers.map(escapeCSVField).join(','),

@@ -38,7 +38,10 @@ import {
 const formSchema = z.object({
   file: z
     .instanceof(File)
-    .refine((file) => file.name.endsWith('.csv'), 'File must be a CSV'),
+    .refine((file) => file.name.endsWith('.csv'), 'File must be a CSV')
+    .refine((file) => file.type === 'text/csv' || file.type === '', 
+      'File must be a CSV file (text/csv MIME type)')
+    .refine((file) => file.size <= 50 * 1024 * 1024, 'File size must be less than 50MB'),
   operationType: z.enum(['import', 'update']),
   entityType: z.enum(['products', 'inventory', 'pricing', 'customers']),
   validateOnly: z.boolean().default(false),
@@ -51,6 +54,16 @@ interface BulkUploadDialogProps {
   onSuccess: () => void
 }
 
+/**
+ * Renders a dialog for uploading CSV files to perform bulk import or update operations on products, inventory, pricing, or customers.
+ *
+ * Allows users to select the operation type and entity type, configure validation and rollback options, download a CSV template, and upload a CSV file with enforced validation. Handles file upload with a 30-second timeout, displays user-friendly error or success messages, and invokes a callback upon successful operation start.
+ *
+ * @param open - Whether the dialog is visible
+ * @param onOpenChange - Callback to toggle dialog visibility
+ * @param onSuccess - Callback invoked after a successful bulk operation is initiated
+ * @returns The rendered dialog component
+ */
 export function BulkUploadDialog({
   open,
   onOpenChange,
@@ -79,10 +92,17 @@ export function BulkUploadDialog({
       formData.append('validateOnly', values.validateOnly.toString())
       formData.append('rollbackOnError', values.rollbackOnError.toString())
 
+      // Create an AbortController for timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
       const response = await fetch('/api/bulk/upload', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -97,9 +117,41 @@ export function BulkUploadDialog({
 
       onSuccess()
     } catch (error) {
-      toast.error('Failed to start bulk operation', {
-        description: error instanceof Error ? error.message : 'Unknown error'
-      })
+      // Sanitize error messages
+      let errorMessage = 'Failed to start bulk operation'
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out. Please try again.'
+        } else if (error.message.toLowerCase().includes('network')) {
+          errorMessage = 'Network error. Please check your connection.'
+        } else if (error.message.toLowerCase().includes('unauthorized') || 
+                   error.message.toLowerCase().includes('authentication')) {
+          errorMessage = 'Authentication error. Please sign in again.'
+        } else if (error.message.toLowerCase().includes('validation') || 
+                   error.message.toLowerCase().includes('invalid')) {
+          // Validation errors are generally safe to show
+          errorMessage = error.message
+        } else {
+          // For other errors, check if it's a user-friendly message
+          const safePatterns = [
+            'file size',
+            'csv',
+            'format',
+            'required',
+            'missing',
+            'duplicate',
+            'already exists'
+          ]
+          
+          const lowerMessage = error.message.toLowerCase()
+          const isSafeMessage = safePatterns.some(pattern => lowerMessage.includes(pattern))
+          
+          errorMessage = isSafeMessage ? error.message : 'Failed to start bulk operation'
+        }
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setIsUploading(false)
     }
