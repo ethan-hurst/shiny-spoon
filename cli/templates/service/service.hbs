@@ -1,0 +1,239 @@
+/**
+ * {{serviceName}} Service
+ * {{description}}
+ */
+
+import { z } from 'zod'
+import { BaseService, ServiceContext } from '@/lib/base/base-service'
+{{#if withRepository}}
+import { {{repositoryName}} } from '@/lib/repositories/{{kebabName}}'
+{{/if}}
+{{#if withTypes}}
+import type { {{typeName}}, Create{{typeName}}Input, Update{{typeName}}Input } from '@/types/{{kebabName}}'
+{{/if}}
+
+// Input validation schemas
+{{#if withCreate}}
+const create{{entityName}}Schema = z.object({
+  // TODO: Add your fields here
+  name: z.string().min(1).max(255),
+  description: z.string().optional(),
+  organizationId: z.string().uuid()
+})
+{{/if}}
+
+{{#if withUpdate}}
+const update{{entityName}}Schema = create{{entityName}}Schema.partial().omit({ organizationId: true })
+{{/if}}
+
+{{#if withList}}
+const list{{entityName}}Schema = z.object({
+  organizationId: z.string().uuid(),
+  search: z.string().optional(),
+  limit: z.number().int().positive().max(100).default(20),
+  offset: z.number().int().min(0).default(0)
+})
+{{/if}}
+
+export interface {{serviceName}}Options {
+  // Add service-specific options here
+  enableCache?: boolean
+  defaultTimeout?: number
+}
+
+export class {{serviceName}} extends BaseService {
+  {{#if withRepository}}
+  private repository: {{repositoryName}}
+  {{/if}}
+  private options: {{serviceName}}Options
+
+  constructor(options: {{serviceName}}Options = {}) {
+    super({
+      serviceName: '{{serviceName}}',
+      maxRetries: 3,
+      retryDelay: 1000,
+      circuitBreakerEnabled: true,
+      timeoutMs: options.defaultTimeout || 30000,
+      monitoring: true
+    })
+
+    {{#if withRepository}}
+    this.repository = new {{repositoryName}}()
+    {{/if}}
+    this.options = {
+      enableCache: true,
+      defaultTimeout: 30000,
+      ...options
+    }
+  }
+
+  {{#if withCreate}}
+  /**
+   * Create a new {{entityName}}
+   */
+  async create(input: z.infer<typeof create{{entityName}}Schema>): Promise<{{typeName}}> {
+    const validated = this.validateInput<z.infer<typeof create{{entityName}}Schema>>(input)
+    
+    return this.execute(async () => {
+      this.log('info', `Creating {{entityName}}`, { name: validated.name })
+      
+      {{#if withRepository}}
+      const result = await this.repository.create(validated)
+      {{else}}
+      // TODO: Implement create logic
+      const result = { id: crypto.randomUUID(), ...validated } as {{typeName}}
+      {{/if}}
+      
+      this.recordMetric('{{kebabName}}.created', {
+        organizationId: validated.organizationId
+      })
+      
+      return result
+    })
+  }
+  {{/if}}
+
+  {{#if withUpdate}}
+  /**
+   * Update an existing {{entityName}}
+   */
+  async update(id: string, input: z.infer<typeof update{{entityName}}Schema>): Promise<{{typeName}}> {
+    const validated = this.validateInput<z.infer<typeof update{{entityName}}Schema>>(input)
+    
+    return this.execute(async () => {
+      this.log('info', `Updating {{entityName}}`, { id })
+      
+      {{#if withRepository}}
+      const result = await this.repository.update(id, validated)
+      {{else}}
+      // TODO: Implement update logic
+      const result = { id, ...validated } as {{typeName}}
+      {{/if}}
+      
+      this.recordMetric('{{kebabName}}.updated', {
+        id
+      })
+      
+      return result
+    })
+  }
+  {{/if}}
+
+  {{#if withGet}}
+  /**
+   * Get {{entityName}} by ID
+   */
+  async getById(id: string): Promise<{{typeName}} | null> {
+    return this.execute(async () => {
+      this.log('info', `Getting {{entityName}} by ID`, { id })
+      
+      {{#if withRepository}}
+      const result = await this.repository.findById(id)
+      {{else}}
+      // TODO: Implement get logic
+      const result = null
+      {{/if}}
+      
+      this.recordMetric('{{kebabName}}.retrieved', {
+        id,
+        found: !!result
+      })
+      
+      return result
+    })
+  }
+  {{/if}}
+
+  {{#if withList}}
+  /**
+   * List {{entityNamePlural}} with pagination
+   */
+  async list(input: z.infer<typeof list{{entityName}}Schema>): Promise<{
+    data: {{typeName}}[]
+    total: number
+  }> {
+    const validated = this.validateInput<z.infer<typeof list{{entityName}}Schema>>(input)
+    
+    return this.execute(async () => {
+      this.log('info', `Listing {{entityNamePlural}}`, { 
+        organizationId: validated.organizationId,
+        limit: validated.limit 
+      })
+      
+      {{#if withRepository}}
+      const [data, total] = await Promise.all([
+        this.repository.findAll({
+          organizationId: validated.organizationId,
+          search: validated.search,
+          limit: validated.limit,
+          offset: validated.offset
+        }),
+        this.repository.count({
+          organizationId: validated.organizationId,
+          search: validated.search
+        })
+      ])
+      {{else}}
+      // TODO: Implement list logic
+      const data: {{typeName}}[] = []
+      const total = 0
+      {{/if}}
+      
+      this.recordMetric('{{kebabName}}.listed', {
+        organizationId: validated.organizationId,
+        count: data.length,
+        total
+      })
+      
+      return { data, total }
+    })
+  }
+  {{/if}}
+
+  {{#if withDelete}}
+  /**
+   * Delete {{entityName}} by ID
+   */
+  async delete(id: string): Promise<void> {
+    return this.execute(async () => {
+      this.log('info', `Deleting {{entityName}}`, { id })
+      
+      {{#if withRepository}}
+      await this.repository.delete(id)
+      {{else}}
+      // TODO: Implement delete logic
+      {{/if}}
+      
+      this.recordMetric('{{kebabName}}.deleted', {
+        id
+      })
+    })
+  }
+  {{/if}}
+
+  /**
+   * Validate input data using schema
+   */
+  protected validateInput<T>(data: unknown): T {
+    // Override with specific validation if needed
+    return data as T
+  }
+
+  /**
+   * Health check for this service
+   */
+  protected async runHealthCheck(): Promise<boolean> {
+    try {
+      {{#if withRepository}}
+      // Check repository connection
+      await this.repository.count({})
+      {{/if}}
+      
+      // Add other health checks here
+      return true
+    } catch (error) {
+      this.log('error', 'Health check failed', error)
+      return false
+    }
+  }
+}

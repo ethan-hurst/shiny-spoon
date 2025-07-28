@@ -1,0 +1,148 @@
+/**
+ * {{repositoryName}} - Repository for {{entityName}}
+ * {{description}}
+ */
+
+import { BaseRepository } from '@/lib/base/base-repository'
+import { createClient } from '@/lib/utils/supabase/server'
+import type { 
+  {{entityName}}, 
+  Create{{entityName}}Input, 
+  Update{{entityName}}Input,
+  {{entityName}}QueryOptions 
+} from '@/types/{{kebabName}}.types'
+
+export class {{repositoryName}} extends BaseRepository<{{entityName}}> {
+  constructor() {
+    super(createClient(), {
+      tableName: '{{tableName}}',
+      softDelete: {{softDelete}}
+    })
+  }
+
+  protected getOrganizationId(): string | null {
+    // TODO: Implement organization context retrieval
+    // This should come from auth context or request headers
+    throw new Error('Organization context not implemented. Please inject organization ID.')
+  }
+
+  protected getCurrentUserId(): string | null {
+    // TODO: Implement user context retrieval  
+    // This should come from auth context or request headers
+    throw new Error('User context not implemented. Please inject user ID.')
+  }
+
+  /**
+   * Find {{entityName}} by name within organization
+   */
+  async findByName(name: string, organizationId?: string): Promise<{{entityName}} | null> {
+    const { data, error } = await this.query()
+      .select('*')
+      .eq('name', name)
+      .eq('organization_id', organizationId || this.getOrganizationId())
+      {{#if softDelete}}
+      .is('deleted_at', null)
+      {{/if}}
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null
+      }
+      throw this.handleError(error)
+    }
+
+    return data as {{entityName}}
+  }
+
+  /**
+   * Search {{entityName}}s by name
+   */
+  async searchByName(searchTerm: string, options: {{entityName}}QueryOptions = {}): Promise<{{entityName}}[]> {
+    const query = this.query()
+      .select('*')
+      .eq('organization_id', options.organizationId || this.getOrganizationId())
+      .ilike('name', `%${searchTerm}%`)
+
+    {{#if softDelete}}
+    if (!options.includeDeleted) {
+      query.is('deleted_at', null)
+    }
+    {{/if}}
+
+    if (options.limit) {
+      query.limit(options.limit)
+    }
+
+    if (options.offset) {
+      query.range(options.offset, options.offset + (options.limit || 20) - 1)
+    }
+
+    const { data, error } = await query.order('name')
+
+    if (error) {
+      throw this.handleError(error)
+    }
+
+    return data as {{entityName}}[]
+  }
+
+  /**
+   * Get {{entityName}} count for organization
+   */
+  async getCountByOrganization(organizationId?: string): Promise<number> {
+    const query = this.query()
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId || this.getOrganizationId())
+
+    {{#if softDelete}}
+    query.is('deleted_at', null)
+    {{/if}}
+
+    const { count, error } = await query
+
+    if (error) {
+      throw this.handleError(error)
+    }
+
+    return count || 0
+  }
+
+  {{#if withValidation}}
+  /**
+   * Validate {{entityName}} data before operations
+   */
+  protected async validateData(data: Partial<{{entityName}}>): Promise<void> {
+    // Check for duplicate names within organization
+    if (data.name) {
+      const existing = await this.findByName(data.name, data.organization_id)
+      if (existing && existing.id !== data.id) {
+        throw new Error(`{{entityName}} with name '${data.name}' already exists`)
+      }
+    }
+
+    // Add custom validation logic here
+  }
+
+  /**
+   * Override create to include validation
+   */
+  async create(data: Create{{entityName}}Input): Promise<{{entityName}}> {
+    await this.validateData(data)
+    return super.create(data)
+  }
+
+  /**
+   * Override update to include validation
+   */
+  async update(id: string, data: Update{{entityName}}Input): Promise<{{entityName}}> {
+    const existing = await this.findById(id)
+    if (!existing) {
+      throw new Error('{{entityName}} not found')
+    }
+
+    await this.validateData({ ...existing, ...data })
+    return super.update(id, data)
+  }
+  {{/if}}
+}

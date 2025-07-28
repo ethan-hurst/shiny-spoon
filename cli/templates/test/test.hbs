@@ -1,0 +1,199 @@
+/**
+ * {{testName}} tests
+ */
+
+{{#if isComponent}}
+import { render, screen{{#if withForm}}, fireEvent, waitFor{{/if}} } from '@testing-library/react'
+{{#if withForm}}import userEvent from '@testing-library/user-event'{{/if}}
+import { {{componentName}} } from '@/components/{{componentPath}}'
+{{else}}
+import { {{className}} } from '@/{{filePath}}'
+{{/if}}
+
+{{#if mockNextJs}}
+// Mock Next.js server components for testing
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    refresh: jest.fn()
+  })
+}))
+{{/if}}
+
+{{#if mockSupabase}}
+// Mock Supabase client
+jest.mock('@/lib/utils/supabase/server', () => ({
+  createClient: jest.fn()
+}))
+{{/if}}
+
+describe('{{testName}}', () => {
+  {{#if hasProps}}
+  const defaultProps = {
+    // Add default props here
+  }
+  {{/if}}
+
+  {{#if mockSupabase}}
+  let mockSupabaseClient: any
+
+  beforeEach(() => {
+    mockSupabaseClient = {
+      from: jest.fn(() => ({
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        neq: jest.fn().mockReturnThis(),
+        ilike: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockReturnThis(),
+        single: jest.fn().mockReturnThis(),
+        maybeSingle: jest.fn().mockReturnThis()
+      }))
+    }
+    
+    ;(createClient as jest.Mock).mockReturnValue(mockSupabaseClient)
+  })
+  {{else}}
+  beforeEach(() => {
+    // Setup before each test
+  })
+  {{/if}}
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  describe('{{#if isComponent}}rendering{{else}}constructor{{/if}}', () => {
+    {{#if isComponent}}
+    it('should render without crashing', () => {
+      render(<{{componentName}}{{#if hasProps}} {...defaultProps}{{/if}} />)
+      expect(screen.getByTestId('{{testId}}')).toBeInTheDocument()
+    })
+
+    it('should render with custom className', () => {
+      const customClass = 'custom-class'
+      render(<{{componentName}} className={customClass}{{#if hasProps}} {...defaultProps}{{/if}} />)
+      expect(screen.getByTestId('{{testId}}')).toHaveClass(customClass)
+    })
+
+    {{#if withForm}}
+    it('should render form elements', () => {
+      render(<{{componentName}}{{#if hasProps}} {...defaultProps}{{/if}} />)
+      expect(screen.getByRole('form')).toBeInTheDocument()
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
+    })
+    {{/if}}
+    {{else}}
+    it('should create instance', () => {
+      const instance = new {{className}}({{#if hasConstructorArgs}}/* add constructor args */{{/if}})
+      expect(instance).toBeInstanceOf({{className}})
+    })
+
+    {{#if hasConfig}}
+    it('should throw error for missing configuration', () => {
+      expect(() => new {{className}}({})).toThrow()
+    })
+    {{/if}}
+    {{/if}}
+  })
+
+  {{#if withForm}}
+  describe('form interaction', () => {
+    it('should handle form submission', async () => {
+      const user = userEvent.setup()
+      const mockSubmit = jest.fn()
+      
+      render(<{{componentName}} onSubmit={mockSubmit}{{#if hasProps}} {...defaultProps}{{/if}} />)
+      
+      const nameInput = screen.getByLabelText(/name/i)
+      const submitButton = screen.getByRole('button', { name: /submit/i })
+      
+      await user.type(nameInput, 'Test Name')
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(mockSubmit).toHaveBeenCalledWith({
+          name: 'Test Name'
+        })
+      })
+    })
+
+    it('should validate form fields', async () => {
+      const user = userEvent.setup()
+      
+      render(<{{componentName}}{{#if hasProps}} {...defaultProps}{{/if}} />)
+      
+      const submitButton = screen.getByRole('button', { name: /submit/i })
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(screen.getByText(/name is required/i)).toBeInTheDocument()
+      })
+    })
+  })
+  {{/if}}
+
+  {{#if hasState}}
+  describe('state management', () => {
+    it('should handle loading state', () => {
+      // Test loading state rendering
+      render(<{{componentName}} {...defaultProps} />)
+      // Add specific loading state tests
+    })
+
+    it('should handle error state', () => {
+      // Test error state rendering
+      render(<{{componentName}} {...defaultProps} />)
+      // Add specific error state tests
+    })
+  })
+  {{/if}}
+
+  {{#if isComponent}}
+  describe('accessibility', () => {
+    it('should have proper ARIA attributes', () => {
+      render(<{{componentName}}{{#if hasProps}} {...defaultProps}{{/if}} />)
+      const component = screen.getByTestId('{{testId}}')
+      expect(component).toHaveAttribute('role')
+    })
+
+    {{#if withForm}}
+    it('should have proper form labels', () => {
+      render(<{{componentName}}{{#if hasProps}} {...defaultProps}{{/if}} />)
+      expect(screen.getByLabelText(/name/i)).toBeInTheDocument()
+    })
+    {{/if}}
+  })
+
+  describe('user interactions', () => {
+    it('should handle click events', async () => {
+      const user = userEvent.setup()
+      const mockClick = jest.fn()
+      
+      render(<{{componentName}} onClick={mockClick}{{#if hasProps}} {...defaultProps}{{/if}} />)
+      
+      const element = screen.getByTestId('{{testId}}')
+      await user.click(element)
+      
+      expect(mockClick).toHaveBeenCalledTimes(1)
+    })
+  })
+  {{else}}
+  describe('core functionality', () => {
+    it('should perform primary operation', async () => {
+      // Add test for main functionality
+      const instance = new {{className}}({{#if hasConstructorArgs}}/* constructor args */{{/if}})
+      // Add assertions
+    })
+
+    it('should handle errors gracefully', async () => {
+      // Add error handling tests
+      const instance = new {{className}}({{#if hasConstructorArgs}}/* constructor args */{{/if}})
+      // Add error scenarios
+    })
+  })
+  {{/if}}
+})

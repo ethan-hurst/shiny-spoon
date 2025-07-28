@@ -1,0 +1,166 @@
+/**
+ * {{componentName}} Component
+ * {{description}}
+ */
+
+{{#unless server}}'use client'{{/unless}}
+
+{{#if withState}}import { useState } from 'react'{{/if}}
+{{#if withForm}}import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'{{/if}}
+import { cn } from '@/lib/utils'
+{{#if withForm}}import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'{{/if}}
+{{#if withProps}}import type { {{componentName}}Props{{#if withForm}}, FormData, formSchema{{/if}} } from './{{fileName}}.types'{{/if}}
+
+{{#if (eq type 'page')}}
+export default function {{componentName}}() {
+{{else}}
+export function {{componentName}}({{#if withProps}}{
+  className,
+  children,
+  {{#if withForm}}onSubmit,{{/if}}
+  ...props
+}: {{componentName}}Props{{/if}}) {
+{{/if}}
+  {{#if withState}}
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  {{/if}}
+
+  {{#if withForm}}
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      description: ''
+    }
+  })
+
+  const handleSubmit = async (data: FormData) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      if (onSubmit) {
+        await onSubmit(data)
+      }
+      
+      // Reset form on success
+      form.reset()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+  {{/if}}
+
+  return (
+    <div 
+      data-testid="{{kebabName}}"
+      className={cn(
+        // Base styles
+        "{{#if (eq type 'page')}}container mx-auto py-6{{else}}{{#if (eq type 'ui')}}inline-flex items-center justify-center{{else}}flex flex-col space-y-4{{/if}}{{/if}}",
+        className
+      )}
+      {{#unless (eq type 'page')}}
+      role="{{#if withForm}}form{{else}}region{{/if}}"
+      aria-label="{{componentName}}"
+      {...props}
+      {{/unless}}
+    >
+      {{#if (eq type 'page')}}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{{componentName}}</h1>
+          <p className="text-muted-foreground">
+            {{description}}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        {/* Page content goes here */}
+        <div className="bg-card text-card-foreground rounded-lg border p-6">
+          <h2 className="text-xl font-semibold mb-4">Content</h2>
+          <p>This is the {{componentName}} page content.</p>
+        </div>
+      </div>
+      {{else}}
+      {{#if withForm}}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email (Optional)</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="Enter email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description (Optional)</FormLabel>
+                <FormControl>
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Enter description"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {error && (
+            <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? 'Submitting...' : 'Submit'}
+          </Button>
+        </form>
+      </Form>
+      {{else}}
+      <div className="{{#if (eq type 'ui')}}text-center{{else}}space-y-2{{/if}}">
+        <h3 className="text-lg font-semibold">{{componentName}}</h3>
+        <p className="text-muted-foreground text-sm">
+          {{description}}
+        </p>
+        {children}
+      </div>
+      {{/if}}
+      {{/if}}
+    </div>
+  )
+}
