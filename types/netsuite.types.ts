@@ -183,7 +183,13 @@ export const netsuiteIntegrationConfigSchema = z.object({
   product_sync_enabled: z.boolean(),
   pricing_sync_enabled: z.boolean(),
   field_mappings: z.record(z.string(), z.string()).default({}),
-})
+}).transform((data) => ({
+  ...data,
+  consumer_key: data.consumer_key || undefined,
+  consumer_secret: data.consumer_secret || undefined,
+  token_id: data.token_id || undefined,
+  token_secret: data.token_secret || undefined,
+}))
 
 /**
  * Validates and parses a NetSuite integration configuration object.

@@ -54,7 +54,7 @@ export function arrayToCSV<T extends Record<string, any>>(
     return headers ? headers.map(escapeCSVField).join(',') : ''
   }
   
-  const csvHeaders = headers || Object.keys(data[0])
+  const csvHeaders = headers || (data[0] ? Object.keys(data[0]) : [])
   const headerRow = csvHeaders.map(escapeCSVField).join(',')
   
   const dataRows = data.map(row => 

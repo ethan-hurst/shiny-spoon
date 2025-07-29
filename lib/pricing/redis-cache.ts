@@ -44,6 +44,28 @@ class SimpleCache {
   async flush(): Promise<void> {
     this.cache.clear()
   }
+
+  async clearProduct(productId: string): Promise<void> {
+    // Clear all cache entries for this product
+    for (const [key] of this.cache) {
+      if (key.startsWith(`price:${productId}:`)) {
+        this.cache.delete(key)
+      }
+    }
+  }
+
+  async clearAll(): Promise<void> {
+    this.cache.clear()
+  }
+
+  async clearCustomer(customerId: string): Promise<void> {
+    // Clear all cache entries for this customer
+    for (const [key] of this.cache) {
+      if (key.includes(`:${customerId}:`)) {
+        this.cache.delete(key)
+      }
+    }
+  }
 }
 
 export const cache = new SimpleCache()

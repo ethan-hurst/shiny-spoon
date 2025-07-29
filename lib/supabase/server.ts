@@ -33,14 +33,21 @@ export async function createClient() {
     supabaseAnonKey,
     {
       cookies: {
-        async getAll() {
-          return cookieStore.getAll()
+        get(name: string) {
+          return cookieStore.get(name)?.value
         },
-        async setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+        set(name: string, value: string, options: any) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
+            cookieStore.set(name, value, options)
+          } catch {
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            cookieStore.set(name, '', { ...options, maxAge: 0 })
           } catch {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing

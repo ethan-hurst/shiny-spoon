@@ -34,7 +34,7 @@ export default async function AnalyticsPage() {
   const scorer = new AccuracyScorer()
 
   // Get accuracy report data
-  let accuracyBreakdown, trendAnalysis, historicalData, benchmarkData
+  let accuracyBreakdown, trendAnalysis, historicalData: any[], benchmarkData
   
   try {
     [accuracyBreakdown, trendAnalysis, historicalData, benchmarkData] = await Promise.all([

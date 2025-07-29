@@ -50,9 +50,9 @@ export default async function OrdersPage({
   // Fetch orders
   const ordersResult = await listOrders({
     status: searchParams.status as any,
-    search: searchParams.search,
-    from_date: searchParams.from,
-    to_date: searchParams.to,
+    search: searchParams.search || undefined,
+    from_date: searchParams.from || undefined,
+    to_date: searchParams.to || undefined,
     limit,
     offset,
   })

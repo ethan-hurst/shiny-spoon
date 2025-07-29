@@ -1,10 +1,9 @@
 // PRP-021: AI-Powered Insights - Insights Dashboard
 import { Suspense } from 'react'
-import { Brain, TrendingUp, AlertTriangle, Lightbulb, RefreshCw } from 'lucide-react'
+import { Brain, TrendingUp, AlertTriangle, Lightbulb } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -92,14 +91,14 @@ async function InsightsContent() {
 
   // Calculate summary stats
   const totalInsights = insights?.length || 0
-  const unreadInsights = insights?.filter(i => !i.is_read).length || 0
-  const criticalAlerts = insights?.filter(i => i.severity === 'critical').length || 0
-  const recommendations = insights?.filter(i => i.insight_type === 'recommendation').length || 0
+  const unreadInsights = insights?.filter((i: any) => !i.is_read).length || 0
+  const criticalAlerts = insights?.filter((i: any) => i.severity === 'critical').length || 0
+  const recommendations = insights?.filter((i: any) => i.insight_type === 'recommendation').length || 0
 
   // Group insights by type
-  const alertInsights = insights?.filter(i => i.insight_type === 'alert') || []
-  const recommendationInsights = insights?.filter(i => i.insight_type === 'recommendation') || []
-  const trendInsights = insights?.filter(i => i.insight_type === 'trend') || []
+  const alertInsights = insights?.filter((i: any) => i.insight_type === 'alert') || []
+  const recommendationInsights = insights?.filter((i: any) => i.insight_type === 'recommendation') || []
+  const trendInsights = insights?.filter((i: any) => i.insight_type === 'trend') || []
 
   return (
     <div className="space-y-6">
