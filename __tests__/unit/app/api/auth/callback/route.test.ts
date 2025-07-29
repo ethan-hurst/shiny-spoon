@@ -39,7 +39,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=access_denied&description=User%20denied%20access'
       )
@@ -67,7 +67,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=session_error'
       )

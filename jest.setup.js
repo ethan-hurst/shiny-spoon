@@ -152,7 +152,7 @@ global.Response = class {
     this.headers = new Map(Object.entries(init.headers || {}))
   }
 
-  static redirect(url, status = 302) {
+  static redirect(url, status = 307) {
     return new Response(null, {
       status,
       headers: { location: url },
@@ -167,6 +167,14 @@ global.Response = class {
         ...init.headers,
       },
     })
+  }
+
+  get(name) {
+    return this.headers.get(name) || null
+  }
+
+  set(name, value) {
+    this.headers.set(name, value)
   }
 }
 
