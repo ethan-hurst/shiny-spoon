@@ -1,3 +1,5 @@
+global.Request = class { constructor(input, init) { this.url = input; } };
+
 import { GET } from '@/app/api/auth/callback/route'
 
 // Mock NextRequest

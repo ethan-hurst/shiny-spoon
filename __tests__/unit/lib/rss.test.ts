@@ -1,15 +1,3 @@
-import { generateRssFeed } from '@/lib/rss'
-import { writeFileSync, mkdirSync, existsSync } from 'fs'
-import path from 'path'
-
-// Mock fs module
-jest.mock('fs', () => ({
-  writeFileSync: jest.fn(),
-  mkdirSync: jest.fn(),
-  existsSync: jest.fn(),
-}))
-
-// Mock contentlayer with a simpler approach
 jest.mock('contentlayer2/generated', () => ({
   allPosts: [
     {
@@ -50,6 +38,17 @@ jest.mock('contentlayer2/generated', () => ({
       // Missing categories and authors - should still work
     },
   ],
+}), { virtual: true })
+
+import { generateRssFeed } from '@/lib/rss'
+import { writeFileSync, mkdirSync, existsSync } from 'fs'
+import path from 'path'
+
+// Mock fs module
+jest.mock('fs', () => ({
+  writeFileSync: jest.fn(),
+  mkdirSync: jest.fn(),
+  existsSync: jest.fn(),
 }))
 
 // Mock RSS library
