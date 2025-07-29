@@ -1,12 +1,13 @@
-// Mock the Ratelimit class
-const mockLimit = jest.fn()
-const MockRatelimit = jest.fn().mockImplementation(() => ({
-  limit: mockLimit,
+// Mock the external dependencies first
+jest.mock('@upstash/ratelimit', () => ({
+  Ratelimit: jest.fn().mockImplementation(() => ({
+    limit: jest.fn(),
+  })),
 }))
 
-jest.mock('@upstash/ratelimit', () => ({
-  Ratelimit: MockRatelimit,
-}))
+// Add slidingWindow as a static method to Ratelimit
+const { Ratelimit } = require('@upstash/ratelimit')
+Ratelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter')
 
 jest.mock('@upstash/redis', () => ({
   Redis: jest.fn().mockImplementation(() => ({})),

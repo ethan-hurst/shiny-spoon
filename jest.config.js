@@ -13,7 +13,7 @@ const customJestConfig = {
 
   // Transform ignore patterns - allow ES modules to be transformed
   transformIgnorePatterns: [
-    '/node_modules/(?!(isows|@supabase|ws|undici|geist)/)',
+    '/node_modules/(?!(isows|@supabase|ws|undici|geist|contentlayer2)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
 
@@ -28,6 +28,7 @@ const customJestConfig = {
     '^isows$': '<rootDir>/__tests__/utils/mocks/isows.js',
     '^undici$': '<rootDir>/__tests__/utils/mocks/undici.js',
     '^geist/font/sans$': '<rootDir>/__tests__/utils/mocks/geist-font.js',
+    '^contentlayer2/generated$': '<rootDir>/__tests__/utils/mocks/contentlayer2-generated.js',
   },
 
   // Coverage configuration
