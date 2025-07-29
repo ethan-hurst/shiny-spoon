@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import {
   customerPricingSchema,
+  customerPricingBaseSchema,
   pricingRuleSchema,
+  pricingRuleBaseSchema,
   productPricingSchema,
   QuantityBreak,
   quantityBreakSchema,
@@ -39,7 +41,7 @@ export const createPricingRuleSchema = z.object({
 })
 
 export const updatePricingRuleSchema = z.object({
-  ...pricingRuleSchema.partial().shape,
+  ...pricingRuleBaseSchema.partial().shape,
   id: z.string().uuid(),
   quantity_breaks: z
     .array(
@@ -55,7 +57,7 @@ export const updatePricingRuleSchema = z.object({
 export const createCustomerPricingSchema = customerPricingSchema
 
 export const updateCustomerPricingSchema = z.object({
-  ...customerPricingSchema.partial().shape,
+  ...customerPricingBaseSchema.partial().shape,
   id: z.string().uuid(),
 })
 

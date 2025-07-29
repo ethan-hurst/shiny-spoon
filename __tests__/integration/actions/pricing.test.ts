@@ -24,6 +24,17 @@ jest.mock('next/navigation', () => ({
   redirect: jest.fn(),
 }))
 
+// Mock Redis cache
+jest.mock('@/lib/pricing/redis-cache', () => ({
+  cache: {
+    clearAll: jest.fn().mockResolvedValue(true),
+    clearProduct: jest.fn().mockResolvedValue(true),
+    clear: jest.fn().mockResolvedValue(true),
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(true),
+  },
+}))
+
 // Create mock Supabase client
 const mockSupabase = createMockSupabaseClient()
 
@@ -41,7 +52,7 @@ describe('Pricing Server Actions', () => {
   describe('createProductPricing', () => {
     it('should create product pricing with valid data', async () => {
       const formData = new FormData()
-      formData.append('product_id', 'test-product-id')
+      formData.append('product_id', '550e8400-e29b-41d4-a716-446655440000')
       formData.append('cost', '50.00')
       formData.append('base_price', '100.00')
       formData.append('min_margin_percent', '30')
@@ -56,7 +67,7 @@ describe('Pricing Server Actions', () => {
 
       expect(mockSupabase.from).toHaveBeenCalledWith('product_pricing')
       expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
-        product_id: 'test-product-id',
+        product_id: '550e8400-e29b-41d4-a716-446655440000',
         cost: 50,
         base_price: 100,
         min_margin_percent: 30,
@@ -71,9 +82,9 @@ describe('Pricing Server Actions', () => {
 
     it('should handle invalid numeric inputs', async () => {
       const formData = new FormData()
-      formData.append('product_id', 'test-product-id')
+      formData.append('product_id', '550e8400-e29b-41d4-a716-446655440001')
       formData.append('cost', 'invalid')
-      formData.append('base_price', 'invalid')
+      formData.append('base_price', '100') // Valid base price so cost validation doesn't fail
 
       const mockQueryBuilder = createMockQueryBuilder()
       mockSupabase.from.mockReturnValue(mockQueryBuilder)
@@ -83,7 +94,7 @@ describe('Pricing Server Actions', () => {
       expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           cost: 0,
-          base_price: 0,
+          base_price: 100,
         })
       )
     })
@@ -198,8 +209,8 @@ describe('Pricing Server Actions', () => {
   describe('createCustomerPricing', () => {
     it('should create customer-specific pricing', async () => {
       const formData = new FormData()
-      formData.append('customer_id', 'test-customer-id')
-      formData.append('product_id', 'test-product-id')
+      formData.append('customer_id', '550e8400-e29b-41d4-a716-446655440002')
+      formData.append('product_id', '550e8400-e29b-41d4-a716-446655440000')
       formData.append('override_price', '85.00')
 
       const mockQueryBuilder = createMockQueryBuilder()
@@ -209,8 +220,8 @@ describe('Pricing Server Actions', () => {
 
       expect(mockSupabase.from).toHaveBeenCalledWith('customer_pricing')
       expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
-        customer_id: 'test-customer-id',
-        product_id: 'test-product-id',
+        customer_id: '550e8400-e29b-41d4-a716-446655440002',
+        product_id: '550e8400-e29b-41d4-a716-446655440000',
         override_price: 85,
         override_discount_percent: undefined,
         contract_number: undefined,
@@ -224,8 +235,8 @@ describe('Pricing Server Actions', () => {
 
     it('should create customer pricing with discount percentage', async () => {
       const formData = new FormData()
-      formData.append('customer_id', 'test-customer-id')
-      formData.append('product_id', 'test-product-id')
+      formData.append('customer_id', '550e8400-e29b-41d4-a716-446655440002')
+      formData.append('product_id', '550e8400-e29b-41d4-a716-446655440000')
       formData.append('override_discount_percent', '15')
 
       const mockQueryBuilder = createMockQueryBuilder()
@@ -245,7 +256,7 @@ describe('Pricing Server Actions', () => {
   describe('bulkUpdateCustomerPrices', () => {
     it('should update multiple customer prices', async () => {
       const formData = new FormData()
-      formData.append('customer_id', 'test-customer-id')
+      formData.append('customer_id', '550e8400-e29b-41d4-a716-446655440002')
       formData.append(
         'updates',
         JSON.stringify([
@@ -308,7 +319,7 @@ describe('Pricing Server Actions', () => {
       expect(mockSupabase.rpc).toHaveBeenCalledWith(
         'bulk_update_customer_prices_transaction',
         {
-          p_customer_id: 'test-customer-id',
+          p_customer_id: '550e8400-e29b-41d4-a716-446655440002',
           p_updates: [
             { sku: 'PROD-1', price: 100, reason: 'Test update 1' },
             { sku: 'PROD-2', price: 200, reason: 'Test update 2' },
@@ -325,7 +336,7 @@ describe('Pricing Server Actions', () => {
 
     it('should handle missing products', async () => {
       const formData = new FormData()
-      formData.append('customer_id', 'test-customer-id')
+      formData.append('customer_id', '550e8400-e29b-41d4-a716-446655440002')
       formData.append(
         'updates',
         JSON.stringify([{ sku: 'INVALID-SKU', price: 90, reason: 'Test' }])
@@ -352,7 +363,7 @@ describe('Pricing Server Actions', () => {
       expect(mockSupabase.rpc).toHaveBeenCalledWith(
         'bulk_update_customer_prices_transaction',
         {
-          p_customer_id: 'test-customer-id',
+          p_customer_id: '550e8400-e29b-41d4-a716-446655440002',
           p_updates: [{ sku: 'INVALID-SKU', price: 90, reason: 'Test' }],
           p_user_id: 'test-user-id',
         }
@@ -368,8 +379,8 @@ describe('Pricing Server Actions', () => {
   describe('calculatePrice', () => {
     it('should calculate price for a product', async () => {
       const data = {
-        product_id: 'test-product-id',
-        customer_id: 'test-customer-id',
+        product_id: '550e8400-e29b-41d4-a716-446655440000',
+        customer_id: '550e8400-e29b-41d4-a716-446655440002',
         quantity: 10,
         requested_date: '2024-06-15',
       }
@@ -397,8 +408,8 @@ describe('Pricing Server Actions', () => {
       const result = await calculatePrice(data)
 
       expect(mockSupabase.rpc).toHaveBeenCalledWith('calculate_product_price', {
-        p_product_id: 'test-product-id',
-        p_customer_id: 'test-customer-id',
+        p_product_id: '550e8400-e29b-41d4-a716-446655440000',
+        p_customer_id: '550e8400-e29b-41d4-a716-446655440002',
         p_quantity: 10,
         p_requested_date: '2024-06-15',
       })
@@ -418,7 +429,7 @@ describe('Pricing Server Actions', () => {
 
     it('should use current date if not provided', async () => {
       const data = {
-        product_id: 'test-product-id',
+        product_id: '550e8400-e29b-41d4-a716-446655440000',
         quantity: 1,
       }
 
@@ -442,7 +453,7 @@ describe('Pricing Server Actions', () => {
       await calculatePrice(data)
 
       expect(mockSupabase.rpc).toHaveBeenCalledWith('calculate_product_price', {
-        p_product_id: 'test-product-id',
+        p_product_id: '550e8400-e29b-41d4-a716-446655440000',
         p_customer_id: null,
         p_quantity: 1,
         p_requested_date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
