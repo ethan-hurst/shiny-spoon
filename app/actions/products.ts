@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { productSchema } from '@/lib/validations/product'
 import { isFile } from '@/lib/utils/file'
+import { AuditLogger } from '@/lib/audit/audit-logger'
 
 // Image upload configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -215,6 +216,18 @@ export async function createProduct(formData: FormData) {
     return { error: error.message }
   }
 
+  // Log product creation
+  try {
+    const auditLogger = new AuditLogger(supabase)
+    await auditLogger.logCreate('product', product, {
+      source: 'dashboard',
+      has_image: !!imageUrl,
+    })
+  } catch (auditError) {
+    // Log audit error but don't fail the operation
+    console.error('Failed to log product creation:', auditError)
+  }
+
   revalidatePath('/dashboard/products')
   return { success: true, data: product }
 }
@@ -320,6 +333,18 @@ export async function updateProduct(formData: FormData) {
 
   if (error) {
     return { error: error.message }
+  }
+
+  // Log product update
+  try {
+    const auditLogger = new AuditLogger(supabase)
+    await auditLogger.logUpdate('product', id, existingProduct, product, {
+      source: 'dashboard',
+      image_changed: existingProduct.image_url !== imageUrl,
+    })
+  } catch (auditError) {
+    // Log audit error but don't fail the operation
+    console.error('Failed to log product update:', auditError)
   }
 
   revalidatePath('/dashboard/products')
