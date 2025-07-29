@@ -14,11 +14,16 @@ import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
 import { OfflineQueue } from '@/lib/realtime/offline-queue'
 import { ConnectionStatus } from '@/lib/realtime/types'
 import { cn } from '@/lib/utils'
+import { ConflictResolutionDialog } from '@/components/features/sync/conflict-resolution-dialog'
+import { resolveConflict } from '@/app/actions/sync-engine'
+import type { SyncConflict } from '@/types/sync-engine.types'
 
 export function OfflineQueueIndicator() {
   const [queueSize, setQueueSize] = useState(0)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>()
   const [isSyncing, setIsSyncing] = useState(false)
+  const [conflicts, setConflicts] = useState<SyncConflict[]>([])
+  const [showConflictDialog, setShowConflictDialog] = useState(false)
 
   useEffect(() => {
     const queue = OfflineQueue.getInstance()
@@ -52,20 +57,39 @@ export function OfflineQueueIndicator() {
       const result = await queue.processQueue()
 
       if (result.conflicts.length > 0) {
-        // TODO: Show conflict resolution dialog
-        console.log('Conflicts detected:', result.conflicts)
+        // Show conflict resolution dialog
+        setConflicts(result.conflicts as SyncConflict[])
+        setShowConflictDialog(true)
       }
     } finally {
       setIsSyncing(false)
     }
   }
 
-  if (queueSize === 0) return null
+  const handleConflictResolve = async (conflictId: string, resolution: 'source' | 'target' | 'merge') => {
+    const conflict = conflicts.find(c => c.id === conflictId)
+    if (!conflict) return
+
+    const resolutionMap = {
+      source: 'source_wins',
+      target: 'target_wins',
+      merge: 'manual',
+    } as const
+
+    await resolveConflict(conflictId, {
+      resolution_strategy: resolutionMap[resolution],
+      resolved_value: resolution === 'merge' ? conflict.resolved_value : undefined,
+      resolved_by: 'user',
+    })
+  }
+
+  if (queueSize === 0 && !showConflictDialog) return null
 
   const isOffline = connectionStatus?.state !== 'connected'
 
   return (
-    <TooltipProvider>
+    <>
+      <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="flex items-center gap-2">
@@ -115,5 +139,13 @@ export function OfflineQueueIndicator() {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+
+      <ConflictResolutionDialog
+        open={showConflictDialog}
+        onOpenChange={setShowConflictDialog}
+        conflicts={conflicts}
+        onResolve={handleConflictResolve}
+      />
+    </>
   )
 }

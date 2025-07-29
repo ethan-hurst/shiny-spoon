@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { deleteProduct } from '@/app/actions/products'
+import { deleteProduct, duplicateProduct } from '@/app/actions/products'
 import { Product } from '@/types/product.types'
 
 interface ProductActionsProps {
@@ -29,8 +29,17 @@ export function ProductActions({ product }: ProductActionsProps) {
   }
 
   const handleDuplicate = async () => {
-    // TODO: Implement duplicate functionality
-    toast.info('Duplicate functionality coming soon')
+    try {
+      const result = await duplicateProduct(product.id)
+      if (result.error) {
+        toast.error(result.error)
+      } else {
+        toast.success('Product duplicated successfully')
+        router.refresh()
+      }
+    } catch (error) {
+      toast.error('Failed to duplicate product')
+    }
   }
 
   const handleDelete = async () => {

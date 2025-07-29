@@ -128,21 +128,24 @@ export function PriceEditDialog({
 
   // Check approval requirements
   useEffect(() => {
-    // TODO: Get approval rules from API
-    const approvalRules = {
-      discount_threshold_percent: 20,
-      margin_threshold_percent: 15,
+    const fetchApprovalRules = async () => {
+      const { getApprovalRules } = await import('@/app/actions/pricing')
+      const result = await getApprovalRules()
+      
+      if (result.success && result.data) {
+        const validation = validatePriceChange(
+          currentPrice,
+          product.basePrice,
+          product.cost,
+          result.data
+        )
+
+        setRequiresApproval(validation.requiresApproval)
+        setApprovalReason(validation.reason || '')
+      }
     }
 
-    const validation = validatePriceChange(
-      currentPrice,
-      product.basePrice,
-      product.cost,
-      approvalRules
-    )
-
-    setRequiresApproval(validation.requiresApproval)
-    setApprovalReason(validation.reason || '')
+    fetchApprovalRules()
   }, [currentPrice, product.basePrice, product.cost])
 
   const onSubmit = async (values: z.infer<typeof priceEditSchema>) => {

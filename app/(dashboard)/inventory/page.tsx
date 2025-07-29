@@ -93,8 +93,8 @@ export default async function InventoryPage(props: {
   }
 
   if (searchParams.low_stock === 'true') {
-    // Filter for low stock items using client-side logic until database view is deployed
-    // TODO: Once database migration is deployed, use: inventoryQuery = inventoryQuery.eq('is_low_stock', true)
+    // Filter for low stock items using database computed column
+    inventoryQuery = inventoryQuery.eq('is_low_stock', true)
   }
 
   // Fetch inventory data
@@ -135,18 +135,11 @@ export default async function InventoryPage(props: {
     }).length,
   }
 
-  // Apply client-side low stock filtering if requested
-  let filteredInventory = inventory
-  if (searchParams.low_stock === 'true') {
-    filteredInventory = inventory.filter((item: InventoryQueryResult) => {
-      const available = (item.quantity || 0) - (item.reserved_quantity || 0)
-      return available <= (item.reorder_point || 0)
-    })
-  }
+  // No need for client-side filtering anymore as it's handled by the database
 
   // Transform to InventoryWithRelations type
   const inventoryWithRelations: InventoryWithRelations[] =
-    filteredInventory.map(
+    inventory.map(
       (item) =>
         ({
           ...item,

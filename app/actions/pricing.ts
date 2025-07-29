@@ -218,6 +218,124 @@ export async function deletePricingRule(ruleId: string) {
   revalidatePath('/pricing')
 }
 
+export async function getApprovalRules() {
+  const supabase = await createClient()
+
+  // Auth check
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Unauthorized' }
+  }
+
+  // Get user's organization
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: 'User profile not found' }
+  }
+
+  // Get approval rules for the organization
+  const { data: rules, error } = await supabase
+    .from('pricing_approval_rules')
+    .select('*')
+    .eq('organization_id', profile.organization_id)
+    .eq('active', true)
+    .single()
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+    return { error: error.message }
+  }
+
+  // Return default rules if none exist
+  const defaultRules = {
+    discount_threshold_percent: 20,
+    margin_threshold_percent: 15,
+    price_increase_threshold_percent: 50,
+    auto_approve_under_amount: 100,
+    require_note_for_approval: true,
+  }
+
+  return { 
+    success: true, 
+    data: rules || defaultRules 
+  }
+}
+
+export async function updateApprovalRules(rules: {
+  discount_threshold_percent: number
+  margin_threshold_percent: number
+  price_increase_threshold_percent?: number
+  auto_approve_under_amount?: number
+  require_note_for_approval?: boolean
+}) {
+  const supabase = await createClient()
+
+  // Auth check
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Unauthorized' }
+  }
+
+  // Get user's organization
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id, role')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: 'User profile not found' }
+  }
+
+  // Only admins and owners can update approval rules
+  if (profile.role !== 'admin' && profile.role !== 'owner') {
+    return { error: 'Only administrators can update approval rules' }
+  }
+
+  // Upsert approval rules
+  const { error } = await supabase
+    .from('pricing_approval_rules')
+    .upsert({
+      organization_id: profile.organization_id,
+      ...rules,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'organization_id',
+    })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  // Log the update
+  try {
+    const auditLogger = new AuditLogger(supabase)
+    await auditLogger.log({
+      action: 'update',
+      entity_type: 'pricing_approval_rules',
+      entity_id: profile.organization_id,
+      changes: rules,
+      metadata: {
+        source: 'dashboard',
+      },
+    })
+  } catch (auditError) {
+    console.error('Failed to log approval rules update:', auditError)
+  }
+
+  revalidatePath('/pricing/settings')
+  return { success: true }
+}
+
 // Customer Pricing Actions
 export async function createCustomerPricing(formData: FormData) {
   const supabase = await createClient()

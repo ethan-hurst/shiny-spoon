@@ -241,7 +241,32 @@ export async function POST(request: NextRequest) {
           attempt: invoice.attempt_count,
         })
 
-        // TODO: Implement email notification service
+        // Send payment failure notification
+        try {
+          const notificationService = new (await import('@/lib/monitoring/notification-service')).NotificationService()
+          
+          // Get organization ID from subscription metadata
+          const { data: subscription } = await supabaseAdmin
+            .from('subscriptions')
+            .select('organization_id')
+            .eq('stripe_customer_id', invoice.customer)
+            .single()
+
+          if (subscription?.organization_id) {
+            await notificationService.send({
+              channel: 'email',
+              alertId: `payment-failed-${invoice.id}`,
+              organizationId: subscription.organization_id,
+              title: 'Payment Failed - Subscription Past Due',
+              message: `Your payment of ${(invoice.amount_due / 100).toFixed(2)} ${invoice.currency.toUpperCase()} has failed after ${invoice.attempt_count} attempt(s). Your subscription is now past due. Please update your payment method to continue using TruthSource.`,
+              severity: 'high',
+              actionUrl: '/portal/billing',
+            })
+          }
+        } catch (notificationError) {
+          console.error('Failed to send payment failure notification:', notificationError)
+        }
+        
         console.log(`Subscription marked as past_due for customer ${invoice.customer}`)
         break
       }
