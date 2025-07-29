@@ -50,342 +50,338 @@ describe('RealtimeConnectionManager', () => {
     jest.useRealTimers()
   })
 
-  describe('connection lifecycle', () => {
-    it('should subscribe to a channel successfully', async () => {
-      const callback = jest.fn()
+  describe('singleton pattern', () => {
+    it('should return same instance', () => {
+      const instance1 = RealtimeConnectionManager.getInstance()
+      const instance2 = RealtimeConnectionManager.getInstance()
       
-      await manager.subscribe('test-channel', 'INSERT', callback)
-      
-      expect(mockSupabase.channel).toHaveBeenCalledWith('test-channel')
-      expect(mockChannels.get('test-channel')?.state).toBe('joined')
+      expect(instance1).toBe(instance2)
     })
-
-    it('should handle multiple subscriptions to the same channel', async () => {
-      const callback1 = jest.fn()
-      const callback2 = jest.fn()
+    
+    it('should accept config on first getInstance', () => {
+      // Reset singleton
+      ;(RealtimeConnectionManager as any).instance = null
       
-      await manager.subscribe('test-channel', 'INSERT', callback1)
-      await manager.subscribe('test-channel', 'UPDATE', callback2)
-      
-      // Should only create one channel
-      expect(mockSupabase.channel).toHaveBeenCalledTimes(1)
-      
-      // Emit events
-      const channel = mockChannels.get('test-channel')
-      channel?.emit('INSERT', { new: { id: 1 } })
-      channel?.emit('UPDATE', { new: { id: 1 }, old: { id: 1 } })
-      
-      expect(callback1).toHaveBeenCalledWith({ new: { id: 1 } })
-      expect(callback2).toHaveBeenCalledWith({ new: { id: 1 }, old: { id: 1 } })
-    })
-
-    it('should unsubscribe from a channel', async () => {
-      const callback = jest.fn()
-      
-      const unsubscribe = await manager.subscribe('test-channel', 'INSERT', callback)
-      expect(mockChannels.has('test-channel')).toBe(true)
-      
-      await unsubscribe()
-      
-      // Channel should be removed when last subscriber leaves
-      expect(mockSupabase.removeChannel).toHaveBeenCalled()
-      expect(mockChannels.has('test-channel')).toBe(false)
-    })
-
-    it('should maintain channel when other subscribers exist', async () => {
-      const callback1 = jest.fn()
-      const callback2 = jest.fn()
-      
-      const unsub1 = await manager.subscribe('test-channel', 'INSERT', callback1)
-      const unsub2 = await manager.subscribe('test-channel', 'UPDATE', callback2)
-      
-      // Unsubscribe first callback
-      await unsub1()
-      
-      // Channel should still exist
-      expect(mockSupabase.removeChannel).not.toHaveBeenCalled()
-      expect(mockChannels.has('test-channel')).toBe(true)
-      
-      // Unsubscribe second callback
-      await unsub2()
-      
-      // Now channel should be removed
-      expect(mockSupabase.removeChannel).toHaveBeenCalled()
-    })
-  })
-
-  describe('table subscriptions', () => {
-    it('should subscribe to table changes with filters', async () => {
-      const callback = jest.fn()
-      
-      await manager.subscribeToTable(
-        'products',
-        {
-          event: 'UPDATE',
-          filter: 'organization_id=eq.org-123'
-        },
-        callback
-      )
-      
-      const channel = mockChannels.get('db-changes')
-      expect(channel).toBeDefined()
-      
-      // Simulate Postgres change
-      channel?.emit('postgres_changes', {
-        eventType: 'UPDATE',
-        schema: 'public',
-        table: 'products',
-        new: { id: 1, name: 'Updated Product' },
-        old: { id: 1, name: 'Old Product' }
-      })
-      
-      expect(callback).toHaveBeenCalledWith({
-        eventType: 'UPDATE',
-        schema: 'public',
-        table: 'products',
-        new: { id: 1, name: 'Updated Product' },
-        old: { id: 1, name: 'Old Product' }
-      })
-    })
-
-    it('should handle multiple table subscriptions', async () => {
-      const productCallback = jest.fn()
-      const inventoryCallback = jest.fn()
-      
-      await manager.subscribeToTable('products', { event: '*' }, productCallback)
-      await manager.subscribeToTable('inventory', { event: '*' }, inventoryCallback)
-      
-      const channel = mockChannels.get('db-changes')
-      
-      // Emit product change
-      channel?.emit('postgres_changes', {
-        eventType: 'INSERT',
-        table: 'products',
-        new: { id: 1 }
-      })
-      
-      // Emit inventory change
-      channel?.emit('postgres_changes', {
-        eventType: 'UPDATE',
-        table: 'inventory',
-        new: { id: 2 },
-        old: { id: 2 }
-      })
-      
-      expect(productCallback).toHaveBeenCalledTimes(1)
-      expect(inventoryCallback).toHaveBeenCalledTimes(1)
-    })
-  })
-
-  describe('presence tracking', () => {
-    it('should track presence in a channel', async () => {
-      const presenceCallback = jest.fn()
-      
-      await manager.trackPresence(
-        'room-123',
-        { user_id: 'user-1', status: 'online' },
-        presenceCallback
-      )
-      
-      const channel = mockChannels.get('presence:room-123')
-      expect(channel).toBeDefined()
-      
-      // Simulate presence sync
-      channel?.emit('presence', {
-        event: 'sync',
-        payload: [
-          { user_id: 'user-1', status: 'online' },
-          { user_id: 'user-2', status: 'online' }
-        ]
-      })
-      
-      expect(presenceCallback).toHaveBeenCalledWith({
-        event: 'sync',
-        payload: [
-          { user_id: 'user-1', status: 'online' },
-          { user_id: 'user-2', status: 'online' }
-        ]
-      })
-    })
-
-    it('should handle presence join and leave events', async () => {
-      const presenceCallback = jest.fn()
-      
-      await manager.trackPresence(
-        'room-123',
-        { user_id: 'user-1', status: 'online' },
-        presenceCallback
-      )
-      
-      const channel = mockChannels.get('presence:room-123')
-      
-      // User joins
-      channel?.emit('presence', {
-        event: 'join',
-        key: 'user-2',
-        payload: { user_id: 'user-2', status: 'online' }
-      })
-      
-      // User leaves
-      channel?.emit('presence', {
-        event: 'leave',
-        key: 'user-2',
-        payload: { user_id: 'user-2' }
-      })
-      
-      expect(presenceCallback).toHaveBeenCalledTimes(2)
-    })
-  })
-
-  describe('error handling', () => {
-    it('should handle channel subscription errors', async () => {
-      const errorChannel = new MockRealtimeChannel('error-channel')
-      errorChannel.subscribe = jest.fn((callback) => {
-        errorChannel.state = 'errored'
-        callback?.('CHANNEL_ERROR')
-        return errorChannel
-      })
-      
-      ;(mockSupabase as any).channel = jest.fn(() => errorChannel)
-      
-      const callback = jest.fn()
-      
-      await expect(
-        manager.subscribe('error-channel', 'INSERT', callback)
-      ).rejects.toThrow('Failed to subscribe to channel')
-    })
-
-    it('should handle connection drops and reconnect', async () => {
-      const callback = jest.fn()
-      await manager.subscribe('test-channel', 'INSERT', callback)
-      
-      const channel = mockChannels.get('test-channel')
-      
-      // Simulate connection drop
-      channel?.state = 'errored'
-      channel?.emit('error', new Error('Connection lost'))
-      
-      // Should attempt to resubscribe
-      setTimeout(() => {
-        expect(channel?.subscribe).toHaveBeenCalled()
-      }, 1100) // After reconnect delay
-    })
-
-    it('should handle cleanup errors gracefully', async () => {
-      const callback = jest.fn()
-      await manager.subscribe('test-channel', 'INSERT', callback)
-      
-      // Mock removeChannel to throw
-      ;(mockSupabase as any).removeChannel = jest.fn(() => {
-        throw new Error('Cleanup failed')
-      })
-      
-      // Should not throw
-      expect(() => manager.cleanup()).not.toThrow()
-    })
-  })
-
-  describe('broadcast messaging', () => {
-    it('should broadcast messages to a channel', async () => {
-      const receiveCallback = jest.fn()
-      
-      await manager.broadcast(
-        'chat-room',
-        { type: 'message', text: 'Hello' },
-        receiveCallback
-      )
-      
-      const channel = mockChannels.get('broadcast:chat-room')
-      expect(channel).toBeDefined()
-      
-      // Simulate receiving broadcast
-      channel?.emit('broadcast', {
-        event: 'message',
-        payload: { type: 'message', text: 'Hello from another user' }
-      })
-      
-      expect(receiveCallback).toHaveBeenCalledWith({
-        type: 'message',
-        text: 'Hello from another user'
-      })
-    })
-
-    it('should handle broadcast errors', async () => {
-      const channel = new MockRealtimeChannel('broadcast:error')
-      channel.send = jest.fn(() => Promise.reject(new Error('Broadcast failed')))
-      
-      ;(mockSupabase as any).channel = jest.fn(() => channel)
-      
-      await expect(
-        manager.broadcast('error', { message: 'test' })
-      ).rejects.toThrow('Broadcast failed')
-    })
-  })
-
-  describe('connection state management', () => {
-    it('should track connection state across channels', () => {
-      const states = manager.getConnectionStates()
-      expect(states.size).toBe(0)
-      
-      // Add some channels
-      manager.subscribe('channel-1', 'INSERT', jest.fn())
-      manager.subscribe('channel-2', 'UPDATE', jest.fn())
-      
-      const updatedStates = manager.getConnectionStates()
-      expect(updatedStates.size).toBe(2)
-      expect(updatedStates.get('channel-1')).toBe('joined')
-      expect(updatedStates.get('channel-2')).toBe('joined')
-    })
-
-    it('should emit connection state changes', async () => {
-      const stateCallback = jest.fn()
-      manager.on('connectionStateChange', stateCallback)
-      
-      await manager.subscribe('test-channel', 'INSERT', jest.fn())
-      
-      expect(stateCallback).toHaveBeenCalledWith({
-        channel: 'test-channel',
-        state: 'joining'
-      })
-      
-      expect(stateCallback).toHaveBeenCalledWith({
-        channel: 'test-channel',
-        state: 'joined'
-      })
-    })
-  })
-
-  describe('performance and limits', () => {
-    it('should enforce channel limits', async () => {
-      // Set max channels to 5
-      ;(manager as any).maxChannels = 5
-      
-      // Subscribe to max channels
-      for (let i = 0; i < 5; i++) {
-        await manager.subscribe(`channel-${i}`, 'INSERT', jest.fn())
+      const config: Partial<RealtimeConfig> = {
+        reconnectDelay: 2000,
+        maxReconnectAttempts: 10
       }
       
-      // Attempt to exceed limit
-      await expect(
-        manager.subscribe('channel-6', 'INSERT', jest.fn())
-      ).rejects.toThrow('Maximum number of channels reached')
+      const instance = RealtimeConnectionManager.getInstance(config)
+      expect(instance).toBeDefined()
+    })
+  })
+
+  describe('connection status', () => {
+    it('should start in disconnected state', () => {
+      const status = manager.getStatus()
+      expect(status.state).toBe('disconnected')
+      expect(status.reconnectAttempts).toBe(0)
+      expect(status.quality).toBe('poor')
     })
 
-    it('should cleanup stale channels after timeout', async () => {
-      jest.useFakeTimers()
+    it('should handle connection attempt', () => {
+      manager.connect()
       
+      const connectingStatus = manager.getStatus()
+      expect(connectingStatus.state).toBe('connecting')
+      
+      // Fast-forward connection
+      jest.advanceTimersByTime(1000)
+      
+      const connectedStatus = manager.getStatus()
+      expect(connectedStatus.state).toBe('connected')
+      expect(connectedStatus.lastConnected).toBeDefined()
+    })
+
+    it('should not attempt connection when already connected', () => {
+      manager.connect()
+      jest.advanceTimersByTime(1000)
+      
+      const status1 = manager.getStatus()
+      manager.connect() // Try to connect again
+      
+      const status2 = manager.getStatus()
+      expect(status1).toEqual(status2)
+    })
+  })
+
+  describe('online/offline handling', () => {
+    it('should respond to online event', () => {
+      // Get the online handler that was registered
+      const onlineHandler = mockAddEventListener.mock.calls.find(
+        call => call[0] === 'online'
+      )?.[1]
+      
+      expect(onlineHandler).toBeDefined()
+      
+      // Set to disconnected state
+      ;(navigator as any).onLine = false
+      const offlineHandler = mockAddEventListener.mock.calls.find(
+        call => call[0] === 'offline'
+      )?.[1]
+      offlineHandler()
+      
+      expect(manager.getStatus().state).toBe('disconnected')
+      
+      // Trigger online event
+      ;(navigator as any).onLine = true
+      onlineHandler()
+      
+      expect(manager.getStatus().state).toBe('connecting')
+    })
+
+    it('should handle offline event', () => {
+      const offlineHandler = mockAddEventListener.mock.calls.find(
+        call => call[0] === 'offline'
+      )?.[1]
+      
+      // Connect first
+      manager.connect()
+      jest.advanceTimersByTime(1000)
+      expect(manager.getStatus().state).toBe('connected')
+      
+      // Go offline
+      ;(navigator as any).onLine = false
+      offlineHandler()
+      
+      expect(manager.getStatus().state).toBe('disconnected')
+    })
+  })
+
+  describe('latency monitoring', () => {
+    it('should measure latency periodically', async () => {
+      // Fast-forward to trigger ping monitoring
+      jest.advanceTimersByTime(5000)
+      
+      expect(global.fetch).toHaveBeenCalledWith('/api/health', { method: 'HEAD' })
+      
+      // Check latency was recorded
+      const metrics = manager.getConnectionQuality()
+      expect(metrics.latency.length).toBeGreaterThan(0)
+    })
+
+    it('should calculate connection quality based on latency', async () => {
+      // Mock varying latencies
+      const latencies = [50, 60, 55, 65, 70]
+      
+      for (const latency of latencies) {
+        ;(global.fetch as jest.Mock).mockImplementationOnce(() => 
+          new Promise(resolve => setTimeout(() => resolve({ ok: true }), latency))
+        )
+        jest.advanceTimersByTime(5000)
+      }
+      
+      const status = manager.getStatus()
+      expect(status.quality).toBe('excellent') // Average ~60ms
+    })
+
+    it('should handle failed health checks', async () => {
+      ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'))
+      
+      jest.advanceTimersByTime(5000)
+      
+      const status = manager.getStatus()
+      expect(status.state).toBe('error')
+      expect(status.error).toBe('Network error')
+    })
+  })
+
+  describe('reconnection logic', () => {
+    it('should attempt reconnection with exponential backoff', () => {
+      ;(navigator as any).onLine = false
+      
+      manager.connect()
+      jest.advanceTimersByTime(1000)
+      
+      // Should be in error state (offline)
+      expect(manager.getStatus().state).toBe('connecting')
+      
+      // Simulate going back online
+      ;(navigator as any).onLine = true
+      
+      // First reconnect attempt after 1 second
+      jest.advanceTimersByTime(1000)
+      expect(manager.getStatus().reconnectAttempts).toBe(1)
+      
+      // Fail again
+      ;(navigator as any).onLine = false
+      jest.advanceTimersByTime(1000)
+      
+      // Second attempt after 2 seconds (exponential backoff)
+      ;(navigator as any).onLine = true
+      jest.advanceTimersByTime(2000)
+      expect(manager.getStatus().reconnectAttempts).toBe(2)
+    })
+
+    it('should stop reconnecting after max attempts', () => {
+      ;(navigator as any).onLine = false
+      
+      // Attempt to connect and fail multiple times
+      for (let i = 0; i < 6; i++) {
+        manager.connect()
+        jest.advanceTimersByTime(30000) // Max delay
+      }
+      
+      const status = manager.getStatus()
+      expect(status.state).toBe('error')
+      expect(status.error).toBe('Max reconnection attempts reached')
+    })
+  })
+
+  describe('status subscriptions', () => {
+    it('should notify subscribers of status changes', () => {
       const callback = jest.fn()
-      const unsub = await manager.subscribe('stale-channel', 'INSERT', callback)
       
-      // Unsubscribe all callbacks
-      await unsub()
+      const unsubscribe = manager.subscribe('test-subscriber', callback)
       
-      // Fast-forward past cleanup timeout
-      jest.advanceTimersByTime(60000) // 1 minute
+      // Should receive initial status
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          state: 'disconnected'
+        })
+      )
       
-      expect(mockSupabase.removeChannel).toHaveBeenCalled()
+      // Connect and verify notification
+      callback.mockClear()
+      manager.connect()
       
-      jest.useRealTimers()
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          state: 'connecting'
+        })
+      )
+      
+      // Complete connection
+      jest.advanceTimersByTime(1000)
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          state: 'connected'
+        })
+      )
+      
+      // Unsubscribe
+      unsubscribe()
+      callback.mockClear()
+      
+      // Should not receive further updates
+      ;(navigator as any).onLine = false
+      const offlineHandler = mockAddEventListener.mock.calls.find(
+        call => call[0] === 'offline'
+      )?.[1]
+      offlineHandler()
+      
+      expect(callback).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('channel management', () => {
+    it('should register and unregister channels', () => {
+      const mockChannel = {
+        subscribe: jest.fn(),
+        unsubscribe: jest.fn()
+      } as any
+      
+      manager.registerChannel('test-channel', mockChannel)
+      
+      // Channel should be tracked
+      // Note: We can't directly check channels Map as it's private
+      // but we can verify through recommendations
+      
+      manager.unregisterChannel('test-channel')
+      
+      // Channel should be removed
+      const recommendations = manager.getRecommendations()
+      expect(recommendations).not.toContain(
+        expect.stringContaining('Many active subscriptions')
+      )
+    })
+
+    it('should recommend consolidation for many channels', () => {
+      // Register many channels
+      for (let i = 0; i < 15; i++) {
+        manager.registerChannel(`channel-${i}`, {} as any)
+      }
+      
+      const recommendations = manager.getRecommendations()
+      expect(recommendations).toContain(
+        'Many active subscriptions. Consider consolidating channels for better performance.'
+      )
+    })
+  })
+
+  describe('health monitoring', () => {
+    it('should calculate health score', () => {
+      // Initial health score (disconnected)
+      const initialScore = manager.getHealthScore()
+      expect(initialScore).toBeLessThan(50)
+      
+      // Connect and improve health
+      manager.connect()
+      jest.advanceTimersByTime(1000)
+      
+      // Add some good latency measurements
+      for (let i = 0; i < 5; i++) {
+        jest.advanceTimersByTime(5000)
+      }
+      
+      const improvedScore = manager.getHealthScore()
+      expect(improvedScore).toBeGreaterThan(initialScore)
+    })
+
+    it('should provide performance recommendations', () => {
+      // High latency scenario
+      ;(global.fetch as jest.Mock).mockImplementation(() => 
+        new Promise(resolve => setTimeout(() => resolve({ ok: true }), 600))
+      )
+      
+      jest.advanceTimersByTime(5000)
+      
+      const recommendations = manager.getRecommendations()
+      expect(recommendations).toContain(
+        'High latency detected. Consider checking your network connection.'
+      )
+    })
+
+    it('should detect connection instability', async () => {
+      // Simulate unstable connection with varying latencies
+      const latencies = [50, 500, 60, 600, 70, 700]
+      
+      for (const latency of latencies) {
+        ;(global.fetch as jest.Mock).mockImplementationOnce(() => 
+          new Promise(resolve => setTimeout(() => resolve({ ok: true }), latency))
+        )
+        jest.advanceTimersByTime(5000)
+      }
+      
+      const recommendations = manager.getRecommendations()
+      expect(recommendations).toContain(
+        'Connection instability detected. This may affect real-time updates.'
+      )
+    })
+  })
+
+  describe('cleanup', () => {
+    it('should properly cleanup resources on destroy', () => {
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout')
+      const clearIntervalSpy = jest.spyOn(global, 'clearInterval')
+      
+      // Create some active timers
+      manager.connect()
+      ;(navigator as any).onLine = false
+      jest.advanceTimersByTime(1000)
+      
+      // Destroy manager
+      manager.destroy()
+      
+      // Verify cleanup
+      expect(clearTimeoutSpy).toHaveBeenCalled()
+      expect(clearIntervalSpy).toHaveBeenCalled()
+      expect(mockRemoveEventListener).toHaveBeenCalledWith('online', expect.any(Function))
+      expect(mockRemoveEventListener).toHaveBeenCalledWith('offline', expect.any(Function))
+      
+      // Verify singleton is reset
+      expect((RealtimeConnectionManager as any).instance).toBeNull()
     })
   })
 })
