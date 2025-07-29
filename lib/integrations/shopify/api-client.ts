@@ -1,428 +1,514 @@
-// PRP-014: Shopify GraphQL API Client
-import type { RateLimiter } from '../base-connector'
-import { 
-  ShopifyGraphQLResponse, 
-  ShopifyGraphQLError,
-  ShopifyBulkOperation,
-  ShopifyAPIError,
-  ShopifyRateLimitError
-} from '@/types/shopify.types'
+// PRP-014: Shopify API Client
+import { ShopifyAuth } from './auth'
+import { ShopifyAPIError, ShopifyRateLimitError, type RateLimiter } from '@/types/shopify.types'
 
-interface ShopifyApiConfig {
-  shop: string
-  accessToken: string
-  apiVersion: string
+export interface ShopifyApiClientConfig {
+  shop_domain: string
+  access_token: string
+  api_version: string
   rateLimiter?: RateLimiter
 }
 
-interface BulkOperationResult {
-  bulkOperation: ShopifyBulkOperation
-  userErrors: Array<{
-    field: string[]
-    message: string
-  }>
-}
-
 export class ShopifyApiClient {
-  private readonly endpoint: string
-  private readonly headers: Record<string, string>
-  private rateLimiter: RateLimiter | null
-  private apiCallPoints = 0
-  private apiCallLimit = 1000 // Shopify's default
+  private auth: ShopifyAuth
+  private rateLimiter?: RateLimiter
 
-  constructor(private config: ShopifyApiConfig) {
-    this.endpoint = `https://${config.shop}/admin/api/${config.apiVersion}/graphql.json`
-    this.headers = {
-      'X-Shopify-Access-Token': config.accessToken,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    }
-    this.rateLimiter = config.rateLimiter || null
+  constructor(
+    auth: ShopifyAuth,
+    config: ShopifyApiClientConfig,
+    rateLimiter?: RateLimiter
+  ) {
+    this.auth = auth
+    this.rateLimiter = rateLimiter
   }
 
   /**
-   * Execute a GraphQL query with cost calculation and rate limiting
+   * Make a REST API request with rate limiting
    */
-  async query<T = any>(
-    query: string, 
-    variables?: Record<string, any>
-  ): Promise<ShopifyGraphQLResponse<T>> {
-    // Estimate query cost before execution
-    const estimatedCost = this.estimateQueryCost(query)
-    
-    // Acquire rate limit tokens
+  async makeRequest(
+    method: string,
+    endpoint: string,
+    body?: any,
+    headers?: Record<string, string>
+  ): Promise<Response> {
+    // Apply rate limiting if configured
     if (this.rateLimiter) {
-      await this.rateLimiter.acquire(estimatedCost)
+      await this.rateLimiter.acquire(1)
     }
 
     try {
-      // Add timeout support with AbortController
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-      
-      const response = await fetch(this.endpoint, {
-        method: 'POST',
-        headers: this.headers,
-        body: JSON.stringify({ query, variables }),
-        signal: controller.signal
-      })
-      
-      clearTimeout(timeoutId)
-
-      // Handle rate limiting
-      if (response.status === 429) {
-        const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10)
-        throw new ShopifyRateLimitError(
-          'Shopify API rate limit exceeded',
-          retryAfter
-        )
-      }
-
-      const result = await response.json() as ShopifyGraphQLResponse<T>
-
-      // Update rate limit info from response
-      if (result.extensions?.cost) {
-        this.apiCallPoints = result.extensions.cost.actualQueryCost
-        this.apiCallLimit = result.extensions.cost.throttleStatus.maximumAvailable
-      }
-
-      // Handle GraphQL errors
-      if (result.errors && result.errors.length > 0) {
-        this.handleGraphQLErrors(result.errors)
-      }
-
-      // Release tokens on successful request
+      return await this.auth.makeRequest(method, endpoint, body, headers)
+    } finally {
       if (this.rateLimiter) {
-        this.rateLimiter.release(estimatedCost)
+        this.rateLimiter.release(1)
       }
-
-      return result
-    } catch (error) {
-      // Don't release tokens on error - they should count against rate limit
-      if (error instanceof ShopifyAPIError) {
-        throw error
-      }
-      
-      // Handle timeout errors specifically
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new ShopifyAPIError(
-          'Shopify API request timeout after 30 seconds',
-          'TIMEOUT_ERROR'
-        )
-      }
-      
-      throw new ShopifyAPIError(
-        `Shopify API request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'NETWORK_ERROR'
-      )
     }
   }
 
   /**
-   * Execute a GraphQL mutation
+   * Make a GraphQL request with rate limiting
    */
-  async mutation<T = any>(
-    mutation: string, 
+  async makeGraphQLRequest(
+    query: string,
     variables?: Record<string, any>
-  ): Promise<ShopifyGraphQLResponse<T>> {
-    return this.query<T>(mutation, variables)
-  }
+  ): Promise<Response> {
+    // Apply rate limiting if configured
+    if (this.rateLimiter) {
+      await this.rateLimiter.acquire(1)
+    }
 
-  /**
-   * Start a bulk operation for large data queries
-   */
-  async bulkOperation(query: string): Promise<ShopifyBulkOperation> {
-    const mutation = `
-      mutation bulkOperationRunQuery($query: String!) {
-        bulkOperationRunQuery(query: $query) {
-          bulkOperation {
-            id
-            status
-            errorCode
-            createdAt
-            url
-            partialDataUrl
-          }
-          userErrors {
-            field
-            message
-          }
-        }
+    try {
+      return await this.auth.makeGraphQLRequest(query, variables)
+    } finally {
+      if (this.rateLimiter) {
+        this.rateLimiter.release(1)
       }
-    `
-
-    const response = await this.mutation<{ bulkOperationRunQuery: BulkOperationResult }>(
-      mutation, 
-      { query }
-    )
-
-    if (!response.data) {
-      throw new ShopifyAPIError('No data returned from bulk operation mutation')
-    }
-
-    const { bulkOperation, userErrors } = response.data.bulkOperationRunQuery
-
-    if (userErrors.length > 0) {
-      throw new ShopifyAPIError(
-        `Bulk operation failed: ${userErrors[0].message}`,
-        'BULK_OPERATION_ERROR'
-      )
-    }
-
-    return bulkOperation
-  }
-
-  /**
-   * Check the status of a bulk operation
-   */
-  async getBulkOperationStatus(id: string): Promise<ShopifyBulkOperation> {
-    const query = `
-      query bulkOperation($id: ID!) {
-        node(id: $id) {
-          ... on BulkOperation {
-            id
-            status
-            errorCode
-            createdAt
-            completedAt
-            url
-            partialDataUrl
-          }
-        }
-      }
-    `
-
-    const response = await this.query<{ node: ShopifyBulkOperation }>(query, { id })
-
-    if (!response.data?.node) {
-      throw new ShopifyAPIError('Bulk operation not found', 'NOT_FOUND', 404)
-    }
-
-    return response.data.node
-  }
-
-  /**
-   * Cancel a running bulk operation
-   */
-  async cancelBulkOperation(id: string): Promise<void> {
-    const mutation = `
-      mutation bulkOperationCancel($id: ID!) {
-        bulkOperationCancel(id: $id) {
-          bulkOperation {
-            id
-            status
-          }
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    `
-
-    const response = await this.mutation<{ bulkOperationCancel: any }>(
-      mutation, 
-      { id }
-    )
-
-    if (response.data?.bulkOperationCancel.userErrors.length > 0) {
-      throw new ShopifyAPIError(
-        `Failed to cancel bulk operation: ${response.data.bulkOperationCancel.userErrors[0].message}`,
-        'BULK_OPERATION_ERROR'
-      )
     }
   }
 
   /**
-   * Get current API call limits
+   * Get products with pagination
    */
-  getApiCallLimits(): { used: number; limit: number; available: number } {
-    return {
-      used: this.apiCallPoints,
-      limit: this.apiCallLimit,
-      available: this.apiCallLimit - this.apiCallPoints
-    }
-  }
-
-  /**
-   * Estimate the cost of a GraphQL query
-   * This is a simplified estimation - real cost depends on actual data returned
-   */
-  private estimateQueryCost(query: string): number {
-    let cost = 1 // Base cost
-
-    // Count connections (first/last parameters)
-    const connectionMatches = query.matchAll(/(?:first|last):\s*(\d+)/g)
-    for (const match of connectionMatches) {
-      const limit = parseInt(match[1], 10)
-      // Each item in a connection costs approximately 1 point
-      cost += Math.ceil(limit / 2)
-    }
-
-    // Count fields (rough estimation based on query complexity)
-    const fieldCount = (query.match(/{[^}]+}/g) || []).length
-    cost += Math.ceil(fieldCount / 10)
-
-    // Mutations typically cost more
-    if (query.trim().startsWith('mutation')) {
-      cost *= 10
-    }
-
-    return Math.max(1, cost)
-  }
-
-  /**
-   * Handle GraphQL errors appropriately
-   */
-  private handleGraphQLErrors(errors: ShopifyGraphQLError[]): never {
-    const error = errors[0]
+  async getProducts(options: {
+    limit?: number
+    since_id?: number
+    status?: 'active' | 'archived' | 'draft'
+    vendor?: string
+    handle?: string
+    product_type?: string
+    collection_id?: number
+    created_at_min?: string
+    created_at_max?: string
+    updated_at_min?: string
+    updated_at_max?: string
+    published_at_min?: string
+    published_at_max?: string
+    published_status?: 'published' | 'unpublished' | 'any'
+    fields?: string
+  } = {}): Promise<{
+    products: any[]
+    hasNextPage: boolean
+    nextPageInfo?: string
+  }> {
+    const params = new URLSearchParams()
     
-    // Check for throttling
-    if (error.extensions?.code === 'THROTTLED') {
-      throw new ShopifyRateLimitError('GraphQL API throttled', 60)
+    if (options.limit) params.append('limit', options.limit.toString())
+    if (options.since_id) params.append('since_id', options.since_id.toString())
+    if (options.status) params.append('status', options.status)
+    if (options.vendor) params.append('vendor', options.vendor)
+    if (options.handle) params.append('handle', options.handle)
+    if (options.product_type) params.append('product_type', options.product_type)
+    if (options.collection_id) params.append('collection_id', options.collection_id.toString())
+    if (options.created_at_min) params.append('created_at_min', options.created_at_min)
+    if (options.created_at_max) params.append('created_at_max', options.created_at_max)
+    if (options.updated_at_min) params.append('updated_at_min', options.updated_at_min)
+    if (options.updated_at_max) params.append('updated_at_max', options.updated_at_max)
+    if (options.published_at_min) params.append('published_at_min', options.published_at_min)
+    if (options.published_at_max) params.append('published_at_max', options.published_at_max)
+    if (options.published_status) params.append('published_status', options.published_status)
+    if (options.fields) params.append('fields', options.fields)
+
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/products.json?${params.toString()}`
+    const response = await this.makeRequest('GET', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to get products: ${response.status} ${response.statusText}`,
+        'PRODUCTS_FETCH_FAILED',
+        response.status
+      )
     }
 
-    // Map common error codes
-    const errorCode = error.extensions?.code || 'GRAPHQL_ERROR'
-    const statusCode = this.mapErrorCodeToStatus(errorCode)
+    const data = await response.json()
+    const linkHeader = response.headers.get('Link')
+    const hasNextPage = linkHeader?.includes('rel="next"') || false
+    const nextPageInfo = linkHeader?.match(/<[^>]*page_info=([^&>]*)[^>]*>; rel="next"/)?.[1]
 
-    throw new ShopifyAPIError(
-      error.message,
-      errorCode,
-      statusCode,
-      errors
-    )
+    return {
+      products: data.products || [],
+      hasNextPage,
+      nextPageInfo,
+    }
   }
 
   /**
-   * Map GraphQL error codes to HTTP status codes
+   * Get a single product by ID
    */
-  private mapErrorCodeToStatus(code: string): number {
-    const errorMap: Record<string, number> = {
-      'THROTTLED': 429,
-      'ACCESS_DENIED': 403,
-      'FORBIDDEN': 403,
-      'NOT_FOUND': 404,
-      'INTERNAL_SERVER_ERROR': 500,
-      'BAD_USER_INPUT': 400,
-      'INVALID': 422
+  async getProduct(productId: string, fields?: string): Promise<any> {
+    const params = new URLSearchParams()
+    if (fields) params.append('fields', fields)
+
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/products/${productId}.json?${params.toString()}`
+    const response = await this.makeRequest('GET', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to get product ${productId}: ${response.status} ${response.statusText}`,
+        'PRODUCT_FETCH_FAILED',
+        response.status
+      )
     }
 
-    return errorMap[code] || 400
+    const data = await response.json()
+    return data.product
   }
 
   /**
-   * Helper method to create a complete product query
+   * Get inventory levels for products
    */
-  static buildProductQuery(includeMetafields = true, variantLimit = 100): string {
-    return `
-      id
-      title
-      handle
-      descriptionHtml
-      vendor
-      productType
-      tags
-      status
-      updatedAt
-      createdAt
-      variants(first: ${variantLimit}) {
-        edges {
-          node {
-            id
-            title
-            sku
-            price
-            compareAtPrice
-            inventoryPolicy
-            inventoryManagement
-            weight
-            weightUnit
-            barcode
-            position
-            inventoryItem {
-              id
-            }
-          }
-        }
-      }
-      ${includeMetafields ? `
-        metafields(namespace: "truthsource", first: 10) {
-          edges {
-            node {
-              id
-              namespace
-              key
-              value
-              type
-            }
-          }
-        }
-      ` : ''}
-    `
+  async getInventoryLevels(options: {
+    inventory_item_ids?: number[]
+    location_ids?: number[]
+    limit?: number
+  } = {}): Promise<{
+    inventory_levels: any[]
+    hasNextPage: boolean
+    nextPageInfo?: string
+  }> {
+    const params = new URLSearchParams()
+    
+    if (options.inventory_item_ids) {
+      options.inventory_item_ids.forEach(id => params.append('inventory_item_ids[]', id.toString()))
+    }
+    if (options.location_ids) {
+      options.location_ids.forEach(id => params.append('location_ids[]', id.toString()))
+    }
+    if (options.limit) params.append('limit', options.limit.toString())
+
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/inventory_levels.json?${params.toString()}`
+    const response = await this.makeRequest('GET', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to get inventory levels: ${response.status} ${response.statusText}`,
+        'INVENTORY_FETCH_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    const linkHeader = response.headers.get('Link')
+    const hasNextPage = linkHeader?.includes('rel="next"') || false
+    const nextPageInfo = linkHeader?.match(/<[^>]*page_info=([^&>]*)[^>]*>; rel="next"/)?.[1]
+
+    return {
+      inventory_levels: data.inventory_levels || [],
+      hasNextPage,
+      nextPageInfo,
+    }
   }
 
   /**
-   * Helper method to create an inventory query
+   * Update inventory level
    */
-  static buildInventoryQuery(): string {
-    return `
-      id
-      available
-      updatedAt
-      item {
-        id
-        sku
-        variant {
-          id
-          product {
-            id
-          }
-        }
-      }
-      location {
-        id
-        name
-      }
-    `
+  async updateInventoryLevel(
+    inventoryItemId: number,
+    locationId: number,
+    available: number
+  ): Promise<any> {
+    const body = {
+      location_id: locationId,
+      inventory_item_id: inventoryItemId,
+      available: available,
+    }
+
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/inventory_levels/set.json`
+    const response = await this.makeRequest('POST', endpoint, body)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to update inventory level: ${response.status} ${response.statusText}`,
+        'INVENTORY_UPDATE_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    return data.inventory_level
   }
 
   /**
-   * Helper to build a customer query
+   * Get customers with pagination
    */
-  static buildCustomerQuery(includeCompany = true): string {
-    return `
-      id
-      email
-      firstName
-      lastName
-      phone
-      taxExempt
-      tags
-      createdAt
-      updatedAt
-      addresses {
-        address1
-        address2
-        city
-        province
-        provinceCode
-        country
-        countryCode
-        zip
-        phone
-        company
-      }
-      ${includeCompany ? `
-        company {
-          id
-          name
-          externalId
-          note
-          createdAt
-          updatedAt
-        }
-      ` : ''}
-    `
+  async getCustomers(options: {
+    limit?: number
+    since_id?: number
+    created_at_min?: string
+    created_at_max?: string
+    updated_at_min?: string
+    updated_at_max?: string
+    fields?: string
+  } = {}): Promise<{
+    customers: any[]
+    hasNextPage: boolean
+    nextPageInfo?: string
+  }> {
+    const params = new URLSearchParams()
+    
+    if (options.limit) params.append('limit', options.limit.toString())
+    if (options.since_id) params.append('since_id', options.since_id.toString())
+    if (options.created_at_min) params.append('created_at_min', options.created_at_min)
+    if (options.created_at_max) params.append('created_at_max', options.created_at_max)
+    if (options.updated_at_min) params.append('updated_at_min', options.updated_at_min)
+    if (options.updated_at_max) params.append('updated_at_max', options.updated_at_max)
+    if (options.fields) params.append('fields', options.fields)
+
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/customers.json?${params.toString()}`
+    const response = await this.makeRequest('GET', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to get customers: ${response.status} ${response.statusText}`,
+        'CUSTOMERS_FETCH_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    const linkHeader = response.headers.get('Link')
+    const hasNextPage = linkHeader?.includes('rel="next"') || false
+    const nextPageInfo = linkHeader?.match(/<[^>]*page_info=([^&>]*)[^>]*>; rel="next"/)?.[1]
+
+    return {
+      customers: data.customers || [],
+      hasNextPage,
+      nextPageInfo,
+    }
+  }
+
+  /**
+   * Get orders with pagination
+   */
+  async getOrders(options: {
+    limit?: number
+    since_id?: number
+    status?: 'open' | 'closed' | 'cancelled' | 'any'
+    financial_status?: 'authorized' | 'pending' | 'paid' | 'partially_paid' | 'refunded' | 'voided' | 'partially_refunded' | 'any'
+    fulfillment_status?: 'shipped' | 'partial' | 'unshipped' | 'any'
+    created_at_min?: string
+    created_at_max?: string
+    updated_at_min?: string
+    updated_at_max?: string
+    processed_at_min?: string
+    processed_at_max?: string
+    fields?: string
+  } = {}): Promise<{
+    orders: any[]
+    hasNextPage: boolean
+    nextPageInfo?: string
+  }> {
+    const params = new URLSearchParams()
+    
+    if (options.limit) params.append('limit', options.limit.toString())
+    if (options.since_id) params.append('since_id', options.since_id.toString())
+    if (options.status) params.append('status', options.status)
+    if (options.financial_status) params.append('financial_status', options.financial_status)
+    if (options.fulfillment_status) params.append('fulfillment_status', options.fulfillment_status)
+    if (options.created_at_min) params.append('created_at_min', options.created_at_min)
+    if (options.created_at_max) params.append('created_at_max', options.created_at_max)
+    if (options.updated_at_min) params.append('updated_at_min', options.updated_at_min)
+    if (options.updated_at_max) params.append('updated_at_max', options.updated_at_max)
+    if (options.processed_at_min) params.append('processed_at_min', options.processed_at_min)
+    if (options.processed_at_max) params.append('processed_at_max', options.processed_at_max)
+    if (options.fields) params.append('fields', options.fields)
+
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/orders.json?${params.toString()}`
+    const response = await this.makeRequest('GET', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to get orders: ${response.status} ${response.statusText}`,
+        'ORDERS_FETCH_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    const linkHeader = response.headers.get('Link')
+    const hasNextPage = linkHeader?.includes('rel="next"') || false
+    const nextPageInfo = linkHeader?.match(/<[^>]*page_info=([^&>]*)[^>]*>; rel="next"/)?.[1]
+
+    return {
+      orders: data.orders || [],
+      hasNextPage,
+      nextPageInfo,
+    }
+  }
+
+  /**
+   * Get B2B catalogs (if available)
+   */
+  async getCatalogs(): Promise<{
+    catalogs: any[]
+    hasNextPage: boolean
+    nextPageInfo?: string
+  }> {
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/catalogs.json`
+    const response = await this.makeRequest('GET', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to get catalogs: ${response.status} ${response.statusText}`,
+        'CATALOGS_FETCH_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    const linkHeader = response.headers.get('Link')
+    const hasNextPage = linkHeader?.includes('rel="next"') || false
+    const nextPageInfo = linkHeader?.match(/<[^>]*page_info=([^&>]*)[^>]*>; rel="next"/)?.[1]
+
+    return {
+      catalogs: data.catalogs || [],
+      hasNextPage,
+      nextPageInfo,
+    }
+  }
+
+  /**
+   * Get price lists for B2B (if available)
+   */
+  async getPriceLists(): Promise<{
+    price_lists: any[]
+    hasNextPage: boolean
+    nextPageInfo?: string
+  }> {
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/price_lists.json`
+    const response = await this.makeRequest('GET', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to get price lists: ${response.status} ${response.statusText}`,
+        'PRICE_LISTS_FETCH_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    const linkHeader = response.headers.get('Link')
+    const hasNextPage = linkHeader?.includes('rel="next"') || false
+    const nextPageInfo = linkHeader?.match(/<[^>]*page_info=([^&>]*)[^>]*>; rel="next"/)?.[1]
+
+    return {
+      price_lists: data.price_lists || [],
+      hasNextPage,
+      nextPageInfo,
+    }
+  }
+
+  /**
+   * Create or update a product
+   */
+  async createOrUpdateProduct(productData: any): Promise<any> {
+    const method = productData.id ? 'PUT' : 'POST'
+    const productId = productData.id ? `/${productData.id}` : ''
+    
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/products${productId}.json`
+    const body = { product: productData }
+
+    const response = await this.makeRequest(method, endpoint, body)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to ${productData.id ? 'update' : 'create'} product: ${response.status} ${response.statusText}`,
+        'PRODUCT_UPDATE_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    return data.product
+  }
+
+  /**
+   * Delete a product
+   */
+  async deleteProduct(productId: string): Promise<void> {
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/products/${productId}.json`
+    const response = await this.makeRequest('DELETE', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to delete product ${productId}: ${response.status} ${response.statusText}`,
+        'PRODUCT_DELETE_FAILED',
+        response.status
+      )
+    }
+  }
+
+  /**
+   * Get webhook subscriptions
+   */
+  async getWebhooks(): Promise<{
+    webhooks: any[]
+    hasNextPage: boolean
+    nextPageInfo?: string
+  }> {
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/webhooks.json`
+    const response = await this.makeRequest('GET', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to get webhooks: ${response.status} ${response.statusText}`,
+        'WEBHOOKS_FETCH_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    const linkHeader = response.headers.get('Link')
+    const hasNextPage = linkHeader?.includes('rel="next"') || false
+    const nextPageInfo = linkHeader?.match(/<[^>]*page_info=([^&>]*)[^>]*>; rel="next"/)?.[1]
+
+    return {
+      webhooks: data.webhooks || [],
+      hasNextPage,
+      nextPageInfo,
+    }
+  }
+
+  /**
+   * Create a webhook subscription
+   */
+  async createWebhook(webhookData: {
+    topic: string
+    address: string
+    format?: 'json' | 'xml'
+    fields?: string[]
+    metafield_namespaces?: string[]
+    private_metafield_namespaces?: string[]
+  }): Promise<any> {
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/webhooks.json`
+    const body = { webhook: webhookData }
+
+    const response = await this.makeRequest('POST', endpoint, body)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to create webhook: ${response.status} ${response.statusText}`,
+        'WEBHOOK_CREATE_FAILED',
+        response.status
+      )
+    }
+
+    const data = await response.json()
+    return data.webhook
+  }
+
+  /**
+   * Delete a webhook subscription
+   */
+  async deleteWebhook(webhookId: string): Promise<void> {
+    const endpoint = `/admin/api/${this.auth.getApiVersion()}/webhooks/${webhookId}.json`
+    const response = await this.makeRequest('DELETE', endpoint)
+
+    if (!response.ok) {
+      throw new ShopifyAPIError(
+        `Failed to delete webhook ${webhookId}: ${response.status} ${response.statusText}`,
+        'WEBHOOK_DELETE_FAILED',
+        response.status
+      )
+    }
   }
 }
