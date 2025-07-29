@@ -46,6 +46,15 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
     page: parseInt(searchParams.page || '1', 10)
   }
 
+  // Create filters object for components that expect optional properties
+  const componentFilters = {
+    user_id: filters.user_id || undefined,
+    action: filters.action || undefined,
+    entity_type: filters.entity_type || undefined,
+    from: filters.from,
+    to: filters.to,
+  }
+
   // Build query
   let query = supabase
     .from('audit_logs_with_details')
@@ -112,7 +121,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
           <Suspense fallback={<AuditSkeleton />}>
             <AuditFilters
               users={users || []}
-              currentFilters={filters}
+              currentFilters={componentFilters}
             />
 
             <AuditTable

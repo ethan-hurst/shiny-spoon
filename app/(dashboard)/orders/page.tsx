@@ -69,10 +69,10 @@ export default async function OrdersPage({
 
   const orderStats = {
     total: stats?.length || 0,
-    pending: stats?.filter(o => o.status === 'pending').length || 0,
-    processing: stats?.filter(o => o.status === 'processing').length || 0,
-    shipped: stats?.filter(o => o.status === 'shipped').length || 0,
-    totalRevenue: stats?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0,
+    pending: stats?.filter((o: any) => o.status === 'pending').length || 0,
+    processing: stats?.filter((o: any) => o.status === 'processing').length || 0,
+    shipped: stats?.filter((o: any) => o.status === 'shipped').length || 0,
+    totalRevenue: stats?.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0) || 0,
   }
 
   return (

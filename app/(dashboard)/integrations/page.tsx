@@ -9,14 +9,8 @@ import { IntegrationStats } from '@/components/features/integrations/integration
 import { IntegrationsListSkeleton } from '@/components/features/integrations/integrations-list-skeleton'
 import type { Database } from '@/supabase/types/database'
 
-type SyncJob = {
-  count: number
-  status: Database['public']['Tables']['sync_jobs']['Row']['status']
-}
-
 type IntegrationWithRelations = Database['public']['Tables']['integrations']['Row'] & {
   integration_logs?: { count: number }[]
-  sync_jobs?: SyncJob[]
 }
 
 export const metadata = {
@@ -59,10 +53,6 @@ export default async function IntegrationsPage({
       *,
       integration_logs!integration_logs_integration_id_fkey(
         count
-      ),
-      sync_jobs!sync_jobs_integration_id_fkey(
-        count,
-        status
       )
     `, { count: 'exact' })
     .eq('organization_id', profile.organization_id)
@@ -82,9 +72,7 @@ export default async function IntegrationsPage({
     total: count || 0,
     active: typedIntegrations.filter(i => i.status === 'active').length,
     error: typedIntegrations.filter(i => i.status === 'error').length,
-    syncing: typedIntegrations.filter(i => 
-      i.sync_jobs?.some((j: SyncJob) => j.status === 'running')
-    ).length,
+    syncing: 0, // TODO: Implement sync status tracking
   }
 
   return (
