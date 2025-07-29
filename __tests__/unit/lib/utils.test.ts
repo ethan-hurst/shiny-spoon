@@ -66,8 +66,13 @@ describe('cn utility', () => {
     expect(cn('single-class')).toBe('single-class')
   })
 
-  it('deduplicates classes', () => {
-    expect(cn('duplicate', 'duplicate', 'unique')).toBe('duplicate unique')
+  it('handles duplicate classes', () => {
+    // twMerge handles conflicting Tailwind classes, not simple duplication
+    // For non-conflicting duplicates, it preserves them
+    expect(cn('duplicate', 'duplicate', 'unique')).toBe('duplicate duplicate unique')
+    
+    // But it does handle conflicting Tailwind classes
+    expect(cn('p-4', 'p-4', 'p-8')).toBe('p-8')
   })
 
   it('preserves important modifiers', () => {

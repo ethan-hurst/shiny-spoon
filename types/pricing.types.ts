@@ -55,26 +55,28 @@ export const pricingConditionsSchema = z.object({
   custom: z.record(z.any()).optional(),
 })
 
-// Pricing Rule Schema
-export const pricingRuleSchema = z
-  .object({
-    name: z.string().min(1, 'Rule name is required'),
-    description: z.string().optional(),
-    rule_type: RuleTypeEnum,
-    priority: z.number().int().min(0).default(100),
-    conditions: pricingConditionsSchema.default({}),
-    discount_type: DiscountTypeEnum.optional(),
-    discount_value: z.number().min(0).optional(),
-    product_id: z.string().uuid().optional(),
-    category_id: z.string().uuid().optional(),
-    customer_id: z.string().uuid().optional(),
-    customer_tier_id: z.string().uuid().optional(),
-    is_exclusive: z.boolean().default(false),
-    can_stack: z.boolean().default(true),
-    is_active: z.boolean().default(true),
-    start_date: z.string().optional(),
-    end_date: z.string().optional(),
-  })
+// Pricing Rule Base Schema (without refinements)
+export const pricingRuleBaseSchema = z.object({
+  name: z.string().min(1, 'Rule name is required'),
+  description: z.string().optional(),
+  rule_type: RuleTypeEnum,
+  priority: z.number().int().min(0).default(100),
+  conditions: pricingConditionsSchema.default({}),
+  discount_type: DiscountTypeEnum.optional(),
+  discount_value: z.number().min(0).optional(),
+  product_id: z.string().uuid().optional(),
+  category_id: z.string().uuid().optional(),
+  customer_id: z.string().uuid().optional(),
+  customer_tier_id: z.string().uuid().optional(),
+  is_exclusive: z.boolean().default(false),
+  can_stack: z.boolean().default(true),
+  is_active: z.boolean().default(true),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+})
+
+// Pricing Rule Schema (with refinements)
+export const pricingRuleSchema = pricingRuleBaseSchema
   .refine(
     (data) => {
       // If discount_type is set, discount_value must be set
@@ -113,19 +115,21 @@ export const quantityBreakSchema = z
     }
   )
 
-// Customer Pricing Schema
-export const customerPricingSchema = z
-  .object({
-    customer_id: z.string().uuid(),
-    product_id: z.string().uuid(),
-    override_price: z.number().min(0).optional(),
-    override_discount_percent: z.number().min(0).max(100).optional(),
-    contract_number: z.string().optional(),
-    contract_start: z.string().optional(),
-    contract_end: z.string().optional(),
-    requires_approval: z.boolean().default(false),
-    notes: z.string().optional(),
-  })
+// Customer Pricing Base Schema (without refinements)
+export const customerPricingBaseSchema = z.object({
+  customer_id: z.string().uuid(),
+  product_id: z.string().uuid(),
+  override_price: z.number().min(0).optional(),
+  override_discount_percent: z.number().min(0).max(100).optional(),
+  contract_number: z.string().optional(),
+  contract_start: z.string().optional(),
+  contract_end: z.string().optional(),
+  requires_approval: z.boolean().default(false),
+  notes: z.string().optional(),
+})
+
+// Customer Pricing Schema (with refinements)
+export const customerPricingSchema = customerPricingBaseSchema
   .refine(
     (data) => {
       // Can't have both price and discount
