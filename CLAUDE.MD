@@ -375,8 +375,9 @@ export function useInventory(warehouseId?: string) {
 
 1. **STRICT TypeScript** - All code must pass strict TypeScript checks
 2. **NO any types** - Never use `any` - use `unknown` if type is truly unknown
-   - **Exception**: In test files, `any` is acceptable for mock objects when proper typing would be overly complex
-   - Prefer creating typed mock utilities when possible
+   - Tests should maintain full type safety to catch errors
+   - Create properly typed mock utilities and factories
+   - If you must use `any` in tests, document why with a comment
 3. **EXPLICIT types** - All function parameters and return values must be typed
 4. **TYPE imports** - Import types from correct locations (e.g., `@/supabase/types/database`)
 5. **COMPLETE implementations** - No partial implementations or placeholders
@@ -909,19 +910,39 @@ Write tests that give confidence without sacrificing development speed. Follow t
 
 ### TypeScript in Tests
 
-```typescript
-// ✅ GOOD - Typed mock with clear intent
-const mockSupabase = createMockSupabaseClient()
-mockSupabase.from.mockReturnValue({
-  select: jest.fn().mockResolvedValue({ data: [], error: null })
-})
+**Tests should maintain the same type safety as production code.** Well-typed tests:
+- Catch type errors before runtime
+- Serve as living documentation
+- Ensure mocks match real implementations
+- Validate that components handle data correctly
 
-// ✅ ACCEPTABLE - Using any for complex mocks when needed
-const mockComplexObject: any = {
-  deeply: { nested: { property: 'value' } }
+```typescript
+// ✅ GOOD - Fully typed mock matching real implementation
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/supabase/types/database'
+
+const mockSupabase = createMockSupabaseClient<Database>()
+const mockData: Database['public']['Tables']['products']['Row'][] = [
+  { id: '1', name: 'Test Product', price: 99.99, ... }
+]
+mockSupabase.from.mockImplementation(() => ({
+  select: jest.fn().mockResolvedValue({ data: mockData, error: null })
+}))
+
+// ✅ GOOD - Type-safe test data factory
+function createTestProduct(overrides?: Partial<Product>): Product {
+  return {
+    id: 'test-id',
+    name: 'Test Product',
+    price: 99.99,
+    ...overrides
+  }
 }
 
-// ❌ BAD - Unclear mock without types or structure
+// ❌ BAD - Using any defeats the purpose of type checking
+const mockData: any = { whatever: 'data' }
+
+// ❌ BAD - Casting to any hides type errors
 const mock = {} as any
 ```
 
