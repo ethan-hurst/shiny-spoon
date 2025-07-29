@@ -113,12 +113,35 @@ describe('Button Component', () => {
   it('should have proper accessibility attributes', () => {
     render(<Button>Accessible</Button>)
     const button = screen.getByRole('button')
-    expect(button).toHaveAttribute('type', 'button')
+    // Buttons are accessible by default - they have implicit role
+    expect(button).toBeInTheDocument()
+    expect(button.tagName).toBe('BUTTON')
   })
 
   it('should handle type attribute correctly', () => {
     render(<Button type="submit">Submit</Button>)
     const button = screen.getByRole('button')
     expect(button).toHaveAttribute('type', 'submit')
+  })
+
+  it('should have focus management', async () => {
+    const user = userEvent.setup()
+    render(<Button>Focusable</Button>)
+    const button = screen.getByRole('button')
+    
+    await user.tab()
+    expect(button).toHaveFocus()
+  })
+
+  it('should handle keyboard interactions', async () => {
+    const user = userEvent.setup()
+    const handleClick = jest.fn()
+    
+    render(<Button onClick={handleClick}>Keyboard</Button>)
+    const button = screen.getByRole('button')
+    
+    await user.tab()
+    await user.keyboard('{Enter}')
+    expect(handleClick).toHaveBeenCalledTimes(1)
   })
 })

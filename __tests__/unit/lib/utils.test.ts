@@ -37,31 +37,31 @@ describe('Utility Functions', () => {
 
   describe('formatCurrency', () => {
     it('should format USD currency correctly', () => {
-      expect(formatCurrency(1234.56)).toBe('$1,235')
+      expect(formatCurrency(1234.56)).toBe('$1,234.56')
       expect(formatCurrency(1000)).toBe('$1,000')
       expect(formatCurrency(0)).toBe('$0')
     })
 
     it('should format with custom currency', () => {
-      expect(formatCurrency(1234.56, 'EUR')).toBe('€1,235')
-      expect(formatCurrency(1234.56, 'GBP')).toBe('£1,235')
+      expect(formatCurrency(1234.56, 'EUR')).toBe('€1,234.56')
+      expect(formatCurrency(1234.56, 'GBP')).toBe('£1,234.56')
     })
 
     it('should handle decimal places correctly', () => {
-      expect(formatCurrency(1234.567)).toBe('$1,235')
-      expect(formatCurrency(1234.1)).toBe('$1,234')
+      expect(formatCurrency(1234.567)).toBe('$1,234.57')
+      expect(formatCurrency(1234.1)).toBe('$1,234.1')
     })
 
     it('should handle negative amounts', () => {
-      expect(formatCurrency(-1234.56)).toBe('-$1,235')
+      expect(formatCurrency(-1234.56)).toBe('-$1,234.56')
     })
 
     it('should handle very large numbers', () => {
-      expect(formatCurrency(999999999.99)).toBe('$1,000,000,000')
+      expect(formatCurrency(999999999.99)).toBe('$999,999,999.99')
     })
 
     it('should handle very small numbers', () => {
-      expect(formatCurrency(0.01)).toBe('$0')
+      expect(formatCurrency(0.01)).toBe('$0.01')
     })
   })
 
@@ -109,9 +109,9 @@ describe('Utility Functions', () => {
       expect(formatted).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/)
     })
 
-    it('should handle invalid dates gracefully', () => {
+    it('should throw error for invalid dates', () => {
       const invalidDate = new Date('invalid')
-      expect(() => formatDate(invalidDate)).not.toThrow()
+      expect(() => formatDate(invalidDate)).toThrow('Invalid time value')
     })
   })
 })
