@@ -1,0 +1,717 @@
+import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
+import { createServerClient } from '@/lib/supabase/server'
+import { Readable } from 'stream'
+import type { BulkOperationConfig, BulkOperationProgress } from '@/types/bulk-operations.types'
+
+jest.mock('@/lib/supabase/server')
+
+// Mock File for Node.js environment
+class MockFile {
+  name: string
+  size: number
+  private content: string
+
+  constructor(content: string, name: string) {
+    this.content = content
+    this.name = name
+    this.size = content.length
+  }
+
+  stream() {
+    const chunks = [this.content]
+    let index = 0
+    
+    return {
+      getReader() {
+        return {
+          read: async () => {
+            if (index < chunks.length) {
+              return { done: false, value: Buffer.from(chunks[index++]) }
+            }
+            return { done: true, value: undefined }
+          }
+        }
+      }
+    }
+  }
+}
+
+describe('BulkOperationsEngine', () => {
+  let engine: BulkOperationsEngine
+  let mockSupabase: any
+  let mockEmit: jest.SpyInstance
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    
+    // Mock Supabase client
+    mockSupabase = {
+      auth: {
+        getUser: jest.fn().mockResolvedValue({ user: { id: 'user-123' } })
+      },
+      from: jest.fn((table: string) => {
+        switch (table) {
+          case 'user_profiles':
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({
+                data: { organization_id: 'org-123' }
+              })
+            }
+            
+          case 'bulk_operations':
+            return {
+              insert: jest.fn().mockReturnThis(),
+              update: jest.fn().mockReturnThis(),
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({
+                data: {
+                  id: 'op-123',
+                  organization_id: 'org-123',
+                  entity_type: 'products'
+                }
+              })
+            }
+            
+          case 'bulk_operation_records':
+            return {
+              insert: jest.fn().mockResolvedValue({ error: null }),
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              order: jest.fn().mockReturnThis(),
+              limit: jest.fn().mockResolvedValue({ 
+                data: [],
+                count: 0 
+              })
+            }
+            
+          case 'products':
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({
+                data: { id: 'prod-123' }
+              }),
+              upsert: jest.fn().mockReturnThis(),
+              update: jest.fn().mockReturnThis(),
+              delete: jest.fn().mockResolvedValue({ error: null })
+            }
+            
+          case 'warehouses':
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({
+                data: { id: 'wh-123' }
+              })
+            }
+            
+          case 'inventory':
+            return {
+              update: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              select: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({
+                data: { id: 'inv-123', quantity: 100 }
+              })
+            }
+            
+          default:
+            return {
+              select: jest.fn().mockReturnThis(),
+              insert: jest.fn().mockReturnThis(),
+              update: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: null })
+            }
+        }
+      }),
+      rpc: jest.fn().mockResolvedValue({ error: null })
+    }
+    
+    ;(createServerClient as jest.Mock).mockReturnValue(mockSupabase)
+    
+    engine = new BulkOperationsEngine()
+    mockEmit = jest.spyOn(engine, 'emit')
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  describe('startOperation', () => {
+    const validConfig: BulkOperationConfig = {
+      operationType: 'import',
+      entityType: 'products',
+      chunkSize: 10
+    }
+
+    it('should start a bulk operation', async () => {
+      const csvContent = 'sku,name,price\nSKU001,Product 1,99.99'
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      const operationId = await engine.startOperation(file, validConfig, 'user-123')
+      
+      expect(operationId).toBe('op-123')
+      expect(mockSupabase.from).toHaveBeenCalledWith('bulk_operations')
+      
+      // Wait for async processing to start
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      expect(mockSupabase.from).toHaveBeenCalledWith('bulk_operation_records')
+    })
+
+    it('should validate configuration', async () => {
+      const file = new MockFile('test', 'test.csv') as any
+      
+      await expect(
+        engine.startOperation(file, {} as BulkOperationConfig, 'user-123')
+      ).rejects.toThrow('Operation type is required')
+      
+      await expect(
+        engine.startOperation(file, { operationType: 'import' } as BulkOperationConfig, 'user-123')
+      ).rejects.toThrow('Entity type is required')
+    })
+
+    it('should validate file size', async () => {
+      const largeContent = 'x'.repeat(101 * 1024 * 1024) // 101MB
+      const file = new MockFile(largeContent, 'large.csv') as any
+      
+      await expect(
+        engine.startOperation(file, validConfig, 'user-123')
+      ).rejects.toThrow('File size exceeds 100MB limit')
+    })
+
+    it('should handle user without organization', async () => {
+      mockSupabase.from = jest.fn((table: string) => {
+        if (table === 'user_profiles') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({ data: null })
+          }
+        }
+        return mockSupabase.from(table)
+      })
+      
+      const file = new MockFile('test', 'test.csv') as any
+      
+      await expect(
+        engine.startOperation(file, validConfig, 'user-123')
+      ).rejects.toThrow('User organization not found')
+    })
+
+    it('should accept a Readable stream', async () => {
+      const stream = Readable.from(['sku,name\n', 'SKU001,Product 1\n'])
+      
+      const operationId = await engine.startOperation(stream, validConfig, 'user-123')
+      
+      expect(operationId).toBe('op-123')
+    })
+  })
+
+  describe('CSV parsing', () => {
+    it('should parse CSV with headers correctly', async () => {
+      const csvContent = `sku,name,price
+SKU001,Product 1,99.99
+SKU002,"Product 2, Special",149.99
+SKU003,,79.99`
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products'
+      }, 'user-123')
+      
+      // Wait for processing
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Check that records were processed
+      const insertCalls = mockSupabase.from('bulk_operation_records').insert.mock.calls
+      expect(insertCalls.length).toBeGreaterThan(0)
+      
+      // Should have processed 3 records (including the one with empty name)
+      const allRecords = insertCalls.flatMap(call => call[0])
+      expect(allRecords.length).toBe(3)
+    })
+
+    it('should handle field mapping', async () => {
+      const csvContent = `product_code,product_name
+SKU001,Product 1`
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products',
+        mapping: {
+          'product_code': 'sku',
+          'product_name': 'name'
+        }
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Verify mapping was applied
+      const upsertCalls = mockSupabase.from('products').upsert.mock.calls
+      expect(upsertCalls.length).toBeGreaterThan(0)
+      expect(upsertCalls[0][0]).toMatchObject({
+        sku: 'SKU001',
+        name: 'Product 1'
+      })
+    })
+
+    it('should skip empty lines', async () => {
+      const csvContent = `sku,name
+
+SKU001,Product 1
+
+SKU002,Product 2
+
+`
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products'
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      const allRecords = mockSupabase.from('bulk_operation_records').insert.mock.calls
+        .flatMap(call => call[0])
+      expect(allRecords).toHaveLength(2)
+    })
+  })
+
+  describe('validation', () => {
+    it('should validate records against schema', async () => {
+      const csvContent = `sku,name,price
+SKU001,Product 1,99.99
+,Product 2,49.99
+SKU003,Product 3,invalid`
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products'
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      const allRecords = mockSupabase.from('bulk_operation_records').insert.mock.calls
+        .flatMap(call => call[0])
+      
+      // Should have 3 records total
+      expect(allRecords).toHaveLength(3)
+      
+      // Check failed validations
+      const failedRecords = allRecords.filter(r => r.status === 'failed')
+      expect(failedRecords).toHaveLength(2) // Missing SKU and invalid price
+    })
+
+    it('should support validate-only mode', async () => {
+      const csvContent = `sku,name,price
+SKU001,Product 1,99.99`
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products',
+        validateOnly: true
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Should not have called upsert
+      expect(mockSupabase.from('products').upsert).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('progress tracking', () => {
+    it('should emit progress events', async () => {
+      const csvContent = `sku,name,price
+SKU001,Product 1,99.99
+SKU002,Product 2,149.99
+SKU003,Product 3,79.99`
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products',
+        chunkSize: 1 // Process one at a time to see progress
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      const progressEvents = mockEmit.mock.calls
+        .filter(call => call[0] === 'progress')
+        .map(call => call[1] as BulkOperationProgress)
+      
+      expect(progressEvents.length).toBeGreaterThan(0)
+      expect(progressEvents[0].operationId).toBe('op-123')
+      expect(progressEvents[0].status).toBe('processing')
+    })
+
+    it('should update database with progress', async () => {
+      const csvContent = `sku,name,price
+SKU001,Product 1,99.99`
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products'
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      const updateCalls = mockSupabase.from('bulk_operations').update.mock.calls
+      
+      // Should have status updates
+      const processingUpdate = updateCalls.find(call => call[0].status === 'processing')
+      const completedUpdate = updateCalls.find(call => call[0].status === 'completed')
+      
+      expect(processingUpdate).toBeDefined()
+      expect(completedUpdate).toBeDefined()
+    })
+  })
+
+  describe('entity processors', () => {
+    describe('inventory processor', () => {
+      it('should process inventory updates', async () => {
+        const csvContent = `sku,warehouse_code,quantity,reason
+SKU001,WH001,150,Restock`
+        
+        const file = new MockFile(csvContent, 'inventory.csv') as any
+        
+        await engine.startOperation(file, {
+          operationType: 'update',
+          entityType: 'inventory'
+        }, 'user-123')
+        
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        // Should have looked up product and warehouse
+        expect(mockSupabase.from('products').select).toHaveBeenCalled()
+        expect(mockSupabase.from('warehouses').select).toHaveBeenCalled()
+        
+        // Should have updated inventory
+        expect(mockSupabase.from('inventory').update).toHaveBeenCalled()
+      })
+
+      it('should handle missing product or warehouse', async () => {
+        mockSupabase.from = jest.fn((table: string) => {
+          if (table === 'products') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ error: new Error('Not found') })
+            }
+          }
+          return mockSupabase.from(table)
+        })
+        
+        const csvContent = `sku,warehouse_code,quantity
+INVALID,WH001,150`
+        
+        const file = new MockFile(csvContent, 'inventory.csv') as any
+        
+        await engine.startOperation(file, {
+          operationType: 'update',
+          entityType: 'inventory'
+        }, 'user-123')
+        
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        const records = mockSupabase.from('bulk_operation_records').insert.mock.calls
+          .flatMap(call => call[0])
+        
+        expect(records[0].status).toBe('failed')
+      })
+    })
+
+    describe('product processor', () => {
+      it('should import new products', async () => {
+        const csvContent = `sku,name,description,price
+SKU001,Product 1,Description 1,99.99`
+        
+        const file = new MockFile(csvContent, 'products.csv') as any
+        
+        await engine.startOperation(file, {
+          operationType: 'import',
+          entityType: 'products'
+        }, 'user-123')
+        
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        expect(mockSupabase.from('products').upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sku: 'SKU001',
+            name: 'Product 1',
+            description: 'Description 1',
+            price: 99.99,
+            organization_id: 'org-123'
+          })
+        )
+      })
+
+      it('should update existing products', async () => {
+        const csvContent = `sku,name,price
+SKU001,Updated Product,129.99`
+        
+        const file = new MockFile(csvContent, 'products.csv') as any
+        
+        await engine.startOperation(file, {
+          operationType: 'update',
+          entityType: 'products'
+        }, 'user-123')
+        
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        expect(mockSupabase.from('products').update).toHaveBeenCalledWith({
+          name: 'Updated Product',
+          price: 129.99
+        })
+      })
+    })
+  })
+
+  describe('cancelOperation', () => {
+    it('should cancel an active operation', async () => {
+      const csvContent = 'sku,name\n' + Array(100).fill('SKU001,Product').join('\n')
+      const file = new MockFile(csvContent, 'large.csv') as any
+      
+      const operationId = await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products',
+        chunkSize: 1
+      }, 'user-123')
+      
+      // Cancel immediately
+      await engine.cancelOperation(operationId, 'user-123')
+      
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('cancel_bulk_operation', {
+        operation_uuid: operationId,
+        user_uuid: 'user-123'
+      })
+    })
+
+    it('should handle cancel errors', async () => {
+      mockSupabase.rpc.mockResolvedValueOnce({ 
+        error: new Error('Permission denied') 
+      })
+      
+      await expect(
+        engine.cancelOperation('op-123', 'user-123')
+      ).rejects.toThrow('Failed to cancel operation: Permission denied')
+    })
+  })
+
+  describe('rollbackOperation', () => {
+    it('should rollback completed operations', async () => {
+      // Mock completed records
+      mockSupabase.from = jest.fn((table: string) => {
+        if (table === 'bulk_operation_records') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValueOnce({
+              data: [
+                {
+                  id: 'rec-1',
+                  entity_id: 'prod-123',
+                  action: 'create',
+                  status: 'completed'
+                }
+              ]
+            }).mockResolvedValueOnce({
+              data: [] // No more records
+            }),
+            update: jest.fn().mockReturnThis()
+          }
+        }
+        return mockSupabase.from(table)
+      })
+      
+      await engine.rollbackOperation('op-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Should have deleted the created product
+      expect(mockSupabase.from('products').delete).toHaveBeenCalled()
+      
+      // Should emit rollback progress
+      const rollbackEvents = mockEmit.mock.calls
+        .filter(call => call[0] === 'rollback-progress')
+      expect(rollbackEvents.length).toBeGreaterThan(0)
+    })
+
+    it('should handle rollback with no records', async () => {
+      mockSupabase.from = jest.fn((table: string) => {
+        if (table === 'bulk_operation_records') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            head: jest.fn().mockReturnValue({
+              count: 0
+            })
+          }
+        }
+        return mockSupabase.from(table)
+      })
+      
+      await engine.rollbackOperation('op-123')
+      
+      const updateCalls = mockSupabase.from('bulk_operations').update.mock.calls
+      const rolledBackUpdate = updateCalls.find(call => call[0].status === 'rolled_back')
+      expect(rolledBackUpdate).toBeDefined()
+    })
+
+    it('should update records for rollback', async () => {
+      mockSupabase.from = jest.fn((table: string) => {
+        if (table === 'bulk_operation_records') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValueOnce({
+              data: [
+                {
+                  id: 'rec-1',
+                  entity_id: 'inv-123',
+                  action: 'update',
+                  before_data: { quantity: 100 },
+                  status: 'completed'
+                }
+              ]
+            }).mockResolvedValueOnce({
+              data: []
+            }),
+            update: jest.fn().mockReturnThis()
+          }
+        }
+        return mockSupabase.from(table)
+      })
+      
+      await engine.rollbackOperation('op-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Should have restored original data
+      expect(mockSupabase.from('inventory').update).toHaveBeenCalledWith({ quantity: 100 })
+    })
+  })
+
+  describe('error handling', () => {
+    it('should handle processing errors', async () => {
+      const csvContent = `sku,name
+SKU001,Product 1`
+      
+      // Mock processing error
+      mockSupabase.from = jest.fn((table: string) => {
+        if (table === 'products') {
+          throw new Error('Database error')
+        }
+        return mockSupabase.from(table)
+      })
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products'
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Should have updated status to failed
+      const updateCalls = mockSupabase.from('bulk_operations').update.mock.calls
+      const failedUpdate = updateCalls.find(call => call[0].status === 'failed')
+      expect(failedUpdate).toBeDefined()
+    })
+
+    it('should rollback on error if configured', async () => {
+      const csvContent = `sku,name
+SKU001,Product 1
+SKU002,Product 2`
+      
+      let callCount = 0
+      mockSupabase.from = jest.fn((table: string) => {
+        if (table === 'products' && callCount++ === 1) {
+          throw new Error('Second product failed')
+        }
+        return mockSupabase.from(table)
+      })
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products',
+        rollbackOnError: true,
+        chunkSize: 1
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      // Should have attempted rollback
+      const updateCalls = mockSupabase.from('bulk_operations').update.mock.calls
+      expect(updateCalls.some(call => call[0].error_log)).toBe(true)
+    })
+  })
+
+  describe('chunk processing', () => {
+    it('should respect chunk size', async () => {
+      const records = Array(25).fill(null).map((_, i) => 
+        `SKU${String(i).padStart(3, '0')},Product ${i}`
+      )
+      const csvContent = 'sku,name\n' + records.join('\n')
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products',
+        chunkSize: 10
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 400))
+      
+      // Should have processed in chunks
+      const insertCalls = mockSupabase.from('bulk_operation_records').insert.mock.calls
+      
+      // Each call should have at most 10 records
+      insertCalls.forEach(call => {
+        expect(call[0].length).toBeLessThanOrEqual(10)
+      })
+    })
+
+    it('should handle invalid chunk sizes', async () => {
+      const csvContent = `sku,name
+SKU001,Product 1`
+      
+      const file = new MockFile(csvContent, 'products.csv') as any
+      
+      // Test negative chunk size
+      await engine.startOperation(file, {
+        operationType: 'import',
+        entityType: 'products',
+        chunkSize: -5
+      }, 'user-123')
+      
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Should still process with minimum chunk size of 1
+      expect(mockSupabase.from('bulk_operation_records').insert).toHaveBeenCalled()
+    })
+  })
+})
