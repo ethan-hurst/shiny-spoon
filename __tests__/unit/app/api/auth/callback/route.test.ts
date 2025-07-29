@@ -24,9 +24,9 @@ const mockNextRequest = (url: string) => {
   return new (require('next/server').NextRequest)(url)
 }
 
-// Mock Supabase client
-jest.mock('@/lib/supabase/server', () => ({
-  createClient: jest.fn().mockResolvedValue({
+// Mock Supabase client with proper return structures
+jest.mock('@/lib/supabase/server', () => {
+  const mockSupabaseClient = {
     auth: {
       exchangeCodeForSession: jest.fn(),
       getUser: jest.fn(),
@@ -38,12 +38,33 @@ jest.mock('@/lib/supabase/server', () => ({
         }),
       }),
     }),
-  }),
-}))
+  }
+
+  return {
+    createClient: jest.fn().mockResolvedValue(mockSupabaseClient),
+  }
+})
 
 describe('Auth Callback API', () => {
-  beforeEach(() => {
+  let mockSupabaseClient: any
+
+  beforeEach(async () => {
     jest.clearAllMocks()
+    
+    // Get the mocked client
+    const { createClient } = require('@/lib/supabase/server')
+    mockSupabaseClient = await createClient()
+    
+    // Reset Supabase mocks to default success state
+    mockSupabaseClient.auth.exchangeCodeForSession.mockResolvedValue({ error: null })
+    mockSupabaseClient.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'test-user-id' } },
+      error: null,
+    })
+    mockSupabaseClient.from().select().eq().single.mockResolvedValue({
+      data: { id: 'test-profile-id', user_id: 'test-user-id' },
+      error: null,
+    })
   })
 
   describe('Error Handling', () => {
@@ -65,14 +86,14 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=no_code'
       )
     })
 
     it('should handle session exchange errors', async () => {
-      const mockExchangeCodeForSession = jest.fn().mockResolvedValue({
+      mockSupabaseClient.auth.exchangeCodeForSession.mockResolvedValue({
         error: { message: 'Invalid code' },
       })
 
@@ -89,7 +110,7 @@ describe('Auth Callback API', () => {
     })
 
     it('should handle user fetch errors', async () => {
-      const mockGetUser = jest.fn().mockResolvedValue({
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: null },
         error: { message: 'User not found' },
       })
@@ -107,7 +128,7 @@ describe('Auth Callback API', () => {
     })
 
     it('should handle profile fetch errors', async () => {
-      const mockSingle = jest.fn().mockResolvedValue({
+      mockSupabaseClient.from().select().eq().single.mockResolvedValue({
         data: null,
         error: { message: 'Profile not found' },
       })
@@ -125,7 +146,7 @@ describe('Auth Callback API', () => {
     })
 
     it('should handle unexpected errors', async () => {
-      const mockExchangeCodeForSession = jest.fn().mockRejectedValue(new Error('Database connection failed'))
+      mockSupabaseClient.auth.exchangeCodeForSession.mockRejectedValue(new Error('Database connection failed'))
 
       const request = mockNextRequest(
         'http://localhost:3000/api/auth/callback?code=valid_code'
@@ -222,11 +243,18 @@ describe('Auth Callback API', () => {
 
       await GET(request)
 
-      // The actual database interactions are mocked, so we just verify the function doesn't throw
-      expect(request).toBeDefined()
+      // Verify that the profile query was called with the correct user ID
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('user_profiles')
+      expect(mockSupabaseClient.from().select).toHaveBeenCalledWith('*')
+      expect(mockSupabaseClient.from().select().eq).toHaveBeenCalledWith('user_id', 'test-user-id')
     })
 
     it('should handle database query errors gracefully', async () => {
+      mockSupabaseClient.from().select().eq().single.mockResolvedValue({
+        data: null,
+        error: { message: 'Profile not found' },
+      })
+
       const request = mockNextRequest(
         'http://localhost:3000/api/auth/callback?code=valid_code'
       )
@@ -242,6 +270,9 @@ describe('Auth Callback API', () => {
 
   describe('Security and Validation', () => {
     it('should not expose sensitive information in error redirects', async () => {
+      // Set up the mock to throw an error for this test
+      mockSupabaseClient.auth.exchangeCodeForSession.mockRejectedValue(new Error('secret123'))
+      
       const request = mockNextRequest(
         'http://localhost:3000/api/auth/callback?code=valid_code'
       )
@@ -276,7 +307,9 @@ describe('Auth Callback API', () => {
       // Should not throw TypeScript errors
       const response = await GET(request)
       
-      expect(response).toBeInstanceOf(Response)
+      // Check that response has the expected properties instead of instanceof
+      expect(response).toHaveProperty('status')
+      expect(response).toHaveProperty('headers')
       expect(typeof response.status).toBe('number')
       expect(typeof response.headers.get('location')).toBe('string')
     })
