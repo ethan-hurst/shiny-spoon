@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { Metadata } from 'next'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { OrdersTable } from '@/components/features/orders/orders-table'
 import { OrdersHeader } from '@/components/features/orders/orders-header'
 import { OrdersStats } from '@/components/features/orders/orders-stats'
@@ -23,7 +23,7 @@ export default async function OrdersPage({
     page?: string
   }
 }) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   // Auth check
   const { data: { user } } = await supabase.auth.getUser()

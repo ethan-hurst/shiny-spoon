@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { AuditLogger } from '@/lib/audit/audit-logger'
 import { z } from 'zod'
+import { rateLimiters, checkRateLimit } from '@/lib/rate-limit'
 import type { 
   CreateOrderInput, 
   UpdateOrderInput, 
@@ -92,6 +93,14 @@ export async function createOrder(input: CreateOrderInput) {
 
   if (profileError || !profile) {
     return { error: 'User profile not found' }
+  }
+
+  // Check rate limit
+  const rateLimitResult = await checkRateLimit(rateLimiters.orderCreation, user.id)
+  if (!rateLimitResult.success) {
+    return { 
+      error: `Rate limit exceeded. You can create ${rateLimitResult.limit} orders per minute. Please try again later.` 
+    }
   }
 
   // Validate input
@@ -232,6 +241,68 @@ export async function createOrder(input: CreateOrderInput) {
       })
     } catch (auditError) {
       console.error('Failed to log order creation:', auditError)
+    }
+
+    // Send order confirmation email
+    try {
+      // Get customer email
+      let recipientEmail: string | null = null
+      let customerName = 'Valued Customer'
+
+      if (parsed.data.customer_id) {
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('email, name')
+          .eq('id', parsed.data.customer_id)
+          .single()
+
+        if (customer) {
+          recipientEmail = customer.email
+          customerName = customer.name
+        }
+      }
+
+      // If no customer email, try to get organization owner email
+      if (!recipientEmail) {
+        const { data: owner } = await supabase
+          .from('user_profiles')
+          .select('users!inner(email)')
+          .eq('organization_id', profile.organization_id)
+          .eq('role', 'owner')
+          .single()
+
+        recipientEmail = owner?.users?.email
+      }
+
+      if (recipientEmail) {
+        // Queue order confirmation email
+        await supabase.from('email_queue').insert({
+          to: recipientEmail,
+          subject: `Order Confirmation - #${orderNumber}`,
+          template: 'order_confirmation',
+          data: {
+            customer_name: customerName,
+            order_number: orderNumber,
+            order_date: new Date().toLocaleDateString(),
+            items: orderItems.map(item => ({
+              name: item.name,
+              sku: item.sku,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              total: item.total_price,
+            })),
+            subtotal,
+            tax_amount: taxAmount,
+            shipping_amount: 0,
+            total_amount: totalAmount,
+            order_url: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${order.id}`,
+          },
+          status: 'pending',
+        })
+      }
+    } catch (emailError) {
+      console.error('Failed to queue order confirmation email:', emailError)
+      // Don't fail the order creation if email fails
     }
 
     revalidatePath('/dashboard/orders')
@@ -502,6 +573,14 @@ export async function exportOrders(filters?: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
+  }
+
+  // Check rate limit for export
+  const rateLimitResult = await checkRateLimit(rateLimiters.export, user.id)
+  if (!rateLimitResult.success) {
+    return { 
+      error: `Export rate limit exceeded. You can export ${rateLimitResult.limit} times per hour. Please try again later.` 
+    }
   }
 
   // Get orders without pagination

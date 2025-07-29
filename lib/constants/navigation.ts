@@ -7,6 +7,7 @@ import {
   Package,
   Settings,
   Shield,
+  ShoppingCart,
   Users,
   Warehouse,
   TrendingUp,
@@ -56,6 +57,11 @@ export const navigation: NavSection[] = [
   {
     title: 'Sales',
     items: [
+      {
+        title: 'Orders',
+        href: '/orders',
+        icon: ShoppingCart,
+      },
       {
         title: 'Customers',
         href: '/customers',
