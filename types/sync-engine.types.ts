@@ -1,6 +1,6 @@
 // PRP-015: Sync Engine Core Types
 import { z } from 'zod'
-import type { IntegrationPlatformType } from './integration.types'
+// Removed unused import
 
 // Sync job types
 export const SyncJobType = z.enum(['manual', 'scheduled', 'webhook', 'retry'])

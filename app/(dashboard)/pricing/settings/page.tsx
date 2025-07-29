@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { PricingSettingsForm } from '@/components/features/pricing/pricing-settings-form'
 import { getApprovalRules } from '@/app/actions/pricing'
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 export default async function PricingSettingsPage() {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   // Auth check
   const { data: { user } } = await supabase.auth.getUser()

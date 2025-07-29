@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { v4 as uuidv4 } from 'uuid'
 
 interface TestData {
@@ -8,7 +8,7 @@ interface TestData {
 }
 
 export async function setupTestDatabase(): Promise<TestData> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
   
   // Create test organization
   const orgId = uuidv4()
@@ -62,7 +62,7 @@ export async function setupTestDatabase(): Promise<TestData> {
 }
 
 export async function cleanupTestDatabase(): Promise<void> {
-  const supabase = createServerClient()
+  const supabase = await createClient()
   
   // Clean up in reverse order of creation to avoid foreign key constraints
   await supabase.from('sync_logs').delete().neq('id', '')

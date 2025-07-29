@@ -113,7 +113,7 @@ async function ReportsContent() {
 
         <TabsContent value="scheduled" className="space-y-4">
           <ReportsTable
-            reports={reports?.filter(r => r.schedule_enabled) || []}
+            reports={reports?.filter((r: any) => r.schedule_enabled) || []}
             showSchedule
           />
         </TabsContent>

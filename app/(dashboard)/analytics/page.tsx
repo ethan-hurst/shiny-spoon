@@ -1,6 +1,6 @@
 // PRP-018: Analytics Dashboard - Main Dashboard Page
 import { Suspense } from 'react'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { endOfDay, subDays } from 'date-fns'
 import { AnalyticsCalculator } from '@/lib/analytics/calculate-metrics'
 import { MetricsCards } from '@/components/features/analytics/metrics-cards'
@@ -20,7 +20,7 @@ interface AnalyticsPageProps {
 }
 
 export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
-  const supabase = createServerClient()
+  const supabase = await createClient()
 
   // Get user's organization
   const { data: { user } } = await supabase.auth.getUser()

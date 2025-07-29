@@ -27,19 +27,22 @@ export async function updateSession(request: NextRequest) {
   // Create Supabase client with cookie handling
   const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      async getAll() {
-        return request.cookies.getAll()
+      get(name: string) {
+        return request.cookies.get(name)?.value
       },
-      async setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        )
+      set(name: string, value: string, options: any) {
+        request.cookies.set(name, value)
         supabaseResponse = NextResponse.next({
           request,
         })
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
-        )
+        supabaseResponse.cookies.set(name, value, options)
+      },
+      remove(name: string, options: any) {
+        request.cookies.set(name, '', { ...options, maxAge: 0 })
+        supabaseResponse = NextResponse.next({
+          request,
+        })
+        supabaseResponse.cookies.set(name, '', { ...options, maxAge: 0 })
       },
     },
   })
@@ -112,11 +115,14 @@ export async function checkUserRole(
     supabaseAnonKey,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-        setAll() {
-          // Read-only operation
+        set(name: string, value: string, options: any) {
+          // Read-only operation in middleware
+        },
+        remove(name: string, options: any) {
+          // Read-only operation in middleware
         },
       },
     }
@@ -128,13 +134,13 @@ export async function checkUserRole(
 
   if (!user) return false
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('role')
     .eq('user_id', user.id)
     .single()
 
-  if (!profile || !profile.role) return false
+  if (profileError || !profile || !profile.role) return false
 
   // Role hierarchy: owner > admin > member
   const roleHierarchy = { owner: 3, admin: 2, member: 1 }

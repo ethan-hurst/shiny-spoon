@@ -298,6 +298,8 @@ export class SyncEngine extends EventEmitter {
       }
 
       const entityType = entityTypes[i]
+      if (!entityType) continue
+      
       progress.current_entity = entityType
       progress.phase = 'fetching'
       
@@ -313,27 +315,29 @@ export class SyncEngine extends EventEmitter {
         })
 
         // Store entity result
-        result.entity_results[entityType] = {
+        if (entityType) {
+          result.entity_results[entityType] = {
           entity_type: entityType,
-          processed: entityResult.items_processed || 0,
-          created: entityResult.items_created || 0,
-          updated: entityResult.items_updated || 0,
-          deleted: entityResult.items_deleted || 0,
-          skipped: entityResult.items_skipped || 0,
-          failed: entityResult.items_failed || 0,
-          errors: entityResult.errors || [],
+          processed: entityResult.summary?.total_processed || 0,
+          created: entityResult.summary?.created || 0,
+          updated: entityResult.summary?.updated || 0,
+          deleted: entityResult.summary?.deleted || 0,
+          skipped: entityResult.summary?.skipped || 0,
+          failed: entityResult.summary?.failed || 0,
+            errors: entityResult.errors || [],
+          }
         }
 
         // Update summary
-        result.summary.total_processed += entityResult.items_processed || 0
-        result.summary.created += entityResult.items_created || 0
-        result.summary.updated += entityResult.items_updated || 0
-        result.summary.deleted += entityResult.items_deleted || 0
-        result.summary.skipped += entityResult.items_skipped || 0
-        result.summary.failed += entityResult.items_failed || 0
+        result.summary.total_processed += entityResult.summary?.total_processed || 0
+        result.summary.created += entityResult.summary?.created || 0
+        result.summary.updated += entityResult.summary?.updated || 0
+        result.summary.deleted += entityResult.summary?.deleted || 0
+        result.summary.skipped += entityResult.summary?.skipped || 0
+        result.summary.failed += entityResult.summary?.failed || 0
 
         // Check for conflicts if enabled
-        if (this.config.enable_conflict_detection && entityResult.conflicts) {
+        if (this.config.enable_conflict_detection && entityResult.conflicts && entityType) {
           const conflicts = await this.detectConflicts(
             job.id,
             entityType,
@@ -346,7 +350,7 @@ export class SyncEngine extends EventEmitter {
         const syncError: SyncError = {
           code: error instanceof Error ? error.constructor.name : 'ENTITY_SYNC_FAILED',
           message: error instanceof Error ? error.message : 'Failed to sync entity',
-          entity_type: entityType,
+          entity_type: entityType || 'unknown',
           timestamp: new Date().toISOString(),
           retryable: true,
         }

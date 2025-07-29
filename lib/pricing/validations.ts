@@ -36,17 +36,17 @@ export const updateProductPricingSchema = productPricingSchema
   })
 
 export const createPricingRuleSchema = z.object({
-  ...pricingRuleSchema.shape,
+  ...pricingRuleSchema,
   quantity_breaks: z.array(quantityBreakSchema).optional(),
 })
 
 export const updatePricingRuleSchema = z.object({
-  ...pricingRuleBaseSchema.partial().shape,
+  ...pricingRuleBaseSchema.partial(),
   id: z.string().uuid(),
   quantity_breaks: z
     .array(
       z.object({
-        ...quantityBreakSchema.shape,
+        ...quantityBreakSchema,
         id: z.string().uuid().optional(),
         _action: z.enum(['create', 'update', 'delete']).optional(),
       })
@@ -57,7 +57,7 @@ export const updatePricingRuleSchema = z.object({
 export const createCustomerPricingSchema = customerPricingSchema
 
 export const updateCustomerPricingSchema = z.object({
-  ...customerPricingBaseSchema.partial().shape,
+  ...customerPricingBaseSchema.partial(),
   id: z.string().uuid(),
 })
 
@@ -281,7 +281,7 @@ export function transformPricingRuleImport(
     quantity_breaks = parseQuantityBreaksCSV(data.quantity_breaks)
   }
 
-  return { rule, quantity_breaks: quantity_breaks }
+  return { rule, quantity_breaks }
 }
 
 export function transformProductPricingImport(

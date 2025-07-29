@@ -1,5 +1,5 @@
 // app/(dashboard)/reports/builder/page.tsx
-import { Suspense } from 'react'
+// Removed unused import
 import { createClient } from '@/lib/supabase/server'
 import { ReportBuilder } from '@/components/features/reports/report-builder'
 import { redirect } from 'next/navigation'
@@ -51,7 +51,7 @@ export default async function ReportBuilderPage({
     <div className="h-[calc(100vh-4rem)]">
       <ReportBuilder
         initialConfig={initialConfig}
-        templateId={templateId}
+        templateId={templateId || undefined}
         onSave={handleSave}
       />
     </div>

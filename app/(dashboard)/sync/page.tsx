@@ -9,7 +9,7 @@ import { SyncSchedulesList } from '@/components/features/sync/sync-schedules-lis
 import { SyncStatisticsPanel } from '@/components/features/sync/sync-statistics'
 import { SyncHealthMonitor } from '@/components/features/sync/sync-health-monitor'
 import { ManualSyncTrigger } from '@/components/features/sync/manual-sync-trigger'
-import type { SyncJob, SyncSchedule, SyncHealthStatus } from '@/types/sync-engine.types'
+import type { SyncJob, SyncSchedule } from '@/types/sync-engine.types'
 
 /**
  * Renders the Sync Dashboard page, providing an authenticated user with an overview and management interface for data synchronization across their organization's integrations.
@@ -79,11 +79,11 @@ export default async function SyncDashboardPage() {
   })
 
   // Calculate summary metrics
-  const activeJobs = recentJobs?.filter(job => 
+  const activeJobs = recentJobs?.filter((job: any) => 
     ['pending', 'running'].includes(job.status)
   ).length || 0
 
-  const failedJobs = recentJobs?.filter(job => 
+  const failedJobs = recentJobs?.filter((job: any) => 
     job.status === 'failed' && 
     new Date(job.created_at).getTime() > Date.now() - 24 * 60 * 60 * 1000
   ).length || 0

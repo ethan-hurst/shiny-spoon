@@ -81,12 +81,8 @@ export default async function ProductsPage() {
     }
   }) || []
 
-  // Get unique categories for filter
-  const rawCategories = products
-    ?.map((p) => p.category)
-    .filter((c): c is string => typeof c === 'string' && c.length > 0) || []
-  
-  const categories = Array.from(new Set(rawCategories)).sort()
+  // Get unique categories for filter (placeholder until category field is added)
+  const categories: string[] = []
 
   return (
     <div className="space-y-4">

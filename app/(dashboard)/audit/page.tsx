@@ -8,7 +8,7 @@ import { RetentionPolicyDialog } from '@/components/features/audit/retention-pol
 import { AuditSkeleton } from '@/components/features/audit/audit-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield } from 'lucide-react'
-import { startOfDay, endOfDay, subDays } from 'date-fns'
+import { endOfDay, subDays } from 'date-fns'
 
 interface AuditPageProps {
   searchParams: {
@@ -22,7 +22,7 @@ interface AuditPageProps {
 }
 
 export default async function AuditPage({ searchParams }: AuditPageProps) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get user's organization and check permissions
   const { data: { user } } = await supabase.auth.getUser()
@@ -38,12 +38,21 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
 
   // Parse filters
   const filters = {
-    user_id: searchParams.user,
-    action: searchParams.action,
-    entity_type: searchParams.entity,
+    user_id: searchParams.user || undefined,
+    action: searchParams.action || undefined,
+    entity_type: searchParams.entity || undefined,
     from: searchParams.from ? new Date(searchParams.from) : subDays(new Date(), 7),
     to: searchParams.to ? new Date(searchParams.to) : endOfDay(new Date()),
     page: parseInt(searchParams.page || '1', 10)
+  }
+
+  // Create filters object for components that expect optional properties
+  const componentFilters = {
+    user_id: filters.user_id || undefined,
+    action: filters.action || undefined,
+    entity_type: filters.entity_type || undefined,
+    from: filters.from,
+    to: filters.to,
   }
 
   // Build query
@@ -112,7 +121,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
           <Suspense fallback={<AuditSkeleton />}>
             <AuditFilters
               users={users || []}
-              currentFilters={filters}
+              currentFilters={componentFilters}
             />
 
             <AuditTable

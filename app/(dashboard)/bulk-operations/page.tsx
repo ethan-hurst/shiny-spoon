@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { BulkOperationsDashboard } from '@/components/features/bulk/bulk-operations-dashboard'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 /**

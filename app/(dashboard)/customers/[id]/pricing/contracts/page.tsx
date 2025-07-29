@@ -128,7 +128,6 @@ export default async function CustomerContractsPage(props: ContractPageProps) {
           <ContractList
             customerId={params.id}
             contracts={contracts}
-            customer={customer}
           />
         </CardContent>
       </Card>

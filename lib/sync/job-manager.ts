@@ -379,6 +379,10 @@ export class SyncJobManager {
       sync_mode: 'incremental',
       batch_size: 100,
       priority: 'normal',
+      conflict_resolution: {
+        strategy: 'newest_wins',
+        auto_resolve: true,
+      },
     }
 
     // Create the job
@@ -467,6 +471,10 @@ export class SyncJobManager {
       sync_mode: options?.sync_mode || 'incremental',
       priority: options?.priority || 'normal',
       batch_size: 100,
+      conflict_resolution: {
+        strategy: 'newest_wins',
+        auto_resolve: true,
+      },
     }
 
     return await this.syncEngine.createSyncJob(jobConfig)
