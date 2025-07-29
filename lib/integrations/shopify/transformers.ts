@@ -285,13 +285,17 @@ export class ShopifyTransformers {
   }
 
   private stripHtml(html: string): string {
-    // Handle malformed HTML by first trying to fix common issues
+    if (!html) return ''
+    
+    // Remove all HTML tags, including malformed ones
     let cleaned = html
+      .replace(/<[^>]*>/g, ' ') // Replace tags with spaces to preserve word boundaries
       .replace(/<[^>]*$/g, '') // Remove incomplete tags at end
       .replace(/^[^<]*</g, '') // Remove incomplete tags at start
-      .replace(/<[^>]*>/g, '') // Remove all remaining tags
       .replace(/\s+/g, ' ') // Normalize whitespace
-    return cleaned.trim()
+      .trim()
+    
+    return cleaned
   }
 
   private mapProductStatus(shopifyStatus: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'): 'active' | 'inactive' {

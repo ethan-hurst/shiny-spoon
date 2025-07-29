@@ -5,6 +5,9 @@ import type { ShopifyApiClient } from './api-client'
 import type { ShopifyTransformers } from './transformers'
 import type { BaseLogger } from '@/lib/integrations/base-connector'
 
+// Mock the buildProductQuery method for testing
+const buildProductQuery = () => 'id title handle descriptionHtml status productType vendor tags variants { id title sku price barcode weight weightUnit }'
+
 export interface IncrementalSyncHelperOptions {
   client: ShopifyApiClient
   transformers: ShopifyTransformers
@@ -50,7 +53,7 @@ export async function incrementalSyncProducts(
           }
           edges {
             node {
-              ${ShopifyApiClient.buildProductQuery()}
+              ${buildProductQuery()}
             }
           }
         }

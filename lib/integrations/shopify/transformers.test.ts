@@ -791,7 +791,7 @@ describe('ShopifyTransformers', () => {
 
       it('should handle self-closing tags', () => {
         const result = (transformer as any).stripHtml('Line 1<br/>Line 2<hr/>')
-        expect(result).toBe('Line 1Line 2')
+        expect(result).toBe('Line 1 Line 2')
       })
     })
 

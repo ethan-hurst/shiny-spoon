@@ -2,6 +2,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/use-toast'
 import { createBrowserClient } from '@/lib/supabase/client'
 import type {
@@ -9,6 +10,22 @@ import type {
   ShopifySyncSettings as ShopifySyncSettingsType,
 } from '@/types/shopify-integration.types'
 import { ShopifySyncSettingsForm } from './shopify-sync-settings'
+
+// Create a wrapper component with QueryClient provider
+const TestWrapper = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
+}
 
 // Mock dependencies - using Jest as the testing framework based on project structure
 jest.mock('next/navigation', () => ({
@@ -81,7 +98,7 @@ jest.mock('@/components/ui/select', () => ({
     </option>
   ),
   SelectTrigger: ({ children, id }: any) => (
-    <button data-testid={`select-trigger-${id}`}>{children}</button>
+    <button data-testid={`select-trigger-${id}`} id={id}>{children}</button>
   ),
   SelectValue: () => <span data-testid="select-value">Select Value</span>,
 }))
@@ -152,7 +169,11 @@ describe('ShopifySyncSettingsForm', () => {
 
   describe('Component Rendering', () => {
     it('renders all sync option switches with correct initial values', () => {
-      render(<ShopifySyncSettingsForm {...defaultProps} />)
+      render(
+        <TestWrapper>
+          <ShopifySyncSettingsForm {...defaultProps} />
+        </TestWrapper>
+      )
 
       expect(screen.getByLabelText('Products')).toBeInTheDocument()
       expect(screen.getByLabelText('Inventory')).toBeInTheDocument()
@@ -169,7 +190,11 @@ describe('ShopifySyncSettingsForm', () => {
     })
 
     it('renders descriptive text for each sync option', () => {
-      render(<ShopifySyncSettingsForm {...defaultProps} />)
+      render(
+        <TestWrapper>
+          <ShopifySyncSettingsForm {...defaultProps} />
+        </TestWrapper>
+      )
 
       expect(
         screen.getByText('Sync product catalog including variants and metafields')
@@ -191,7 +216,11 @@ describe('ShopifySyncSettingsForm', () => {
     })
 
     it('renders sync frequency and batch size selects with labels', () => {
-      render(<ShopifySyncSettingsForm {...defaultProps} />)
+      render(
+        <TestWrapper>
+          <ShopifySyncSettingsForm {...defaultProps} />
+        </TestWrapper>
+      )
 
       expect(screen.getByLabelText('Sync Frequency')).toBeInTheDocument()
       expect(screen.getByLabelText('Batch Size')).toBeInTheDocument()
@@ -204,7 +233,11 @@ describe('ShopifySyncSettingsForm', () => {
     })
 
     it('renders action buttons with correct labels', () => {
-      render(<ShopifySyncSettingsForm {...defaultProps} />)
+      render(
+        <TestWrapper>
+          <ShopifySyncSettingsForm {...defaultProps} />
+        </TestWrapper>
+      )
 
       expect(
         screen.getByRole('button', { name: /sync all now/i })
@@ -215,14 +248,22 @@ describe('ShopifySyncSettingsForm', () => {
     })
 
     it('renders individual sync buttons for each entity type', () => {
-      render(<ShopifySyncSettingsForm {...defaultProps} />)
+      render(
+        <TestWrapper>
+          <ShopifySyncSettingsForm {...defaultProps} />
+        </TestWrapper>
+      )
 
       const refreshButtons = screen.getAllByTestId('refresh-icon')
-      expect(refreshButtons).toHaveLength(4) // One for each sync entity type (products, inventory, orders, customers)
+      expect(refreshButtons).toHaveLength(5) // One for each sync entity type (products, inventory, orders, customers) plus one for "Sync All Now"
     })
 
     it('renders card structure for frequency and batch size settings', () => {
-      render(<ShopifySyncSettingsForm {...defaultProps} />)
+      render(
+        <TestWrapper>
+          <ShopifySyncSettingsForm {...defaultProps} />
+        </TestWrapper>
+      )
 
       expect(screen.getByTestId('card')).toBeInTheDocument()
       expect(screen.getByTestId('card-content')).toBeInTheDocument()

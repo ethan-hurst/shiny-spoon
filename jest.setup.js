@@ -190,17 +190,29 @@ global.Response = class {
   }
 
   static json(data, init = {}) {
-    return new Response(JSON.stringify(data), {
+    const response = new Response(JSON.stringify(data), {
       ...init,
       headers: {
         'content-type': 'application/json',
         ...init.headers,
       },
     })
+    return response
+  }
+
+  async json() {
+    if (typeof this.body === 'string') {
+      return JSON.parse(this.body)
+    }
+    return null
   }
 
   get(name) {
     return this.headers.get(name) || null
+  }
+
+  json() {
+    return Promise.resolve(JSON.parse(this.body || '{}'))
   }
 
   set(name, value) {

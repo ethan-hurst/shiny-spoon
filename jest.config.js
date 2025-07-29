@@ -62,11 +62,13 @@ const customJestConfig = {
     '**/?(*.)+(spec|test).{js,jsx,ts,tsx}',
   ],
 
-  // Ignore Playwright E2E tests
+  // Ignore Playwright E2E tests and mock/helper files
   testPathIgnorePatterns: [
     '<rootDir>/__tests__/e2e/',
     '<rootDir>/tests/e2e/',
     '<rootDir>/playwright-report/',
+    '<rootDir>/__tests__/utils/mocks/',
+    '<rootDir>/__tests__/helpers/',
   ],
 
   // Verbose output
