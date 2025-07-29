@@ -153,10 +153,11 @@ global.Response = class {
   }
 
   static redirect(url, status = 307) {
-    return new Response(null, {
+    const response = new Response(null, {
       status,
       headers: { location: url },
     })
+    return response
   }
 
   static json(data, init = {}) {

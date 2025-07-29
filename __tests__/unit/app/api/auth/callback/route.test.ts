@@ -1,12 +1,27 @@
 import { GET } from '@/app/api/auth/callback/route'
 
+// Mock NextResponse
+jest.mock('next/server', () => ({
+  NextRequest: class {
+    constructor(url: string) {
+      this.url = url
+      this.nextUrl = new URL(url)
+    }
+  },
+  NextResponse: {
+    redirect: jest.fn((url) => ({
+      status: 307,
+      headers: {
+        get: (name: string) => name === 'location' ? url.toString() : null,
+        set: jest.fn(),
+      },
+    })),
+  },
+}))
+
 // Mock NextRequest with a simpler approach
 const mockNextRequest = (url: string) => {
-  const urlObj = new URL(url)
-  return {
-    url: url,
-    nextUrl: urlObj,
-  } as any
+  return new (require('next/server').NextRequest)(url)
 }
 
 // Mock Supabase client
@@ -85,7 +100,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=user_error'
       )
@@ -103,7 +118,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=profile_error'
       )
@@ -118,7 +133,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=unexpected_error'
       )
@@ -133,7 +148,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe('http://localhost:3000/dashboard')
     })
 
@@ -144,7 +159,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe('http://localhost:3000/settings')
     })
 
@@ -155,7 +170,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe('http://localhost:3000/dashboard')
     })
   })
@@ -168,7 +183,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe('http://localhost:3000/dashboard')
     })
 
@@ -179,7 +194,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=access_denied&description='
       )
@@ -192,7 +207,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=access_denied&description=User%20denied%20access%20with%20special%20chars%20%26%20symbols'
       )
@@ -218,7 +233,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=profile_error'
       )
@@ -233,7 +248,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=unexpected_error'
       )
@@ -246,7 +261,7 @@ describe('Auth Callback API', () => {
 
       const response = await GET(request)
 
-      expect(response.status).toBe(302)
+      expect(response.status).toBe(307)
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/login?error=no_code'
       )
