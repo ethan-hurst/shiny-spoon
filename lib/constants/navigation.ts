@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  Shield,
   Users,
   Warehouse,
   TrendingUp,
@@ -104,6 +105,12 @@ export const navigation: NavSection[] = [
         title: 'Integrations',
         href: '/integrations',
         icon: Settings,
+      },
+      {
+        title: 'Audit Trail',
+        href: '/audit',
+        icon: Shield,
+        roles: ['owner', 'admin'],
       },
       {
         title: 'Settings',
