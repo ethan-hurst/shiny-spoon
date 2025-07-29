@@ -306,11 +306,10 @@ describe('ShopifyTransformers', () => {
       const result = transformer.transformInventoryFromWebhook(mockWebhookData, 'warehouse_456')
 
       expect(result).toMatchObject({
-        product_id: 'temp-456789',
         warehouse_id: 'warehouse_456',
         quantity: 25,
         reserved_quantity: 0,
-        sku: ''
+        shopify_inventory_item_id: '456789'
       })
 
       expect(result.metadata).toMatchObject({
@@ -876,14 +875,14 @@ describe('ShopifyTransformers', () => {
       it('should handle line item without product', () => {
         const lineItemWithoutProduct = { ...mockLineItem, product: null }
         const result = (transformer as any).transformLineItem(lineItemWithoutProduct)
-        expect(result.product_id).toBeNull()
+        expect(result.product_id).toBeUndefined()
       })
 
       it('should handle line item without variant', () => {
         const lineItemWithoutVariant = { ...mockLineItem, variant: null }
         const result = (transformer as any).transformLineItem(lineItemWithoutVariant)
-        expect(result.variant_id).toBeNull()
-        expect(result.sku).toBeNull()
+        expect(result.variant_id).toBeUndefined()
+        expect(result.sku).toBeUndefined()
       })
     })
 

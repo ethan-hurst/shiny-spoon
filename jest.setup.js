@@ -134,6 +134,80 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }))
 
+// Mock Request and Response for Next.js API routes
+global.Request = class {
+  constructor(input, init = {}) {
+    // Don't set url property if it's read-only (like in NextRequest)
+    if (typeof input === 'string') {
+      // Use Object.defineProperty to avoid read-only property error
+      Object.defineProperty(this, 'url', {
+        value: input,
+        writable: false,
+        enumerable: true,
+        configurable: true
+      })
+    } else if (input && typeof input.url === 'string') {
+      Object.defineProperty(this, 'url', {
+        value: input.url,
+        writable: false,
+        enumerable: true,
+        configurable: true
+      })
+    }
+    this.method = init.method || 'GET'
+    this.headers = new Map(Object.entries(init.headers || {}))
+    this.body = init.body
+  }
+}
+
+// Add TextEncoder polyfill for Next.js components
+global.TextEncoder = class {
+  encode(text) {
+    return new Uint8Array(Buffer.from(text, 'utf8'))
+  }
+}
+
+global.TextDecoder = class {
+  decode(bytes) {
+    return Buffer.from(bytes).toString('utf8')
+  }
+}
+
+global.Response = class {
+  constructor(body, init = {}) {
+    this.body = body
+    this.status = init.status || 200
+    this.statusText = init.statusText || 'OK'
+    this.headers = new Map(Object.entries(init.headers || {}))
+  }
+
+  static redirect(url, status = 307) {
+    const response = new Response(null, {
+      status,
+      headers: { location: url },
+    })
+    return response
+  }
+
+  static json(data, init = {}) {
+    return new Response(JSON.stringify(data), {
+      ...init,
+      headers: {
+        'content-type': 'application/json',
+        ...init.headers,
+      },
+    })
+  }
+
+  get(name) {
+    return this.headers.get(name) || null
+  }
+
+  set(name, value) {
+    this.headers.set(name, value)
+  }
+}
+
 // Suppress console errors during tests (optional)
 const originalError = console.error
 beforeAll(() => {
