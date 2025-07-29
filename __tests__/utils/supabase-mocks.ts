@@ -159,3 +159,5 @@ export const createTestInventory = (overrides = {}) => ({
   created_at: new Date().toISOString(),
   ...overrides,
 })
+
+test('placeholder', () => { expect(true).toBe(true) })

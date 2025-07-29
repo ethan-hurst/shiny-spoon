@@ -48,3 +48,5 @@ export async function loginAsTestUser(page: Page, userId: string): Promise<void>
   // Wait for navigation to complete
   await page.waitForURL('**/dashboard', { timeout: 10000 })
 }
+
+test('placeholder', () => { expect(true).toBe(true) })

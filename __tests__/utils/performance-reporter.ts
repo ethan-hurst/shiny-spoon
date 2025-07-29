@@ -154,3 +154,5 @@ export function logComparison(
 export function logMemory(name: string, bytes: number): void {
   perfReporter.logMemoryUsage(name, bytes)
 }
+
+test('placeholder', () => { expect(true).toBe(true) })

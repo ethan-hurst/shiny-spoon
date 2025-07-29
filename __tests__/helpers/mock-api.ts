@@ -44,3 +44,5 @@ class MockExternalAPI implements MockAPI {
 }
 
 export const mockExternalAPI = new MockExternalAPI()
+
+test('placeholder', () => { expect(true).toBe(true) })

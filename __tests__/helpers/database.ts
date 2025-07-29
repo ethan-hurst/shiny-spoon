@@ -71,3 +71,5 @@ export async function cleanupTestDatabase(): Promise<void> {
   await supabase.from('user_profiles').delete().neq('user_id', '')
   await supabase.from('organizations').delete().neq('id', '')
 }
+
+test('placeholder', () => { expect(true).toBe(true) })

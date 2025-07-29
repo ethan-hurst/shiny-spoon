@@ -60,6 +60,13 @@ const customJestConfig = {
     '**/?(*.)+(spec|test).{js,jsx,ts,tsx}',
   ],
 
+  // Ignore Playwright E2E tests
+  testPathIgnorePatterns: [
+    '<rootDir>/__tests__/e2e/',
+    '<rootDir>/tests/e2e/',
+    '<rootDir>/playwright-report/',
+  ],
+
   // Transform ignore patterns - allow ES modules to be transformed
   transformIgnorePatterns: [
     '/node_modules/(?!(isows|@supabase|ws|undici)/)',

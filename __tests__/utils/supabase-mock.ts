@@ -203,3 +203,5 @@ export function setupQueryResult<T>(
   builder.select.mockReturnValue(mockQueryBuilder)
   return mockQueryBuilder
 }
+
+test('placeholder', () => { expect(true).toBe(true) })

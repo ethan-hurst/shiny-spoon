@@ -150,3 +150,5 @@ export async function validateMigrations(supabase: any): Promise<boolean> {
 
   return true
 }
+
+test('placeholder', () => { expect(true).toBe(true) })

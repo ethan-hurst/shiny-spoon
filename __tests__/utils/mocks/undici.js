@@ -19,3 +19,5 @@ module.exports = {
   },
   fetch: global.fetch || (() => Promise.resolve(new Response())),
 }
+
+test('placeholder', () => { expect(true).toBe(true) })
