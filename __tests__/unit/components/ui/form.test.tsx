@@ -110,10 +110,13 @@ describe('Form Components', () => {
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
 
-      expect(onSubmit).toHaveBeenCalledWith({
-        username: 'testuser',
-        email: 'test@example.com',
-      })
+      expect(onSubmit).toHaveBeenCalledWith(
+        {
+          username: 'testuser',
+          email: 'test@example.com',
+        },
+        expect.any(Object) // Form event object
+      )
     })
 
     it('should handle form validation', async () => {
@@ -510,7 +513,7 @@ describe('Form Components', () => {
       render(<TestFormMessageEmpty />)
 
       // Should not render anything for FormMessage
-      expect(screen.queryByText('')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('form-message')).not.toBeInTheDocument()
     })
 
     it('should apply custom className', () => {

@@ -137,10 +137,39 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
 // Mock Request and Response for Next.js API routes
 global.Request = class {
   constructor(input, init = {}) {
-    this.url = typeof input === 'string' ? input : input.url
+    // Don't set url property if it's read-only (like in NextRequest)
+    if (typeof input === 'string') {
+      // Use Object.defineProperty to avoid read-only property error
+      Object.defineProperty(this, 'url', {
+        value: input,
+        writable: false,
+        enumerable: true,
+        configurable: true
+      })
+    } else if (input && typeof input.url === 'string') {
+      Object.defineProperty(this, 'url', {
+        value: input.url,
+        writable: false,
+        enumerable: true,
+        configurable: true
+      })
+    }
     this.method = init.method || 'GET'
     this.headers = new Map(Object.entries(init.headers || {}))
     this.body = init.body
+  }
+}
+
+// Add TextEncoder polyfill for Next.js components
+global.TextEncoder = class {
+  encode(text) {
+    return new Uint8Array(Buffer.from(text, 'utf8'))
+  }
+}
+
+global.TextDecoder = class {
+  decode(bytes) {
+    return Buffer.from(bytes).toString('utf8')
   }
 }
 

@@ -18,7 +18,13 @@ type Customer = Database['public']['Tables']['customers']['Insert']
 type CustomerContact = Database['public']['Tables']['customer_contacts']['Insert']
 
 export class ShopifyTransformers {
-  constructor() {}
+  private locationMappings: Record<string, string> = {}
+
+  constructor(locationMappings?: Record<string, string>) {
+    if (locationMappings) {
+      this.locationMappings = locationMappings
+    }
+  }
 
   /**
    * Transform Shopify product to internal format
@@ -279,7 +285,13 @@ export class ShopifyTransformers {
   }
 
   private stripHtml(html: string): string {
-    return html.replace(/<[^>]*>/g, '').trim()
+    // Handle malformed HTML by first trying to fix common issues
+    let cleaned = html
+      .replace(/<[^>]*$/g, '') // Remove incomplete tags at end
+      .replace(/^[^<]*</g, '') // Remove incomplete tags at start
+      .replace(/<[^>]*>/g, '') // Remove all remaining tags
+      .replace(/\s+/g, ' ') // Normalize whitespace
+    return cleaned.trim()
   }
 
   private mapProductStatus(shopifyStatus: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'): 'active' | 'inactive' {

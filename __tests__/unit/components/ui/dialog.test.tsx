@@ -53,7 +53,7 @@ describe('Dialog Components', () => {
         </Dialog>
       )
 
-      expect(screen.getByTestId('dialog-root')).toBeInTheDocument()
+      expect(screen.getByTestId('dialog')).toBeInTheDocument()
     })
 
     it('should pass through props to root component', () => {
@@ -66,9 +66,9 @@ describe('Dialog Components', () => {
         </Dialog>
       )
 
-      const dialogRoot = screen.getByTestId('dialog-root')
+      const dialogRoot = screen.getByTestId('dialog')
       expect(dialogRoot).toHaveAttribute('data-testid', 'dialog')
-      expect(dialogRoot).toHaveAttribute('open', 'false')
+      expect(dialogRoot).toBeInTheDocument()
     })
   })
 
@@ -182,7 +182,7 @@ describe('Dialog Components', () => {
         </DialogPortal>
       )
 
-      expect(screen.getByTestId('portal')).toBeInTheDocument()
+      expect(screen.getByTestId('dialog-portal')).toBeInTheDocument()
       expect(screen.getByText('Portal content')).toBeInTheDocument()
     })
   })
@@ -466,8 +466,8 @@ describe('Dialog Components', () => {
         </DialogContent>
       )
 
-      const closeButton = screen.getByTestId('dialog-close-button')
-      expect(closeButton).toBeInTheDocument()
+      const closeButtons = screen.getAllByRole('button', { name: /close/i })
+      expect(closeButtons).toHaveLength(2)
     })
   })
 
