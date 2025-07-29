@@ -1,13 +1,16 @@
 // Mock the external dependencies first
-jest.mock('@upstash/ratelimit', () => ({
-  Ratelimit: jest.fn().mockImplementation(() => ({
+jest.mock('@upstash/ratelimit', () => {
+  const MockRatelimit = jest.fn().mockImplementation(() => ({
     limit: jest.fn(),
-  })),
-}))
-
-// Add slidingWindow as a static method to Ratelimit
-const { Ratelimit } = require('@upstash/ratelimit')
-Ratelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter')
+  }))
+  
+  // Add static method to the mock class
+  MockRatelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter')
+  
+  return {
+    Ratelimit: MockRatelimit,
+  }
+})
 
 jest.mock('@upstash/redis', () => ({
   Redis: jest.fn().mockImplementation(() => ({})),
