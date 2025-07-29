@@ -11,7 +11,13 @@ const customJestConfig = {
   // Setup files after environment
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 
-  // Module paths
+  // Transform ignore patterns - allow ES modules to be transformed
+  transformIgnorePatterns: [
+    '/node_modules/(?!(isows|@supabase|ws|undici)/)',
+    '^.+\\.module\\.(css|sass|scss)$',
+  ],
+
+  // Module mapper for problematic ES modules
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@/components/(.*)$': '<rootDir>/components/$1',
@@ -19,6 +25,8 @@ const customJestConfig = {
     '^@/hooks/(.*)$': '<rootDir>/hooks/$1',
     '^@/types/(.*)$': '<rootDir>/types/$1',
     '^@/utils/(.*)$': '<rootDir>/utils/$1',
+    '^isows$': '<rootDir>/__tests__/utils/mocks/isows.js',
+    '^undici$': '<rootDir>/__tests__/utils/mocks/undici.js',
   },
 
   // Coverage configuration
@@ -36,15 +44,25 @@ const customJestConfig = {
     '!**/middleware.ts',
   ],
 
+  // Coverage thresholds
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
+
   // Test patterns
   testMatch: [
     '**/__tests__/**/*.{js,jsx,ts,tsx}',
     '**/?(*.)+(spec|test).{js,jsx,ts,tsx}',
   ],
 
-  // Transform ignore patterns
+  // Transform ignore patterns - allow ES modules to be transformed
   transformIgnorePatterns: [
-    '/node_modules/',
+    '/node_modules/(?!(isows|@supabase|ws|undici)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
 
