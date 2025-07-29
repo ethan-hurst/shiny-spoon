@@ -375,6 +375,8 @@ export function useInventory(warehouseId?: string) {
 
 1. **STRICT TypeScript** - All code must pass strict TypeScript checks
 2. **NO any types** - Never use `any` - use `unknown` if type is truly unknown
+   - **Exception**: In test files, `any` is acceptable for mock objects when proper typing would be overly complex
+   - Prefer creating typed mock utilities when possible
 3. **EXPLICIT types** - All function parameters and return values must be typed
 4. **TYPE imports** - Import types from correct locations (e.g., `@/supabase/types/database`)
 5. **COMPLETE implementations** - No partial implementations or placeholders
@@ -382,7 +384,7 @@ export function useInventory(warehouseId?: string) {
 7. **GENERIC types** - Use generics for reusable components/hooks
 8. **VALIDATE inputs** - Use Zod schemas for all user inputs and API responses
 
-### 🚫 NO MOCK IMPLEMENTATIONS
+### 🚫 NO MOCK IMPLEMENTATIONS (Exception: Testing)
 
 1. **NO setTimeout for fake progress** - Use real progress tracking
 2. **NO placeholder data** - Connect to real database/APIs
@@ -392,6 +394,18 @@ export function useInventory(warehouseId?: string) {
 6. **NO stub functions** - Implement complete logic
 7. **NO fake API responses** - Use real endpoints
 8. **NO placeholder UI** - Build actual components
+
+**IMPORTANT EXCEPTION**: Mocking is REQUIRED and EXPECTED in test files for:
+- Unit tests that need to test components/functions in isolation
+- Mocking external dependencies (Supabase, APIs, etc.)
+- Testing error conditions and edge cases
+- Ensuring fast, reliable test execution
+
+When writing tests:
+- Use proper TypeScript types for mocks (avoid `any`)
+- Create reusable mock utilities in `__tests__/test-utils/`
+- Mock at the appropriate level (unit vs integration tests)
+- Document why specific mocks are needed
 
 #### Examples of What NOT to Do:
 
@@ -875,6 +889,79 @@ export function middleware(request: NextRequest) {
 3. **Database Queries** - Efficient queries, proper indexes
 4. **Error Boundaries** - User-friendly error handling
 5. **Real-time Updates** - Subscriptions cleaned up properly
+
+## 🧪 Testing Guidelines
+
+### Testing Philosophy
+
+Write tests that give confidence without sacrificing development speed. Follow the testing pyramid:
+1. **Many Unit Tests** - Fast, isolated, test business logic
+2. **Some Integration Tests** - Test component interactions with real data
+3. **Few E2E Tests** - Test critical user journeys
+
+### Mocking in Tests
+
+**Mocking is REQUIRED in test files** to ensure:
+- Fast test execution
+- Predictable test results
+- Ability to test error states
+- Isolation of units being tested
+
+### TypeScript in Tests
+
+```typescript
+// ✅ GOOD - Typed mock with clear intent
+const mockSupabase = createMockSupabaseClient()
+mockSupabase.from.mockReturnValue({
+  select: jest.fn().mockResolvedValue({ data: [], error: null })
+})
+
+// ✅ ACCEPTABLE - Using any for complex mocks when needed
+const mockComplexObject: any = {
+  deeply: { nested: { property: 'value' } }
+}
+
+// ❌ BAD - Unclear mock without types or structure
+const mock = {} as any
+```
+
+### Test Structure
+
+```typescript
+describe('ComponentName', () => {
+  // Setup shared test data
+  const testData = { id: '123', name: 'Test' }
+  
+  beforeEach(() => {
+    // Reset mocks between tests
+    jest.clearAllMocks()
+  })
+  
+  describe('feature/method name', () => {
+    it('should handle success case', async () => {
+      // Arrange
+      const expected = 'result'
+      
+      // Act
+      const result = await functionUnderTest()
+      
+      // Assert
+      expect(result).toBe(expected)
+    })
+    
+    it('should handle error case', async () => {
+      // Test error scenarios
+    })
+  })
+})
+```
+
+### Test File Locations
+
+- Unit tests: `__tests__/unit/[path-matching-src]`
+- Integration tests: `__tests__/integration/[feature]`
+- E2E tests: `__tests__/e2e/[user-journey]`
+- Test utilities: `__tests__/test-utils/`
 
 ## 🔄 Migration Guide
 
