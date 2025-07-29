@@ -6,6 +6,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ReportsTable } from '@/components/features/reports/reports-table'
+import { ReportTemplates } from '@/components/features/reports/report-templates'
 
 export const metadata = {
   title: 'Reports | TruthSource',
@@ -59,34 +62,22 @@ async function ReportsContent() {
     redirect('/onboarding')
   }
 
-  // TODO: This will be implemented in PRP-019
-  // For now, show a placeholder with coming soon message
-  const demoReports = [
-    {
-      id: '1',
-      name: 'Inventory Status Report',
-      description: 'Weekly inventory levels across all warehouses',
-      schedule: 'Weekly',
-      last_run: '2 days ago',
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Sales Performance',
-      description: 'Monthly sales performance by customer and product',
-      schedule: 'Monthly',
-      last_run: '1 week ago',
-      status: 'active'
-    },
-    {
-      id: '3',
-      name: 'Price Change Log',
-      description: 'Audit trail of all pricing changes',
-      schedule: 'On-demand',
-      last_run: 'Never',
-      status: 'draft'
-    }
-  ]
+  // Fetch user's reports
+  const { data: reports } = await supabase
+    .from('reports')
+    .select(`
+      *,
+      report_runs(count)
+    `)
+    .or(`created_by.eq.${user.id},organization_id.eq.${profile.organization_id}`)
+    .order('created_at', { ascending: false })
+
+  // Fetch available templates
+  const { data: templates } = await supabase
+    .from('report_templates')
+    .select('*')
+    .or(`is_public.eq.true,organization_id.eq.${profile.organization_id}`)
+    .order('category, name')
 
   return (
     <div className="space-y-6">
@@ -98,56 +89,35 @@ async function ReportsContent() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/reports/new">
+          <Link href="/reports/builder">
             <Plus className="mr-2 h-4 w-4" />
             Create Report
           </Link>
         </Button>
       </div>
 
-      {/* Coming Soon Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-semibold text-blue-900">Custom Reports Builder - Coming Soon</h3>
-        <p className="text-blue-700 text-sm mt-1">
-          This feature is part of PRP-019 and will include drag-and-drop report builder, 
-          scheduled delivery, and multiple export formats.
-        </p>
-      </div>
+      <Tabs defaultValue="my-reports" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="my-reports">My Reports</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+        </TabsList>
 
-      {/* Demo Reports Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {demoReports.map((report) => (
-          <div key={report.id} className="p-6 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold">{report.name}</h3>
-              <div className={`px-2 py-1 rounded-full text-xs ${
-                report.status === 'active' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-gray-100 text-gray-600'
-              }`}>
-                {report.status}
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {report.description}
-            </p>
-            <div className="flex gap-2 text-xs text-muted-foreground">
-              <span className="px-2 py-1 bg-gray-100 rounded">
-                {report.schedule}
-              </span>
-              <span className="px-2 py-1 bg-gray-100 rounded">
-                Last: {report.last_run}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+        <TabsContent value="my-reports" className="space-y-4">
+          <ReportsTable reports={reports || []} />
+        </TabsContent>
 
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">
-          Reports functionality will be available after PRP-019 implementation
-        </p>
-      </div>
+        <TabsContent value="templates" className="space-y-4">
+          <ReportTemplates templates={templates || []} />
+        </TabsContent>
+
+        <TabsContent value="scheduled" className="space-y-4">
+          <ReportsTable
+            reports={reports?.filter(r => r.schedule_enabled) || []}
+            showSchedule
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
