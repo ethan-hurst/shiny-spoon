@@ -1,5 +1,5 @@
-// Mock customer sync service for testing
-export class CustomerSyncService {
+// Mock product sync service for testing
+export class ProductSyncService {
   constructor() {
     // Mock implementation
   }
@@ -19,15 +19,15 @@ export class CustomerSyncService {
     return { success: true }
   }
 
-  async syncCustomers() {
-    return { success: true, syncedCustomers: [] }
+  async syncProducts() {
+    return { success: true, syncedProducts: [] }
   }
 
-  async updateCustomerData() {
-    return { success: true, updatedCustomers: [] }
+  async updateProductData() {
+    return { success: true, updatedProducts: [] }
   }
 }
 
-export function createCustomerSyncService() {
-  return new CustomerSyncService()
+export function createProductSyncService() {
+  return new ProductSyncService()
 }

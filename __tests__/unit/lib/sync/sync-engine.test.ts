@@ -28,12 +28,49 @@ describe('SyncEngine', () => {
 
     // Mock Supabase client
     mockSupabase = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: null }),
+      from: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            order: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+          insert: jest.fn().mockReturnValue({
+            select: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+          update: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+        }),
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+        update: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        }),
+      }),
+      update: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+      }),
+      eq: jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: null, error: null }),
+        order: jest.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+      insert: jest.fn().mockReturnValue({
+        select: jest.fn().mockResolvedValue({ data: null, error: null }),
+      }),
+      rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: jest.fn().mockResolvedValue({
           data: { user: { id: 'test-user-id' } },
@@ -229,13 +266,15 @@ describe('SyncEngine', () => {
       }
 
       mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({
-          data: [
-            { id: 'sync-1', sync_type: 'inventory' },
-            { id: 'sync-2', sync_type: 'pricing' },
-            { id: 'sync-3', sync_type: 'products' },
-          ],
-          error: null,
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockResolvedValue({
+            data: [
+              { id: 'sync-1', sync_type: 'inventory' },
+              { id: 'sync-2', sync_type: 'pricing' },
+              { id: 'sync-3', sync_type: 'products' },
+            ],
+            error: null,
+          }),
         }),
       })
 
