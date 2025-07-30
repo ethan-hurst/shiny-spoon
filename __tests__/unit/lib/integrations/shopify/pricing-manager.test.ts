@@ -505,7 +505,12 @@ describe('PricingManager', () => {
     ]
 
     beforeEach(() => {
-      mockSupabaseClient.single.mockResolvedValue({ data: mockCustomerPrices })
+      // Reset mock chain
+      mockSupabaseClient.from.mockReturnValue(mockSupabaseClient)
+      mockSupabaseClient.select.mockReturnValue(mockSupabaseClient)
+      mockSupabaseClient.eq.mockReturnValue(mockSupabaseClient)
+      mockSupabaseClient.single.mockResolvedValue({ data: mockCustomerPrices, error: null })
+      
       jest.spyOn(pricingManager as any, 'getOrCreateCustomerCatalog').mockResolvedValue('catalog-id')
       jest.spyOn(pricingManager as any, 'mapPricesToVariants').mockResolvedValue([
         { variantId: 'variant-1', price: 10.99, compareAtPrice: 15.99 }
@@ -547,7 +552,12 @@ describe('PricingManager', () => {
         { ...mockCustomerPrices[0], contract_id: 'tier-2' },
         { ...mockCustomerPrices[0], contract_id: null } // default tier
       ]
-      mockSupabaseClient.single.mockResolvedValue({ data: multiTierPrices })
+      
+      // Mock the chained query builder to return the data
+      mockSupabaseClient.from.mockReturnValue(mockSupabaseClient)
+      mockSupabaseClient.select.mockReturnValue(mockSupabaseClient)
+      mockSupabaseClient.eq.mockReturnValue(mockSupabaseClient)
+      mockSupabaseClient.single.mockResolvedValue({ data: multiTierPrices, error: null })
 
       const getOrCreateSpy = jest.spyOn(pricingManager as any, 'getOrCreateCustomerCatalog')
       
@@ -561,6 +571,11 @@ describe('PricingManager', () => {
 
     it('should handle database errors gracefully', async () => {
       const dbError = new Error('Database connection failed')
+      
+      // Mock the chained query builder to throw an error
+      mockSupabaseClient.from.mockReturnValue(mockSupabaseClient)
+      mockSupabaseClient.select.mockReturnValue(mockSupabaseClient)
+      mockSupabaseClient.eq.mockReturnValue(mockSupabaseClient)
       mockSupabaseClient.single.mockRejectedValue(dbError)
 
       await expect(pricingManager.pushCustomerPricing('customer-1')).rejects.toThrow('Database connection failed')

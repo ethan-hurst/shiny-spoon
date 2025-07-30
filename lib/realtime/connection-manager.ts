@@ -71,8 +71,8 @@ export class RealtimeConnectionManager {
   }
 
   private startPingMonitoring(): void {
-    this.pingInterval = setInterval(() => {
-      this.measureLatency()
+    this.pingInterval = setInterval(async () => {
+      await this.measureLatency()
     }, 5000) // Ping every 5 seconds
   }
 
@@ -82,7 +82,11 @@ export class RealtimeConnectionManager {
     try {
       // Simulate ping by making a lightweight request
       // In real implementation, this would ping the Supabase realtime server
-      await fetch('/api/health', { method: 'HEAD' })
+      const response = await fetch('/api/health', { method: 'HEAD' })
+      
+      if (!response.ok) {
+        throw new Error('Health check failed')
+      }
 
       const latency = Date.now() - start
       this.metrics.latency.push(latency)
@@ -98,11 +102,8 @@ export class RealtimeConnectionManager {
 
       this.notifyListeners()
     } catch (error) {
-      // Connection failed
-      this.updateStatus(
-        'error',
-        error instanceof Error ? error.message : 'Connection failed'
-      )
+      // Handle failed health checks
+      this.updateStatus('error', error instanceof Error ? error.message : 'Network error')
     }
   }
 
@@ -245,7 +246,7 @@ export class RealtimeConnectionManager {
   public getHealthScore(): number {
     const latencyScore = Math.max(0, 100 - this.getAverageLatency() / 10)
     const stabilityScore = this.calculateStability()
-    const uptimeScore = this.status.state === 'connected' ? 100 : 0
+    const uptimeScore = this.status.state === 'connected' ? 100 : 30
     const reconnectScore = Math.max(0, 100 - this.status.reconnectAttempts * 20)
 
     return Math.round(

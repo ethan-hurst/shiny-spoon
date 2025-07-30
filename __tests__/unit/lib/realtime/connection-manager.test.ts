@@ -156,6 +156,9 @@ describe('RealtimeConnectionManager', () => {
       
       expect(global.fetch).toHaveBeenCalledWith('/api/health', { method: 'HEAD' })
       
+      // Wait for async operation to complete
+      await new Promise(resolve => setTimeout(resolve, 0))
+      
       // Check latency was recorded
       const metrics = manager.getConnectionQuality()
       expect(metrics.latency.length).toBeGreaterThan(0)

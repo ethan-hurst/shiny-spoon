@@ -1,4 +1,30 @@
 import { describe, expect, it } from '@jest/globals'
+import {
+  validatePrice,
+  validatePriceWithMargin,
+  roundPrice,
+  applyTierDiscount,
+  determineEffectiveTier,
+  validateTierOrder,
+  calculateQuantityPrice,
+  calculateQuantityPriceWithDates,
+  calculateQuantitySavings,
+  isPromotionActive,
+  applyPromotions,
+  canUsePromotion,
+  applyContractPricing,
+  validateContractQuantity,
+  calculateContractProgress,
+  applyInventoryPricing,
+  applySurgePricing,
+  validateCompetitivePricing,
+  calculatePriceWithSequence,
+  applyMultipleDiscounts,
+  convertCurrency,
+  formatPrice,
+  logPriceCalculation,
+  determineApprovalRequirements
+} from '@/lib/pricing/pricing-behavior'
 
 /**
  * Behavioral Unit Tests for Pricing Engine
@@ -394,67 +420,3 @@ describe('Pricing Engine Behavior', () => {
   })
 })
 
-// Type definitions for behavioral specifications
-interface PriceValidation {
-  isValid: boolean
-  reason?: string
-  minimumPrice?: number
-  currentMargin?: number
-  requiredPrice?: number
-}
-
-interface TierValidation {
-  isValid: boolean
-  message?: string
-  shortBy?: number
-}
-
-interface QuantityBreak {
-  minQty: number
-  discount: number
-  validFrom?: Date
-}
-
-interface PriceCalculation {
-  unitPrice: number
-  appliedBreak: QuantityBreak
-  discount?: number
-}
-
-interface PromotionCheck {
-  allowed: boolean
-  reason?: string
-}
-
-interface ContractProgress {
-  percentComplete: number
-  onTrack: boolean
-  projectedAnnual: number
-  shortfall: number
-}
-
-// These functions represent the expected behavior - actual implementations would live in the source code
-declare function validatePrice(price: number, cost: number, allowBelowCost: boolean): PriceValidation
-declare function validatePriceWithMargin(price: number, cost: number, minMargin: number): PriceValidation
-declare function roundPrice(price: number, precision: number): number
-declare function applyTierDiscount(price: number, tier: string, discounts: Record<string, number>): number
-declare function determineEffectiveTier(customer: any): string
-declare function validateTierOrder(order: any, minimums: any): TierValidation
-declare function calculateQuantityPrice(base: number, qty: number, breaks: QuantityBreak[]): PriceCalculation
-declare function calculateQuantityPriceWithDates(base: number, qty: number, breaks: QuantityBreak[], date: Date): PriceCalculation
-declare function calculateQuantitySavings(base: number, qty: number, discount: number): any
-declare function isPromotionActive(promo: any, date: Date): boolean
-declare function applyPromotions(price: number, promos: any[]): any
-declare function canUsePromotion(promo: any, customer: any, usage: any): PromotionCheck
-declare function applyContractPricing(standard: number, contract: any, date: Date): number
-declare function validateContractQuantity(contract: any, qty: number): any
-declare function calculateContractProgress(contract: any, date: Date): ContractProgress
-declare function applyInventoryPricing(base: number, stock: number, rules: any): number
-declare function applySurgePricing(base: number, demand: number, rules: any): number
-declare function validateCompetitivePricing(price: number, competitors: number[], rules: any): any
-declare function calculatePriceWithSequence(calc: any): any
-declare function applyMultipleDiscounts(base: number, discounts: any[]): number
-declare function convertCurrency(price: number, target: string, rates: any, markup: number): any
-declare function formatPrice(price: number, currency: string, locale: string): string
-declare function logPriceCalculation(calc: any): any
-declare function determineApprovalRequirements(change: any, rules: any): any

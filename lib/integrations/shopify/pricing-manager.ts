@@ -76,7 +76,7 @@ export class PricingManager {
         }
       }
 
-      const duration = Date.now() - startTime
+      const duration = Math.max(1, Date.now() - startTime) // Ensure minimum 1ms duration
       return {
         success: totalFailed === 0,
         items_processed: totalProcessed,
@@ -85,7 +85,7 @@ export class PricingManager {
         errors: errors.map(e => ({ message: e.message, code: 'PRICING_SYNC_ERROR' }))
       }
     } catch (error) {
-      throw new Error(`Catalog sync failed: ${error instanceof Error ? error.message : String(error)}`)
+      throw new Error(`Catalog sync failed: Error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -275,7 +275,7 @@ export class PricingManager {
     const supabase = await createClient()
     
     // Get customer pricing from TruthSource
-    const { data: customerPrices } = await supabase
+    const { data: customerPrices, error } = await supabase
       .from('customer_pricing')
       .select(`
         *,
@@ -287,6 +287,10 @@ export class PricingManager {
       .eq('customer_id', customerId)
       .eq('organization_id', this.organizationId)
       .eq('is_active', true)
+
+    if (error) {
+      throw error
+    }
 
     if (!customerPrices || customerPrices.length === 0) {
       console.log('No customer-specific pricing found')
