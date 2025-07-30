@@ -251,61 +251,77 @@ describe('WebhookService', () => {
 
   describe('retryFailedWebhooks', () => {
     it('should retry failed webhooks successfully', async () => {
-      // Mock the chained query for failed webhooks
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'webhook_logs') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockReturnThis(),
-            lt: jest.fn().mockReturnThis(),
-            order: jest.fn().mockReturnThis(),
-            limit: jest.fn().mockResolvedValue({
-              data: [
-                {
-                  id: 'webhook-128',
-                  webhook_id: 'webhook-128',
-                  type: WebhookType.PRODUCT_UPDATE,
-                  source: 'shopify',
-                  payload: { id: 'prod-123' },
-                  retry_count: 1,
-                  created_at: new Date().toISOString()
-                },
-                {
-                  id: 'webhook-129',
-                  webhook_id: 'webhook-129',
-                  type: WebhookType.INVENTORY_UPDATE,
-                  source: 'netsuite',
-                  payload: { sku: 'SKU123' },
-                  retry_count: 2,
-                  created_at: new Date().toISOString()
-                }
-              ],
-              error: null
-            }),
-            upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
-            update: jest.fn().mockReturnThis()
-          }
-        }
-        return mockSupabase
+      // Mock the failed webhooks query
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        lt: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue({
+          data: [
+            {
+              id: 'webhook-128',
+              webhook_id: 'webhook-128',
+              type: WebhookType.PRODUCT_UPDATE,
+              source: 'shopify',
+              payload: { 
+                id: 'prod-123',
+                name: 'Test Product',
+                price: 99.99
+              },
+              retry_count: 1,
+              created_at: new Date().toISOString()
+            },
+            {
+              id: 'webhook-129',
+              webhook_id: 'webhook-129',
+              type: WebhookType.INVENTORY_UPDATE,
+              source: 'netsuite',
+              payload: { 
+                sku: 'SKU123',
+                quantity: 50,
+                warehouse_id: 'wh-123'
+              },
+              retry_count: 2,
+              created_at: new Date().toISOString()
+            }
+          ],
+          error: null
+        }),
+        upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+        update: jest.fn().mockReturnThis()
       })
 
-      // Mock webhook log checks (no existing webhooks)
-      mockSupabase.single.mockResolvedValue({
-        data: null, // No existing webhook
-        error: null
-      })
+      // Mock single() calls for webhook processing
+      // Each webhook calls single() twice: once for webhook log check, once for organization lookup
+      mockSupabase.single
+        .mockResolvedValueOnce({
+          data: null, // No existing webhook for first webhook
+          error: null
+        })
+        .mockResolvedValueOnce({
+          data: { id: 'org-123', name: 'Test Org' }, // Organization for first webhook
+          error: null
+        })
+        .mockResolvedValueOnce({
+          data: null, // No existing webhook for second webhook
+          error: null
+        })
+        .mockResolvedValueOnce({
+          data: { id: 'org-123', name: 'Test Org' }, // Organization for second webhook
+          error: null
+        })
 
-      // Mock organization lookup
-      mockSupabase.single.mockResolvedValue({
-        data: { id: 'org-123', name: 'Test Org' }, // Organization
-        error: null
-      })
-
-      const result = await service.retryFailedWebhooks()
-
-      expect(result.success).toBe(true)
-      expect(result.data?.processed).toBe(2)
-      expect(result.data?.failed).toBe(0)
+      try {
+        const result = await service.retryFailedWebhooks()
+        console.log('Result:', JSON.stringify(result, null, 2))
+        expect(result.success).toBe(true)
+        expect(result.data?.processed).toBe(2)
+        expect(result.data?.failed).toBe(0)
+      } catch (error) {
+        console.error('Error in test:', error)
+        throw error
+      }
     })
 
     it('should handle retry failures', async () => {
