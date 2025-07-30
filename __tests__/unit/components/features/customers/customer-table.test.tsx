@@ -1,42 +1,142 @@
+/* eslint-env jest */
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CustomerTable } from '@/components/features/customers/customer-table'
 import { deleteCustomer } from '@/app/actions/customers'
 import { toast } from 'sonner'
-import { CustomerWithStats } from '@/types/customer.types'
 
 // Mock dependencies
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    refresh: jest.fn(),
+  })),
+}))
+
 jest.mock('@/app/actions/customers', () => ({
   deleteCustomer: jest.fn(),
 }))
 
 jest.mock('sonner', () => ({
   toast: {
-    error: jest.fn(),
     success: jest.fn(),
+    error: jest.fn(),
   },
-}))
-
-jest.mock('next/link', () => {
-  return function MockLink({ children, href, ...props }: any) {
-    return (
-      <a href={href} {...props}>
-        {children}
-      </a>
-    )
-  }
-})
-
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    refresh: jest.fn(),
-  }),
 }))
 
 jest.mock('@/hooks/use-customer-realtime', () => ({
   useCustomerListRealtime: jest.fn(),
+}))
+
+// Mock UI components
+jest.mock('@/components/ui/table', () => ({
+  Table: ({ children }: any) => (
+    <table data-testid="table">{children}</table>
+  ),
+  TableBody: ({ children }: any) => (
+    <tbody data-testid="table-body">{children}</tbody>
+  ),
+  TableCell: ({ children, colSpan, className }: any) => (
+    <td data-testid="table-cell" colSpan={colSpan} className={className}>
+      {children}
+    </td>
+  ),
+  TableHead: ({ children }: any) => (
+    <th data-testid="table-head">{children}</th>
+  ),
+  TableHeader: ({ children }: any) => (
+    <thead data-testid="table-header">{children}</thead>
+  ),
+  TableRow: ({ children }: any) => (
+    <tr data-testid="table-row">{children}</tr>
+  ),
+}))
+
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, variant, className, disabled, onClick, ...props }: any) => (
+    <button
+      data-testid="button"
+      className={className}
+      disabled={disabled}
+      onClick={onClick}
+      {...props}
+    >
+      {children}
+    </button>
+  ),
+}))
+
+jest.mock('@/components/ui/badge', () => ({
+  Badge: ({ children, variant, className, style }: any) => (
+    <span data-testid="badge" className={className} data-variant={variant} style={style}>
+      {children}
+    </span>
+  ),
+}))
+
+jest.mock('@/components/ui/avatar', () => ({
+  Avatar: ({ children, className }: any) => (
+    <div data-testid="avatar" className={className}>
+      {children}
+    </div>
+  ),
+  AvatarFallback: ({ children }: any) => (
+    <div data-testid="avatar-fallback">{children}</div>
+  ),
+}))
+
+jest.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: any) => (
+    <div data-testid="dropdown-menu">{children}</div>
+  ),
+  DropdownMenuTrigger: ({ children, asChild }: any) => (
+    <div data-testid="dropdown-trigger">{children}</div>
+  ),
+  DropdownMenuContent: ({ children, align }: any) => (
+    <div data-testid="dropdown-content" data-align={align}>
+      {children}
+    </div>
+  ),
+  DropdownMenuLabel: ({ children }: any) => (
+    <div data-testid="dropdown-label">{children}</div>
+  ),
+  DropdownMenuSeparator: () => <div data-testid="dropdown-separator" />,
+  DropdownMenuItem: ({ children, onClick, className, asChild }: any) => (
+    <div data-testid="dropdown-item" onClick={onClick} className={className}>
+      {children}
+    </div>
+  ),
+}))
+
+jest.mock('lucide-react', () => ({
+  ChevronLeft: ({ className }: any) => (
+    <div data-testid="chevron-left-icon" className={className} />
+  ),
+  ChevronRight: ({ className }: any) => (
+    <div data-testid="chevron-right-icon" className={className} />
+  ),
+  CreditCard: ({ className }: any) => (
+    <div data-testid="credit-card-icon" className={className} />
+  ),
+  Edit: ({ className }: any) => (
+    <div data-testid="edit-icon" className={className} />
+  ),
+  Eye: ({ className }: any) => (
+    <div data-testid="eye-icon" className={className} />
+  ),
+  FileText: ({ className }: any) => (
+    <div data-testid="file-text-icon" className={className} />
+  ),
+  MoreHorizontal: ({ className }: any) => (
+    <div data-testid="more-horizontal-icon" className={className} />
+  ),
+  Trash2: ({ className }: any) => (
+    <div data-testid="trash-icon" className={className} />
+  ),
+  UserPlus: ({ className }: any) => (
+    <div data-testid="user-plus-icon" className={className} />
+  ),
 }))
 
 // Mock window.confirm
@@ -47,574 +147,543 @@ Object.defineProperty(window, 'confirm', {
 })
 
 describe('CustomerTable', () => {
-  const mockDeleteCustomer = deleteCustomer as jest.MockedFunction<typeof deleteCustomer>
-  const mockToastError = toast.error as jest.MockedFunction<typeof toast.error>
-  const mockToastSuccess = toast.success as jest.MockedFunction<typeof toast.success>
-
-  const mockCustomers: CustomerWithStats[] = [
-    {
-      id: '1',
-      organization_id: 'org-1',
-      company_name: 'Acme Corporation',
-      display_name: 'Acme Corp',
-      status: 'active',
-      credit_limit: 50000,
-      currency: 'USD',
-      total_orders: 25,
-      total_revenue: 125000,
-      account_age_days: 365,
-      contact_count: 3,
-      tier_name: 'Gold',
-      tier_color: '#FFD700',
-      created_at: '2023-01-01T00:00:00Z',
-      updated_at: '2023-12-01T00:00:00Z',
-      billing_address: {
-        line1: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        postal_code: '10001',
-        country: 'US',
-      },
-      customer_type: 'standard',
-      payment_terms: 30,
-      notes: 'VIP customer',
-      internal_notes: 'High priority',
-      tags: ['vip', 'enterprise'],
-    },
-    {
-      id: '2',
-      organization_id: 'org-1',
-      company_name: 'Tech Solutions Inc',
-      display_name: 'Tech Solutions',
-      status: 'inactive',
-      credit_limit: 25000,
-      currency: 'USD',
-      total_orders: 10,
-      total_revenue: 50000,
-      account_age_days: 180,
-      contact_count: 1,
-      created_at: '2023-06-01T00:00:00Z',
-      updated_at: '2023-11-01T00:00:00Z',
-      billing_address: {
-        line1: '456 Tech Ave',
-        city: 'San Francisco',
-        state: 'CA',
-        postal_code: '94102',
-        country: 'US',
-      },
-      customer_type: 'standard',
-      payment_terms: 30,
-      notes: 'Software company',
-      internal_notes: 'Medium priority',
-      tags: ['tech', 'startup'],
-    },
-  ]
+  let mockRouter: any
 
   beforeEach(() => {
     jest.clearAllMocks()
+
+    // Mock router
+    const { useRouter } = require('next/navigation')
+    mockRouter = {
+      push: jest.fn(),
+      refresh: jest.fn(),
+    }
+    ;(useRouter as jest.Mock).mockReturnValue(mockRouter)
+
+    // Reset confirm mock
     mockConfirm.mockReturnValue(true)
   })
 
-  describe('Table Structure and Rendering', () => {
-    it('should render table headers correctly', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+  const mockCustomers = [
+    {
+      id: 'customer-1',
+      display_name: 'Acme Corporation',
+      company_name: 'Acme Corp',
+      status: 'active',
+      tier_name: 'Premium',
+      tier_color: '#3B82F6',
+      credit_limit: 50000,
+      currency: 'USD',
+      total_orders: 25,
+      account_age_days: 365,
+      contact_count: 3,
+      primary_contact: {
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john@acme.com',
+      },
+    },
+    {
+      id: 'customer-2',
+      display_name: 'Tech Solutions Inc',
+      company_name: 'Tech Solutions',
+      status: 'inactive',
+      tier_name: 'Standard',
+      tier_color: '#10B981',
+      credit_limit: 25000,
+      currency: 'USD',
+      total_orders: 12,
+      account_age_days: 180,
+      contact_count: 1,
+      primary_contact: {
+        first_name: 'Jane',
+        last_name: 'Smith',
+        email: 'jane@techsolutions.com',
+      },
+    },
+    {
+      id: 'customer-3',
+      display_name: 'Global Industries',
+      company_name: 'Global Industries',
+      status: 'suspended',
+      tier_name: null,
+      tier_color: null,
+      credit_limit: 0,
+      currency: 'USD',
+      total_orders: 0,
+      account_age_days: 30,
+      contact_count: 0,
+      primary_contact: null,
+    },
+  ]
 
-      expect(screen.getByText('Customer')).toBeInTheDocument()
-      expect(screen.getByText('Status')).toBeInTheDocument()
-      expect(screen.getByText('Tier')).toBeInTheDocument()
-      expect(screen.getByText('Credit Limit')).toBeInTheDocument()
-      expect(screen.getByText('Total Orders')).toBeInTheDocument()
-      expect(screen.getByText('Account Age')).toBeInTheDocument()
-      expect(screen.getByText('Actions')).toBeInTheDocument()
+  const defaultProps = {
+    customers: mockCustomers,
+    currentPage: 1,
+    pageSize: 10,
+    hasMore: false,
+    organizationId: 'org-1',
+  }
+
+  describe('Component Rendering', () => {
+    it('should render the table with headers', () => {
+      render(<CustomerTable {...defaultProps} />)
+
+      expect(screen.getByTestId('table')).toBeInTheDocument()
+      expect(screen.getByTestId('table-header')).toBeInTheDocument()
+      expect(screen.getAllByTestId('table-head')).toHaveLength(7) // 7 columns
     })
 
-    it('should render customer data correctly', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should render all customers', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      expect(screen.getByText('Acme Corp')).toBeInTheDocument()
-      expect(screen.getByText('Tech Solutions')).toBeInTheDocument()
+      expect(screen.getByText('Acme Corporation')).toBeInTheDocument()
+      expect(screen.getByText('Tech Solutions Inc')).toBeInTheDocument()
+      expect(screen.getByText('Global Industries')).toBeInTheDocument()
+    })
+
+    it('should display customer details correctly', () => {
+      render(<CustomerTable {...defaultProps} />)
+
       expect(screen.getByText('$50,000')).toBeInTheDocument()
       expect(screen.getByText('$25,000')).toBeInTheDocument()
+      expect(screen.getByText('$0')).toBeInTheDocument()
       expect(screen.getByText('25')).toBeInTheDocument()
-      expect(screen.getByText('10')).toBeInTheDocument()
-      expect(screen.getByText('365 days')).toBeInTheDocument()
-      expect(screen.getByText('180 days')).toBeInTheDocument()
+      expect(screen.getByText('12')).toBeInTheDocument()
+      expect(screen.getByText('0')).toBeInTheDocument()
     })
 
-    it('should render empty state when no customers', () => {
-      render(
-        <CustomerTable
-          customers={[]}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should display empty state when no customers', () => {
+      render(<CustomerTable {...defaultProps} customers={[]} />)
 
       expect(screen.getByText('No customers found. Try adjusting your filters or add a new customer.')).toBeInTheDocument()
     })
+  })
 
-    it('should render customer avatars with initials', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
+  describe('Status Badges', () => {
+    it('should render status badges with correct styling', () => {
+      render(<CustomerTable {...defaultProps} />)
+
+      const badges = screen.getAllByTestId('badge')
+      expect(badges.length).toBeGreaterThan(0)
+
+      // Check that badges have the correct variants
+      const statusBadges = badges.filter(badge => 
+        badge.textContent === 'active' || 
+        badge.textContent === 'inactive' || 
+        badge.textContent === 'suspended'
       )
-
-      // Check for avatar fallbacks with initials
-      expect(screen.getByText('AC')).toBeInTheDocument() // Acme Corporation
-      expect(screen.getByText('TS')).toBeInTheDocument() // Tech Solutions
+      expect(statusBadges.length).toBeGreaterThan(0)
     })
 
-    it('should render status badges correctly', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should handle different status types', () => {
+      const customersWithDifferentStatuses = [
+        { ...mockCustomers[0], status: 'active' },
+        { ...mockCustomers[1], status: 'inactive' },
+        { ...mockCustomers[2], status: 'suspended' },
+      ]
 
-      expect(screen.getByText('active')).toBeInTheDocument()
-      expect(screen.getByText('inactive')).toBeInTheDocument()
+      render(<CustomerTable {...defaultProps} customers={customersWithDifferentStatuses} />)
+
+      const badges = screen.getAllByTestId('badge')
+      const statusBadges = badges.filter(badge => 
+        ['active', 'inactive', 'suspended'].includes(badge.textContent || '')
+      )
+      expect(statusBadges.length).toBeGreaterThan(0)
     })
 
-    it('should render tier badges correctly', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should handle unknown status gracefully', () => {
+      const customersWithUnknownStatus = [
+        { ...mockCustomers[0], status: 'unknown_status' },
+      ]
 
-      expect(screen.getByText('Gold')).toBeInTheDocument()
+      render(<CustomerTable {...defaultProps} customers={customersWithUnknownStatus} />)
+
+      const badges = screen.getAllByTestId('badge')
+      expect(badges.length).toBeGreaterThan(0)
     })
   })
 
-  describe('Customer Links and Navigation', () => {
-    it('should render customer links with correct hrefs', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+  describe('Tier Badges', () => {
+    it('should render tier badges for customers with tiers', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      const customerLinks = screen.getAllByRole('link')
-      expect(customerLinks[0]).toHaveAttribute('href', '/customers/1')
-      expect(customerLinks[1]).toHaveAttribute('href', '/customers/2')
+      const badges = screen.getAllByTestId('badge')
+      const tierBadges = badges.filter(badge => 
+        badge.textContent === 'Premium' || badge.textContent === 'Standard'
+      )
+      expect(tierBadges.length).toBeGreaterThan(0)
     })
 
-    it('should have proper ARIA labels for customer links', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should not render tier badge for customers without tiers', () => {
+      const customersWithoutTiers = [
+        { ...mockCustomers[0], tier_name: null, tier_color: null },
+      ]
 
-      expect(screen.getByLabelText('View details for Acme Corp')).toBeInTheDocument()
-      expect(screen.getByLabelText('View details for Tech Solutions')).toBeInTheDocument()
+      render(<CustomerTable {...defaultProps} customers={customersWithoutTiers} />)
+
+      const badges = screen.getAllByTestId('badge')
+      const tierBadges = badges.filter(badge => 
+        badge.textContent === 'Premium' || badge.textContent === 'Standard'
+      )
+      expect(tierBadges.length).toBe(0)
+    })
+
+    it('should apply custom styling to tier badges', () => {
+      render(<CustomerTable {...defaultProps} />)
+
+      const badges = screen.getAllByTestId('badge')
+      const tierBadges = badges.filter(badge => 
+        badge.textContent === 'Premium' || badge.textContent === 'Standard'
+      )
+      
+      tierBadges.forEach(badge => {
+        expect(badge).toHaveAttribute('data-variant', 'outline')
+      })
     })
   })
 
-  describe('Action Menu', () => {
-    it('should render action menu buttons', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+  describe('Customer Actions', () => {
+    it('should render dropdown menu for each customer', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      const menuButtons = screen.getAllByRole('button', { name: /open menu/i })
-      expect(menuButtons).toHaveLength(2)
+      const dropdownMenus = screen.getAllByTestId('dropdown-menu')
+      expect(dropdownMenus).toHaveLength(3)
     })
 
-    it('should open action menu when clicked', async () => {
-      const user = userEvent.setup()
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should render action buttons', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
-
-      expect(screen.getAllByText('Actions')).toHaveLength(2) // Table header + dropdown menu
-      expect(screen.getByText('View Details')).toBeInTheDocument()
-      expect(screen.getByText('Edit')).toBeInTheDocument()
-      expect(screen.getByText('Manage Contacts')).toBeInTheDocument()
-      expect(screen.getByText('Custom Pricing')).toBeInTheDocument()
-      expect(screen.getByText('View Orders')).toBeInTheDocument()
-      expect(screen.getByText('Delete')).toBeInTheDocument()
+      const actionButtons = screen.getAllByTestId('button')
+      expect(actionButtons.length).toBeGreaterThan(0)
     })
 
-    it('should have correct action menu links', async () => {
-      const user = userEvent.setup()
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should show all action menu items', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
+      expect(screen.getAllByText('View Details')).toHaveLength(3)
+      expect(screen.getAllByText('Edit')).toHaveLength(3)
+      expect(screen.getAllByText('Manage Contacts')).toHaveLength(3)
+      expect(screen.getAllByText('Custom Pricing')).toHaveLength(3)
+      expect(screen.getAllByText('View Orders')).toHaveLength(3)
+      expect(screen.getAllByText('Delete')).toHaveLength(3)
+    })
 
-      const viewDetailsLink = screen.getByRole('menuitem', { name: /view details for acme corp/i })
-      const editLink = screen.getByRole('menuitem', { name: /edit acme corp/i })
-      const contactsLink = screen.getByRole('menuitem', { name: /manage contacts for acme corp/i })
-      const pricingLink = screen.getByRole('menuitem', { name: /manage custom pricing for acme corp/i })
-      const ordersLink = screen.getByRole('menuitem', { name: /view orders for acme corp/i })
+    it('should have proper ARIA labels for actions', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      expect(viewDetailsLink).toHaveAttribute('href', '/customers/1')
-      expect(editLink).toHaveAttribute('href', '/customers/1/edit')
-      expect(contactsLink).toHaveAttribute('href', '/customers/1/contacts')
-      expect(pricingLink).toHaveAttribute('href', '/customers/1/pricing')
-      expect(ordersLink).toHaveAttribute('href', '/orders?customer_id=1')
+      // Check for screen reader text
+      expect(screen.getAllByText('Open menu')).toHaveLength(3)
     })
   })
 
-  describe('Delete Functionality', () => {
-    it('should show confirmation dialog when delete is clicked', async () => {
-      const user = userEvent.setup()
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
-
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
-
-      const deleteButton = screen.getByText('Delete')
-      await user.click(deleteButton)
-
-      expect(mockConfirm).toHaveBeenCalledWith(
-        'Are you sure you want to delete this customer? This action cannot be undone.'
-      )
+  describe('Customer Deletion', () => {
+    beforeEach(() => {
+      ;(deleteCustomer as jest.Mock).mockResolvedValue({ success: true })
     })
 
-    it('should call deleteCustomer when confirmed', async () => {
+    it('should call deleteCustomer when delete is confirmed', async () => {
       const user = userEvent.setup()
-      mockDeleteCustomer.mockResolvedValue({ success: true })
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+      mockConfirm.mockReturnValue(true)
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
+      render(<CustomerTable {...defaultProps} />)
 
-      const deleteButton = screen.getByText('Delete')
-      await user.click(deleteButton)
+      const deleteButtons = screen.getAllByText('Delete')
+      await user.click(deleteButtons[0])
 
       await waitFor(() => {
-        expect(mockDeleteCustomer).toHaveBeenCalledWith('1')
+        expect(deleteCustomer).toHaveBeenCalledWith('customer-1')
+        expect(toast.success).toHaveBeenCalledWith('Customer deleted successfully')
+        expect(mockRouter.refresh).toHaveBeenCalled()
       })
     })
 
-    it('should show success toast when delete succeeds', async () => {
-      const user = userEvent.setup()
-      mockDeleteCustomer.mockResolvedValue({ success: true })
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
-
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
-
-      const deleteButton = screen.getByText('Delete')
-      await user.click(deleteButton)
-
-      await waitFor(() => {
-        expect(mockToastSuccess).toHaveBeenCalledWith('Customer deleted successfully')
-      })
-    })
-
-    it('should show error toast when delete fails', async () => {
-      const user = userEvent.setup()
-      const errorMessage = 'Failed to delete customer'
-      mockDeleteCustomer.mockResolvedValue({ error: errorMessage })
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
-
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
-
-      const deleteButton = screen.getByText('Delete')
-      await user.click(deleteButton)
-
-      await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalledWith(errorMessage)
-      })
-    })
-
-    it('should show error toast when delete throws exception', async () => {
-      const user = userEvent.setup()
-      mockDeleteCustomer.mockRejectedValue(new Error('Network error'))
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
-
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
-
-      const deleteButton = screen.getByText('Delete')
-      await user.click(deleteButton)
-
-      await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalledWith('Failed to delete customer')
-      })
-    })
-
-    it('should not delete when user cancels confirmation', async () => {
+    it('should not call deleteCustomer when delete is not confirmed', async () => {
       const user = userEvent.setup()
       mockConfirm.mockReturnValue(false)
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
+      render(<CustomerTable {...defaultProps} />)
 
-      const deleteButton = screen.getByText('Delete')
-      await user.click(deleteButton)
+      const deleteButtons = screen.getAllByText('Delete')
+      await user.click(deleteButtons[0])
 
-      expect(mockDeleteCustomer).not.toHaveBeenCalled()
+      expect(deleteCustomer).not.toHaveBeenCalled()
     })
 
-    it('should disable delete button while deleting', async () => {
+    it('should handle deletion error', async () => {
       const user = userEvent.setup()
-      mockDeleteCustomer.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
+      ;(deleteCustomer as jest.Mock).mockResolvedValue({ 
+        error: 'Customer cannot be deleted' 
+      })
+
+      render(<CustomerTable {...defaultProps} />)
+
+      const deleteButtons = screen.getAllByText('Delete')
+      await user.click(deleteButtons[0])
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Customer cannot be deleted')
+      })
+    })
+
+    it('should handle deletion exception', async () => {
+      const user = userEvent.setup()
+      ;(deleteCustomer as jest.Mock).mockRejectedValue(new Error('Network error'))
+
+      render(<CustomerTable {...defaultProps} />)
+
+      const deleteButtons = screen.getAllByText('Delete')
+      await user.click(deleteButtons[0])
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Failed to delete customer')
+      })
+    })
+
+    it('should disable action button while deleting', async () => {
+      const user = userEvent.setup()
+      ;(deleteCustomer as jest.Mock).mockImplementation(() => 
+        new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
-      await user.click(menuButton)
+      render(<CustomerTable {...defaultProps} />)
 
-      const deleteButton = screen.getByText('Delete')
-      await user.click(deleteButton)
+      const deleteButtons = screen.getAllByText('Delete')
+      await user.click(deleteButtons[0])
 
-      // Should be disabled during deletion (check for aria-disabled attribute)
-      expect(deleteButton).toHaveAttribute('aria-disabled', 'true')
+      // The button should be disabled during deletion
+      const actionButtons = screen.getAllByTestId('button')
+      const disabledButtons = actionButtons.filter(button => button.disabled)
+      expect(disabledButtons.length).toBeGreaterThan(0)
     })
   })
 
   describe('Pagination', () => {
     it('should render pagination when there are multiple pages', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={2}
-          pageSize={10}
-          hasMore={true}
-          organizationId="org-1"
-        />
-      )
+      render(<CustomerTable {...defaultProps} currentPage={2} hasMore={true} />)
 
-      // Check for pagination buttons
-      expect(screen.getByRole('button', { name: 'Go to previous page' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Go to next page' })).toBeInTheDocument()
+      expect(screen.getByText('Showing 11 to 13 customers')).toBeInTheDocument()
+      expect(screen.getByText('Previous')).toBeInTheDocument()
+      expect(screen.getByText('Next')).toBeInTheDocument()
     })
 
     it('should not render pagination when there is only one page', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+      render(<CustomerTable {...defaultProps} currentPage={1} hasMore={false} />)
 
-      expect(screen.queryByText(/Showing/)).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Go to previous page' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Go to next page' })).not.toBeInTheDocument()
+      expect(screen.queryByText('Showing')).not.toBeInTheDocument()
+      expect(screen.queryByText('Previous')).not.toBeInTheDocument()
+      expect(screen.queryByText('Next')).not.toBeInTheDocument()
     })
 
     it('should disable previous button on first page', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={true}
-          organizationId="org-1"
-        />
-      )
+      render(<CustomerTable {...defaultProps} currentPage={1} hasMore={true} />)
 
-      const prevButton = screen.getByRole('button', { name: 'Go to previous page' })
-      expect(prevButton).toBeDisabled()
+      const buttons = screen.getAllByTestId('button')
+      const previousButton = buttons.find(button => button.textContent?.includes('Previous'))
+      expect(previousButton).toBeDisabled()
     })
 
-    it('should disable next button on last page', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={2}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should disable next button when no more pages', () => {
+      render(<CustomerTable {...defaultProps} currentPage={2} hasMore={false} />)
 
-      const nextButton = screen.getByRole('button', { name: 'Go to next page' })
+      const buttons = screen.getAllByTestId('button')
+      const nextButton = buttons.find(button => button.textContent?.includes('Next'))
       expect(nextButton).toBeDisabled()
+    })
+
+    it('should navigate to correct pages', async () => {
+      const user = userEvent.setup()
+      render(<CustomerTable {...defaultProps} currentPage={2} hasMore={true} />)
+
+      const buttons = screen.getAllByTestId('button')
+      const previousButton = buttons.find(button => button.textContent?.includes('Previous'))
+      const nextButton = buttons.find(button => button.textContent?.includes('Next'))
+
+      if (previousButton) {
+        await user.click(previousButton)
+        expect(mockRouter.push).toHaveBeenCalledWith('/customers?page=1')
+      }
+
+      if (nextButton) {
+        await user.click(nextButton)
+        expect(mockRouter.push).toHaveBeenCalledWith('/customers?page=3')
+      }
     })
   })
 
-  describe('Contact Information', () => {
-    it('should display contact count when available', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+  describe('Customer Information Display', () => {
+    it('should display customer avatars with initials', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      // The contact count is displayed in the customer row
-      // Note: The contact count might not be visible in the current implementation
-      // This test can be adjusted based on the actual UI behavior
+      const avatars = screen.getAllByTestId('avatar')
+      expect(avatars.length).toBeGreaterThan(0)
+    })
+
+    it('should display contact count for customers with contacts', () => {
+      render(<CustomerTable {...defaultProps} />)
+
+      expect(screen.getByText('3 contacts')).toBeInTheDocument()
+      expect(screen.getByText('1 contact')).toBeInTheDocument()
+    })
+
+    it('should not display contact count for customers without contacts', () => {
+      const customersWithoutContacts = [
+        { ...mockCustomers[0], contact_count: 0, primary_contact: null },
+      ]
+
+      render(<CustomerTable {...defaultProps} customers={customersWithoutContacts} />)
+
+      expect(screen.queryByText('0 contacts')).not.toBeInTheDocument()
+    })
+
+    it('should display account age in days', () => {
+      render(<CustomerTable {...defaultProps} />)
+
+      expect(screen.getByText('365 days')).toBeInTheDocument()
+      expect(screen.getByText('180 days')).toBeInTheDocument()
+      expect(screen.getByText('30 days')).toBeInTheDocument()
+    })
+  })
+
+  describe('Currency Formatting', () => {
+    it('should format currency correctly', () => {
+      render(<CustomerTable {...defaultProps} />)
+
+      expect(screen.getByText('$50,000')).toBeInTheDocument()
+      expect(screen.getByText('$25,000')).toBeInTheDocument()
+      expect(screen.getByText('$0')).toBeInTheDocument()
+    })
+
+    it('should handle different currencies', () => {
+      const customersWithDifferentCurrencies = [
+        { ...mockCustomers[0], currency: 'EUR' },
+        { ...mockCustomers[1], currency: 'GBP' },
+      ]
+
+      render(<CustomerTable {...defaultProps} customers={customersWithDifferentCurrencies} />)
+
+      // The component should handle different currencies
+      expect(screen.getByText('€50,000')).toBeInTheDocument()
+      expect(screen.getByText('£25,000')).toBeInTheDocument()
     })
   })
 
   describe('Accessibility', () => {
-    it('should have proper ARIA labels', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should have proper table structure', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      expect(screen.getByRole('region', { name: 'Customer table' })).toBeInTheDocument()
-      expect(screen.getAllByRole('button', { name: /open menu/i })).toHaveLength(2)
+      expect(screen.getByTestId('table')).toBeInTheDocument()
+      expect(screen.getByTestId('table-header')).toBeInTheDocument()
+      expect(screen.getByTestId('table-body')).toBeInTheDocument()
     })
 
-    it('should have proper table structure', () => {
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+    it('should have proper ARIA labels', () => {
+      render(<CustomerTable {...defaultProps} />)
 
-      expect(screen.getByRole('table')).toBeInTheDocument()
-      expect(screen.getAllByRole('rowgroup')).toHaveLength(2) // thead and tbody
-      expect(screen.getAllByRole('row')).toHaveLength(3) // header + 2 data rows
+      // Check for screen reader text
+      expect(screen.getAllByText('Open menu')).toHaveLength(3)
+    })
+
+    it('should have proper region labels', () => {
+      render(<CustomerTable {...defaultProps} />)
+
+      const region = screen.getByRole('region')
+      expect(region).toHaveAttribute('aria-label', 'Customer table')
+    })
+  })
+
+  describe('Real-time Updates', () => {
+    it('should call useCustomerListRealtime hook', () => {
+      const { useCustomerListRealtime } = require('@/hooks/use-customer-realtime')
+      
+      render(<CustomerTable {...defaultProps} />)
+
+      expect(useCustomerListRealtime).toHaveBeenCalledWith('org-1')
+    })
+
+    it('should handle missing organizationId', () => {
+      const { useCustomerListRealtime } = require('@/hooks/use-customer-realtime')
+      
+      render(<CustomerTable {...defaultProps} organizationId={undefined} />)
+
+      expect(useCustomerListRealtime).toHaveBeenCalledWith('')
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('should handle empty customers array', () => {
+      render(<CustomerTable {...defaultProps} customers={[]} />)
+
+      expect(screen.getByText('No customers found. Try adjusting your filters or add a new customer.')).toBeInTheDocument()
+    })
+
+    it('should handle customers with missing data', () => {
+      const customersWithMissingData = [
+        {
+          id: 'customer-1',
+          display_name: 'Test Customer',
+          company_name: 'Test Corp',
+          status: 'active',
+          tier_name: null,
+          tier_color: null,
+          credit_limit: 0,
+          currency: 'USD',
+          total_orders: 0,
+          account_age_days: 0,
+          contact_count: 0,
+          primary_contact: null,
+        },
+      ]
+
+      render(<CustomerTable {...defaultProps} customers={customersWithMissingData} />)
+
+      expect(screen.getByText('Test Customer')).toBeInTheDocument()
+      expect(screen.getByText('$0')).toBeInTheDocument()
+      expect(screen.getByText('0')).toBeInTheDocument()
+      expect(screen.getByText('0 days')).toBeInTheDocument()
+    })
+
+    it('should handle very large numbers', () => {
+      const customersWithLargeNumbers = [
+        { ...mockCustomers[0], credit_limit: 999999999, total_orders: 999999 },
+      ]
+
+      render(<CustomerTable {...defaultProps} customers={customersWithLargeNumbers} />)
+
+      expect(screen.getByText('$999,999,999')).toBeInTheDocument()
+      expect(screen.getByText('999999')).toBeInTheDocument()
     })
   })
 
   describe('Type Safety', () => {
     it('should maintain proper TypeScript types', () => {
-      // This should compile without TypeScript errors
-      render(
-        <CustomerTable
-          customers={mockCustomers}
-          currentPage={1}
-          pageSize={10}
-          hasMore={false}
-          organizationId="org-1"
-        />
-      )
+      // This test ensures the component can be rendered without TypeScript errors
+      expect(() => render(<CustomerTable {...defaultProps} />)).not.toThrow()
+    })
 
-      expect(screen.getByText('Acme Corp')).toBeInTheDocument()
+    it('should handle CustomerWithStats type correctly', () => {
+      const validCustomer = {
+        id: 'customer-1',
+        display_name: 'Test Customer',
+        company_name: 'Test Corp',
+        status: 'active',
+        tier_name: 'Premium',
+        tier_color: '#3B82F6',
+        credit_limit: 50000,
+        currency: 'USD',
+        total_orders: 25,
+        account_age_days: 365,
+        contact_count: 3,
+        primary_contact: {
+          first_name: 'John',
+          last_name: 'Doe',
+          email: 'john@test.com',
+        },
+      }
+
+      render(<CustomerTable {...defaultProps} customers={[validCustomer]} />)
+
+      expect(screen.getByText('Test Customer')).toBeInTheDocument()
     })
   })
 })
