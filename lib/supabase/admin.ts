@@ -6,8 +6,8 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/supabase/types/database'
 
-// Ensure we're in a server environment
-if (typeof window !== 'undefined') {
+// Ensure we're in a server environment (but allow in test environment)
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
   throw new Error('Supabase admin client cannot be used in the browser!')
 }
 

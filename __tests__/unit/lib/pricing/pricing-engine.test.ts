@@ -10,17 +10,15 @@ import {
 } from '../../../utils/supabase-mocks'
 
 // Mock dependencies
-const mockPricingCache = {
-  get: jest.fn(),
-  set: jest.fn(),
-  clear: jest.fn(),
-  clearProduct: jest.fn(),
-  clearCustomer: jest.fn(),
-}
-
 jest.mock('@/lib/supabase/client')
 jest.mock('@/lib/pricing/redis-cache', () => ({
-  pricingCache: mockPricingCache,
+  pricingCache: {
+    get: jest.fn(),
+    set: jest.fn(),
+    clear: jest.fn(),
+    clearProduct: jest.fn(),
+    clearCustomer: jest.fn(),
+  },
 }))
 
 describe('PricingEngine', () => {

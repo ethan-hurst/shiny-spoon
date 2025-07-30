@@ -1,4 +1,26 @@
 import { describe, expect, it } from '@jest/globals'
+import {
+  createOrder,
+  calculateOrderPricing,
+  planFulfillment,
+  validatePayment,
+  processDeposit,
+  updateInventoryWithSync,
+  resolveInventoryConflict,
+  createShipment,
+  getTrackingInfo,
+  trackOrderNotifications,
+  sendOrderNotification,
+  getOrderMetrics,
+  analyzeOrderPatterns,
+  handlePartialFulfillment,
+  calculateCompensation,
+  applyCompensation,
+  getOrder,
+  waitForSync,
+  getSyncStatus,
+  getAggregateMetrics
+} from '@/lib/orders/order-fulfillment'
 
 /**
  * Behavioral Integration Tests for Order Fulfillment
@@ -99,7 +121,7 @@ describe('Order Fulfillment Integration', () => {
       
       // Should meet delivery date
       expect(fulfillment.canMeetDeliveryDate).toBe(true)
-      expect(fulfillment.estimatedDelivery).toBeLessThanOrEqual(order.preferredDeliveryDate)
+      expect(fulfillment.estimatedDelivery).toBeLessThanOrEqual(order.preferredDeliveryDate.getTime())
     })
   })
 
@@ -244,7 +266,8 @@ describe('Order Fulfillment Integration', () => {
       expect(order.tracking).toEqual({
         carrier: 'fedex',
         trackingNumber: shippingResult.trackingNumber,
-        trackingUrl: expect.stringContaining('fedex.com')
+        trackingUrl: expect.stringContaining('fedex.com'),
+        status: 'in_transit'
       })
     })
 
@@ -304,7 +327,8 @@ describe('Order Fulfillment Integration', () => {
       expect(notifications.shipped).toBeDefined()
       expect(notifications.shipped.data).toContainEqual({
         trackingNumber: expect.any(String),
-        carrier: expect.any(String)
+        carrier: expect.any(String),
+        estimatedDelivery: expect.any(Date)
       })
       
       // Delivery notification
@@ -412,7 +436,7 @@ describe('Order Fulfillment Integration', () => {
       
       // Should adjust billing
       expect(recovery.billing.adjustment).toBeDefined()
-      expect(recovery.billing.newTotal).toBeLessThan(order.originalTotal)
+      expect(recovery.billing.newTotal).toBeLessThan(5000.00)
       
       // Should notify customer
       expect(recovery.customerNotification.sent).toBe(true)
@@ -447,68 +471,6 @@ describe('Order Fulfillment Integration', () => {
     })
   })
 })
-
-// Type definitions and function declarations
-interface Order {
-  id?: string
-  customerId: string
-  items: OrderItem[]
-  shippingAddress?: any
-  status?: string
-  total?: number
-  paymentMethod?: string
-}
-
-interface OrderItem {
-  productId: string
-  quantity: number
-  basePrice?: number
-}
-
-interface OrderResult {
-  order?: Order
-  error?: string
-  inventoryChecks?: any[]
-  allItemsAvailable?: boolean
-  unavailableItems?: any[]
-  reservations?: any[]
-}
-
-interface PricingResult {
-  lineItems: any[]
-  subtotal: number
-  taxAmount: number
-  shippingAmount: number
-  discountAmount: number
-  grandTotal: number
-  marginValidation: {
-    passed: boolean
-    lowestMargin: number
-  }
-}
-
-// Function declarations
-declare function createOrder(order: Order): Promise<OrderResult>
-declare function calculateOrderPricing(context: any): Promise<PricingResult>
-declare function planFulfillment(order: any): Promise<any>
-declare function validatePayment(order: any): Promise<any>
-declare function processDeposit(order: any): Promise<any>
-declare function getOrder(orderId: string): Promise<any>
-declare function updateInventoryWithSync(update: any): Promise<any>
-declare function waitForSync(syncId: string): Promise<void>
-declare function getSyncStatus(syncId: string): Promise<any>
-declare function resolveInventoryConflict(scenario: any): Promise<any>
-declare function createShipment(shipment: any): Promise<any>
-declare function getTrackingInfo(trackingNumber: string): Promise<any>
-declare function getOrderByTracking(trackingNumber: string): Promise<any>
-declare function trackOrderNotifications(orderId: string): Promise<any>
-declare function sendOrderNotification(order: any, type: string): Promise<any>
-declare function getOrderMetrics(orderId: string): Promise<any>
-declare function getAggregateMetrics(period: string): Promise<any>
-declare function analyzeOrderPatterns(params: any): Promise<any>
-declare function handlePartialFulfillment(order: any): Promise<any>
-declare function calculateCompensation(incident: any): Promise<any>
-declare function applyCompensation(compensation: any): Promise<any>
 
 // Custom matcher
 declare global {

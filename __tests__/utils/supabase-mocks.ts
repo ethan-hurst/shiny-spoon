@@ -1,38 +1,8 @@
 import { jest } from '@jest/globals'
 
-// Mock Supabase client
-export const mockSupabaseClient = {
-  auth: {
-    getUser: jest.fn(() =>
-      Promise.resolve({
-        data: {
-          user: {
-            id: 'test-user-id',
-            email: 'test@example.com',
-          },
-        },
-        error: null,
-      })
-    ),
-    getSession: jest.fn(() =>
-      Promise.resolve({
-        data: {
-          session: {
-            access_token: 'test-token',
-            user: {
-              id: 'test-user-id',
-              email: 'test@example.com',
-            },
-          },
-        },
-        error: null,
-      })
-    ),
-    signInWithPassword: jest.fn(),
-    signUp: jest.fn(),
-    signOut: jest.fn(),
-  },
-  from: jest.fn(() => ({
+// Supabase mocks for testing
+export function createMockQueryBuilder() {
+  return {
     select: jest.fn().mockReturnThis(),
     insert: jest.fn().mockReturnThis(),
     update: jest.fn().mockReturnThis(),
@@ -45,72 +15,48 @@ export const mockSupabaseClient = {
     lte: jest.fn().mockReturnThis(),
     like: jest.fn().mockReturnThis(),
     ilike: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
     in: jest.fn().mockReturnThis(),
-    contains: jest.fn().mockReturnThis(),
+    not: jest.fn().mockReturnThis(),
+    or: jest.fn().mockReturnThis(),
+    and: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
-    single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-    maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
-  })),
-  rpc: jest.fn(),
-  channel: jest.fn(() => ({
-    on: jest.fn().mockReturnThis(),
-    subscribe: jest.fn().mockReturnThis(),
-  })),
-  removeChannel: jest.fn(),
-  functions: {
-    invoke: jest.fn(),
-  },
-}
-
-// Mock createClient functions
-export const mockCreateClient = jest.fn(() => mockSupabaseClient)
-export const mockCreateServerClient = jest.fn(() => mockSupabaseClient)
-export const mockCreateBrowserClient = jest.fn(() => mockSupabaseClient)
-export const mockCreateAdminClient = jest.fn(() => mockSupabaseClient)
-
-// Helper to set up Supabase mocks
-export const setupSupabaseMocks = () => {
-  jest.mock('@/lib/supabase/client', () => ({
-    createClient: mockCreateBrowserClient,
-    createBrowserClient: mockCreateBrowserClient,
-  }))
-
-  jest.mock('@/lib/supabase/server', () => ({
-    createClient: mockCreateServerClient,
-    createServerClient: mockCreateServerClient,
-  }))
-
-  jest.mock('@/lib/supabase/admin', () => ({
-    createAdminClient: mockCreateAdminClient,
-  }))
-}
-
-// Helper to create a mock query builder
-export const createMockQueryBuilder = (data: any = null, error: any = null) => {
-  const queryBuilder = {
-    select: jest.fn().mockReturnThis(),
-    insert: jest.fn().mockReturnThis(),
-    update: jest.fn().mockReturnThis(),
-    delete: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    neq: jest.fn().mockReturnThis(),
-    gt: jest.fn().mockReturnThis(),
-    gte: jest.fn().mockReturnThis(),
-    lt: jest.fn().mockReturnThis(),
-    lte: jest.fn().mockReturnThis(),
-    like: jest.fn().mockReturnThis(),
-    ilike: jest.fn().mockReturnThis(),
-    is: jest.fn().mockReturnThis(),
-    in: jest.fn().mockReturnThis(),
-    contains: jest.fn().mockReturnThis(),
-    order: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    single: jest.fn(() => Promise.resolve({ data, error })),
-    maybeSingle: jest.fn(() => Promise.resolve({ data, error })),
+    range: jest.fn().mockReturnThis(),
+    single: jest.fn(),
+    maybeSingle: jest.fn(),
+    then: jest.fn(),
+    catch: jest.fn(),
   }
-  return queryBuilder
+}
+
+export function setupSupabaseMocks() {
+  // Mock Supabase client
+  const mockSupabase = {
+    auth: {
+      getUser: jest.fn(),
+      signOut: jest.fn(),
+      signInWithPassword: jest.fn(),
+      admin: {
+        createUser: jest.fn(),
+        deleteUser: jest.fn(),
+        updateUser: jest.fn(),
+      },
+    },
+    from: jest.fn(() => createMockQueryBuilder()),
+    rpc: jest.fn(),
+    functions: {
+      invoke: jest.fn(),
+    },
+  }
+
+  return mockSupabase
+}
+
+export function createMockSupabaseResponse(data: any, error: any = null) {
+  return {
+    data,
+    error,
+  }
 }
 
 // Test data factories

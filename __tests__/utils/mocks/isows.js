@@ -1,5 +1,5 @@
 // Mock for isows module
 module.exports = {
-  getNativeWebSocket: () => null,
-  WebSocket: class MockWebSocket {},
+  // Add any specific exports that might be needed
+  default: {},
 }

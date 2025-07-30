@@ -51,6 +51,11 @@ jest.mock('@supabase/supabase-js', () => ({
       getUser: jest.fn(),
       signOut: jest.fn(),
       signInWithPassword: jest.fn(),
+      admin: {
+        createUser: jest.fn(),
+        deleteUser: jest.fn(),
+        updateUser: jest.fn(),
+      },
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -59,6 +64,7 @@ jest.mock('@supabase/supabase-js', () => ({
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
+      in: jest.fn().mockReturnThis(),
     })),
     rpc: jest.fn(),
   })),
@@ -71,6 +77,11 @@ jest.mock('@supabase/ssr', () => ({
       getUser: jest.fn(),
       signOut: jest.fn(),
       signInWithPassword: jest.fn(),
+      admin: {
+        createUser: jest.fn(),
+        deleteUser: jest.fn(),
+        updateUser: jest.fn(),
+      },
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -79,6 +90,7 @@ jest.mock('@supabase/ssr', () => ({
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
+      in: jest.fn().mockReturnThis(),
     })),
     rpc: jest.fn(),
   })),
@@ -87,6 +99,11 @@ jest.mock('@supabase/ssr', () => ({
       getUser: jest.fn(),
       signOut: jest.fn(),
       signInWithPassword: jest.fn(),
+      admin: {
+        createUser: jest.fn(),
+        deleteUser: jest.fn(),
+        updateUser: jest.fn(),
+      },
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -95,6 +112,7 @@ jest.mock('@supabase/ssr', () => ({
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
+      in: jest.fn().mockReturnThis(),
     })),
     rpc: jest.fn(),
   })),
@@ -150,4 +168,22 @@ beforeAll(() => {
 
 afterAll(() => {
   console.error = originalError
+})
+
+// Custom matchers
+expect.extend({
+  toBeBetween(received, min, max) {
+    const pass = received >= min && received <= max
+    if (pass) {
+      return {
+        message: () => `expected ${received} not to be between ${min} and ${max}`,
+        pass: true,
+      }
+    } else {
+      return {
+        message: () => `expected ${received} to be between ${min} and ${max}`,
+        pass: false,
+      }
+    }
+  },
 })
