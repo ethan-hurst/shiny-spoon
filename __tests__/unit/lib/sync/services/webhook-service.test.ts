@@ -17,6 +17,9 @@ describe('WebhookService', () => {
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
       upsert: jest.fn().mockReturnThis(),
+      lt: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
       auth: {
         getUser: jest.fn().mockResolvedValue({
           data: { user: { id: 'user-123' } },
@@ -126,6 +129,13 @@ describe('WebhookService', () => {
         received_at: new Date().toISOString()
       }
 
+      // Mock webhook log check (no existing webhook)
+      mockSupabase.single.mockResolvedValueOnce({
+        data: null,
+        error: null
+      })
+
+      // Mock organization lookup
       mockSupabase.single.mockResolvedValueOnce({
         data: {
           id: 'org-123',
@@ -137,6 +147,7 @@ describe('WebhookService', () => {
         error: null
       })
 
+      // Mock order creation
       mockSupabase.single.mockResolvedValueOnce({
         data: { id: 'order-123', status: 'processed' },
         error: null
@@ -165,9 +176,16 @@ describe('WebhookService', () => {
         received_at: new Date().toISOString()
       }
 
+      // Mock webhook log check (no existing webhook)
       mockSupabase.single.mockResolvedValueOnce({
         data: null,
-        error: new Error('Organization not found')
+        error: null
+      })
+
+      // Mock organization lookup failure
+      mockSupabase.single.mockResolvedValueOnce({
+        data: null,
+        error: null
       })
 
       const result = await service.processWebhook(webhookEvent)
@@ -233,29 +251,53 @@ describe('WebhookService', () => {
 
   describe('retryFailedWebhooks', () => {
     it('should retry failed webhooks successfully', async () => {
-      mockSupabase.select.mockResolvedValueOnce({
-        data: [
-          {
-            id: 'webhook-128',
-            type: WebhookType.PRODUCT_UPDATE,
-            source: 'shopify',
-            data: { id: 'prod-123' },
-            retry_count: 1
-          },
-          {
-            id: 'webhook-129',
-            type: WebhookType.INVENTORY_UPDATE,
-            source: 'netsuite',
-            data: { sku: 'SKU123' },
-            retry_count: 2
+      // Mock the chained query for failed webhooks
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'webhook_logs') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            lt: jest.fn().mockReturnThis(),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'webhook-128',
+                  webhook_id: 'webhook-128',
+                  type: WebhookType.PRODUCT_UPDATE,
+                  source: 'shopify',
+                  payload: { id: 'prod-123' },
+                  retry_count: 1,
+                  created_at: new Date().toISOString()
+                },
+                {
+                  id: 'webhook-129',
+                  webhook_id: 'webhook-129',
+                  type: WebhookType.INVENTORY_UPDATE,
+                  source: 'netsuite',
+                  payload: { sku: 'SKU123' },
+                  retry_count: 2,
+                  created_at: new Date().toISOString()
+                }
+              ],
+              error: null
+            }),
+            upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+            update: jest.fn().mockReturnThis()
           }
-        ],
+        }
+        return mockSupabase
+      })
+
+      // Mock webhook log checks (no existing webhooks)
+      mockSupabase.single.mockResolvedValue({
+        data: null, // No existing webhook
         error: null
       })
 
-      // Mock successful processing for both webhooks
+      // Mock organization lookup
       mockSupabase.single.mockResolvedValue({
-        data: { status: 'processed' },
+        data: { id: 'org-123', name: 'Test Org' }, // Organization
         error: null
       })
 
@@ -267,17 +309,32 @@ describe('WebhookService', () => {
     })
 
     it('should handle retry failures', async () => {
-      mockSupabase.select.mockResolvedValueOnce({
-        data: [
-          {
-            id: 'webhook-130',
-            type: WebhookType.PRODUCT_UPDATE,
-            source: 'shopify',
-            data: { id: 'prod-123' },
-            retry_count: 3
+      // Mock the chained query for failed webhooks
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'webhook_logs') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            lt: jest.fn().mockReturnThis(),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'webhook-130',
+                  webhook_id: 'webhook-130',
+                  type: WebhookType.PRODUCT_UPDATE,
+                  source: 'shopify',
+                  payload: { id: 'prod-123' },
+                  retry_count: 3
+                }
+              ],
+              error: null
+            }),
+            upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+            update: jest.fn().mockReturnThis()
           }
-        ],
-        error: null
+        }
+        return mockSupabase
       })
 
       // Mock processing failure
