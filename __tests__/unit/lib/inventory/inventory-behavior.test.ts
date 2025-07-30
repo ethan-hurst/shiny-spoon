@@ -1,4 +1,28 @@
 import { describe, expect, it } from '@jest/globals'
+import {
+  validateStockAvailability,
+  calculateAvailableInventory,
+  checkReorderPoint,
+  allocateInventory,
+  splitAllocation,
+  allocateWithPriority,
+  reserveInventory,
+  cleanupExpiredReservations,
+  shipReservedInventory,
+  validateAdjustment,
+  determineAdjustmentApproval,
+  recordAdjustment,
+  prioritizeCycleCounts,
+  calculateCycleCountAccuracy,
+  initiateTransfer,
+  optimizeStockDistribution,
+  calculateFIFOValue,
+  analyzeInventoryAging,
+  calculateSafetyStock,
+  adjustSeasonalSafetyStock,
+  detectDiscrepancy,
+  applyConcurrentUpdates
+} from '@/lib/inventory/inventory-behavior'
 
 /**
  * Behavioral Unit Tests for Inventory Management
@@ -389,98 +413,3 @@ describe('Inventory Management Behavior', () => {
     })
   })
 })
-
-// Type definitions for behavioral specifications
-interface StockValidation {
-  canFulfill: boolean
-  available: number
-  shortBy?: number
-  suggestion?: string
-}
-
-interface InventoryAvailability {
-  total: number
-  available: number
-  pending: number
-  sellable: number
-}
-
-interface ReorderTrigger {
-  shouldReorder: boolean
-  suggestedQuantity: number
-  expectedDelivery?: Date
-  urgency: 'critical' | 'high' | 'normal'
-}
-
-interface AllocationResult {
-  warehouseId: string
-  distance?: number
-  quantity?: number
-  splits?: Array<{ warehouseId: string; quantity: number }>
-  fullyAllocated?: boolean
-}
-
-interface ReservationResult {
-  success: boolean
-  reservationId?: string
-  expiresAt?: Date
-  newAvailable: number
-  newReserved: number
-}
-
-interface AdjustmentApproval {
-  required: boolean
-  level?: 'auto' | 'single' | 'multi'
-  reason?: string
-}
-
-interface CycleCountMetrics {
-  overallAccuracy: number
-  perfectCounts: number
-  averageVariance: number
-  withinTolerance: number
-}
-
-interface InventoryValuation {
-  totalValue: number
-  averageCost: number
-  layers: any[]
-}
-
-interface SafetyStockCalculation {
-  quantity: number
-  averageDemand: number
-  standardDeviation: number
-}
-
-interface DiscrepancyCheck {
-  hasDiscrepancy: boolean
-  variance: number
-  variancePercent: number
-  exceedsTolerance: boolean
-  suggestedAction: string
-}
-
-// Function declarations representing expected behavior
-declare function validateStockAvailability(current: number, requested: number, allowNegative: boolean): StockValidation
-declare function calculateAvailableInventory(inventory: any): InventoryAvailability
-declare function checkReorderPoint(item: any): ReorderTrigger
-declare function allocateInventory(location: any, warehouses: any[], quantity: number): AllocationResult
-declare function splitAllocation(warehouses: any[], quantity: number): AllocationResult
-declare function allocateWithPriority(warehouses: any[], quantity: number): AllocationResult
-declare function reserveInventory(inventory: any, quantity: number): ReservationResult
-declare function cleanupExpiredReservations(reservations: any[], currentReserved: number): any
-declare function shipReservedInventory(reservation: any): any
-declare function validateAdjustment(adjustment: any): any
-declare function determineAdjustmentApproval(adjustment: any, thresholds: any): AdjustmentApproval
-declare function recordAdjustment(adjustment: any): any
-declare function prioritizeCycleCounts(items: any[], rules: any): any[]
-declare function calculateCycleCountAccuracy(counts: any[]): CycleCountMetrics
-declare function initiateTransfer(transfer: any): any
-declare function optimizeStockDistribution(network: any[], demand: number, safety: number): any
-declare function calculateFIFOValue(purchases: any[], quantity: number): InventoryValuation
-declare function analyzeInventoryAging(inventory: any[], date: Date): any
-declare function calculateSafetyStock(history: number[], leadTime: number, serviceLevel: number): SafetyStockCalculation
-declare function adjustSeasonalSafetyStock(product: any, month: string): number
-declare function detectDiscrepancy(system: any, external: any, tolerance: number): DiscrepancyCheck
-declare function applyConcurrentUpdates(initial: number, updates: any[]): any

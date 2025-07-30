@@ -400,13 +400,13 @@ describe('OfflineQueue', () => {
       }
       
       mockDb.getAll.mockResolvedValueOnce([operation])
+      mockDb.delete.mockResolvedValueOnce(undefined)
       
       await queue.processQueue()
       
-      const fromCall = mockSupabase.from.mock.calls[0]
-      expect(fromCall[0]).toBe('products')
-      
-      const updateMock = mockSupabase.from('products').update
+      expect(mockSupabase.from).toHaveBeenCalledWith('products')
+      const fromMock = mockSupabase.from as jest.Mock
+      const updateMock = fromMock.mock.results[0].value.update as jest.Mock
       expect(updateMock).toHaveBeenCalledWith(operation.data)
     })
 
@@ -421,13 +421,13 @@ describe('OfflineQueue', () => {
       }
       
       mockDb.getAll.mockResolvedValueOnce([operation])
+      mockDb.delete.mockResolvedValueOnce(undefined)
       
       await queue.processQueue()
       
-      const fromCall = mockSupabase.from.mock.calls[0]
-      expect(fromCall[0]).toBe('inventory')
-      
-      const insertMock = mockSupabase.from('inventory').insert
+      expect(mockSupabase.from).toHaveBeenCalledWith('inventory')
+      const fromMock = mockSupabase.from as jest.Mock
+      const insertMock = fromMock.mock.results[0].value.insert as jest.Mock
       expect(insertMock).toHaveBeenCalledWith(operation.data)
     })
 
@@ -442,13 +442,13 @@ describe('OfflineQueue', () => {
       }
       
       mockDb.getAll.mockResolvedValueOnce([operation])
+      mockDb.delete.mockResolvedValueOnce(undefined)
       
       await queue.processQueue()
       
-      const fromCall = mockSupabase.from.mock.calls[0]
-      expect(fromCall[0]).toBe('products')
-      
-      const deleteMock = mockSupabase.from('products').delete
+      expect(mockSupabase.from).toHaveBeenCalledWith('products')
+      const fromMock = mockSupabase.from as jest.Mock
+      const deleteMock = fromMock.mock.results[0].value.delete as jest.Mock
       expect(deleteMock).toHaveBeenCalled()
     })
   })
