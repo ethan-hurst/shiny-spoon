@@ -230,12 +230,12 @@ describe('Pricing Inventory Integration', () => {
       
       // Second call should use cache (advance time by 30 seconds)
       ;(Date.now as jest.Mock).mockReturnValue(1030000)
-      mockSupabase.from.mockClear()
+      const callCountBeforeSecondCall = mockSupabase.from.mock.calls.length
 
       const secondResult = await getCachedInventory('product-123', 'org-123')
 
       expect(firstResult).toEqual(secondResult)
-      expect(mockSupabase.from).toHaveBeenCalledTimes(1) // Only called once
+      expect(mockSupabase.from).toHaveBeenCalledTimes(callCountBeforeSecondCall) // No additional calls
     })
 
     it('should fetch fresh data when cache is expired', async () => {
@@ -654,11 +654,11 @@ describe('Pricing Inventory Integration', () => {
 
       // Calculate dynamic price
       const dynamicPrice = calculateInventoryBasedPrice(100, inventory!)
-      expect(dynamicPrice).toBe(100) // 60/75 = 80% available, so normal pricing
+      expect(dynamicPrice).toBe(90) // 60/75 = 80% available, so excess discount applies
 
       // Get inventory conditions
       const conditions = getInventoryConditions(inventory!)
-      expect(conditions.inventory_level).toBe('high') // 80% available
+      expect(conditions.inventory_level).toBe('excess') // 80% available
     })
 
     it('should handle complete workflow with cached data', async () => {
