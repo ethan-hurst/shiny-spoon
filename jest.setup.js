@@ -195,7 +195,14 @@ jest.mock('crypto', () => ({
   }),
   subtle: {
     importKey: jest.fn().mockResolvedValue({}),
-    sign: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer),
+    sign: jest.fn().mockImplementation(async (algorithm, key, data) => {
+      // Create a deterministic signature based on the data
+      const hashArray = new Uint8Array(32)
+      for (let i = 0; i < Math.min(data.length, 32); i++) {
+        hashArray[i] = data[i] ^ 0x42 // Simple XOR for deterministic hash
+      }
+      return hashArray.buffer
+    }),
     verify: jest.fn().mockResolvedValue(true),
     encrypt: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer),
     decrypt: jest.fn().mockResolvedValue(new Uint8Array([5, 6, 7, 8]).buffer),
