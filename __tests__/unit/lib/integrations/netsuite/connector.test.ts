@@ -58,18 +58,21 @@ describe('NetSuiteConnector', () => {
     const mockEq = jest.fn().mockReturnThis()
     const mockSingle = jest.fn()
 
+    // Create a mock object that supports chaining
+    const createMockChain = () => ({
+      select: mockSelect,
+      insert: mockInsert,
+      update: mockUpdate,
+      upsert: mockUpsert,
+      eq: mockEq,
+      single: mockSingle,
+      functions: {
+        invoke: jest.fn().mockResolvedValue({ data: null, error: null })
+      }
+    })
+
     mockSupabase = {
-      from: jest.fn().mockReturnValue({
-        select: mockSelect,
-        insert: mockInsert,
-        update: mockUpdate,
-        upsert: mockUpsert,
-        eq: mockEq,
-        single: mockSingle,
-        functions: {
-          invoke: jest.fn().mockResolvedValue({ data: null, error: null })
-        }
-      })
+      from: jest.fn().mockReturnValue(createMockChain())
     }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
