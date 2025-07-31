@@ -191,23 +191,24 @@ describe('Email Queue', () => {
       ]
 
       // Set up the mock for the query chain
-      const emailQueueMock = mockSupabase.from('email_queue')
-      emailQueueMock.select.mockReturnValue(emailQueueMock)
-      emailQueueMock.eq.mockReturnValue(emailQueueMock)
-      emailQueueMock.lt.mockReturnValue(emailQueueMock)
-      emailQueueMock.order.mockReturnValue(emailQueueMock)
-      emailQueueMock.limit.mockResolvedValue({
-        data: pendingEmails,
-        error: null
-      })
+      const emailQueueMock = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        lt: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue({
+          data: pendingEmails,
+          error: null
+        }),
+        update: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: null
+        })
+      }
       
-      // Set up the update mock for processing emails
-      emailQueueMock.update.mockReturnValue(emailQueueMock)
-      emailQueueMock.eq.mockReturnValue(emailQueueMock)
-      emailQueueMock.single.mockResolvedValue({
-        data: null,
-        error: null
-      })
+      // Ensure from() always returns the same mock object
+      mockSupabase.from.mockReturnValue(emailQueueMock)
 
       // Set environment for console mode
       process.env.EMAIL_PROVIDER = 'console'
