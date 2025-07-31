@@ -594,23 +594,33 @@ describe('NetSuiteConnector', () => {
 
     it('should queue webhook for processing', async () => {
       const webhookData = {
-        type: 'product_updated',
-        data: { itemid: 'ITEM001' }
+        eventId: 'event-123',
+        eventType: 'ITEM_UPDATED',
+        recordType: 'item',
+        recordId: 'item-456',
+        data: { id: 'item-456', name: 'Updated Item' }
       }
 
       await connector.handleWebhook(webhookData)
 
       expect(getMockMethod('insert')).toHaveBeenCalledWith({
         integration_id: mockConfig.integrationId,
-        webhook_type: 'product_updated',
+        event_id: webhookData.eventId,
+        event_type: webhookData.eventType,
+        entity_type: webhookData.recordType,
+        entity_id: webhookData.recordId,
         payload: webhookData,
-        status: 'pending',
-        created_at: expect.any(Date)
+        status: 'pending'
       })
     })
 
     it('should handle webhook queueing errors', async () => {
-      const webhookData = { type: 'test', data: {} }
+      const webhookData = {
+        eventId: 'event-123',
+        eventType: 'ITEM_UPDATED',
+        recordType: 'item',
+        recordId: 'item-456'
+      }
       const error = new Error('Database error')
       getMockMethod('insert').mockRejectedValue(error)
 
