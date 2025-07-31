@@ -12,26 +12,7 @@ import Papa from 'papaparse'
 // Mock dependencies
 jest.mock('@/lib/utils/csv')
 jest.mock('papaparse')
-jest.mock('zod', () => ({
-  z: {
-    object: jest.fn().mockReturnValue({
-      safeParse: jest.fn()
-    }),
-    string: jest.fn().mockReturnValue({
-      min: jest.fn().mockReturnValue({
-        regex: jest.fn().mockReturnValue(jest.fn())
-      })
-    }),
-    number: jest.fn().mockReturnValue({
-      positive: jest.fn().mockReturnValue({
-        optional: jest.fn().mockReturnValue(jest.fn())
-      }),
-      min: jest.fn().mockReturnValue({
-        optional: jest.fn().mockReturnValue(jest.fn())
-      })
-    })
-  }
-}))
+// Don't mock Zod - let it work normally
 
 describe('CSV Product Import', () => {
   let mockEscapeCSVField: jest.MockedFunction<typeof escapeCSVField>

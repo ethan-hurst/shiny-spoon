@@ -89,9 +89,30 @@ describe('ShopifyConnector', () => {
       error: jest.fn()
     }
 
+    // Mock the connector's logger by overriding the getter
+    Object.defineProperty(connector, 'logger', {
+      get: jest.fn().mockReturnValue(mockLogger),
+      configurable: true
+    })
+
     // Mock Shopify API Client
     mockClient = {
-      query: jest.fn(),
+      query: jest.fn().mockResolvedValue({
+        data: {
+          shop: {
+            id: 'gid://shopify/Shop/123',
+            name: 'Test Shop',
+            email: 'test@shop.com',
+            plan: {
+              displayName: 'Shopify Plus'
+            },
+            features: {
+              storefront: true,
+              b2b: true
+            }
+          }
+        }
+      }),
       mutation: jest.fn(),
       get: jest.fn(),
       post: jest.fn(),
@@ -210,7 +231,8 @@ describe('ShopifyConnector', () => {
     })
 
     it('should return false for failed connection test', async () => {
-      mockClient.query.mockRejectedValue(new Error('Connection failed'))
+      // Override the default mock for this test
+      mockClient.query.mockRejectedValueOnce(new Error('Connection failed'))
 
       const result = await connector.testConnection()
 
@@ -237,6 +259,9 @@ describe('ShopifyConnector', () => {
     })
 
     it('should perform incremental sync when sync state exists', async () => {
+      // Mock authentication to succeed
+      jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
+      
       const mockProducts = [
         {
           id: 'gid://shopify/Product/123',
@@ -272,6 +297,9 @@ describe('ShopifyConnector', () => {
     })
 
     it('should perform bulk sync when force option is provided', async () => {
+      // Mock authentication to succeed
+      jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
+      
       const mockBulkResult = {
         success: true,
         items_processed: 100,
@@ -289,6 +317,8 @@ describe('ShopifyConnector', () => {
     })
 
     it('should handle sync errors gracefully', async () => {
+      // Mock authentication to succeed but then fail on sync
+      jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
       mockClient.query.mockRejectedValue(new Error('Sync failed'))
 
       const result = await connector.syncProducts()
@@ -309,6 +339,9 @@ describe('ShopifyConnector', () => {
     })
 
     it('should sync inventory levels successfully', async () => {
+      // Mock authentication to succeed
+      jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
+      
       const mockInventory = [
         {
           id: 'gid://shopify/InventoryLevel/123',
@@ -345,6 +378,9 @@ describe('ShopifyConnector', () => {
 
   describe('syncPricing', () => {
     it('should delegate to pricing manager', async () => {
+      // Mock authentication to succeed
+      jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
+      
       const mockPricingResult = {
         success: true,
         items_processed: 10,

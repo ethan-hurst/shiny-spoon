@@ -139,23 +139,33 @@ jest.mock('crypto', () => ({
   createHmac: jest.fn(() => ({
     update: jest.fn().mockReturnThis(),
     digest: jest.fn(() => 'mock-hmac-digest')
-  }))
+  })),
+  timingSafeEqual: jest.fn((a, b) => {
+    // Return true if the signatures match, false otherwise
+    const aStr = a.toString()
+    const bStr = b.toString()
+    return aStr === bStr
+  })
 }))
 
 // Mock @upstash/ratelimit
+const MockRatelimit = jest.fn().mockImplementation(() => ({
+  limit: jest.fn().mockResolvedValue({
+    success: true,
+    limit: 10,
+    remaining: 9,
+    reset: Date.now() + 60000
+  }),
+  reset: jest.fn(),
+  blockUntilReady: jest.fn(),
+  getRemaining: jest.fn()
+}))
+
+MockRatelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter')
+
 jest.mock('@upstash/ratelimit', () => ({
-  Ratelimit: jest.fn().mockImplementation(() => ({
-    limit: jest.fn().mockResolvedValue({
-      success: true,
-      limit: 10,
-      remaining: 9,
-      reset: Date.now() + 60000
-    }),
-    reset: jest.fn(),
-    blockUntilReady: jest.fn(),
-    getRemaining: jest.fn()
-  })),
-  slidingWindow: jest.fn().mockReturnValue('sliding-window-limiter')
+  Ratelimit: MockRatelimit,
+  slidingWindow: MockRatelimit.slidingWindow
 }))
 
 // Mock @upstash/redis
