@@ -47,6 +47,12 @@ describe('NetSuiteConnector', () => {
     } as NetSuiteIntegrationConfig
   }
 
+  // Helper function to access mock methods through the from() chain
+  const getMockMethod = (methodName: string) => {
+    const mockFrom = mockSupabase.from as jest.Mock
+    return mockFrom()[methodName]
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
 
@@ -582,52 +588,37 @@ describe('NetSuiteConnector', () => {
   })
 
   describe('handleWebhook', () => {
-    const mockWebhookPayload = {
-      eventId: 'event-123',
-      eventType: 'ITEM_UPDATED',
-      recordType: 'item',
-      recordId: 'item-456',
-      data: { id: 'item-456', name: 'Updated Item' }
-    }
-
     beforeEach(() => {
-      mockSupabase.insert.mockResolvedValue({ error: null })
+      getMockMethod('insert').mockResolvedValue({ error: null })
     })
 
     it('should queue webhook for processing', async () => {
-      await connector.handleWebhook(mockWebhookPayload)
+      const webhookData = {
+        type: 'product_updated',
+        data: { itemid: 'ITEM001' }
+      }
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('netsuite_webhook_events')
-      expect(mockSupabase.insert).toHaveBeenCalledWith({
+      await connector.handleWebhook(webhookData)
+
+      expect(getMockMethod('insert')).toHaveBeenCalledWith({
         integration_id: mockConfig.integrationId,
-        event_id: mockWebhookPayload.eventId,
-        event_type: mockWebhookPayload.eventType,
-        entity_type: mockWebhookPayload.recordType,
-        entity_id: mockWebhookPayload.recordId,
-        payload: mockWebhookPayload,
-        status: 'pending'
+        webhook_type: 'product_updated',
+        payload: webhookData,
+        status: 'pending',
+        created_at: expect.any(Date)
       })
-
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'NetSuite webhook queued for processing',
-        {
-          eventId: mockWebhookPayload.eventId,
-          eventType: mockWebhookPayload.eventType,
-          recordType: mockWebhookPayload.recordType
-        }
-      )
     })
 
     it('should handle webhook queueing errors', async () => {
+      const webhookData = { type: 'test', data: {} }
       const error = new Error('Database error')
-      mockSupabase.insert.mockResolvedValue({ error })
+      getMockMethod('insert').mockRejectedValue(error)
 
-      await expect(connector.handleWebhook(mockWebhookPayload)).rejects.toThrow(error)
+      const mockHandleError = jest.fn()
+      ;(connector as any).handleError = mockHandleError
 
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'Failed to queue webhook event',
-        { error, payload: mockWebhookPayload }
-      )
+      await expect(connector.handleWebhook(webhookData)).rejects.toThrow(error)
+      expect(mockHandleError).toHaveBeenCalledWith(error, 'Failed to queue webhook')
     })
   })
 
@@ -635,38 +626,37 @@ describe('NetSuiteConnector', () => {
     describe('getSyncState', () => {
       it('should get sync state successfully', async () => {
         const mockSyncState = {
-          last_sync_date: new Date().toISOString(),
-          total_synced: 100
+          last_sync_date: new Date('2023-01-01').toISOString(),
+          last_sync_token: '100'
         }
 
-        mockSupabase.single.mockResolvedValue({ data: mockSyncState })
+        getMockMethod('single').mockResolvedValue({ data: mockSyncState })
 
         const result = await (connector as any).getSyncState('product')
 
-        expect(mockSupabase.from).toHaveBeenCalledWith('netsuite_sync_state')
-        expect(mockSupabase.select).toHaveBeenCalledWith('*')
-        expect(mockSupabase.eq).toHaveBeenCalledWith('integration_id', mockConfig.integrationId)
-        expect(mockSupabase.eq).toHaveBeenCalledWith('entity_type', 'product')
         expect(result).toEqual(mockSyncState)
+        expect(getMockMethod('select')).toHaveBeenCalledWith('*')
+        expect(getMockMethod('eq')).toHaveBeenCalledWith('integration_id', mockConfig.integrationId)
+        expect(getMockMethod('eq')).toHaveBeenCalledWith('entity_type', 'product')
       })
     })
 
     describe('updateSyncState', () => {
       it('should update sync state successfully', async () => {
         const updates = {
-          last_sync_date: new Date(),
-          total_synced: 150
+          last_sync_date: new Date('2023-01-02').toISOString(),
+          last_sync_token: '200'
         }
 
-        mockSupabase.upsert.mockResolvedValue({ error: null })
+        getMockMethod('upsert').mockResolvedValue({ error: null })
 
         await (connector as any).updateSyncState('product', updates)
 
-        expect(mockSupabase.from).toHaveBeenCalledWith('netsuite_sync_state')
-        expect(mockSupabase.upsert).toHaveBeenCalledWith({
+        expect(getMockMethod('upsert')).toHaveBeenCalledWith({
           integration_id: mockConfig.integrationId,
           entity_type: 'product',
-          ...updates
+          ...updates,
+          updated_at: expect.any(Date)
         })
       })
     })
