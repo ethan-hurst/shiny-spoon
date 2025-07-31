@@ -133,10 +133,6 @@ describe('BulkOperationsEngine', () => {
     
     // Import the engine after setting up the mock
     const { BulkOperationsEngine } = require('@/lib/bulk/bulk-operations-engine')
-    
-    // Mock the processOperation method at the prototype level
-    jest.spyOn(BulkOperationsEngine.prototype, 'processOperation').mockResolvedValue(undefined)
-    
     engine = new BulkOperationsEngine()
     mockEmit = jest.spyOn(engine, 'emit')
   })
@@ -153,22 +149,18 @@ describe('BulkOperationsEngine', () => {
     }
 
     it('should start a bulk operation', async () => {
-      // Test with a minimal configuration that doesn't trigger background processing
-      const minimalConfig = {
-        operationType: 'import' as const,
-        entityType: 'products' as const,
-        chunkSize: 10,
-        validateOnly: true // This should prevent background processing
-      }
-      
       const csvContent = 'sku,name,price\nSKU001,Product 1,99.99'
       const file = new MockFile(csvContent, 'products.csv') as any
       
-      // For now, just test that the method doesn't throw an error
-      // The complex mocking will be addressed separately
-      expect(async () => {
-        await engine.startOperation(file, minimalConfig, 'user-123')
-      }).not.toThrow()
+      const operationId = await engine.startOperation(file, validConfig, 'user-123')
+      
+      expect(operationId).toBe('op-123')
+      expect(mockSupabase.from).toHaveBeenCalledWith('bulk_operations')
+      
+      // Wait for async processing to start
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      expect(mockSupabase.from).toHaveBeenCalledWith('bulk_operation_records')
     })
 
     it('should validate configuration', async () => {
