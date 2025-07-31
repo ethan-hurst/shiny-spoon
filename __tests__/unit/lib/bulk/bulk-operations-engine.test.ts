@@ -1,108 +1,46 @@
-// Create mock Supabase client
-const createMockSupabase = () => ({
-  auth: {
-    getUser: jest.fn().mockResolvedValue({ user: { id: 'user-123' } })
-  },
-  from: jest.fn((table: string) => {
-    switch (table) {
-      case 'user_profiles':
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { organization_id: 'org-123' }
-          })
-        }
-        
-      case 'bulk_operations':
-        return {
-          insert: jest.fn().mockReturnThis(),
-          update: jest.fn().mockReturnThis(),
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: {
-              id: 'op-123',
-              organization_id: 'org-123',
-              entity_type: 'products'
-            }
-          })
-        }
-        
-      case 'bulk_operation_records':
-        return {
-          insert: jest.fn().mockResolvedValue({ error: null }),
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockResolvedValue({ 
-            data: [],
-            count: 0 
-          })
-        }
-        
-      case 'products':
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { id: 'prod-123' }
-          }),
-          upsert: jest.fn().mockReturnThis(),
-          update: jest.fn().mockReturnThis(),
-          delete: jest.fn().mockResolvedValue({ error: null })
-        }
-        
-      case 'warehouses':
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { id: 'wh-123' }
-          })
-        }
-        
-      case 'inventory':
-        return {
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: { id: 'inv-123' }
-          }),
-          upsert: jest.fn().mockReturnThis(),
-          update: jest.fn().mockReturnThis()
-        }
-        
-      default:
-        return {
-          select: jest.fn().mockReturnThis(),
-          insert: jest.fn().mockReturnThis(),
-          update: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({ data: null })
-        }
-    }
-  }),
-  rpc: jest.fn().mockResolvedValue({ error: null })
-})
-
-// Mock the module before any imports
-jest.mock('@/lib/supabase/server', () => ({
-  createServerClient: jest.fn(() => createMockSupabase())
-}))
-
 import { Readable } from 'stream'
+import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
+import { createServerClient } from '@/lib/supabase/server'
 import type { BulkOperationConfig, BulkOperationProgress } from '@/types/bulk-operations.types'
 
-// Mock File for Node.js environment
-import { Readable } from 'stream'
+// Mock dependencies
+jest.mock('@/lib/supabase/server')
+jest.mock('@/lib/bulk/bulk-operations-engine', () => {
+  const originalModule = jest.requireActual('@/lib/bulk/bulk-operations-engine')
+  return {
+    ...originalModule,
+    BulkOperationsEngine: jest.fn().mockImplementation(function() {
+      return originalModule.BulkOperationsEngine.apply(this, arguments)
+    })
+  }
+})
 
+// Create mock Supabase client
+const createMockSupabase = () => ({
+  from: jest.fn((table: string) => ({
+    select: jest.fn().mockReturnThis(),
+    insert: jest.fn().mockReturnThis(),
+    update: jest.fn().mockReturnThis(),
+    delete: jest.fn().mockReturnThis(),
+    upsert: jest.fn().mockReturnThis(),
+    eq: jest.fn().mockReturnThis(),
+    single: jest.fn().mockResolvedValue({ 
+      data: { 
+        id: 'op-123',
+        organization_id: 'org-123',
+        status: 'pending'
+      } 
+    }),
+  })),
+  rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
+})
 
-
+// Mock file class for testing
 class MockFile extends Readable {
   name: string
   size: number
   private content: string
+  private position: number = 0
 
   constructor(content: string, name: string) {
     super()
@@ -112,37 +50,109 @@ class MockFile extends Readable {
   }
 
   _read() {
-    // Push the content as a buffer
-    this.push(Buffer.from(this.content))
-    // Signal end of stream
-    this.push(null)
+    if (this.position >= this.content.length) {
+      this.push(null)
+      return
+    }
+
+    const chunk = this.content.slice(this.position, this.position + 1024)
+    this.position += chunk.length
+    this.push(chunk)
   }
 }
 
 describe('BulkOperationsEngine', () => {
   let engine: BulkOperationsEngine
-  let mockEmit: jest.SpyInstance
   let mockSupabase: any
+  let mockEmit: jest.SpyInstance
+
+  const validConfig: BulkOperationConfig = {
+    operationType: 'import',
+    entityType: 'products',
+    mapping: {},
+    chunkSize: 100,
+    enableRollback: true,
+  }
 
   beforeEach(() => {
     jest.clearAllMocks()
     
-    // Get the mock Supabase instance
-    const { createServerClient } = require('@/lib/supabase/server')
-    mockSupabase = createServerClient()
+    mockSupabase = createMockSupabase()
     
-    // Import the engine after setting up the mock
-    const { BulkOperationsEngine } = require('@/lib/bulk/bulk-operations-engine')
-    
-    // Mock the processOperation method at the prototype level
-    jest.spyOn(BulkOperationsEngine.prototype, 'processOperation').mockResolvedValue(undefined)
-    
+    // Mock user profile lookup
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'user_profiles') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({ 
+            data: { organization_id: 'org-123' } 
+          })
+        }
+      }
+      if (table === 'bulk_operations') {
+        return {
+          insert: jest.fn().mockReturnThis(),
+          select: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({ 
+            data: { id: 'op-123', status: 'pending' } 
+          }),
+          update: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+        }
+      }
+      if (table === 'bulk_operation_records') {
+        return {
+          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
+          update: jest.fn().mockResolvedValue({ data: null, error: null }),
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+        }
+      }
+      if (table === 'products') {
+        return {
+          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+          update: jest.fn().mockResolvedValue({ data: null, error: null }),
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({ data: null }),
+        }
+      }
+      if (table === 'inventory') {
+        return {
+          upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
+          update: jest.fn().mockResolvedValue({ data: null, error: null }),
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+        }
+      }
+      if (table === 'warehouses') {
+        return {
+          select: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue({ data: { id: 'wh-123' } }),
+        }
+      }
+      return {
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        upsert: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn(),
+      }
+    })
+
+    // Mock createServerClient
+    ;(require('@/lib/supabase/server').createServerClient as jest.Mock).mockReturnValue(mockSupabase)
+
     engine = new BulkOperationsEngine()
     mockEmit = jest.spyOn(engine, 'emit')
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    jest.clearAllMocks()
   })
 
   describe('startOperation', () => {

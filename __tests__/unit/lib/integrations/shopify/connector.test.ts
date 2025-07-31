@@ -89,12 +89,6 @@ describe('ShopifyConnector', () => {
       error: jest.fn()
     }
 
-    // Mock the connector's logger by overriding the getter
-    Object.defineProperty(connector, 'logger', {
-      get: jest.fn().mockReturnValue(mockLogger),
-      configurable: true
-    })
-
     // Mock Shopify API Client
     mockClient = {
       query: jest.fn().mockResolvedValue({
@@ -147,6 +141,15 @@ describe('ShopifyConnector', () => {
 
     // Create connector instance
     connector = new ShopifyConnector(mockConfig)
+    
+    // Mock the connector's logger after creation
+    if (connector && typeof connector === 'object') {
+      Object.defineProperty(connector, 'logger', {
+        get: jest.fn().mockReturnValue(mockLogger),
+        configurable: true,
+        enumerable: true
+      })
+    }
   })
 
   describe('constructor', () => {

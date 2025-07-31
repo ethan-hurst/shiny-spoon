@@ -433,13 +433,13 @@ export class SyncJobManager {
   /**
    * Get job manager statistics
    */
-  async getStatistics(): Promise<{
+  getStatistics(): {
     worker_id: string
     is_running: boolean
     active_jobs: number
     max_jobs: number
     uptime_seconds: number
-  }> {
+  } {
     return {
       worker_id: this.config.worker_id,
       is_running: this.isRunning,

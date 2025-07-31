@@ -19,6 +19,7 @@ export const contactSchema = z.object({
 export const warehouseSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(1, 'Warehouse name is required')
     .max(100, 'Name must be less than 100 characters'),
   code: z
@@ -29,7 +30,7 @@ export const warehouseSchema = z.object({
       /^[A-Z0-9-]+$/,
       'Code must be uppercase letters, numbers, and hyphens only'
     )
-    .transform((val) => val.toUpperCase()),
+    .transform((val) => val.trim().toUpperCase()),
   address: addressSchema,
   contacts: z
     .array(contactSchema)
