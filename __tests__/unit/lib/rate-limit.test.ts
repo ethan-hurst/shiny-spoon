@@ -1,8 +1,3 @@
-import {
-  rateLimiters,
-  checkRateLimit,
-  withRateLimit
-} from '@/lib/rate-limit'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
@@ -183,68 +178,74 @@ describe('Rate Limit', () => {
 
   describe('checkRateLimit', () => {
     it('should return success when limiter is null', async () => {
+      const { checkRateLimit } = require('@/lib/rate-limit')
       const result = await checkRateLimit(null, 'test-identifier')
 
-      expect(result).toEqual({ success: true })
+      expect(result.success).toBe(true)
+      expect(result.limit).toBeUndefined()
+      expect(result.remaining).toBeUndefined()
+      expect(result.reset).toBeUndefined()
     })
 
     it('should return rate limit result when limiter is provided', async () => {
-      const mockResult = {
-        success: true,
-        limit: 100,
-        remaining: 95,
-        reset: Date.now() + 60000
-      }
-
-      mockRatelimit.limit.mockResolvedValue(mockResult)
-
-      const result = await checkRateLimit(mockRatelimit, 'test-identifier')
-
-      expect(mockRatelimit.limit).toHaveBeenCalledWith('test-identifier')
-      expect(result).toEqual(mockResult)
-    })
-
-    it('should handle rate limit exceeded', async () => {
-      const mockResult = {
-        success: false,
-        limit: 100,
-        remaining: 0,
-        reset: Date.now() + 30000
-      }
-
-      mockRatelimit.limit.mockResolvedValue(mockResult)
-
-      const result = await checkRateLimit(mockRatelimit, 'test-identifier')
-
-      expect(result).toEqual(mockResult)
-      expect(result.success).toBe(false)
-      expect(result.remaining).toBe(0)
-    })
-
-    it('should handle different identifier formats', async () => {
-      const mockResult = {
+      const { checkRateLimit } = require('@/lib/rate-limit')
+      mockRatelimit.limit.mockResolvedValue({
         success: true,
         limit: 10,
         remaining: 5,
-        reset: Date.now() + 60000
-      }
+        reset: Date.now() + 60000,
+        pending: false
+      })
 
-      mockRatelimit.limit.mockResolvedValue(mockResult)
+      const result = await checkRateLimit(mockRatelimit, 'test-identifier')
 
-      // Test with IP address
+      expect(result.success).toBe(true)
+      expect(result.limit).toBe(10)
+      expect(result.remaining).toBe(5)
+      expect(result.reset).toBeGreaterThan(Date.now())
+      expect(mockRatelimit.limit).toHaveBeenCalledWith('test-identifier')
+    })
+
+    it('should handle rate limit exceeded', async () => {
+      const { checkRateLimit } = require('@/lib/rate-limit')
+      mockRatelimit.limit.mockResolvedValue({
+        success: false,
+        limit: 10,
+        remaining: 0,
+        reset: Date.now() + 60000,
+        pending: false
+      })
+
+      const result = await checkRateLimit(mockRatelimit, 'test-identifier')
+
+      expect(result.success).toBe(false)
+      expect(result.limit).toBe(10)
+      expect(result.remaining).toBe(0)
+      expect(result.reset).toBeGreaterThan(Date.now())
+    })
+
+    it('should handle different identifier formats', async () => {
+      const { checkRateLimit } = require('@/lib/rate-limit')
+      mockRatelimit.limit.mockResolvedValue({ 
+        success: true,
+        limit: 10,
+        remaining: 5,
+        reset: Date.now() + 60000,
+        pending: false
+      })
+
       await checkRateLimit(mockRatelimit, '192.168.1.1')
       expect(mockRatelimit.limit).toHaveBeenCalledWith('192.168.1.1')
 
-      // Test with user ID
       await checkRateLimit(mockRatelimit, 'user:123')
       expect(mockRatelimit.limit).toHaveBeenCalledWith('user:123')
 
-      // Test with complex identifier
       await checkRateLimit(mockRatelimit, 'org:456:user:789')
       expect(mockRatelimit.limit).toHaveBeenCalledWith('org:456:user:789')
     })
 
     it('should handle Redis connection errors gracefully', async () => {
+      const { checkRateLimit } = require('@/lib/rate-limit')
       const error = new Error('Redis connection failed')
       mockRatelimit.limit.mockRejectedValue(error)
 
