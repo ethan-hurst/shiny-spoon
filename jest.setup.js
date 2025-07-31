@@ -173,7 +173,23 @@ jest.mock('crypto', () => ({
     const aStr = a.toString()
     const bStr = b.toString()
     return aStr === bStr
-  })
+  }),
+  subtle: {
+    importKey: jest.fn(),
+    sign: jest.fn(),
+    verify: jest.fn(),
+    encrypt: jest.fn(),
+    decrypt: jest.fn(),
+    generateKey: jest.fn(),
+    digest: jest.fn(),
+  },
+  getRandomValues: jest.fn((array) => {
+    // Fill array with deterministic "random" values for testing
+    for (let i = 0; i < array.length; i++) {
+      array[i] = (i * 7 + 13) % 256 // Simple deterministic pattern
+    }
+    return array
+  }),
 }))
 
 // Mock @upstash/ratelimit
@@ -217,6 +233,50 @@ jest.mock('@upstash/redis', () => ({
     incr: jest.fn(),
     decr: jest.fn()
   }))
+}))
+
+// Mock NextResponse for Next.js API routes
+jest.mock('next/server', () => ({
+  NextRequest: class {
+    constructor(url, init) {
+      this.url = url
+      this.method = init?.method || 'GET'
+      this.headers = new Map(Object.entries(init?.headers || {}))
+    }
+  },
+  NextResponse: class {
+    constructor(body, init = {}) {
+      this.body = body
+      this.status = init.status || 200
+      this.statusText = init.statusText || 'OK'
+      this.headers = new Map(Object.entries(init.headers || {}))
+    }
+
+    static json(data, init = {}) {
+      return new NextResponse(JSON.stringify(data), {
+        ...init,
+        headers: {
+          'content-type': 'application/json',
+          ...init.headers,
+        },
+      })
+    }
+
+    get(name) {
+      return this.headers.get(name) || null
+    }
+
+    set(name, value) {
+      this.headers.set(name, value)
+    }
+
+    async json() {
+      if (typeof this.body === 'string') {
+        return JSON.parse(this.body)
+      }
+      return this.body
+    }
+  }
 }))
 
 // Global test utilities

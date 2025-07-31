@@ -1,66 +1,52 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
-// Mock dependencies
-jest.mock('@upstash/ratelimit', () => {
-  const MockRatelimit = jest.fn().mockImplementation(() => ({
-    limit: jest.fn(),
-    reset: jest.fn(),
-    blockUntilReady: jest.fn(),
-    getRemaining: jest.fn()
-  }))
-  
-  MockRatelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter')
-  
-  return {
-    Ratelimit: MockRatelimit
-  }
-})
-
+// Mock dependencies before importing the module
 jest.mock('@upstash/redis', () => ({
   Redis: {
-    fromEnv: jest.fn().mockReturnValue({
+    fromEnv: jest.fn(() => mockRedis)
+  }
+}))
+
+jest.mock('@upstash/ratelimit', () => ({
+  Ratelimit: jest.fn(() => mockRatelimit),
+  slidingWindow: jest.fn(() => 'sliding-window-limiter')
+}))
+
+describe('Ratelimiter', () => {
+  let mockRedis: any
+  let mockRatelimit: any
+  let consoleErrorSpy: jest.SpyInstance
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    
+    // Create mock instances
+    mockRedis = {
       get: jest.fn(),
       set: jest.fn(),
       del: jest.fn(),
       exists: jest.fn(),
       expire: jest.fn(),
       incr: jest.fn(),
-      decr: jest.fn()
-    })
-  }
-}))
-
-describe('Ratelimiter', () => {
-  let mockRedis: jest.Mocked<Redis>
-  let mockRatelimit: jest.Mocked<Ratelimit>
-  let originalEnv: NodeJS.ProcessEnv
-  let consoleErrorSpy: jest.SpyInstance
-
-  beforeEach(() => {
-    jest.clearAllMocks()
-    jest.resetModules()
+      decr: jest.fn(),
+    }
     
-    // Save original environment
-    originalEnv = process.env
+    mockRatelimit = {
+      limit: jest.fn(),
+      reset: jest.fn(),
+      blockUntilReady: jest.fn(),
+      getRemaining: jest.fn(),
+    }
     
     // Mock console.error
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-
-    // Get the mocked modules
-    const { Redis } = require('@upstash/redis')
-    const { Ratelimit } = require('@upstash/ratelimit')
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
     
-    mockRedis = Redis.fromEnv()
-    mockRatelimit = new Ratelimit()
-    
-    // Clear any existing environment variables
+    // Reset environment variables
     delete process.env.UPSTASH_REDIS_REST_URL
   })
 
   afterEach(() => {
-    // Restore original environment
-    process.env = originalEnv
     jest.restoreAllMocks()
   })
 
