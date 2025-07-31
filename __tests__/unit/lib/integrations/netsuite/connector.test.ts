@@ -50,20 +50,30 @@ describe('NetSuiteConnector', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Create mockSupabase using the global mock
-    mockSupabase = {
-      from: jest.fn(() => ({
-        select: jest.fn().mockReturnThis(),
-        insert: jest.fn().mockReturnThis(),
-        update: jest.fn().mockReturnThis(),
-        delete: jest.fn().mockReturnThis(),
-        upsert: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn(),
-        functions: {
-          invoke: jest.fn().mockResolvedValue({ data: null, error: null })
+    // Create a comprehensive mock object that supports all method chains
+    const mockChain = {
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      upsert: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnThis()
+      }),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({
+        data: {
+          last_sync_date: new Date('2023-01-01').toISOString(),
+          last_sync_token: '0'
         }
-      }))
+      }),
+      functions: {
+        invoke: jest.fn().mockResolvedValue({ data: null, error: null })
+      }
+    }
+
+    // Create mockSupabase that always returns the same mock chain
+    mockSupabase = {
+      from: jest.fn().mockReturnValue(mockChain)
     }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
@@ -203,23 +213,6 @@ describe('NetSuiteConnector', () => {
 
   describe('syncProducts', () => {
     beforeEach(() => {
-      // Mock sync state
-      const mockFrom = mockSupabase.from as jest.Mock
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: {
-          last_sync_date: new Date('2023-01-01').toISOString(),
-          last_sync_token: '0'
-        }
-      })
-      const mockUpsert = jest.fn().mockResolvedValue({ error: null })
-      
-      mockFrom.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        single: mockSingle,
-        upsert: mockUpsert,
-        eq: jest.fn().mockReturnThis()
-      })
-
       // Mock product query result
       mockClient.executeSuiteQL.mockResolvedValue({
         items: mockProducts,
@@ -247,30 +240,6 @@ describe('NetSuiteConnector', () => {
       { itemid: 'ITEM001', displayname: 'Product 1' },
       { itemid: 'ITEM002', displayname: 'Product 2' }
     ]
-
-    beforeEach(() => {
-      // Mock product query result
-      mockClient.executeSuiteQL.mockResolvedValue({
-        items: mockProducts,
-        hasMore: false
-      })
-
-      // Mock transformed products
-      mockTransformers.transformProduct
-        .mockResolvedValueOnce({
-          sku: 'ITEM001',
-          name: 'Product 1',
-          external_id: 'item001'
-        })
-        .mockResolvedValueOnce({
-          sku: 'ITEM002',
-          name: 'Product 2',
-          external_id: 'item002'
-        })
-
-        // Mock retry wrapper
-      ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
-    })
 
     it('should sync products successfully', async () => {
       const mockEmit = jest.fn()
