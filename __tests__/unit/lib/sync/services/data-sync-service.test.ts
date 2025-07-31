@@ -532,28 +532,40 @@ describe('DataSyncService', () => {
   describe('integration tests', () => {
     it('should handle complete inventory sync workflow', async () => {
       // Mock integration fetch
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'integrations') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                single: jest.fn().mockResolvedValue({
-                  data: mockIntegration,
-                  error: null
-                })
-              })
+      mockSupabase.from.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: mockIntegration,
+              error: null
             })
-          } as any
-        }
+          })
+        })
+      } as any)
+
+      // Mock inventory upsert with mixed success/failure
+      const mockUpsert = jest.fn()
+        .mockResolvedValueOnce({ data: null, error: null }) // First item succeeds
+        .mockResolvedValueOnce({ data: null, error: null }) // Second item succeeds
+        .mockRejectedValueOnce(new Error('Constraint violation')) // Third item fails
+
+      // Override the mock for inventory table
+      mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'inventory') {
           return {
-            upsert: jest.fn()
-              .mockResolvedValueOnce({ data: null, error: null })
-              .mockResolvedValueOnce({ data: null, error: null })
-              .mockRejectedValueOnce(new Error('Constraint violation'))
+            upsert: mockUpsert
           } as any
         }
-        return {} as any
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: mockIntegration,
+                error: null
+              })
+            })
+          })
+        } as any
       })
 
       // Mock external data fetch
