@@ -76,7 +76,7 @@ describe('Email Queue', () => {
     }
 
     it('should queue a valid email', async () => {
-      // Get the mock table and set up the insert response
+      // Set up the mock to return the expected structure
       const emailQueueMock = mockSupabase.from('email_queue')
       emailQueueMock.insert.mockResolvedValue({ 
         data: { id: 'email-123' }, 
@@ -97,7 +97,7 @@ describe('Email Queue', () => {
     })
 
     it('should handle array of recipients', async () => {
-      // Get the mock table and set up the insert response
+      // Set up the mock to return the expected structure
       const emailQueueMock = mockSupabase.from('email_queue')
       emailQueueMock.insert.mockResolvedValue({ 
         data: { id: 'email-123' }, 
