@@ -64,9 +64,16 @@ describe('Rate Limit', () => {
       process.env.UPSTASH_REDIS_REST_URL = mockEnv.UPSTASH_REDIS_REST_URL
       process.env.UPSTASH_REDIS_REST_TOKEN = mockEnv.UPSTASH_REDIS_REST_TOKEN
 
+      console.log('Environment variables set:', {
+        URL: process.env.UPSTASH_REDIS_REST_URL,
+        TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN
+      })
+
       // Clear module cache and re-import to trigger initialization
       jest.resetModules()
       require('@/lib/rate-limit')
+
+      console.log('Redis constructor calls:', (Redis as jest.MockedClass<typeof Redis>).mock.calls)
 
       expect(Redis).toHaveBeenCalledWith({
         url: mockEnv.UPSTASH_REDIS_REST_URL,
