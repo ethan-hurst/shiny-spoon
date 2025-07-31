@@ -200,7 +200,14 @@ jest.mock('crypto', () => ({
     encrypt: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer),
     decrypt: jest.fn().mockResolvedValue(new Uint8Array([5, 6, 7, 8]).buffer),
     generateKey: jest.fn().mockResolvedValue({}),
-    digest: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer),
+    digest: jest.fn().mockImplementation(async (algorithm, data) => {
+      // Create a deterministic hash based on the data
+      const hashArray = new Uint8Array(32)
+      for (let i = 0; i < Math.min(data.length, 32); i++) {
+        hashArray[i] = data[i] ^ 0x42 // Simple XOR for deterministic hash
+      }
+      return hashArray.buffer
+    }),
   },
   getRandomValues: jest.fn((array) => {
     // Fill array with deterministic "random" values for testing
