@@ -10,8 +10,17 @@ import type {
 } from '@/types/integration.types'
 
 // Mock dependencies
-jest.mock('@/lib/supabase/admin')
-jest.mock('crypto')
+jest.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: jest.fn()
+}))
+jest.mock('crypto', () => ({
+  randomUUID: jest.fn(),
+  timingSafeEqual: jest.fn(),
+  createHmac: jest.fn(() => ({
+    update: jest.fn().mockReturnThis(),
+    digest: jest.fn(() => 'mock-hmac-digest')
+  }))
+}))
 
 // Mock Next.js Headers
 jest.mock('next/dist/compiled/@edge-runtime/primitives', () => ({
@@ -77,15 +86,21 @@ describe('WebhookHandler', () => {
         return null
       })
       
+      const mockSingle = jest.fn().mockResolvedValue({
+        data: mockWebhookConfig,
+        error: null
+      })
+      
+      const mockEq2 = jest.fn().mockReturnValue({
+        single: mockSingle
+      })
+      
+      const mockEq1 = jest.fn().mockReturnValue({
+        eq: mockEq2
+      })
+      
       const mockSelect = jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({
-              data: mockWebhookConfig,
-              error: null
-            })
-          })
-        })
+        eq: mockEq1
       })
       
       mockSupabase.from.mockReturnValue({ select: mockSelect } as any)
@@ -119,15 +134,21 @@ describe('WebhookHandler', () => {
         }
       }
       
+      const mockSingle = jest.fn().mockResolvedValue({
+        data: qbConfig,
+        error: null
+      })
+      
+      const mockEq2 = jest.fn().mockReturnValue({
+        single: mockSingle
+      })
+      
+      const mockEq1 = jest.fn().mockReturnValue({
+        eq: mockEq2
+      })
+      
       const mockSelect = jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            single: jest.fn().mockResolvedValue({
-              data: qbConfig,
-              error: null
-            })
-          })
-        })
+        eq: mockEq1
       })
       
       mockSupabase.from.mockReturnValue({ select: mockSelect } as any)
