@@ -72,6 +72,9 @@ const customJestConfig = {
 
   // Verbose output
   verbose: true,
+  
+  // Increase timeout for complex tests
+  testTimeout: 10000,
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

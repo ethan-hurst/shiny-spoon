@@ -134,6 +134,53 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
 
+// Mock crypto module for webhook verification
+jest.mock('crypto', () => ({
+  createHmac: jest.fn(() => ({
+    update: jest.fn().mockReturnThis(),
+    digest: jest.fn(() => 'mock-hmac-digest')
+  }))
+}))
+
+// Mock @upstash/ratelimit
+jest.mock('@upstash/ratelimit', () => ({
+  Ratelimit: jest.fn().mockImplementation(() => ({
+    limit: jest.fn().mockResolvedValue({
+      success: true,
+      limit: 10,
+      remaining: 9,
+      reset: Date.now() + 60000
+    }),
+    reset: jest.fn(),
+    blockUntilReady: jest.fn(),
+    getRemaining: jest.fn()
+  })),
+  slidingWindow: jest.fn().mockReturnValue('sliding-window-limiter')
+}))
+
+// Mock @upstash/redis
+jest.mock('@upstash/redis', () => ({
+  Redis: jest.fn().mockImplementation(() => ({
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    exists: jest.fn(),
+    expire: jest.fn(),
+    incr: jest.fn(),
+    decr: jest.fn(),
+    fromEnv: jest.fn()
+  })),
+  fromEnv: jest.fn().mockImplementation(() => ({
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+    exists: jest.fn(),
+    expire: jest.fn(),
+    incr: jest.fn(),
+    decr: jest.fn()
+  }))
+}))
+
 // Global test utilities
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
