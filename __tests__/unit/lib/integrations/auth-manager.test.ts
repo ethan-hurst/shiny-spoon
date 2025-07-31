@@ -135,6 +135,17 @@ describe('AuthManager', () => {
       }
 
       mockSupabase.rpc.mockResolvedValue({ data: 'encrypted', error: null })
+      
+      mockSupabase.from.mockReturnValue({
+        upsert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: { id: 'cred-123' },
+              error: null
+            })
+          })
+        })
+      } as any)
 
       await expect(
         authManager.storeCredentials('oauth2', invalidCredentials)
@@ -617,7 +628,7 @@ describe('AuthManager', () => {
   describe('static methods', () => {
     describe('validateApiKey', () => {
       it('should validate Shopify API keys', () => {
-        expect(AuthManager.validateApiKey('a1b2c3d4e5f6789012345678901234567', 'shopify')).toBe(true)
+        expect(AuthManager.validateApiKey('a1b2c3d4e5f678901234567890123456', 'shopify')).toBe(true)
         expect(AuthManager.validateApiKey('invalid', 'shopify')).toBe(false)
         expect(AuthManager.validateApiKey('', 'shopify')).toBe(false)
       })
