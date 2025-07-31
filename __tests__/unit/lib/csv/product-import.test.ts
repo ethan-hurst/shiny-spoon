@@ -570,7 +570,7 @@ GADGET-002,Super Gadget,Amazing gadget,Electronics,149.99,75.00,1.2`
       // Check the actual structure of the validation result
       expect(validationResult).toBeDefined()
       expect(validationResult.valid).toBe(true)
-      expect(validationResult.errors).toBeUndefined()
+      expect(validationResult.errors).toEqual([])
     })
 
     it('should handle complete workflow with validation errors', async () => {
