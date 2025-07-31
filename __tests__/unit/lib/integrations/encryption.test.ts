@@ -216,6 +216,10 @@ describe('EncryptionService', () => {
       const data = 'password123'
       const salt = 'random-salt'
       
+      console.log('Global crypto available:', !!global.crypto)
+      console.log('Global crypto.subtle available:', !!global.crypto?.subtle)
+      console.log('Global crypto.subtle.importKey available:', !!global.crypto?.subtle?.importKey)
+      
       const result = await encryptionService.hash(data, salt)
       
       expect(result).toBeDefined()
