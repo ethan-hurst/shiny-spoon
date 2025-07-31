@@ -50,8 +50,21 @@ describe('NetSuiteConnector', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Use the global Supabase mock instead of creating our own
-    mockSupabase = (createClient as jest.Mock)()
+    // Create mockSupabase using the global mock
+    mockSupabase = {
+      from: jest.fn(() => ({
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        upsert: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn(),
+        functions: {
+          invoke: jest.fn().mockResolvedValue({ data: null, error: null })
+        }
+      }))
+    }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
     // Mock rate limiter
