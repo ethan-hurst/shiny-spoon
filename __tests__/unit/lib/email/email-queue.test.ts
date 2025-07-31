@@ -212,15 +212,25 @@ describe('Email Queue', () => {
     })
 
     it('should handle empty queue', async () => {
-      mockSupabase.from('email_queue').limit.mockResolvedValueOnce({
-        data: [],
-        error: null
+      // Mock the select chain with empty data
+      const emailQueueMock = mockSupabase.from('email_queue')
+      emailQueueMock.select.mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          lt: jest.fn().mockReturnValue({
+            order: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue({
+                data: [],
+                error: null
+              })
+            })
+          })
+        })
       })
 
       await processEmailQueue()
 
       // Should not attempt to process any emails
-      expect(mockSupabase.from('email_queue').update).not.toHaveBeenCalled()
+      expect(emailQueueMock.update).not.toHaveBeenCalled()
     })
 
     it('should handle database errors when fetching', async () => {
