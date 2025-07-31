@@ -3,7 +3,8 @@
 
 import { format } from 'date-fns'
 import { AuditLogger } from '@/lib/audit/audit-logger'
-import { createClient } from '@/lib/supabase/server'
+import { generateCSV } from '@/lib/csv/parser'
+import { createServerClient } from '@/lib/supabase/server'
 
 export async function exportAuditLogs({
   organizationId,
@@ -14,7 +15,7 @@ export async function exportAuditLogs({
   filters: any
   format: 'csv' | 'json'
 }) {
-  const supabase = createClient()
+  const supabase = createServerClient()
   const auditLogger = new AuditLogger(supabase)
 
   // Verify user has access
@@ -50,7 +51,7 @@ export async function exportAuditLogs({
     if (error) throw error
 
     // Log the export action
-    await auditLogger.logExport('organization', filters, logs?.length || 0)
+    await auditLogger.logExport('audit_log', filters, logs?.length || 0)
 
     if (exportFormat === 'csv') {
       const csvData =
@@ -104,7 +105,7 @@ export async function generateComplianceReport({
   reportType: 'soc2' | 'iso27001' | 'custom'
   dateRange: { from: Date; to: Date }
 }) {
-  const supabase = createClient()
+  const supabase = createServerClient()
   const auditLogger = new AuditLogger(supabase)
 
   // Verify user has access
@@ -187,20 +188,4 @@ function getComplianceChecks(type: string, metrics: any[]): any {
     audit_completeness: true,
     user_authentication: true,
   }
-}
-
-function generateCSV(data: any[], columns: Array<{key: string, header: string}>): string {
-  const headers = columns.map(col => col.header).join(',')
-  const rows = data.map(row => 
-    columns.map(col => {
-      const value = row[col.key] || ''
-      // Escape quotes and wrap in quotes if contains comma
-      if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-        return `"${value.replace(/"/g, '""')}"`
-      }
-      return value
-    }).join(',')
-  )
-  
-  return [headers, ...rows].join('\n')
 }
