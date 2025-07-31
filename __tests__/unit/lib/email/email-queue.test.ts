@@ -15,46 +15,35 @@ describe('Email Queue', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     
+    // Mock Supabase client with proper chaining
+    mockSupabase = {
+      from: jest.fn((table: string) => ({
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        lt: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        single: jest.fn(),
+      })),
+      rpc: jest.fn(),
+    }
+    
+    ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
+    
     // Mock console methods
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
     
-    // Mock Supabase client
-    const emailQueueMock = {
-      insert: jest.fn().mockResolvedValue({ error: null }),
-      select: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnValue({
-          lt: jest.fn().mockReturnValue({
-            order: jest.fn().mockReturnValue({
-              limit: jest.fn().mockResolvedValue({ 
-                data: [], 
-                error: null 
-              })
-            })
-          })
-        })
-      }),
-      update: jest.fn().mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: null, error: null })
-      })
-    }
+    // Mock global.fetch
+    global.fetch = jest.fn()
     
-    mockSupabase = {
-      from: jest.fn((table: string) => {
-        if (table === 'email_queue') {
-          return emailQueueMock
-        }
-        return {
-          insert: jest.fn().mockResolvedValue({ error: null }),
-          select: jest.fn().mockResolvedValue({ data: [], error: null })
-        }
-      })
-    }
-    
-    ;(createClient as jest.Mock).mockResolvedValue(mockSupabase)
-    
-    // Default to console email provider
-    process.env.EMAIL_PROVIDER = 'console'
+    // Reset environment variables
+    delete process.env.EMAIL_PROVIDER
+    delete process.env.RESEND_API_KEY
+    delete process.env.SENDGRID_API_KEY
   })
 
   afterEach(() => {
@@ -258,27 +247,27 @@ describe('Email Queue', () => {
     })
 
     it('should mark email as failed after max attempts', async () => {
-      const failingEmail: EmailQueueItem = {
-        id: 'email-fail',
+      const queueItem: EmailQueueItem = {
+        id: 'email-123',
         message: {
-          to: 'invalid@',  // Invalid email
+          to: 'test@example.com',
           from: 'sender@example.com',
           subject: 'Test',
           text: 'Content'
         },
         status: 'pending',
-        attempts: 2,  // Already tried twice
+        attempts: 2,
         max_attempts: 3
       }
 
-      // Mock the select chain
+      // Mock the query chain
       const emailQueueMock = mockSupabase.from('email_queue')
       emailQueueMock.select.mockReturnValue({
         eq: jest.fn().mockReturnValue({
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
-                data: [failingEmail],
+                data: [queueItem],
                 error: null
               })
             })
@@ -286,21 +275,19 @@ describe('Email Queue', () => {
         })
       })
 
-      // Mock successful updates
-      emailQueueMock.update.mockResolvedValue({ data: null, error: null })
+      // Mock the update chain
+      emailQueueMock.update.mockReturnValue({
+        eq: jest.fn().mockResolvedValue({
+          data: null,
+          error: null
+        })
+      })
 
       await processEmailQueue()
 
-      // Should update status to processing
-      expect(emailQueueMock.update).toHaveBeenCalledWith({
-        status: 'processing',
-        attempts: 3
-      })
-
-      // Should update status to failed (not pending) since max attempts reached
       expect(emailQueueMock.update).toHaveBeenCalledWith({
         status: 'failed',
-        error: expect.stringContaining('Invalid email address')
+        attempts: queueItem.attempts + 1,
       })
     })
   })

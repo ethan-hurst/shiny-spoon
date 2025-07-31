@@ -320,6 +320,13 @@ global.Response = class {
   set(name, value) {
     this.headers.set(name, value)
   }
+
+  async json() {
+    if (typeof this.body === 'string') {
+      return JSON.parse(this.body)
+    }
+    return this.body
+  }
 }
 
 // Suppress console errors during tests (optional)
