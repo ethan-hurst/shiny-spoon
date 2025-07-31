@@ -104,11 +104,15 @@ describe('Email Queue', () => {
 
     it('should handle array of recipients', async () => {
       // Set up the mock to return the expected structure
-      const emailQueueMock = mockSupabase.from('email_queue')
-      emailQueueMock.insert.mockResolvedValue({ 
-        data: { id: 'email-123' }, 
-        error: null 
-      })
+      const emailQueueMock = {
+        insert: jest.fn().mockResolvedValue({ 
+          data: { id: 'email-123' }, 
+          error: null 
+        })
+      }
+      
+      // Make sure from() returns our mock
+      mockSupabase.from.mockReturnValue(emailQueueMock)
 
       const emailWithMultipleRecipients: EmailMessage = {
         ...validEmail,
