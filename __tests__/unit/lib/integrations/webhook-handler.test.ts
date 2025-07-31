@@ -86,24 +86,16 @@ describe('WebhookHandler', () => {
         return null
       })
       
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: mockWebhookConfig,
-        error: null
-      })
+      const mockQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: mockWebhookConfig,
+          error: null
+        })
+      }
       
-      const mockEq2 = jest.fn().mockReturnValue({
-        single: mockSingle
-      })
-      
-      const mockEq1 = jest.fn().mockReturnValue({
-        eq: mockEq2
-      })
-      
-      const mockSelect = jest.fn().mockReturnValue({
-        eq: mockEq1
-      })
-      
-      mockSupabase.from.mockReturnValue({ select: mockSelect } as any)
+      mockSupabase.from.mockReturnValue(mockQuery)
       
       const result = await webhookHandler.getWebhookConfig('shopify', mockHeaders)
       
@@ -115,7 +107,7 @@ describe('WebhookHandler', () => {
       })
       
       expect(mockSupabase.from).toHaveBeenCalledWith('webhook_endpoints')
-      expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('integrations'))
+      expect(mockQuery.select).toHaveBeenCalledWith(expect.stringContaining('integrations'))
     })
 
     it('should retrieve QuickBooks webhook config by company ID', async () => {
@@ -134,24 +126,16 @@ describe('WebhookHandler', () => {
         }
       }
       
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: qbConfig,
-        error: null
-      })
+      const mockQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: qbConfig,
+          error: null
+        })
+      }
       
-      const mockEq2 = jest.fn().mockReturnValue({
-        single: mockSingle
-      })
-      
-      const mockEq1 = jest.fn().mockReturnValue({
-        eq: mockEq2
-      })
-      
-      const mockSelect = jest.fn().mockReturnValue({
-        eq: mockEq1
-      })
-      
-      mockSupabase.from.mockReturnValue({ select: mockSelect } as any)
+      mockSupabase.from.mockReturnValue(mockQuery)
       
       const result = await webhookHandler.getWebhookConfig('quickbooks', mockHeaders)
       
