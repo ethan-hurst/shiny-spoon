@@ -100,7 +100,7 @@ jest.mock('@supabase/ssr', () => ({
   })),
 }))
 
-// Mock Supabase admin client
+// Mock Supabase admin client - FIXED
 jest.mock('@/lib/supabase/admin', () => {
   const mockSupabaseAdmin = {
     auth: {
@@ -121,6 +121,7 @@ jest.mock('@/lib/supabase/admin', () => {
   }
 
   return {
+    createAdminClient: jest.fn(() => mockSupabaseAdmin),
     supabaseAdmin: mockSupabaseAdmin,
     createUserWithOrganization: jest.fn(),
     deleteUserCompletely: jest.fn(),

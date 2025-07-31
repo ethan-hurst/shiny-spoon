@@ -123,6 +123,8 @@ export function parseCSV<T>(
 
     // Map columns based on mappings
     const mappedRow: any = {}
+    let hasValidationErrors = false
+
     for (const [targetColumn, possibleHeaders] of Object.entries(
       columnMappings
     )) {
@@ -142,7 +144,8 @@ export function parseCSV<T>(
               message: validation.error!,
               value: rawValue,
             })
-            return
+            hasValidationErrors = true
+            break
           }
 
           mappedRow[targetColumn] = sanitizedValue
@@ -157,8 +160,12 @@ export function parseCSV<T>(
           column: targetColumn,
           message: `Missing required column: ${targetColumn}`,
         })
+        hasValidationErrors = true
       }
     }
+
+    // Skip validation if we already have errors
+    if (hasValidationErrors) return
 
     // Convert quantity to number
     if (mappedRow.quantity !== undefined) {
@@ -198,7 +205,11 @@ export function parseCSV<T>(
     warnings.push('No valid data found in CSV file')
   }
 
-  return { data: validData, errors, warnings }
+  return {
+    data: validData,
+    errors,
+    warnings,
+  }
 }
 
 // Specific parser for inventory imports
