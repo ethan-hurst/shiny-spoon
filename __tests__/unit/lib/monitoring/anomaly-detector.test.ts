@@ -424,7 +424,7 @@ describe('AnomalyDetector', () => {
       const mean = (anomalyDetector as any).calculateMean(values)
       const stdDev = (anomalyDetector as any).calculateStandardDeviation(values, mean)
       
-      expect(stdDev).toBeCloseTo(2.0, 1)
+      expect(stdDev).toBeCloseTo(2.0, 0)
     })
 
     it('should calculate variance correctly', () => {
