@@ -236,15 +236,8 @@ jest.mock('@upstash/redis', () => ({
 }))
 
 // Mock NextResponse for Next.js API routes
-jest.mock('next/server', () => ({
-  NextRequest: class {
-    constructor(url, init) {
-      this.url = url
-      this.method = init?.method || 'GET'
-      this.headers = new Map(Object.entries(init?.headers || {}))
-    }
-  },
-  NextResponse: class {
+jest.mock('next/server', () => {
+  class MockNextResponse {
     constructor(body, init = {}) {
       this.body = body
       this.status = init.status || 200
@@ -253,7 +246,7 @@ jest.mock('next/server', () => ({
     }
 
     static json(data, init = {}) {
-      return new NextResponse(JSON.stringify(data), {
+      return new MockNextResponse(JSON.stringify(data), {
         ...init,
         headers: {
           'content-type': 'application/json',
@@ -277,7 +270,18 @@ jest.mock('next/server', () => ({
       return this.body
     }
   }
-}))
+
+  return {
+    NextRequest: class {
+      constructor(url, init) {
+        this.url = url
+        this.method = init?.method || 'GET'
+        this.headers = new Map(Object.entries(init?.headers || {}))
+      }
+    },
+    NextResponse: MockNextResponse
+  }
+})
 
 // Global test utilities
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
