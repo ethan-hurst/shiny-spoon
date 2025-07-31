@@ -1,11 +1,8 @@
-import { queueEmail, processEmailQueue } from '@/lib/email/email-queue'
+import { queueEmail, processEmailQueue, type EmailMessage, type EmailQueueItem } from '@/lib/email/email-queue'
 import { createClient } from '@/lib/supabase/server'
-import type { EmailMessage, EmailQueueItem } from '@/lib/email/email-queue'
 
+// Mock dependencies
 jest.mock('@/lib/supabase/server')
-
-// Mock fetch for email API calls
-global.fetch = jest.fn()
 
 describe('Email Queue', () => {
   let mockSupabase: any
@@ -17,18 +14,25 @@ describe('Email Queue', () => {
     
     // Mock Supabase client with proper chaining
     mockSupabase = {
-      from: jest.fn((table: string) => ({
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        update: jest.fn().mockReturnThis(),
-        delete: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        lt: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        single: jest.fn(),
-      })),
+      from: jest.fn((table) => {
+        const mockTable = {
+          insert: jest.fn().mockReturnThis(),
+          select: jest.fn().mockReturnThis(),
+          update: jest.fn().mockReturnThis(),
+          delete: jest.fn().mockReturnThis(),
+          eq: jest.fn().mockReturnThis(),
+          lt: jest.fn().mockReturnThis(),
+          order: jest.fn().mockReturnThis(),
+          limit: jest.fn().mockReturnThis(),
+          single: jest.fn(),
+        }
+        
+        // Store the mock for later access
+        mockSupabase._tableMock = mockTable
+        return mockTable
+      }),
       rpc: jest.fn(),
+      _tableMock: null,
     }
     
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
