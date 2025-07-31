@@ -44,7 +44,8 @@ describe('Email Queue', () => {
       rpc: jest.fn(),
     }
     
-    ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
+    // Mock the createClient function to return our mockSupabase
+    ;(createClient as jest.Mock).mockResolvedValue(mockSupabase)
     
     // Mock console methods
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
@@ -87,6 +88,7 @@ describe('Email Queue', () => {
 
       expect(result.success).toBe(true)
       expect(result.error).toBeUndefined()
+      expect(createClient).toHaveBeenCalled()
       expect(mockSupabase.from).toHaveBeenCalledWith('email_queue')
       expect(emailQueueMock.insert).toHaveBeenCalledWith({
         message: validEmail,
@@ -187,7 +189,7 @@ describe('Email Queue', () => {
         error: null
       })
       
-      // Set up the update mock
+      // Set up the update mock for processing emails
       emailQueueMock.update.mockReturnValue(emailQueueMock)
       emailQueueMock.eq.mockReturnValue(emailQueueMock)
       emailQueueMock.single.mockResolvedValue({
