@@ -29,6 +29,7 @@ const customJestConfig = {
     '^undici$': '<rootDir>/__tests__/utils/mocks/undici.js',
     '^geist/font/sans$': '<rootDir>/__tests__/utils/mocks/geist-font.js',
     '^contentlayer2/generated$': '<rootDir>/__tests__/utils/mocks/contentlayer2-generated.js',
+    '^@contentlayer2/client$': '<rootDir>/__tests__/utils/mocks/contentlayer2-client.js',
     '^uncrypto$': '<rootDir>/__tests__/utils/mocks/uncrypto.js',
   },
 
