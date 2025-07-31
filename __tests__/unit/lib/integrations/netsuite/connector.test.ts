@@ -267,10 +267,7 @@ describe('NetSuiteConnector', () => {
           external_id: 'item002'
         })
 
-      // Mock database saves
-      mockSupabase.upsert.mockResolvedValue({ error: null })
-
-      // Mock retry wrapper
+        // Mock retry wrapper
       ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
     })
 
@@ -333,7 +330,10 @@ describe('NetSuiteConnector', () => {
       })
 
       // Should not update sync state in dry run mode
-      expect(mockSupabase.upsert).toHaveBeenCalledTimes(2) // Only for products, not sync state
+      // Access the mock through the from() chain
+      const mockFrom = mockSupabase.from as jest.Mock
+      const mockUpsert = mockFrom().upsert
+      expect(mockUpsert).toHaveBeenCalledTimes(2) // Only for products, not sync state
     })
 
     it('should handle product transformation errors', async () => {
