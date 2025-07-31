@@ -750,7 +750,8 @@ describe('NetSuiteConnector', () => {
 
       it('should handle save errors', async () => {
         const error = new Error('Database error')
-        getMockMethod('upsert').mockRejectedValue(error)
+        // Mock the upsert to return an error object that the saveProduct method expects
+        getMockMethod('upsert').mockResolvedValue({ error })
         await expect((connector as any).saveProduct(mockProduct)).rejects.toThrow(
           'Failed to save product ITEM001: Database error'
         )
