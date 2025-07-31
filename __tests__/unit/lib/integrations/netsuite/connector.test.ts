@@ -50,30 +50,8 @@ describe('NetSuiteConnector', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Mock Supabase client with proper chaining
-    const mockSelect = jest.fn().mockReturnThis()
-    const mockInsert = jest.fn().mockReturnThis()
-    const mockUpdate = jest.fn().mockReturnThis()
-    const mockUpsert = jest.fn().mockReturnThis()
-    const mockEq = jest.fn().mockReturnThis()
-    const mockSingle = jest.fn()
-
-    // Create a mock object that supports chaining
-    const createMockChain = () => ({
-      select: mockSelect,
-      insert: mockInsert,
-      update: mockUpdate,
-      upsert: mockUpsert,
-      eq: mockEq,
-      single: mockSingle,
-      functions: {
-        invoke: jest.fn().mockResolvedValue({ data: null, error: null })
-      }
-    })
-
-    mockSupabase = {
-      from: jest.fn().mockReturnValue(createMockChain())
-    }
+    // Use the global Supabase mock instead of creating our own
+    mockSupabase = (createClient as jest.Mock)()
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
     // Mock rate limiter
