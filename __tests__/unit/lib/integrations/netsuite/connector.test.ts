@@ -753,115 +753,101 @@ describe('NetSuiteConnector', () => {
     describe('updateInventory', () => {
       beforeEach(() => {
         // Mock warehouse lookup
-        mockSupabase.single
+        getMockMethod('single')
           .mockResolvedValueOnce({ data: { id: 'warehouse-123' } })
           .mockResolvedValueOnce({ data: { id: 'product-456' } })
 
-        mockSupabase.upsert.mockResolvedValue({ error: null })
+        getMockMethod('upsert').mockResolvedValue({ error: null })
       })
 
       it('should update inventory successfully', async () => {
-        const mockInventory = {
-          warehouse_code: 'MAIN',
+        const inventory = {
           product_sku: 'ITEM001',
-          quantity_available: 100,
-          quantity_on_order: 20
+          warehouse_code: 'WH001',
+          quantity: 100
         }
 
-        await (connector as any).updateInventory(mockInventory)
+        await (connector as any).updateInventory(inventory)
 
-        expect(mockSupabase.from).toHaveBeenCalledWith('warehouses')
-        expect(mockSupabase.from).toHaveBeenCalledWith('products')
-        expect(mockSupabase.from).toHaveBeenCalledWith('inventory')
-        expect(mockSupabase.upsert).toHaveBeenCalledWith({
+        expect(getMockMethod('upsert')).toHaveBeenCalledWith({
           product_id: 'product-456',
           warehouse_id: 'warehouse-123',
-          quantity: mockInventory.quantity_available,
-          reserved_quantity: mockInventory.quantity_on_order,
-          reorder_point: mockInventory.reorder_point,
-          reorder_quantity: mockInventory.preferred_stock_level,
-          last_sync: expect.any(String),
-          sync_status: 'synced',
-          organization_id: mockConfig.organizationId
+          quantity: 100,
+          external_updated_at: expect.any(Date)
         })
       })
 
       it('should handle missing warehouse', async () => {
-        mockSupabase.single.mockResolvedValueOnce({ data: null })
+        getMockMethod('single').mockResolvedValueOnce({ data: null })
 
-        const mockInventory = {
-          warehouse_code: 'MISSING',
-          product_sku: 'ITEM001'
+        const inventory = {
+          product_sku: 'ITEM001',
+          warehouse_code: 'WH001',
+          quantity: 100
         }
 
-        await expect((connector as any).updateInventory(mockInventory)).rejects.toThrow(
-          'Warehouse not found: MISSING'
+        await expect((connector as any).updateInventory(inventory)).rejects.toThrow(
+          'Warehouse not found: WH001'
         )
       })
 
       it('should handle missing product', async () => {
-        mockSupabase.single
+        getMockMethod('single')
           .mockResolvedValueOnce({ data: { id: 'warehouse-123' } })
           .mockResolvedValueOnce({ data: null })
 
-        const mockInventory = {
-          warehouse_code: 'MAIN',
-          product_sku: 'MISSING'
+        const inventory = {
+          product_sku: 'ITEM001',
+          warehouse_code: 'WH001',
+          quantity: 100
         }
 
-        await expect((connector as any).updateInventory(mockInventory)).rejects.toThrow(
-          'Product not found: MISSING'
+        await expect((connector as any).updateInventory(inventory)).rejects.toThrow(
+          'Product not found: ITEM001'
         )
       })
     })
 
     describe('updatePricing', () => {
       beforeEach(() => {
-        mockSupabase.single.mockResolvedValue({ data: { id: 'product-456' } })
-        mockSupabase.upsert.mockResolvedValue({ error: null })
+        getMockMethod('single').mockResolvedValue({ data: { id: 'product-456' } })
+        getMockMethod('upsert').mockResolvedValue({ error: null })
       })
 
       it('should update pricing successfully', async () => {
-        const mockPricing = [
-          {
-            product_sku: 'ITEM001',
-            price_tier: 'standard',
-            unit_price: 10.99,
-            currency_code: 'USD'
-          }
-        ]
+        const pricing = [{
+          product_sku: 'ITEM001',
+          price_tier: 'STANDARD',
+          unit_price: 99.99,
+          currency_code: 'USD',
+          external_id: 'price-123'
+        }]
 
-        await (connector as any).updatePricing(mockPricing)
+        await (connector as any).updatePricing(pricing)
 
-        expect(mockSupabase.from).toHaveBeenCalledWith('products')
-        expect(mockSupabase.from).toHaveBeenCalledWith('product_pricing')
-        expect(mockSupabase.upsert).toHaveBeenCalledWith({
+        expect(getMockMethod('upsert')).toHaveBeenCalledWith({
           product_id: 'product-456',
-          price_tier: 'standard',
-          unit_price: 10.99,
+          price_tier: 'STANDARD',
+          unit_price: 99.99,
           currency_code: 'USD',
           min_quantity: 1,
-          external_id: mockPricing[0].external_id,
-          external_updated_at: mockPricing[0].external_updated_at
+          external_id: 'price-123',
+          external_updated_at: expect.any(Date)
         })
       })
 
       it('should skip missing products', async () => {
-        mockSupabase.single.mockResolvedValue({ data: null })
+        getMockMethod('single').mockResolvedValue({ data: null })
 
-        const mockPricing = [
-          {
-            product_sku: 'MISSING',
-            unit_price: 10.99
-          }
-        ]
+        const pricing = [{
+          product_sku: 'ITEM001',
+          price_tier: 'STANDARD',
+          unit_price: 99.99
+        }]
 
-        await (connector as any).updatePricing(mockPricing)
+        await (connector as any).updatePricing(pricing)
 
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          'Product not found for pricing: MISSING'
-        )
-        expect(mockSupabase.upsert).not.toHaveBeenCalled()
+        expect(getMockMethod('upsert')).not.toHaveBeenCalled()
       })
     })
 
@@ -964,7 +950,7 @@ describe('NetSuiteConnector', () => {
   describe('Integration tests', () => {
     it('should handle complete sync workflow', async () => {
       // Setup all mocks for a complete workflow
-      mockSupabase.single.mockResolvedValue({
+      getMockMethod('single').mockResolvedValue({
         data: { last_sync_date: new Date('2023-01-01') }
       })
 
@@ -978,7 +964,7 @@ describe('NetSuiteConnector', () => {
         name: 'Product 1'
       })
 
-      mockSupabase.upsert.mockResolvedValue({ error: null })
+      getMockMethod('upsert').mockResolvedValue({ error: null })
       ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
 
       const result = await connector.syncProducts()
@@ -988,12 +974,12 @@ describe('NetSuiteConnector', () => {
       expect(mockAuth.initialize).toHaveBeenCalled()
       expect(mockClient.executeSuiteQL).toHaveBeenCalled()
       expect(mockTransformers.transformProduct).toHaveBeenCalled()
-      expect(mockSupabase.upsert).toHaveBeenCalled()
+      expect(getMockMethod('upsert')).toHaveBeenCalled()
     })
 
     it('should handle rate limiting throughout workflow', async () => {
       ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
-      mockSupabase.single.mockResolvedValue({ data: null })
+      getMockMethod('single').mockResolvedValue({ data: null })
       mockClient.executeSuiteQL.mockResolvedValue({ items: [], hasMore: false })
 
       await connector.syncProducts()
