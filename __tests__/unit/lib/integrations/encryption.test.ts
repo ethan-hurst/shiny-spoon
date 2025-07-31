@@ -1,15 +1,16 @@
-import { EncryptionService, encryption, encryptionUtils } from '@/lib/integrations/encryption'
+import { EncryptionService, encryptionUtils } from '@/lib/integrations/encryption'
 import { createClient } from '@/lib/supabase/server'
 import { AuthenticationError } from '@/types/integration.types'
 
 // Mock dependencies
 jest.mock('@/lib/supabase/server')
 
-// Use the global crypto mock from jest.setup.js
-const mockCrypto = global.crypto as any
-
-// Mock atob for Node.js
-global.atob = (str: string) => Buffer.from(str, 'base64').toString('binary')
+// Mock crypto module
+jest.mock('crypto', () => ({
+  createHmac: jest.fn(),
+  createDecipheriv: jest.fn(),
+  randomBytes: jest.fn()
+}))
 
 describe('EncryptionService', () => {
   let encryptionService: EncryptionService
@@ -248,7 +249,7 @@ describe('EncryptionService', () => {
     })
 
     it('should handle hashing errors', async () => {
-      mockCrypto.subtle.importKey.mockRejectedValue(new Error('Import failed'))
+      (global.crypto.subtle.importKey as jest.Mock).mockRejectedValue(new Error('Import failed'))
 
       await expect(
         encryptionService.hash('data', 'salt')
@@ -437,13 +438,13 @@ describe('encryptionUtils', () => {
         .mockResolvedValueOnce({ data: 'same-value', error: null })
 
       const mockHash = new Uint8Array([1, 2, 3, 4])
-      mockCrypto.subtle.digest.mockResolvedValue(mockHash.buffer)
+      (global.crypto.subtle.digest as jest.Mock).mockResolvedValue(mockHash.buffer)
 
       const result = await encryptionUtils.compareEncrypted(encrypted1, encrypted2)
       
       expect(result).toBe(true)
       expect(mockSupabase.rpc).toHaveBeenCalledTimes(2)
-      expect(mockCrypto.subtle.digest).toHaveBeenCalledTimes(2)
+      expect(global.crypto.subtle.digest).toHaveBeenCalledTimes(2)
     })
 
     it('should return false for different decrypted values', async () => {
@@ -454,7 +455,7 @@ describe('encryptionUtils', () => {
         .mockResolvedValueOnce({ data: 'value1', error: null })
         .mockResolvedValueOnce({ data: 'value2', error: null })
 
-      mockCrypto.subtle.digest
+      (global.crypto.subtle.digest as jest.Mock)
         .mockResolvedValueOnce(new Uint8Array([1, 2, 3, 4]).buffer)
         .mockResolvedValueOnce(new Uint8Array([5, 6, 7, 8]).buffer)
 
@@ -506,11 +507,11 @@ describe('encryptionUtils', () => {
       const secret = 'webhook-secret'
       
       const mockKey = {}
-      mockCrypto.subtle.importKey.mockResolvedValue(mockKey)
+      (global.crypto.subtle.importKey as jest.Mock).mockResolvedValue(mockKey)
       
       // Create a consistent signature
       const signatureBytes = new Uint8Array([1, 2, 3, 4])
-      mockCrypto.subtle.sign.mockResolvedValue(signatureBytes.buffer)
+      (global.crypto.subtle.sign as jest.Mock).mockResolvedValue(signatureBytes.buffer)
       
       const signature = '01020304'
 
@@ -521,7 +522,7 @@ describe('encryptionUtils', () => {
       )
       
       expect(result).toBe(true)
-      expect(mockCrypto.subtle.importKey).toHaveBeenCalledWith(
+      expect(global.crypto.subtle.importKey).toHaveBeenCalledWith(
         'raw',
         expect.any(Uint8Array),
         { name: 'HMAC', hash: 'SHA-256' },
@@ -534,8 +535,8 @@ describe('encryptionUtils', () => {
       const payload = '{"event":"test"}'
       const secret = 'webhook-secret'
       
-      mockCrypto.subtle.importKey.mockResolvedValue({})
-      mockCrypto.subtle.sign.mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer)
+      (global.crypto.subtle.importKey as jest.Mock).mockResolvedValue({})
+      (global.crypto.subtle.sign as jest.Mock).mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer)
       
       const wrongSignature = 'deadbeef'
 
@@ -549,7 +550,7 @@ describe('encryptionUtils', () => {
     })
 
     it('should handle validation errors', async () => {
-      mockCrypto.subtle.importKey.mockRejectedValue(new Error('Import failed'))
+      (global.crypto.subtle.importKey as jest.Mock).mockRejectedValue(new Error('Import failed'))
 
       const result = await encryptionUtils.validateWebhookSignature(
         'payload',
