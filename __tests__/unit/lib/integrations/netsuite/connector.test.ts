@@ -699,12 +699,14 @@ describe('NetSuiteConnector', () => {
           external_id: 'item001'
         }
 
-        mockSupabase.upsert.mockResolvedValue({ error: null })
+        // Access the mock through the from() chain
+        const mockUpsert = mockSupabase.from().upsert
+        mockUpsert.mockResolvedValue({ error: null })
 
         await (connector as any).saveProduct(mockProduct)
 
         expect(mockSupabase.from).toHaveBeenCalledWith('products')
-        expect(mockSupabase.upsert).toHaveBeenCalledWith({
+        expect(mockUpsert).toHaveBeenCalledWith({
           sku: mockProduct.sku,
           name: mockProduct.name,
           description: mockProduct.description,
@@ -723,7 +725,8 @@ describe('NetSuiteConnector', () => {
         const mockProduct = { sku: 'ITEM001', name: 'Test Product' }
         const error = new Error('Database error')
 
-        mockSupabase.upsert.mockResolvedValue({ error })
+        const mockUpsert = mockSupabase.from().upsert
+        mockUpsert.mockResolvedValue({ error })
 
         await expect((connector as any).saveProduct(mockProduct)).rejects.toThrow(
           'Failed to save product ITEM001: Database error'
