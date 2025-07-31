@@ -63,9 +63,8 @@ describe('NetSuiteConnector', () => {
     jest.clearAllMocks()
 
     // Create a comprehensive mock object that supports all method chains
-    const upsertEqChain = {
-      eq: jest.fn().mockReturnThis(),
-    }
+    const upsertEqChain = {} as any;
+    upsertEqChain.eq = jest.fn().mockReturnValue(upsertEqChain);
 
     const mockChain = {
       select: jest.fn().mockReturnThis(),
