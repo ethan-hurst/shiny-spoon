@@ -281,6 +281,9 @@ describe('NetSuiteConnector', () => {
       // Mock withRateLimit to actually call the function
       ;(connector as any).withRateLimit = jest.fn().mockImplementation((fn) => fn())
       
+      // Mock saveProduct to succeed
+      ;(connector as any).saveProduct = jest.fn().mockResolvedValue(undefined)
+      
       mockClient.executeSuiteQL
         .mockResolvedValueOnce({
           items: mockProducts,
