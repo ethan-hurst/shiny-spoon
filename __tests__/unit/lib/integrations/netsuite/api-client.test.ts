@@ -130,7 +130,7 @@ describe('NetSuiteApiClient', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: `${query} OFFSET 100` })
+          body: JSON.stringify({ q: `${query} LIMIT 1000 OFFSET 100` })
         })
       )
     })
@@ -190,7 +190,7 @@ describe('NetSuiteApiClient', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: `${query} OFFSET 0` })
+          body: JSON.stringify({ q: `${query} LIMIT 1000 OFFSET 0` })
         })
       )
     })

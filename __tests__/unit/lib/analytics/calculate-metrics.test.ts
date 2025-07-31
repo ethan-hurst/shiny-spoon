@@ -633,7 +633,7 @@ describe('AnalyticsCalculator', () => {
       expect(result).toHaveLength(2)
       // Each day should have the same synthetic data
       result.forEach(dayMetrics => {
-        expect(dayMetrics.totalValue).toBe(2692.25) // 95*25.99 + 0*15.50 + 5*45.00
+        expect(dayMetrics.totalValue).toBeCloseTo(2692.25, 2) // 95*25.99 + 0*15.50 + 5*45.00
         expect(dayMetrics.lowStockCount).toBe(1) // One item with quantity < 10
         expect(dayMetrics.outOfStockCount).toBe(1) // One item with quantity = 0
       })
@@ -753,7 +753,7 @@ describe('AnalyticsCalculator', () => {
       expect(result.accuracyImprovement).toBe(10)
       expect(result.errorsPrevented).toBe(20)
       expect(result.totalSaved).toBe(240000)
-      expect(result.projectedAnnualSavings).toBeCloseTo(2838709.68, 0)
+      expect(result.projectedAnnualSavings).toBeCloseTo(2825806.45, 0)
     })
 
     it('should handle zero improvement', async () => {

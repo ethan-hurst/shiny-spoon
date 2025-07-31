@@ -18,37 +18,7 @@ import {
 } from '@/types/customer.types'
 import { z } from 'zod'
 
-// Mock dependencies
-jest.mock('@/types/customer.types', () => ({
-  addressSchema: {
-    parse: jest.fn(),
-    safeParse: jest.fn()
-  },
-  contactSchema: {
-    extend: jest.fn().mockReturnValue({
-      parse: jest.fn(),
-      safeParse: jest.fn()
-    }),
-    partial: jest.fn().mockReturnValue({
-      extend: jest.fn().mockReturnValue({
-        parse: jest.fn(),
-        safeParse: jest.fn()
-      })
-    })
-  },
-  customerSchema: {
-    extend: jest.fn().mockReturnValue({
-      parse: jest.fn(),
-      safeParse: jest.fn()
-    }),
-    partial: jest.fn().mockReturnValue({
-      extend: jest.fn().mockReturnValue({
-        parse: jest.fn(),
-        safeParse: jest.fn()
-      })
-    })
-  }
-}))
+// No mocking - test actual schema behavior
 
 describe('Customer Validations', () => {
   const validAddress = {
@@ -88,15 +58,6 @@ describe('Customer Validations', () => {
 
   describe('createCustomerSchema', () => {
     it('should validate customer data with required billing address', () => {
-      const mockExtend = jest.fn().mockReturnValue({
-        parse: jest.fn().mockReturnValue(validCustomer),
-        safeParse: jest.fn().mockReturnValue({ success: true, data: validCustomer })
-      })
-      ;(customerSchema.extend as jest.Mock).mockReturnValue({
-        parse: jest.fn().mockReturnValue(validCustomer),
-        safeParse: mockExtend().safeParse
-      })
-
       const result = createCustomerSchema.safeParse(validCustomer)
 
       expect(customerSchema.extend).toHaveBeenCalledWith({
@@ -108,33 +69,17 @@ describe('Customer Validations', () => {
       const customerWithoutBilling = { ...validCustomer }
       delete customerWithoutBilling.billing_address
 
-      const mockSafeParse = jest.fn().mockReturnValue({
-        success: false,
-        error: {
-          issues: [{ path: ['billing_address'], message: 'Required' }]
-        }
-      })
-      ;(customerSchema.extend as jest.Mock).mockReturnValue({
-        safeParse: mockSafeParse
-      })
-
       const result = createCustomerSchema.safeParse(customerWithoutBilling)
 
-      expect(mockSafeParse).toHaveBeenCalledWith(customerWithoutBilling)
+      expect(result.success).toBe(false)
+      expect(result.error).toBeDefined()
     })
 
     it('should validate complete customer data', () => {
-      const mockSafeParse = jest.fn().mockReturnValue({
-        success: true,
-        data: validCustomer
-      })
-      ;(customerSchema.extend as jest.Mock).mockReturnValue({
-        safeParse: mockSafeParse
-      })
+      const result = createCustomerSchema.safeParse(validCustomer)
 
-      createCustomerSchema.safeParse(validCustomer)
-
-      expect(mockSafeParse).toHaveBeenCalledWith(validCustomer)
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(validCustomer)
     })
   })
 
