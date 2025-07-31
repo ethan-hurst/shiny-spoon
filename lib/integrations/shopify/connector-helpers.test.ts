@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
+import { describe, it, expect, beforeEach, jest, type Mock } from '@jest/globals'
 import { incrementalSyncProducts, type IncrementalSyncHelperOptions } from './connector-helpers'
 import type { SyncOptions } from '@/lib/integrations/base-connector'
 import type { ShopifyApiClient } from './api-client'
@@ -6,7 +6,7 @@ import type { ShopifyTransformers } from './transformers'
 import type { BaseLogger } from '@/lib/integrations/base-connector'
 
 // Mock the ShopifyApiClient to avoid importing the real implementation
-vi.mock('./api-client')
+jest.mock('./api-client')
 
 describe('connector-helpers', () => {
   let mockHelpers: IncrementalSyncHelperOptions
@@ -16,39 +16,39 @@ describe('connector-helpers', () => {
 
   beforeEach(() => {
     // Reset all mocks
-    vi.clearAllMocks()
+    jest.clearAllMocks()
 
     // Create mock implementations
     mockClient = {
-      query: vi.fn(),
+      query: jest.fn(),
     } as any
 
     mockTransformers = {
-      transformProduct: vi.fn(),
+      transformProduct: jest.fn(),
     } as any
 
     mockLogger = {
-      info: vi.fn(),
-      error: vi.fn(),
-      warn: vi.fn(),
-      debug: vi.fn(),
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
     } as any
 
     mockHelpers = {
       client: mockClient,
       transformers: mockTransformers,
       logger: mockLogger,
-      getSyncState: vi.fn(),
-      saveProduct: vi.fn(),
-      saveProductMapping: vi.fn(),
-      saveSyncCursor: vi.fn(),
-      updateSyncState: vi.fn(),
-      emitProgress: vi.fn(),
-      withRateLimit: vi.fn((fn) => fn()),
+      getSyncState: jest.fn(),
+      saveProduct: jest.fn(),
+      saveProductMapping: jest.fn(),
+      saveSyncCursor: jest.fn(),
+      updateSyncState: jest.fn(),
+      emitProgress: jest.fn(),
+      withRateLimit: jest.fn((fn) => fn()),
     }
 
     // Mock ShopifyApiClient.buildProductQuery as a static method
-    vi.mocked(mockClient.constructor as any).buildProductQuery = vi
+    ;(ShopifyApiClient as any).buildProductQuery = jest
       .fn()
       .mockReturnValue('id title handle')
   })

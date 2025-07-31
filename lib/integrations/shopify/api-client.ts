@@ -411,7 +411,7 @@ export class ShopifyApiClient {
         countryCode
         zip
         phone
-        company
+        ${includeCompany ? 'company' : ''}
       }
       ${includeCompany ? `
         company {

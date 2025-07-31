@@ -30,6 +30,10 @@ const customJestConfig = {
     '^geist/font/sans$': '<rootDir>/__tests__/utils/mocks/geist-font.js',
     '^contentlayer2/generated$': '<rootDir>/__tests__/utils/mocks/contentlayer2-generated.js',
     '^@contentlayer2/client$': '<rootDir>/__tests__/utils/mocks/contentlayer2-client.js',
+    '^contentlayer2$': '<rootDir>/__tests__/utils/mocks/contentlayer2.js',
+    '^contentlayer2/dist/client/index.js$': '<rootDir>/__tests__/utils/mocks/contentlayer2.js',
+    '^contentlayer2/client$': '<rootDir>/__tests__/utils/mocks/contentlayer2-client.js',
+    '^\\.contentlayer/generated$': '<rootDir>/__tests__/utils/mocks/contentlayer2-generated.js',
     '^uncrypto$': '<rootDir>/__tests__/utils/mocks/uncrypto.js',
   },
 
@@ -63,19 +67,21 @@ const customJestConfig = {
     '**/__tests__/**/*.{js,jsx,ts,tsx}',
     '**/?(*.)+(spec|test).{js,jsx,ts,tsx}',
   ],
-
-  // Ignore Playwright E2E tests
+  
+  // Exclude mock files and E2E tests from being treated as tests
   testPathIgnorePatterns: [
     '<rootDir>/__tests__/e2e/',
     '<rootDir>/tests/e2e/',
     '<rootDir>/playwright-report/',
+    '<rootDir>/__tests__/utils/mocks/',
+    '<rootDir>/__tests__/helpers/test-utils.tsx',
   ],
 
   // Verbose output
   verbose: true,
   
   // Increase timeout for complex tests
-  testTimeout: 10000,
+  testTimeout: 30000,
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

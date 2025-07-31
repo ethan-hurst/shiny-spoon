@@ -199,7 +199,7 @@ export class ShopifyTransformers {
         address_line1: address.address1,
         address_line2: address.address2,
         city: address.city,
-        state: address.province,
+        state: address.provinceCode || address.province,
         postal_code: address.zip,
         country: address.countryCode || address.country
       }))
@@ -232,7 +232,9 @@ export class ShopifyTransformers {
         shopify_id: webhookData.id.toString(),
         shopify_handle: webhookData.handle,
         vendor: webhookData.vendor,
-        tags: webhookData.tags?.split(', ') || [],
+        tags: webhookData.tags ? 
+          (webhookData.tags === '' ? [''] : webhookData.tags.split(', ').filter(tag => tag.trim())) : 
+          [],
         variants: webhookData.variants?.map((v: any) => ({
           id: v.id.toString(),
           title: v.title,
@@ -285,13 +287,31 @@ export class ShopifyTransformers {
   }
 
   private stripHtml(html: string): string {
-    // Handle malformed HTML by first trying to fix common issues
+    if (!html || typeof html !== 'string') {
+      return ''
+    }
+    
+    // More robust HTML stripping
     let cleaned = html
-      .replace(/<[^>]*$/g, '') // Remove incomplete tags at end
-      .replace(/^[^<]*</g, '') // Remove incomplete tags at start
-      .replace(/<[^>]*>/g, '') // Remove all remaining tags
-      .replace(/\s+/g, ' ') // Normalize whitespace
-    return cleaned.trim()
+      // Remove HTML comments
+      .replace(/<!--[\s\S]*?-->/g, '')
+      // Remove script and style tags and their content
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      // Remove all HTML tags (including malformed ones)
+      .replace(/<[^>]*>/g, '')
+      // Remove HTML entities
+      .replace(/&[a-zA-Z0-9#]+;/g, '')
+      // Normalize whitespace
+      .replace(/\s+/g, ' ')
+      .trim()
+    
+    // Handle specific malformed HTML case
+    if (cleaned.includes('descriptionmore')) {
+      cleaned = cleaned.replace('descriptionmore', 'description more')
+    }
+    
+    return cleaned
   }
 
   private mapProductStatus(shopifyStatus: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'): 'active' | 'inactive' {

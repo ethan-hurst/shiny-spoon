@@ -60,9 +60,8 @@ describe('Customer Validations', () => {
     it('should validate customer data with required billing address', () => {
       const result = createCustomerSchema.safeParse(validCustomer)
 
-      expect(customerSchema.extend).toHaveBeenCalledWith({
-        billing_address: addressSchema
-      })
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(validCustomer)
     })
 
     it('should require billing address for new customers', () => {
@@ -85,131 +84,76 @@ describe('Customer Validations', () => {
 
   describe('updateCustomerSchema', () => {
     it('should make all fields optional except id', () => {
-      const mockPartial = jest.fn().mockReturnValue({
-        extend: jest.fn().mockReturnValue({
-          safeParse: jest.fn().mockReturnValue({ success: true })
-        })
-      })
-      ;(customerSchema.partial as jest.Mock).mockReturnValue(mockPartial())
-
       const updateData = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         company_name: 'Updated Corp'
       }
 
-      updateCustomerSchema.safeParse(updateData)
+      const result = updateCustomerSchema.safeParse(updateData)
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(updateData)
+    })
 
-      expect(customerSchema.partial).toHaveBeenCalled()
-      expect(mockPartial().extend).toHaveBeenCalledWith({
-        id: expect.any(Object) // z.string().uuid()
-      })
+      // Test that id is required
+      const invalidData = { company_name: 'Updated Corp' }
+      const invalidResult = updateCustomerSchema.safeParse(invalidData)
+      expect(invalidResult.success).toBe(false)
     })
 
     it('should require UUID for id field', () => {
-      const mockExtend = jest.fn().mockReturnValue({
-        safeParse: jest.fn().mockReturnValue({
-          success: false,
-          error: { issues: [{ path: ['id'], message: 'Invalid uuid' }] }
-        })
-      })
-      ;(customerSchema.partial as jest.Mock).mockReturnValue({
-        extend: mockExtend
-      })
-
       const updateData = {
         id: 'invalid-uuid',
         company_name: 'Updated Corp'
       }
 
       const result = updateCustomerSchema.safeParse(updateData)
-
-      expect(mockExtend).toHaveBeenCalledWith({
-        id: expect.any(Object)
-      })
+      expect(result.success).toBe(false)
     })
 
     it('should allow partial updates', () => {
-      const mockSafeParse = jest.fn().mockReturnValue({
-        success: true,
-        data: { id: '123e4567-e89b-12d3-a456-426614174000' }
-      })
-      ;(customerSchema.partial as jest.Mock).mockReturnValue({
-        extend: jest.fn().mockReturnValue({
-          safeParse: mockSafeParse
-        })
-      })
-
       const partialUpdate = {
         id: '123e4567-e89b-12d3-a456-426614174000'
       }
 
-      updateCustomerSchema.safeParse(partialUpdate)
-
-      expect(mockSafeParse).toHaveBeenCalledWith(partialUpdate)
+      const result = updateCustomerSchema.safeParse(partialUpdate)
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(partialUpdate)
     })
   })
 
   describe('createContactSchema', () => {
     it('should extend contact schema with customer_id', () => {
-      const mockExtend = jest.fn().mockReturnValue({
-        safeParse: jest.fn().mockReturnValue({ success: true })
-      })
-      ;(contactSchema.extend as jest.Mock).mockReturnValue({
-        safeParse: mockExtend().safeParse
-      })
-
       const contactData = {
         ...validContact,
         customer_id: '123e4567-e89b-12d3-a456-426614174000'
       }
 
-      createContactSchema.safeParse(contactData)
-
-      expect(contactSchema.extend).toHaveBeenCalledWith({
-        customer_id: expect.any(Object) // z.string().uuid()
-      })
+      const result = createContactSchema.safeParse(contactData)
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(contactData)
     })
 
     it('should require valid UUID for customer_id', () => {
-      const mockSafeParse = jest.fn().mockReturnValue({
-        success: false,
-        error: { issues: [{ path: ['customer_id'], message: 'Invalid uuid' }] }
-      })
-      ;(contactSchema.extend as jest.Mock).mockReturnValue({
-        safeParse: mockSafeParse
-      })
-
       const contactData = {
         ...validContact,
         customer_id: 'invalid-uuid'
       }
 
       const result = createContactSchema.safeParse(contactData)
-
-      expect(mockSafeParse).toHaveBeenCalledWith(contactData)
+      expect(result.success).toBe(false)
     })
   })
 
   describe('updateContactSchema', () => {
     it('should make all fields optional except id', () => {
-      const mockPartial = jest.fn().mockReturnValue({
-        extend: jest.fn().mockReturnValue({
-          safeParse: jest.fn().mockReturnValue({ success: true })
-        })
-      })
-      ;(contactSchema.partial as jest.Mock).mockReturnValue(mockPartial())
-
       const updateData = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         first_name: 'Jane'
       }
 
-      updateContactSchema.safeParse(updateData)
-
-      expect(contactSchema.partial).toHaveBeenCalled()
-      expect(mockPartial().extend).toHaveBeenCalledWith({
-        id: expect.any(Object)
-      })
+      const result = updateContactSchema.safeParse(updateData)
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(updateData)
     })
   })
 
@@ -767,14 +711,9 @@ describe('Customer Validations', () => {
       expect(transformed.customer.company_name).toBe('Integration Corp')
       expect(transformed.contact).not.toBeNull()
 
-      // Step 3: Validate transformed customer data (mocked)
-      const mockSafeParse = jest.fn().mockReturnValue({ success: true })
-      ;(customerSchema.extend as jest.Mock).mockReturnValue({
-        safeParse: mockSafeParse
-      })
-
-      createCustomerSchema.safeParse(transformed.customer)
-      expect(mockSafeParse).toHaveBeenCalled()
+      // Step 3: Validate transformed customer data
+      const customerResult = createCustomerSchema.safeParse(transformed.customer)
+      expect(customerResult.success).toBe(true)
     })
 
     it('should handle schema validation errors consistently', () => {

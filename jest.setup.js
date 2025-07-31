@@ -134,12 +134,39 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
 
-// Mock crypto module for webhook verification
+// Mock crypto module for webhook verification and hashing
 jest.mock('crypto', () => ({
   createHmac: jest.fn(() => ({
     update: jest.fn().mockReturnThis(),
     digest: jest.fn(() => 'mock-hmac-digest')
   })),
+  createHash: jest.fn((algorithm) => {
+    const mockHash = {
+      update: jest.fn((data) => {
+        mockHash._data = data.toString()
+        return mockHash
+      }),
+      digest: jest.fn(() => {
+        // Generate a deterministic hash for testing
+        const input = mockHash._data || ''
+        let hash = 0
+        for (let i = 0; i < input.length; i++) {
+          const char = input.charCodeAt(i)
+          hash = ((hash << 5) - hash) + char
+          hash = hash & hash // Convert to 32-bit integer
+        }
+        // Use a more unique hash generation to avoid collisions
+        const uniqueHash = Math.abs(hash).toString(16).padStart(8, '0') + 
+                          input.length.toString(16).padStart(4, '0') +
+                          (input.charCodeAt(0) || 0).toString(16).padStart(4, '0') +
+                          (input.charCodeAt(Math.floor(input.length / 2)) || 0).toString(16).padStart(4, '0')
+        return uniqueHash.padStart(64, '0') // Return 64-char hex string
+      }),
+      _data: ''
+    }
+    
+    return mockHash
+  }),
   timingSafeEqual: jest.fn((a, b) => {
     // Return true if the signatures match, false otherwise
     const aStr = a.toString()

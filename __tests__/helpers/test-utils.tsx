@@ -2,6 +2,7 @@ import React, { ReactElement } from 'react'
 import { render, RenderOptions, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe, toHaveNoViolations } from 'jest-axe'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Extend Jest matchers for accessibility testing
 expect.extend(toHaveNoViolations)
@@ -12,10 +13,24 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
 }
 
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        refetchOnWindowFocus: false,
+      },
+      mutations: {
+        retry: false,
+      },
+    },
+  })
+
   return (
-    <div data-testid="test-provider">
-      {children}
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <div data-testid="test-provider">
+        {children}
+      </div>
+    </QueryClientProvider>
   )
 }
 

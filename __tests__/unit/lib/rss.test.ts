@@ -85,16 +85,18 @@ describe.skip('RSS Feed Generation', () => {
 
     it('should limit to 20 posts', async () => {
       // Mock more than 20 posts
-      jest.doMock('contentlayer2/generated', () => ({
-        allPosts: Array.from({ length: 25 }, (_, i) => ({
-          _id: `post-${i}`,
-          published: true,
-          date: `2024-01-${String(i + 1).padStart(2, '0')}`,
-          title: `Post ${i}`,
-          description: `Description ${i}`,
-          url: `/blog/post-${i}`,
-        })),
+      const mockPosts = Array.from({ length: 25 }, (_, i) => ({
+        _id: `post-${i}`,
+        published: true,
+        date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+        title: `Post ${i}`,
+        description: `Description ${i}`,
+        url: `/blog/post-${i}`,
       }))
+      
+      // Temporarily override the mock
+      const originalAllPosts = require('contentlayer2/generated').allPosts
+      require('contentlayer2/generated').allPosts = mockPosts
 
       (existsSync as jest.Mock).mockReturnValue(true)
       ;(writeFileSync as jest.Mock).mockImplementation(() => {})
@@ -102,6 +104,9 @@ describe.skip('RSS Feed Generation', () => {
       await generateRssFeed()
 
       expect(mockFeed.item).toHaveBeenCalledTimes(20)
+      
+      // Restore original mock
+      require('contentlayer2/generated').allPosts = originalAllPosts
     })
 
     it('should handle missing optional fields gracefully', async () => {
@@ -146,18 +151,20 @@ describe.skip('RSS Feed Generation', () => {
 
     it('should handle RSS item creation errors gracefully', async () => {
       // Mock a post that will cause an error when added to RSS
-      jest.doMock('contentlayer2/generated', () => ({
-        allPosts: [
-          {
-            _id: 'error-post',
-            published: true,
-            date: '2024-01-01',
-            title: 'Error Post',
-            description: 'This will cause an error',
-            url: '/blog/error-post',
-          },
-        ],
-      }))
+      const mockPosts = [
+        {
+          _id: 'error-post',
+          published: true,
+          date: '2024-01-01',
+          title: 'Error Post',
+          description: 'This will cause an error',
+          url: '/blog/error-post',
+        },
+      ]
+      
+      // Temporarily override the mock
+      const originalAllPosts = require('contentlayer2/generated').allPosts
+      require('contentlayer2/generated').allPosts = mockPosts
 
       (mockFeed.item as jest.Mock).mockImplementation(() => {
         throw new Error('RSS item error')
@@ -175,21 +182,26 @@ describe.skip('RSS Feed Generation', () => {
         'Failed to add post to RSS feed: error-post',
         expect.any(Error)
       )
+      
+      // Restore original mock
+      require('contentlayer2/generated').allPosts = originalAllPosts
     })
 
     it('should validate post dates', async () => {
-      jest.doMock('contentlayer2/generated', () => ({
-        allPosts: [
-          {
-            _id: 'invalid-date-post',
-            published: true,
-            date: 'invalid-date',
-            title: 'Invalid Date Post',
-            description: 'This has an invalid date',
-            url: '/blog/invalid-date',
-          },
-        ],
-      }))
+      const mockPosts = [
+        {
+          _id: 'invalid-date-post',
+          published: true,
+          date: 'invalid-date',
+          title: 'Invalid Date Post',
+          description: 'This has an invalid date',
+          url: '/blog/invalid-date',
+        },
+      ]
+      
+      // Temporarily override the mock
+      const originalAllPosts = require('contentlayer2/generated').allPosts
+      require('contentlayer2/generated').allPosts = mockPosts
 
       (existsSync as jest.Mock).mockReturnValue(true)
       ;(writeFileSync as jest.Mock).mockImplementation(() => {})
@@ -200,18 +212,23 @@ describe.skip('RSS Feed Generation', () => {
 
       expect(consoleSpy).toHaveBeenCalledWith('Invalid date for post: invalid-date-post')
       expect(mockFeed.item).not.toHaveBeenCalled()
+      
+      // Restore original mock
+      require('contentlayer2/generated').allPosts = originalAllPosts
     })
 
     it('should warn about posts with missing required fields', async () => {
-      jest.doMock('contentlayer2/generated', () => ({
-        allPosts: [
-          {
-            _id: 'incomplete-post',
-            published: true,
-            // Missing date, title, description, url
-          },
-        ],
-      }))
+      const mockPosts = [
+        {
+          _id: 'incomplete-post',
+          published: true,
+          // Missing date, title, description, url
+        },
+      ]
+      
+      // Temporarily override the mock
+      const originalAllPosts = require('contentlayer2/generated').allPosts
+      require('contentlayer2/generated').allPosts = mockPosts
 
       (existsSync as jest.Mock).mockReturnValue(true)
       ;(writeFileSync as jest.Mock).mockImplementation(() => {})
@@ -222,6 +239,9 @@ describe.skip('RSS Feed Generation', () => {
 
       expect(consoleSpy).toHaveBeenCalledWith('Skipping invalid post: incomplete-post')
       expect(mockFeed.item).not.toHaveBeenCalled()
+      
+      // Restore original mock
+      require('contentlayer2/generated').allPosts = originalAllPosts
     })
 
     it('should create RSS feed with correct configuration', async () => {

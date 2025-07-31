@@ -1,5 +1,6 @@
-// Mock for contentlayer2/generated
+// Mock for contentlayer2 module
 module.exports = {
+  // Add any exports that contentlayer2 provides
   allPosts: [
     {
       _id: 'post-1',
@@ -36,12 +37,10 @@ module.exports = {
       published: true,
       date: '2024-01-04',
       title: 'Post 4',
-      description: 'Latest post',
+      description: 'Test description 4',
       url: '/blog/post-4',
-      categories: [],
-      authors: []
+      categories: ['test'],
+      authors: ['Test Author']
     }
-  ],
-  allAuthors: [],
-  allDocuments: []
-}
+  ]
+} 
