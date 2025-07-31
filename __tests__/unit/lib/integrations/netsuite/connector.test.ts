@@ -732,7 +732,9 @@ describe('NetSuiteConnector', () => {
 
         // Set up the mock expectations
         const mockFrom = mockSupabase.from as jest.Mock
-        const mockUpsert = jest.fn().mockReturnThis()
+        const mockUpsert = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnThis()
+        })
         const mockEq = jest.fn().mockReturnThis()
         
         mockFrom.mockReturnValue({
@@ -763,7 +765,9 @@ describe('NetSuiteConnector', () => {
         const error = new Error('Database error')
 
         const mockFrom = mockSupabase.from as jest.Mock
-        const mockUpsert = jest.fn().mockReturnThis()
+        const mockUpsert = jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnThis()
+        })
         const mockEq = jest.fn().mockReturnThis()
         
         mockFrom.mockReturnValue({
