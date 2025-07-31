@@ -47,13 +47,6 @@ describe('Email Queue', () => {
     // Mock the createClient function to return a resolved promise with our mockSupabase
     ;(createClient as jest.Mock).mockResolvedValue(mockSupabase)
     
-    // Debug: Check if mock is set up correctly
-    console.log('Mock setup:', {
-      createClient: typeof createClient,
-      mockSupabase: typeof mockSupabase,
-      from: typeof mockSupabase.from
-    })
-    
     // Mock console methods
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
@@ -84,8 +77,6 @@ describe('Email Queue', () => {
     }
 
     it('should queue a valid email', async () => {
-      console.log('Test starting...')
-      
       // Set up the mock to return the expected structure
       const emailQueueMock = {
         insert: jest.fn().mockResolvedValue({ 
@@ -97,15 +88,7 @@ describe('Email Queue', () => {
       // Make sure from() returns our mock
       mockSupabase.from.mockReturnValue(emailQueueMock)
 
-      // Test that the mock is working
-      console.log('Testing mock setup...')
-      const mockResult = await emailQueueMock.insert({ test: 'data' })
-      console.log('Mock test result:', mockResult)
-      expect(emailQueueMock.insert).toHaveBeenCalledWith({ test: 'data' })
-
-      console.log('About to call queueEmail...')
       const result = await queueEmail(validEmail)
-      console.log('queueEmail called successfully, result:', result)
 
       expect(result.success).toBe(true)
       expect(result.error).toBeUndefined()
