@@ -221,14 +221,15 @@ describe('EncryptionService', () => {
       expect(result).toBeDefined()
       expect(typeof result).toBe('string')
       expect(result.length).toBeGreaterThan(0)
-      expect(mockCrypto.subtle.importKey).toHaveBeenCalledWith(
+      // Use global crypto mock from jest.setup.js
+      expect(global.crypto.subtle.importKey).toHaveBeenCalledWith(
         'raw',
         expect.any(Uint8Array),
         { name: 'HMAC', hash: 'SHA-256' },
         false,
         ['sign']
       )
-      expect(mockCrypto.subtle.sign).toHaveBeenCalledWith(
+      expect(global.crypto.subtle.sign).toHaveBeenCalledWith(
         'HMAC',
         expect.any(Object),
         expect.any(Uint8Array)
