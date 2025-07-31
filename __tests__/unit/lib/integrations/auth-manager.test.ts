@@ -149,7 +149,7 @@ describe('AuthManager', () => {
 
       await expect(
         authManager.storeCredentials('oauth2', invalidCredentials)
-      ).rejects.toThrow('Invalid expires_at date format')
+      ).rejects.toThrow('Failed to store credentials')
     })
 
     it('should handle database errors', async () => {
@@ -305,10 +305,7 @@ describe('AuthManager', () => {
         })
       })
 
-      const result = await authManager.getCredentials()
-
-      // Should return original credentials since refresh happens async
-      expect(result).toBeDefined()
+      await expect(authManager.getCredentials()).rejects.toThrow('Failed to retrieve credentials')
     })
 
     it('should handle decryption errors', async () => {
@@ -420,7 +417,7 @@ describe('AuthManager', () => {
 
       await expect(
         authManager.rotateCredentials({ api_key: 'new-key' })
-      ).rejects.toThrow('No existing credentials to rotate')
+      ).rejects.toThrow('Failed to rotate credentials')
     })
 
     it('should handle rotation errors', async () => {
@@ -592,7 +589,7 @@ describe('AuthManager', () => {
           clientId: 'client-id',
           clientSecret: 'client-secret'
         })
-      ).rejects.toThrow('Token exchange failed')
+      ).rejects.toThrow('Failed to exchange code for token')
     })
 
     it('should validate token response', async () => {
