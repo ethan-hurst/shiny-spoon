@@ -133,10 +133,14 @@ describe('Email Queue', () => {
 
     it('should handle database errors', async () => {
       const dbError = new Error('Database connection failed')
-      const emailQueueMock = mockSupabase.from('email_queue')
-      emailQueueMock.insert.mockResolvedValue({ 
-        error: { message: dbError.message } 
-      })
+      const emailQueueMock = {
+        insert: jest.fn().mockResolvedValue({ 
+          error: { message: dbError.message } 
+        })
+      }
+      
+      // Make sure from() returns our mock
+      mockSupabase.from.mockReturnValue(emailQueueMock)
 
       const result = await queueEmail(validEmail)
 
