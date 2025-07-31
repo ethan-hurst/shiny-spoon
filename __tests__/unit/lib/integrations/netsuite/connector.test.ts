@@ -751,10 +751,7 @@ describe('NetSuiteConnector', () => {
 
       it('should handle save errors', async () => {
         const error = new Error('Database error')
-        
-        // Mock Supabase to throw error on upsert
         getMockMethod('upsert').mockRejectedValue(error)
-
         await expect((connector as any).saveProduct(mockProduct)).rejects.toThrow(
           'Failed to save product ITEM001: Database error'
         )
