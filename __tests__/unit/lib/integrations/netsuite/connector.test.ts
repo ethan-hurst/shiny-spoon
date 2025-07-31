@@ -323,12 +323,20 @@ describe('NetSuiteConnector', () => {
       // Mock withRateLimit to actually call the function
       ;(connector as any).withRateLimit = jest.fn().mockImplementation((fn) => fn())
       
+      // Mock saveProduct to succeed for first product, fail for second
+      ;(connector as any).saveProduct = jest.fn()
+        .mockResolvedValueOnce(undefined) // First product succeeds
+        .mockRejectedValueOnce(new Error('Transform failed')) // Second product fails
+      
       mockTransformers.transformProduct
         .mockResolvedValueOnce({
           sku: 'ITEM001',
           name: 'Product 1'
         })
-        .mockRejectedValueOnce(new Error('Transform failed'))
+        .mockResolvedValueOnce({
+          sku: 'ITEM002',
+          name: 'Product 2'
+        })
 
       const result = await connector.syncProducts()
 
