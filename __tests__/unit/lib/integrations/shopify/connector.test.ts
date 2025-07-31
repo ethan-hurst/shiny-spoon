@@ -433,6 +433,7 @@ describe('ShopifyConnector', () => {
       expect(result).toBe(true)
       expect(mockCrypto.createHmac).toHaveBeenCalledWith('sha256', expect.any(String))
       expect(mockHmac.update).toHaveBeenCalledWith(body)
+      expect(mockHmac.digest).toHaveBeenCalledWith('hex')
     })
 
     it('should reject invalid webhook signatures', async () => {
