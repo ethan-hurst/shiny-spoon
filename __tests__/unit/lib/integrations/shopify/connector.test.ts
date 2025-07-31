@@ -418,6 +418,15 @@ describe('ShopifyConnector', () => {
       })
       const body = 'test-body'
 
+      // Mock crypto to return a matching signature
+      const mockCrypto = require('crypto')
+      mockCrypto.createHmac.mockReturnValue({
+        update: jest.fn().mockReturnValue({
+          digest: jest.fn().mockReturnValue('valid-signature')
+        })
+      })
+      mockCrypto.timingSafeEqual.mockReturnValue(true)
+
       const result = await connector.verifyWebhook(headers, body)
 
       expect(result).toBe(true)
@@ -428,6 +437,15 @@ describe('ShopifyConnector', () => {
         'x-shopify-hmac-sha256': 'invalid-signature'
       })
       const body = 'test-body'
+
+      // Mock crypto to return a different signature
+      const mockCrypto = require('crypto')
+      mockCrypto.createHmac.mockReturnValue({
+        update: jest.fn().mockReturnValue({
+          digest: jest.fn().mockReturnValue('different-signature')
+        })
+      })
+      mockCrypto.timingSafeEqual.mockReturnValue(false)
 
       const result = await connector.verifyWebhook(headers, body)
 

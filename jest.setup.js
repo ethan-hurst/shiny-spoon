@@ -194,13 +194,13 @@ jest.mock('crypto', () => ({
     return aStr === bStr
   }),
   subtle: {
-    importKey: jest.fn(),
-    sign: jest.fn(),
-    verify: jest.fn(),
-    encrypt: jest.fn(),
-    decrypt: jest.fn(),
-    generateKey: jest.fn(),
-    digest: jest.fn(),
+    importKey: jest.fn().mockResolvedValue({}),
+    sign: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer),
+    verify: jest.fn().mockResolvedValue(true),
+    encrypt: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer),
+    decrypt: jest.fn().mockResolvedValue(new Uint8Array([5, 6, 7, 8]).buffer),
+    generateKey: jest.fn().mockResolvedValue({}),
+    digest: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer),
   },
   getRandomValues: jest.fn((array) => {
     // Fill array with deterministic "random" values for testing

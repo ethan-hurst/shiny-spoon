@@ -2,6 +2,9 @@ import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
 // Mock dependencies before importing the module
+let mockRedis: any
+let mockRatelimit: any
+
 jest.mock('@upstash/redis', () => ({
   Redis: {
     fromEnv: jest.fn(() => mockRedis)
@@ -14,8 +17,6 @@ jest.mock('@upstash/ratelimit', () => ({
 }))
 
 describe('Ratelimiter', () => {
-  let mockRedis: any
-  let mockRatelimit: any
   let consoleErrorSpy: jest.SpyInstance
 
   beforeEach(() => {
@@ -52,7 +53,6 @@ describe('Ratelimiter', () => {
 
   describe('initialization with Redis environment', () => {
     it('should initialize rate limiter when UPSTASH_REDIS_REST_URL is set', () => {
-      // Set environment variable
       process.env.UPSTASH_REDIS_REST_URL = 'https://mock-redis.upstash.io'
 
       // Clear module cache to ensure fresh import
@@ -61,9 +61,9 @@ describe('Ratelimiter', () => {
       // Import the module to trigger initialization
       const { ratelimitConfig } = require('@/lib/ratelimiter')
 
-      expect(Redis.fromEnv).toHaveBeenCalled()
-      expect(Ratelimit.slidingWindow).toHaveBeenCalledWith(5, '10 s')
-      expect(Ratelimit).toHaveBeenCalledWith({
+      expect(require('@upstash/redis').Redis.fromEnv).toHaveBeenCalled()
+      expect(require('@upstash/ratelimit').Ratelimit.slidingWindow).toHaveBeenCalledWith(5, '10 s')
+      expect(require('@upstash/ratelimit').Ratelimit).toHaveBeenCalledWith({
         redis: mockRedis,
         limiter: 'sliding-window-limiter',
         analytics: true,
@@ -78,11 +78,14 @@ describe('Ratelimiter', () => {
       // Remove environment variable
       delete process.env.UPSTASH_REDIS_REST_URL
 
+      // Clear module cache
+      jest.resetModules()
+
       // Import the module to trigger initialization
       const { ratelimitConfig } = require('@/lib/ratelimiter')
 
-      expect(Redis.fromEnv).not.toHaveBeenCalled()
-      expect(Ratelimit).not.toHaveBeenCalled()
+      expect(require('@upstash/redis').Redis.fromEnv).not.toHaveBeenCalled()
+      expect(require('@upstash/ratelimit').Ratelimit).not.toHaveBeenCalled()
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Environment variable UPSTASH_REDIS_REST_URL is not set.'
       )
@@ -110,7 +113,7 @@ describe('Ratelimiter', () => {
       // Import the module to trigger initialization
       const { ratelimitConfig } = require('@/lib/ratelimiter')
 
-      expect(Redis.fromEnv).not.toHaveBeenCalled()
+      expect(require('@upstash/redis').Redis.fromEnv).not.toHaveBeenCalled()
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Environment variable UPSTASH_REDIS_REST_URL is not set.'
       )
@@ -127,13 +130,13 @@ describe('Ratelimiter', () => {
     it('should configure sliding window with correct parameters', () => {
       require('@/lib/ratelimiter')
 
-      expect(Ratelimit.slidingWindow).toHaveBeenCalledWith(5, '10 s')
+      expect(require('@upstash/ratelimit').Ratelimit.slidingWindow).toHaveBeenCalledWith(5, '10 s')
     })
 
     it('should enable analytics', () => {
       require('@/lib/ratelimiter')
 
-      expect(Ratelimit).toHaveBeenCalledWith(
+      expect(require('@upstash/ratelimit').Ratelimit).toHaveBeenCalledWith(
         expect.objectContaining({
           analytics: true
         })
@@ -143,7 +146,7 @@ describe('Ratelimiter', () => {
     it('should enable protection', () => {
       require('@/lib/ratelimiter')
 
-      expect(Ratelimit).toHaveBeenCalledWith(
+      expect(require('@upstash/ratelimit').Ratelimit).toHaveBeenCalledWith(
         expect.objectContaining({
           enableProtection: true
         })
@@ -153,8 +156,8 @@ describe('Ratelimiter', () => {
     it('should use Redis instance from environment', () => {
       require('@/lib/ratelimiter')
 
-      expect(Redis.fromEnv).toHaveBeenCalled()
-      expect(Ratelimit).toHaveBeenCalledWith(
+      expect(require('@upstash/redis').Redis.fromEnv).toHaveBeenCalled()
+      expect(require('@upstash/ratelimit').Ratelimit).toHaveBeenCalledWith(
         expect.objectContaining({
           redis: mockRedis
         })
@@ -209,15 +212,15 @@ describe('Ratelimiter', () => {
 
       // Clear module cache and import again
       jest.resetModules()
-      ;(Redis.fromEnv as jest.Mock).mockClear()
-      ;(Ratelimit as jest.MockedClass<typeof Ratelimit>).mockClear()
+      ;(require('@upstash/redis').Redis.fromEnv as jest.Mock).mockClear()
+      ;(require('@upstash/ratelimit').Ratelimit as jest.MockedClass<typeof Ratelimit>).mockClear()
 
       const secondImport = require('@/lib/ratelimiter')
       expect(secondImport.ratelimitConfig.enabled).toBe(true)
 
       // Should reinitialize
-      expect(Redis.fromEnv).toHaveBeenCalled()
-      expect(Ratelimit).toHaveBeenCalled()
+      expect(require('@upstash/redis').Redis.fromEnv).toHaveBeenCalled()
+      expect(require('@upstash/ratelimit').Ratelimit).toHaveBeenCalled()
     })
 
     it('should handle environment changes between imports', () => {
@@ -242,7 +245,7 @@ describe('Ratelimiter', () => {
       process.env.UPSTASH_REDIS_REST_URL = 'https://mock-redis.upstash.io'
       
       // Mock Redis.fromEnv to throw an error
-      ;(Redis.fromEnv as jest.Mock).mockImplementation(() => {
+      ;(require('@upstash/redis').Redis.fromEnv as jest.Mock).mockImplementation(() => {
         throw new Error('Redis connection failed')
       })
 
@@ -253,7 +256,7 @@ describe('Ratelimiter', () => {
       process.env.UPSTASH_REDIS_REST_URL = 'https://mock-redis.upstash.io'
       
       // Mock Ratelimit constructor to throw an error
-      ;(Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => {
+      ;(require('@upstash/ratelimit').Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => {
         throw new Error('Ratelimit initialization failed')
       })
 
@@ -298,8 +301,8 @@ describe('Ratelimiter', () => {
 
       require('@/lib/ratelimiter')
 
-      expect(Ratelimit.slidingWindow).toHaveBeenCalledWith(5, '10 s')
-      expect(Ratelimit.slidingWindow).toHaveBeenCalledTimes(1)
+      expect(require('@upstash/ratelimit').Ratelimit.slidingWindow).toHaveBeenCalledWith(5, '10 s')
+      expect(require('@upstash/ratelimit').Ratelimit.slidingWindow).toHaveBeenCalledTimes(1)
     })
 
     it('should pass sliding window limiter to Ratelimit constructor', () => {
@@ -307,7 +310,7 @@ describe('Ratelimiter', () => {
 
       require('@/lib/ratelimiter')
 
-      expect(Ratelimit).toHaveBeenCalledWith(
+      expect(require('@upstash/ratelimit').Ratelimit).toHaveBeenCalledWith(
         expect.objectContaining({
           limiter: 'sliding-window-limiter'
         })
@@ -322,8 +325,8 @@ describe('Ratelimiter', () => {
       require('@/lib/ratelimiter')
 
       // Should use fromEnv method which reads from environment automatically
-      expect(Redis.fromEnv).toHaveBeenCalledWith()
-      expect(Redis.fromEnv).toHaveBeenCalledTimes(1)
+      expect(require('@upstash/redis').Redis.fromEnv).toHaveBeenCalledWith()
+      expect(require('@upstash/redis').Redis.fromEnv).toHaveBeenCalledTimes(1)
     })
 
     it('should handle various Redis environment configurations', () => {
@@ -336,14 +339,14 @@ describe('Ratelimiter', () => {
 
       testUrls.forEach(url => {
         jest.resetModules()
-        ;(Redis.fromEnv as jest.Mock).mockClear()
+        ;(require('@upstash/redis').Redis.fromEnv as jest.Mock).mockClear()
         
         process.env.UPSTASH_REDIS_REST_URL = url
 
         const { ratelimitConfig } = require('@/lib/ratelimiter')
 
         expect(ratelimitConfig.enabled).toBe(true)
-        expect(Redis.fromEnv).toHaveBeenCalled()
+        expect(require('@upstash/redis').Redis.fromEnv).toHaveBeenCalled()
       })
     })
   })
