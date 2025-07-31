@@ -47,6 +47,13 @@ describe('Email Queue', () => {
     // Mock the createClient function to return a resolved promise with our mockSupabase
     ;(createClient as jest.Mock).mockResolvedValue(mockSupabase)
     
+    // Debug: Check if mock is set up correctly
+    console.log('Mock setup:', {
+      createClient: typeof createClient,
+      mockSupabase: typeof mockSupabase,
+      from: typeof mockSupabase.from
+    })
+    
     // Mock console methods
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
