@@ -94,7 +94,6 @@ describe('Customer Validations', () => {
       expect(result.data).toEqual(updateData)
     })
 
-    it('should require id for updates', () => {
       // Test that id is required
       const invalidData = { company_name: 'Updated Corp' }
       const invalidResult = updateCustomerSchema.safeParse(invalidData)
@@ -131,16 +130,7 @@ describe('Customer Validations', () => {
 
       const result = createContactSchema.safeParse(contactData)
       expect(result.success).toBe(true)
-      expect(result.data).toMatchObject({
-        customer_id: '123e4567-e89b-12d3-a456-426614174000',
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'john.doe@example.com',
-        phone: '555-0123',
-        mobile: '555-0124',
-        role: 'primary',
-        is_primary: true
-      })
+      expect(result.data).toEqual(contactData)
     })
 
     it('should require valid UUID for customer_id', () => {
