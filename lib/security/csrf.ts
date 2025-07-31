@@ -26,7 +26,11 @@ export async function validateCsrfToken(): Promise<void> {
     const originUrl = new URL(origin)
     const expectedOrigin = `${originUrl.protocol}//${host}`
     
-    if (origin !== expectedOrigin) {
+    // Normalize both URLs by removing trailing slashes for comparison
+    const normalizedOrigin = origin.replace(/\/$/, '')
+    const normalizedExpectedOrigin = expectedOrigin.replace(/\/$/, '')
+    
+    if (normalizedOrigin !== normalizedExpectedOrigin) {
       throw new Error('Cross-origin request not allowed')
     }
   }
