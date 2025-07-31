@@ -36,6 +36,11 @@ describe('EncryptionService', () => {
     mockSupabase = createMockSupabase()
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
     encryptionService = new EncryptionService()
+    
+    // Reset crypto mocks to default state
+    mockCrypto.subtle.importKey.mockReset()
+    mockCrypto.subtle.sign.mockReset()
+    mockCrypto.subtle.digest.mockReset()
   })
 
   describe('constructor', () => {

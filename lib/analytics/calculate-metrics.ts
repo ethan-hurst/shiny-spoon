@@ -248,7 +248,10 @@ export class AnalyticsCalculator {
           const price = (item.metadata as any)?.price || 10 // Default price
           return sum + (item.available_quantity || 0) * price
         }, 0),
-        lowStockCount: inventory.filter(item => (item.available_quantity || 0) < 10).length,
+        lowStockCount: inventory.filter(item => {
+          const quantity = item.available_quantity || 0
+          return quantity > 0 && quantity < 10
+        }).length,
         outOfStockCount: inventory.filter(item => (item.available_quantity || 0) === 0).length,
       }))
     }

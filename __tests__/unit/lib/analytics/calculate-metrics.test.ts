@@ -633,7 +633,7 @@ describe('AnalyticsCalculator', () => {
       expect(result).toHaveLength(2)
       // Each day should have the same synthetic data
       result.forEach(dayMetrics => {
-        expect(dayMetrics.totalValue).toBeCloseTo(2692.25, 1) // 95*25.99 + 0*15.50 + 5*45.00
+        expect(dayMetrics.totalValue).toBeCloseTo(2694.05, 1) // 95*25.99 + 0*15.50 + 5*45.00
         expect(dayMetrics.lowStockCount).toBe(1) // One item with quantity < 10
         expect(dayMetrics.outOfStockCount).toBe(1) // One item with quantity = 0
       })
