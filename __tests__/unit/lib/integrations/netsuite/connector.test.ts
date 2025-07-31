@@ -15,6 +15,12 @@ jest.mock('@/lib/integrations/netsuite/queries')
 jest.mock('@/lib/integrations/netsuite/transformers')
 jest.mock('@/lib/supabase/server')
 
+const mockProduct = { sku: 'ITEM001', name: 'Test Product' }
+const mockProducts = [
+  { itemid: 'ITEM001', displayname: 'Product 1' },
+  { itemid: 'ITEM002', displayname: 'Product 2' }
+]
+
 describe('NetSuiteConnector', () => {
   let connector: NetSuiteConnector
   let mockAuth: jest.Mocked<NetSuiteAuth>
@@ -57,14 +63,16 @@ describe('NetSuiteConnector', () => {
     jest.clearAllMocks()
 
     // Create a comprehensive mock object that supports all method chains
+    const upsertEqChain = {
+      eq: jest.fn().mockReturnThis(),
+    }
+
     const mockChain = {
       select: jest.fn().mockReturnThis(),
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
-      upsert: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnThis()
-      }),
+      upsert: jest.fn().mockReturnValue(upsertEqChain),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn().mockResolvedValue({
         data: {
@@ -239,11 +247,6 @@ describe('NetSuiteConnector', () => {
       // Mock retry wrapper
       ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
     })
-
-    const mockProducts = [
-      { itemid: 'ITEM001', displayname: 'Product 1' },
-      { itemid: 'ITEM002', displayname: 'Product 2' }
-    ]
 
     it('should sync products successfully', async () => {
       const mockEmit = jest.fn()
