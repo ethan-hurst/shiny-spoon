@@ -7,18 +7,26 @@ jest.mock('@/lib/supabase/server')
 jest.mock('next/headers')
 
 // Mock crypto.randomUUID
-global.crypto = {
-  randomUUID: jest.fn(() => 'test-uuid-123')
-} as any
+const mockRandomUUID = jest.fn(() => 'test-uuid-123')
+Object.defineProperty(global, 'crypto', {
+  value: {
+    randomUUID: mockRandomUUID
+  },
+  writable: true
+})
 
 describe('AuditLogger', () => {
   let logger: AuditLogger
   let mockSupabase: any
   let mockHeaders: jest.MockedFunction<typeof headers>
   let consoleErrorSpy: jest.SpyInstance
+  let mockUserProfilesQuery: any
 
   beforeEach(() => {
     jest.clearAllMocks()
+    
+    // Reset crypto.randomUUID mock
+    mockRandomUUID.mockReturnValue('test-uuid-123')
     
     // Mock console.error
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
@@ -41,6 +49,18 @@ describe('AuditLogger', () => {
     } as any)
     
     // Mock Supabase client
+    mockUserProfilesQuery = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({
+        data: {
+          organization_id: 'org-123',
+          role: 'admin',
+          full_name: 'Test User'
+        }
+      })
+    }
+    
     mockSupabase = {
       auth: {
         getUser: jest.fn().mockResolvedValue({
@@ -54,17 +74,7 @@ describe('AuditLogger', () => {
       },
       from: jest.fn((table: string) => {
         if (table === 'user_profiles') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue({
-              data: {
-                organization_id: 'org-123',
-                role: 'admin',
-                full_name: 'Test User'
-              }
-            })
-          }
+          return mockUserProfilesQuery
         }
         return {}
       }),
@@ -123,7 +133,7 @@ describe('AuditLogger', () => {
     })
 
     it('should handle missing organization gracefully', async () => {
-      mockSupabase.from('user_profiles').single.mockResolvedValueOnce({
+      mockUserProfilesQuery.single.mockResolvedValueOnce({
         data: null
       })
 
