@@ -267,7 +267,7 @@ describe('NetSuiteConnector', () => {
       // Access the mock through the from() chain
       const mockFrom = mockSupabase.from as jest.Mock
       const mockUpsert = mockFrom().upsert
-      expect(mockUpsert).toHaveBeenCalledTimes(2)
+      expect(mockUpsert).toHaveBeenCalledTimes(3) // 2 products + 1 sync state update
     })
 
     it('should handle pagination', async () => {
