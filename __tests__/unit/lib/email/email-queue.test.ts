@@ -93,8 +93,21 @@ describe('Email Queue', () => {
 
       // Debug: Check if createClient is being called
       console.log('Before queueEmail call')
+      console.log('Mock setup check:', {
+        createClientCalled: createClient.mock.calls.length,
+        fromCalled: mockSupabase.from.mock.calls.length,
+        insertCalled: emailQueueMock.insert.mock.calls.length
+      })
+      
       const result = await queueEmail(validEmail)
+      
       console.log('After queueEmail call')
+      console.log('Result:', result)
+      console.log('Mock calls after:', {
+        createClientCalled: createClient.mock.calls.length,
+        fromCalled: mockSupabase.from.mock.calls.length,
+        insertCalled: emailQueueMock.insert.mock.calls.length
+      })
 
       expect(result.success).toBe(true)
       expect(result.error).toBeUndefined()
