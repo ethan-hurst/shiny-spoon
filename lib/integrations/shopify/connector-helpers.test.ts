@@ -6,7 +6,11 @@ import type { ShopifyTransformers } from './transformers'
 import type { BaseLogger } from '@/lib/integrations/base-connector'
 
 // Mock the ShopifyApiClient to avoid importing the real implementation
-jest.mock('./api-client')
+jest.mock('./api-client', () => ({
+  ShopifyApiClient: {
+    buildProductQuery: jest.fn().mockReturnValue('id title handle')
+  }
+}))
 
 describe('connector-helpers', () => {
   let mockHelpers: IncrementalSyncHelperOptions
@@ -47,9 +51,7 @@ describe('connector-helpers', () => {
       withRateLimit: jest.fn((fn) => fn()),
     }
 
-    // Mock ShopifyApiClient.buildProductQuery as a static method
-    const { ShopifyApiClient } = require('./api-client')
-    ShopifyApiClient.buildProductQuery = jest.fn().mockReturnValue('id title handle')
+    // Mock is already set up in jest.mock above
   })
 
   describe('incrementalSyncProducts', () => {
@@ -706,7 +708,7 @@ describe('connector-helpers', () => {
         }
 
         (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        vi.mocked(mockClient.constructor as any)
+        jest.mocked(mockClient.constructor as any)
           .buildProductQuery
           .mockReturnValue('id title handle variants { id }')
 

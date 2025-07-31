@@ -1,7 +1,7 @@
 // Helper methods for ShopifyConnector to reduce class size
 
 import type { SyncOptions } from '@/lib/integrations/base-connector'
-import type { ShopifyApiClient } from './api-client'
+import { ShopifyApiClient } from './api-client'
 import type { ShopifyTransformers } from './transformers'
 import type { BaseLogger } from '@/lib/integrations/base-connector'
 
