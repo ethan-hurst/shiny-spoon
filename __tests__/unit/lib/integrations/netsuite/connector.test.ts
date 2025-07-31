@@ -135,16 +135,18 @@ describe('NetSuiteConnector', () => {
   describe('constructor', () => {
     it('should initialize with correct configuration', () => {
       expect(NetSuiteAuth).toHaveBeenCalledWith(
+        mockConfig.integrationId,
+        mockConfig.organizationId,
         mockConfig.settings
       )
       expect(NetSuiteApiClient).toHaveBeenCalledWith(
         mockAuth,
         mockConfig.settings.account_id,
         mockConfig.settings.datacenter_url,
-        mockConfig.settings
+        expect.any(Object) // rateLimiter
       )
       expect(NetSuiteQueries).toHaveBeenCalled()
-      expect(NetSuiteTransformers).toHaveBeenCalled()
+      expect(NetSuiteTransformers).toHaveBeenCalledWith(mockConfig.settings.field_mappings)
       expect(createClient).toHaveBeenCalled()
     })
   })
