@@ -86,12 +86,18 @@ describe('Email Queue', () => {
     it('should queue a valid email', async () => {
       console.log('Test starting...')
       
-      // Set up the mock to return the expected structure
+      // Set up a simple mock that returns success
       const emailQueueMock = mockSupabase.from('email_queue')
       emailQueueMock.insert.mockResolvedValue({ 
         data: { id: 'email-123' }, 
         error: null 
       })
+
+      // Test that the mock is working
+      console.log('Testing mock setup...')
+      const mockResult = await emailQueueMock.insert({ test: 'data' })
+      console.log('Mock test result:', mockResult)
+      expect(emailQueueMock.insert).toHaveBeenCalledWith({ test: 'data' })
 
       console.log('About to call queueEmail...')
       const result = await queueEmail(validEmail)
