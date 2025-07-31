@@ -138,7 +138,7 @@ export class NetSuiteTransformers {
       const isActive = item.isactive === 'T'
       
       // Parse price
-      const price = item.baseprice ? parseFloat(item.baseprice) : undefined
+      const price = item.baseprice ? (isNaN(parseFloat(item.baseprice)) ? undefined : parseFloat(item.baseprice)) : undefined
       
       // Parse weight
       const weight = item.weight ? parseFloat(item.weight) : undefined
@@ -240,9 +240,9 @@ export class NetSuiteTransformers {
         email: customer.email,
         phone: customer.phone,
         is_active: isActive,
-        credit_limit: customer.creditlimit ? parseFloat(customer.creditlimit) : null,
-        balance: customer.balance ? parseFloat(customer.balance) : 0,
-        days_overdue: customer.daysoverdue ? parseInt(customer.daysoverdue, 10) : 0,
+        credit_limit: customer.creditlimit ? (isNaN(parseFloat(customer.creditlimit)) ? null : parseFloat(customer.creditlimit)) : null,
+        balance: customer.balance ? (isNaN(parseFloat(customer.balance)) ? 0 : parseFloat(customer.balance)) : 0,
+        days_overdue: customer.daysoverdue ? (isNaN(parseInt(customer.daysoverdue, 10)) ? 0 : parseInt(customer.daysoverdue, 10)) : 0,
         category: customer.category,
         price_level: customer.pricelevel,
         external_id: customer.id,
@@ -392,7 +392,9 @@ export class NetSuiteTransformers {
         const parts = dateString.split('/')
         if (parts.length === 3) {
           const [month, day, year] = parts
-          const altDate = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`)
+          // Create date in UTC to avoid timezone issues
+          // Note: month is 0-indexed in Date.UTC, so subtract 1
+          const altDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0))
           if (!isNaN(altDate.getTime())) {
             return altDate.toISOString()
           }
@@ -400,6 +402,16 @@ export class NetSuiteTransformers {
         
         // If all else fails, throw an error with the invalid date string
         throw new Error(`Invalid NetSuite date format: "${dateString}" - expected format: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601`)
+      }
+      
+      // For MM/DD/YYYY format, we need to handle it specially even if new Date() succeeds
+      // because new Date() might interpret it in the wrong timezone
+      if (dateString.includes('/') && dateString.split('/').length === 3) {
+        const parts = dateString.split('/')
+        const [month, day, year] = parts
+        // Create date in UTC to avoid timezone issues
+        const altDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0))
+        return altDate.toISOString()
       }
       
       return date.toISOString()
