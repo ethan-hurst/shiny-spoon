@@ -194,7 +194,15 @@ jest.mock('crypto', () => ({
     return aStr === bStr
   }),
   subtle: {
-    importKey: jest.fn().mockResolvedValue({}),
+    importKey: jest.fn().mockImplementation(async (format, keyData, algorithm, extractable, keyUsages) => {
+      // Return a mock key object that can be used by the sign method
+      return {
+        algorithm,
+        extractable,
+        keyUsages,
+        type: 'secret'
+      }
+    }),
     sign: jest.fn().mockImplementation(async (algorithm, key, data) => {
       // Create a deterministic signature based on the data
       const hashArray = new Uint8Array(32)
