@@ -65,11 +65,11 @@ describe('Rate Limit', () => {
 
   describe('Redis initialization', () => {
     it('should create Redis instance when environment variables are provided', () => {
-      // Set environment variables
+      // Set environment variables BEFORE importing
       process.env.UPSTASH_REDIS_REST_URL = mockEnv.UPSTASH_REDIS_REST_URL
       process.env.UPSTASH_REDIS_REST_TOKEN = mockEnv.UPSTASH_REDIS_REST_TOKEN
 
-      // Re-import to trigger initialization
+      // Clear module cache and re-import to trigger initialization
       jest.resetModules()
       require('@/lib/rate-limit')
 
