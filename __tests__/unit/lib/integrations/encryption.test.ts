@@ -21,10 +21,17 @@ describe('EncryptionService', () => {
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
     encryptionService = new EncryptionService()
     
-    // Reset crypto mocks to default state
-    mockCrypto.subtle.importKey.mockReset()
-    mockCrypto.subtle.sign.mockReset()
-    mockCrypto.subtle.digest.mockReset()
+    // Ensure global crypto mock is available
+    if (!global.crypto) {
+      global.crypto = {
+        getRandomValues: jest.fn(),
+        subtle: {
+          importKey: jest.fn(),
+          sign: jest.fn(),
+          digest: jest.fn()
+        }
+      } as any
+    }
   })
 
   describe('constructor', () => {
