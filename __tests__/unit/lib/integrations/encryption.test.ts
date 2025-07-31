@@ -20,16 +20,6 @@ describe('EncryptionService', () => {
     mockSupabase = createMockSupabase()
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
     encryptionService = new EncryptionService()
-    
-    // Ensure global crypto mock is available with complete subtle property
-    global.crypto = {
-      getRandomValues: jest.fn(),
-      subtle: {
-        importKey: jest.fn(),
-        sign: jest.fn(),
-        digest: jest.fn()
-      }
-    } as any
   })
 
   describe('constructor', () => {
