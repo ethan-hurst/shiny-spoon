@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, jest, type Mock } from '@jest/globals'
 import { incrementalSyncProducts, type IncrementalSyncHelperOptions } from './connector-helpers'
 import type { SyncOptions } from '@/lib/integrations/base-connector'
-import type { ShopifyApiClient } from './api-client'
+import { ShopifyApiClient } from './api-client'
 import type { ShopifyTransformers } from './transformers'
 import type { BaseLogger } from '@/lib/integrations/base-connector'
 
@@ -48,9 +48,8 @@ describe('connector-helpers', () => {
     }
 
     // Mock ShopifyApiClient.buildProductQuery as a static method
-    ;(ShopifyApiClient as any).buildProductQuery = jest
-      .fn()
-      .mockReturnValue('id title handle')
+    const { ShopifyApiClient } = require('./api-client')
+    ShopifyApiClient.buildProductQuery = jest.fn().mockReturnValue('id title handle')
   })
 
   describe('incrementalSyncProducts', () => {
