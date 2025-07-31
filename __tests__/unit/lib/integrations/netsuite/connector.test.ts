@@ -50,18 +50,26 @@ describe('NetSuiteConnector', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Mock Supabase client
+    // Mock Supabase client with proper chaining
+    const mockSelect = jest.fn().mockReturnThis()
+    const mockInsert = jest.fn().mockReturnThis()
+    const mockUpdate = jest.fn().mockReturnThis()
+    const mockUpsert = jest.fn().mockReturnThis()
+    const mockEq = jest.fn().mockReturnThis()
+    const mockSingle = jest.fn()
+
     mockSupabase = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      upsert: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn(),
-      functions: {
-        invoke: jest.fn().mockResolvedValue({ data: null, error: null })
-      }
+      from: jest.fn().mockReturnValue({
+        select: mockSelect,
+        insert: mockInsert,
+        update: mockUpdate,
+        upsert: mockUpsert,
+        eq: mockEq,
+        single: mockSingle,
+        functions: {
+          invoke: jest.fn().mockResolvedValue({ data: null, error: null })
+        }
+      })
     }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
