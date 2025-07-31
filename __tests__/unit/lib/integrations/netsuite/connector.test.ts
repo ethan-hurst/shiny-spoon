@@ -300,7 +300,7 @@ describe('NetSuiteConnector', () => {
       })
 
       expect(mockQueries.getProductsQuery).toHaveBeenCalledWith({
-        modifiedAfter: expect.any(Date),
+        modifiedAfter: "2023-01-01T00:00:00.000Z",
         limit: 500,
         offset: 100
       })
@@ -950,9 +950,7 @@ describe('NetSuiteConnector', () => {
   describe('Integration tests', () => {
     it('should handle complete sync workflow', async () => {
       // Setup all mocks for a complete workflow
-      getMockMethod('single').mockResolvedValue({
-        data: { last_sync_date: new Date('2023-01-01') }
-      })
+      getMockMethod('single').mockResolvedValue({ data: { last_sync_date: new Date('2023-01-01') } })
 
       mockClient.executeSuiteQL.mockResolvedValue({
         items: [{ itemid: 'ITEM001', displayname: 'Product 1' }],
