@@ -66,7 +66,10 @@ describe('Rate Limit', () => {
 
       console.log('Environment variables set:', {
         URL: process.env.UPSTASH_REDIS_REST_URL,
-        TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN
+        TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+        URL_EXISTS: !!process.env.UPSTASH_REDIS_REST_URL,
+        TOKEN_EXISTS: !!process.env.UPSTASH_REDIS_REST_TOKEN,
+        CONDITION: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
       })
 
       // Clear module cache and re-import to trigger initialization
