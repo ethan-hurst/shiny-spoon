@@ -257,7 +257,7 @@ describe('NetSuiteConnector', () => {
       })
 
       expect(mockQueries.getProductsQuery).toHaveBeenCalledWith({
-        modifiedAfter: new Date('2023-01-01'),
+        modifiedAfter: "2023-01-01T00:00:00.000Z",
         limit: 1000,
         offset: 0
       })
