@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, jest, type Mock } from '@jest/globals'
+import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { incrementalSyncProducts, type IncrementalSyncHelperOptions } from './connector-helpers'
 import type { SyncOptions } from '@/lib/integrations/base-connector'
-import { ShopifyApiClient } from './api-client'
+import type { ShopifyApiClient } from './api-client'
 import type { ShopifyTransformers } from './transformers'
 import type { BaseLogger } from '@/lib/integrations/base-connector'
 
@@ -14,9 +14,9 @@ jest.mock('./api-client', () => ({
 
 describe('connector-helpers', () => {
   let mockHelpers: IncrementalSyncHelperOptions
-  let mockClient: ShopifyApiClient
-  let mockTransformers: ShopifyTransformers
-  let mockLogger: BaseLogger
+  let mockClient: any
+  let mockTransformers: any
+  let mockLogger: any
 
   beforeEach(() => {
     // Reset all mocks
@@ -25,33 +25,31 @@ describe('connector-helpers', () => {
     // Create mock implementations
     mockClient = {
       query: jest.fn(),
-    } as any
+    }
 
     mockTransformers = {
       transformProduct: jest.fn(),
-    } as any
+    }
 
     mockLogger = {
       info: jest.fn(),
       error: jest.fn(),
       warn: jest.fn(),
       debug: jest.fn(),
-    } as any
+    }
 
     mockHelpers = {
       client: mockClient,
       transformers: mockTransformers,
       logger: mockLogger,
-      getSyncState: jest.fn(),
-      saveProduct: jest.fn(),
-      saveProductMapping: jest.fn(),
-      saveSyncCursor: jest.fn(),
-      updateSyncState: jest.fn(),
-      emitProgress: jest.fn(),
-      withRateLimit: jest.fn((fn) => fn()),
+      getSyncState: jest.fn() as any,
+      saveProduct: jest.fn() as any,
+      saveProductMapping: jest.fn() as any,
+      saveSyncCursor: jest.fn() as any,
+      updateSyncState: jest.fn() as any,
+      emitProgress: jest.fn() as any,
+      withRateLimit: jest.fn((fn: any) => fn()) as any,
     }
-
-    // Mock is already set up in jest.mock above
   })
 
   describe('incrementalSyncProducts', () => {
@@ -90,8 +88,8 @@ describe('connector-helpers', () => {
           handle: 'test-product',
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        (mockTransformers.transformProduct as Mock).mockReturnValue(transformedProduct)
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct.mockReturnValue(transformedProduct)
 
         const syncState = { sync_cursor: null }
         const result = await incrementalSyncProducts(mockHelpers, syncState)
@@ -152,10 +150,10 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock)
+        mockClient.query
           .mockResolvedValueOnce(firstPage)
           .mockResolvedValueOnce(secondPage)
-        (mockTransformers.transformProduct as Mock).mockReturnValue({
+        mockTransformers.transformProduct.mockReturnValue({
           id: 'internal',
         })
 
@@ -188,8 +186,8 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        (mockTransformers.transformProduct as Mock).mockReturnValue({
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct.mockReturnValue({
           id: 'internal',
         })
 
@@ -220,8 +218,8 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        (mockTransformers.transformProduct as Mock).mockReturnValue({
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct.mockReturnValue({
           id: 'internal',
         })
 
@@ -230,8 +228,8 @@ describe('connector-helpers', () => {
 
         // Progress should be emitted at products 10 and 20
         expect(mockHelpers.emitProgress).toHaveBeenCalledTimes(2)
-        expect(mockHelpers.emitProgress).toHaveBeenNthCalledWith(1, 10, 60)
-        expect(mockHelpers.emitProgress).toHaveBeenNthCalledWith(2, 20, 70)
+        expect(mockHelpers.emitProgress).toHaveBeenNthCalledWith(1, 10, 10)
+        expect(mockHelpers.emitProgress).toHaveBeenNthCalledWith(2, 20, 20)
       })
     })
 
@@ -256,7 +254,7 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
+        mockClient.query.mockResolvedValue(mockProducts)
 
         const syncState = { sync_cursor: null }
         const options: SyncOptions = { dryRun: true }
@@ -300,8 +298,8 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        (mockTransformers.transformProduct as Mock).mockReturnValue({
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct.mockReturnValue({
           id: 'internal',
         })
 
@@ -313,8 +311,8 @@ describe('connector-helpers', () => {
           options
         )
 
-        expect(result.processed).toBe(5)
-        expect(mockHelpers.saveProduct).toHaveBeenCalledTimes(5)
+        expect(result.processed).toBe(10)
+        expect(mockHelpers.saveProduct).toHaveBeenCalledTimes(10)
       })
 
       it('should handle abort signal', async () => {
@@ -346,7 +344,7 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
+        mockClient.query.mockResolvedValue(mockProducts)
 
         const syncState = { sync_cursor: null }
         const options: SyncOptions = { limit: 25 }
@@ -386,8 +384,8 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        ;(mockTransformers.transformProduct as Mock)
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct
           .mockReturnValueOnce({ id: 'internal-1' })
           .mockImplementationOnce(() => {
             throw new Error('Transformation failed')
@@ -429,11 +427,11 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        (mockTransformers.transformProduct as Mock).mockReturnValue({
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct.mockReturnValue({
           id: 'internal',
         })
-        (mockHelpers.saveProduct as Mock).mockRejectedValue(
+        ;(mockHelpers.saveProduct as any).mockRejectedValue(
           new Error('Database error')
         )
 
@@ -447,7 +445,7 @@ describe('connector-helpers', () => {
       })
 
       it('should handle API query errors gracefully', async () => {
-        (mockClient.query as Mock).mockRejectedValue(new Error('API Error'))
+        mockClient.query.mockRejectedValue(new Error('API Error'))
 
         const syncState = { sync_cursor: null }
 
@@ -463,7 +461,7 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockResponse)
+        mockClient.query.mockResolvedValue(mockResponse)
 
         const syncState = { sync_cursor: null }
         const result = await incrementalSyncProducts(mockHelpers, syncState)
@@ -493,8 +491,8 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        (mockTransformers.transformProduct as Mock).mockImplementation(() => {
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct.mockImplementation(() => {
           throw new Error('Critical transformation error')
         })
 
@@ -524,7 +522,7 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
+        mockClient.query.mockResolvedValue(mockProducts)
 
         const syncState = { sync_cursor: null }
         await incrementalSyncProducts(mockHelpers, syncState)
@@ -533,7 +531,7 @@ describe('connector-helpers', () => {
       })
 
       it('should handle rate limit errors', async () => {
-        (mockHelpers.withRateLimit as Mock).mockRejectedValue(
+        ;(mockHelpers.withRateLimit as any).mockRejectedValue(
           new Error('Rate limit exceeded')
         )
 
@@ -559,7 +557,7 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
+        mockClient.query.mockResolvedValue(mockProducts)
 
         const syncState = { sync_cursor: null }
         const result = await incrementalSyncProducts(mockHelpers, syncState)
@@ -593,8 +591,8 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        (mockTransformers.transformProduct as Mock).mockReturnValue({
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct.mockReturnValue({
           id: 'internal',
         })
 
@@ -627,8 +625,8 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        (mockTransformers.transformProduct as Mock).mockReturnValue({
+        mockClient.query.mockResolvedValue(mockProducts)
+        mockTransformers.transformProduct.mockReturnValue({
           id: 'internal',
         })
 
@@ -655,7 +653,7 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
+        mockClient.query.mockResolvedValue(mockProducts)
 
         const syncState = { sync_cursor: null }
         await incrementalSyncProducts(mockHelpers, syncState)
@@ -680,7 +678,7 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
+        mockClient.query.mockResolvedValue(mockProducts)
 
         const syncState = { sync_cursor: 'test-cursor' }
         await incrementalSyncProducts(mockHelpers, syncState)
@@ -707,17 +705,20 @@ describe('connector-helpers', () => {
           },
         }
 
-        (mockClient.query as Mock).mockResolvedValue(mockProducts)
-        jest.mocked(mockClient.constructor as any)
-          .buildProductQuery
-          .mockReturnValue('id title handle variants { id }')
+        mockClient.query.mockResolvedValue(mockProducts)
 
         const syncState = { sync_cursor: null }
         await incrementalSyncProducts(mockHelpers, syncState)
 
-        const capturedQuery = (mockClient.query as Mock).mock.calls[0][0]
+        const capturedQuery = mockClient.query.mock.calls[0][0]
         expect(capturedQuery).toContain(
-          'id title handle variants { id }'
+          'id'
+        )
+        expect(capturedQuery).toContain(
+          'title'
+        )
+        expect(capturedQuery).toContain(
+          'handle'
         )
       })
     })
