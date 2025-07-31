@@ -102,7 +102,17 @@ export class ConflictResolutionService {
       // For numeric fields, take the maximum value
       const localVal = Number(conflict.local_value)
       const externalVal = Number(conflict.external_value)
-      return { [conflict.field]: Math.max(localVal, externalVal) }
+      
+      // Handle NaN values - if one value is NaN, use the other
+      if (isNaN(localVal) && !isNaN(externalVal)) {
+        return { [conflict.field]: externalVal }
+      } else if (!isNaN(localVal) && isNaN(externalVal)) {
+        return { [conflict.field]: localVal }
+      } else if (isNaN(localVal) && isNaN(externalVal)) {
+        return { [conflict.field]: 0 } // Default to 0 if both are NaN
+      } else {
+        return { [conflict.field]: Math.max(localVal, externalVal) }
+      }
     }
 
     // For other fields, prefer the most recent value
