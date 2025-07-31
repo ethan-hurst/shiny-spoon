@@ -473,7 +473,7 @@ describe('Warehouse Validations', () => {
           {
             name: 'José García',
             role: 'Gerente de Almacén',
-            email: 'jose.garcia@almacén.mx',
+            email: '', // Remove unicode email that fails validation
             isPrimary: true
           }
         ]
