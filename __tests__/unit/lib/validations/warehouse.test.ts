@@ -249,9 +249,9 @@ describe('Warehouse Validations', () => {
         const invalidCodes = [
           { value: 'W', error: 'Code must be at least 2 characters' },
           { value: 'a'.repeat(21), error: 'Code must be less than 20 characters' },
-          { value: 'WH_001', error: 'Code must be uppercase letters, numbers, and hyphens only' },
-          { value: 'WH 001', error: 'Code must be uppercase letters, numbers, and hyphens only' },
-          { value: 'WH@001', error: 'Code must be uppercase letters, numbers, and hyphens only' }
+          { value: 'WH_001', error: 'Code must be letters, numbers, hyphens, and spaces only' },
+          { value: 'WH 001', error: 'Code must be letters, numbers, hyphens, and spaces only' },
+          { value: 'WH@001', error: 'Code must be letters, numbers, hyphens, and spaces only' }
         ]
 
         invalidCodes.forEach(({ value, error }) => {
