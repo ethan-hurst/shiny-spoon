@@ -671,19 +671,16 @@ describe('NetSuiteConnector', () => {
     describe('updateSyncState', () => {
       it('should update sync state successfully', async () => {
         const updates = {
-          last_sync_date: new Date('2023-01-02').toISOString(),
+          last_sync_date: '2023-01-02T00:00:00.000Z',
           last_sync_token: '200'
         }
-
-        getMockMethod('upsert').mockResolvedValue({ error: null })
 
         await (connector as any).updateSyncState('product', updates)
 
         expect(getMockMethod('upsert')).toHaveBeenCalledWith({
           integration_id: mockConfig.integrationId,
           entity_type: 'product',
-          ...updates,
-          updated_at: expect.any(Date)
+          ...updates
         })
       })
     })
