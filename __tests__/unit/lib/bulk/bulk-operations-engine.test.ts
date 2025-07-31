@@ -185,6 +185,7 @@ describe('BulkOperationsEngine', () => {
     })
 
     it('should handle user without organization', async () => {
+      const originalFrom = mockSupabase.from
       mockSupabase.from = jest.fn((table: string) => {
         if (table === 'user_profiles') {
           return {
@@ -193,7 +194,7 @@ describe('BulkOperationsEngine', () => {
             single: jest.fn().mockResolvedValue({ data: null })
           }
         }
-        return mockSupabase.from(table)
+        return originalFrom(table)
       })
       
       const file = new MockFile('test', 'test.csv') as any
@@ -408,6 +409,7 @@ SKU001,WH001,150,Restock`
       })
 
       it('should handle missing product or warehouse', async () => {
+        const originalFrom = mockSupabase.from
         mockSupabase.from = jest.fn((table: string) => {
           if (table === 'products') {
             return {
@@ -416,7 +418,7 @@ SKU001,WH001,150,Restock`
               single: jest.fn().mockResolvedValue({ error: new Error('Not found') })
             }
           }
-          return mockSupabase.from(table)
+          return originalFrom(table)
         })
         
         const csvContent = `sku,warehouse_code,quantity
@@ -518,6 +520,7 @@ SKU001,Updated Product,129.99`
   describe('rollbackOperation', () => {
     it('should rollback completed operations', async () => {
       // Mock completed records
+      const originalFrom = mockSupabase.from
       mockSupabase.from = jest.fn((table: string) => {
         if (table === 'bulk_operation_records') {
           return {
@@ -539,7 +542,7 @@ SKU001,Updated Product,129.99`
             update: jest.fn().mockReturnThis()
           }
         }
-        return mockSupabase.from(table)
+        return originalFrom(table)
       })
       
       await engine.rollbackOperation('op-123')
@@ -556,6 +559,7 @@ SKU001,Updated Product,129.99`
     })
 
     it('should handle rollback with no records', async () => {
+      const originalFrom = mockSupabase.from
       mockSupabase.from = jest.fn((table: string) => {
         if (table === 'bulk_operation_records') {
           return {
@@ -566,7 +570,7 @@ SKU001,Updated Product,129.99`
             })
           }
         }
-        return mockSupabase.from(table)
+        return originalFrom(table)
       })
       
       await engine.rollbackOperation('op-123')
@@ -577,6 +581,7 @@ SKU001,Updated Product,129.99`
     })
 
     it('should update records for rollback', async () => {
+      const originalFrom = mockSupabase.from
       mockSupabase.from = jest.fn((table: string) => {
         if (table === 'bulk_operation_records') {
           return {
@@ -599,7 +604,7 @@ SKU001,Updated Product,129.99`
             update: jest.fn().mockReturnThis()
           }
         }
-        return mockSupabase.from(table)
+        return originalFrom(table)
       })
       
       await engine.rollbackOperation('op-123')
@@ -617,11 +622,12 @@ SKU001,Updated Product,129.99`
 SKU001,Product 1`
       
       // Mock processing error
+      const originalFrom = mockSupabase.from
       mockSupabase.from = jest.fn((table: string) => {
         if (table === 'products') {
           throw new Error('Database error')
         }
-        return mockSupabase.from(table)
+        return originalFrom(table)
       })
       
       const file = new MockFile(csvContent, 'products.csv') as any
@@ -645,11 +651,12 @@ SKU001,Product 1
 SKU002,Product 2`
       
       let callCount = 0
+      const originalFrom = mockSupabase.from
       mockSupabase.from = jest.fn((table: string) => {
         if (table === 'products' && callCount++ === 1) {
           throw new Error('Second product failed')
         }
-        return mockSupabase.from(table)
+        return originalFrom(table)
       })
       
       const file = new MockFile(csvContent, 'products.csv') as any

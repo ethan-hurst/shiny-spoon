@@ -349,7 +349,7 @@ describe('Pricing Inventory Integration', () => {
 
       const result = calculateInventoryBasedPrice(basePrice, inventoryData)
 
-      expect(result).toBe(110) // 100 * 1.1 (default low multiplier)
+      expect(result).toBeCloseTo(110, 2) // 100 * 1.1 (default low multiplier)
     })
 
     it('should apply excess discount when inventory is above 75%', () => {
@@ -415,7 +415,7 @@ describe('Pricing Inventory Integration', () => {
       }
 
       const result10 = calculateInventoryBasedPrice(basePrice, inventoryData10)
-      expect(result10).toBe(110) // Low level multiplier
+      expect(result10).toBeCloseTo(110, 2) // Low level multiplier
 
       // Test exactly 25% (should be normal, not low)
       const inventoryData25: InventoryData = {

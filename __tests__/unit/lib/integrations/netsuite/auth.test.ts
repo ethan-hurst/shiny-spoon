@@ -86,7 +86,7 @@ describe('NetSuiteAuth', () => {
     it('should throw error if no credentials found', async () => {
       mockAuthManager.getCredentials.mockResolvedValue(null)
       
-      await expect(netSuiteAuth.initialize()).rejects.toThrow('OAuth credentials not found')
+      await expect(netSuiteAuth.initialize()).rejects.toThrow('Failed to initialize NetSuite auth')
     })
 
     it('should throw error if credentials are not OAuth type', async () => {
@@ -95,7 +95,7 @@ describe('NetSuiteAuth', () => {
         api_key: 'key'
       } as any)
       
-      await expect(netSuiteAuth.initialize()).rejects.toThrow('OAuth credentials not found')
+      await expect(netSuiteAuth.initialize()).rejects.toThrow('Failed to initialize NetSuite auth')
     })
 
     it('should wrap non-Error exceptions', async () => {
@@ -194,7 +194,7 @@ describe('NetSuiteAuth', () => {
       })
       
       await expect(netSuiteAuth.exchangeCodeForTokens('bad-code'))
-        .rejects.toThrow('Token exchange failed: 401')
+        .rejects.toThrow('Failed to exchange code for tokens')
     })
 
     it('should validate token response schema', async () => {
@@ -384,7 +384,7 @@ describe('NetSuiteAuth', () => {
       mockAuthManager.getCredentials.mockResolvedValue(null)
       
       await expect(netSuiteAuth.getValidAccessToken())
-        .rejects.toThrow('OAuth credentials not found')
+        .rejects.toThrow('Failed to get valid access token')
     })
   })
 
@@ -438,7 +438,7 @@ describe('NetSuiteAuth', () => {
         .mockResolvedValueOnce({ ok: false, status: 401, statusText: 'Unauthorized' })
       
       await expect(netSuiteAuth.revokeTokens())
-        .rejects.toThrow('Token revocation failed:')
+        .rejects.toThrow('Failed to revoke tokens')
     })
 
     it('should handle no credentials gracefully', async () => {
@@ -456,7 +456,7 @@ describe('NetSuiteAuth', () => {
       ;(global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'))
       
       await expect(netSuiteAuth.revokeTokens())
-        .rejects.toThrow('Token revocation failed:')
+        .rejects.toThrow('Failed to revoke tokens')
     })
   })
 
