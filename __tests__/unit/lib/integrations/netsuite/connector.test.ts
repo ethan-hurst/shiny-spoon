@@ -640,10 +640,13 @@ describe('NetSuiteConnector', () => {
         recordId: 'item-456'
       }
       const error = new Error('Database error')
-      getMockMethod('insert').mockRejectedValue(error)
-
       const mockHandleError = jest.fn()
+      
+      // Mock handleError method
       ;(connector as any).handleError = mockHandleError
+      
+      // Mock Supabase to throw error on insert
+      getMockMethod('insert').mockRejectedValue(error)
 
       await expect(connector.handleWebhook(webhookData)).rejects.toThrow(error)
       expect(mockHandleError).toHaveBeenCalledWith(error, 'Failed to queue webhook')
