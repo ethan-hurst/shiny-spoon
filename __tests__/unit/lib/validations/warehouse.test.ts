@@ -480,6 +480,11 @@ describe('Warehouse Validations', () => {
       }
 
       const result = warehouseSchema.safeParse(warehouseWithUnicode)
+      
+      if (!result.success) {
+        console.log('Unicode test validation failed:', result.error.issues)
+      }
+      
       expect(result.success).toBe(true)
     })
   })
