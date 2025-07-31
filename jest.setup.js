@@ -137,9 +137,29 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
 
 // Mock crypto module for webhook verification and hashing
 jest.mock('crypto', () => ({
-  createHmac: jest.fn(() => ({
-    update: jest.fn().mockReturnThis(),
-    digest: jest.fn(() => 'mock-hmac-digest')
+  createHmac: jest.fn((algorithm, secret) => ({
+    update: jest.fn((data, encoding) => {
+      // Store the data for digest calculation
+      const mockHmac = {
+        _data: data,
+        _secret: secret,
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn((format) => {
+          // Generate a deterministic hash for testing
+          const input = `${secret}:${data}`
+          let hash = 0
+          for (let i = 0; i < input.length; i++) {
+            const char = input.charCodeAt(i)
+            hash = ((hash << 5) - hash) + char
+            hash = hash & hash
+          }
+          const hashString = Math.abs(hash).toString(16).padStart(8, '0')
+          return format === 'base64' ? Buffer.from(hashString).toString('base64') : hashString
+        })
+      }
+      return mockHmac
+    }),
+    digest: jest.fn()
   })),
   createHash: jest.fn((algorithm) => {
     const mockHash = {
@@ -154,14 +174,13 @@ jest.mock('crypto', () => ({
         for (let i = 0; i < input.length; i++) {
           const char = input.charCodeAt(i)
           hash = ((hash << 5) - hash) + char
-          hash = hash & hash // Convert to 32-bit integer
+          hash = hash & hash
         }
-        // Use a more unique hash generation to avoid collisions
         const uniqueHash = Math.abs(hash).toString(16).padStart(8, '0') + 
                           input.length.toString(16).padStart(4, '0') +
                           (input.charCodeAt(0) || 0).toString(16).padStart(4, '0') +
                           (input.charCodeAt(Math.floor(input.length / 2)) || 0).toString(16).padStart(4, '0')
-        return uniqueHash.padStart(64, '0') // Return 64-char hex string
+        return uniqueHash.padStart(64, '0')
       }),
       _data: ''
     }
@@ -186,7 +205,7 @@ jest.mock('crypto', () => ({
   getRandomValues: jest.fn((array) => {
     // Fill array with deterministic "random" values for testing
     for (let i = 0; i < array.length; i++) {
-      array[i] = (i * 7 + 13) % 256 // Simple deterministic pattern
+      array[i] = (i * 7 + 13) % 256
     }
     return array
   }),

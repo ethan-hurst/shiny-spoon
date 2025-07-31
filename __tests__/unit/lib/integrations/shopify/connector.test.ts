@@ -165,12 +165,22 @@ describe('ShopifyConnector', () => {
     })
 
     it('should handle credential decryption errors', () => {
+      // Set up encrypted credentials
+      const encryptedConfig = {
+        ...mockConfig,
+        credentials: {
+          encrypted: true,
+          data: 'encrypted-data-here'
+        }
+      }
+
+      // Mock crypto to throw an error during decryption
       const mockCrypto = require('crypto')
-      mockCrypto.createDecipheriv = jest.fn().mockImplementation(() => {
+      mockCrypto.createDecipheriv.mockImplementation(() => {
         throw new Error('Decryption failed')
       })
 
-      expect(() => new ShopifyConnector(mockConfig)).toThrow('Invalid credentials encryption')
+      expect(() => new ShopifyConnector(encryptedConfig)).toThrow('Invalid credentials encryption')
     })
   })
 
@@ -431,6 +441,18 @@ describe('ShopifyConnector', () => {
       jest.spyOn(connector as any, 'processInventoryWebhook').mockResolvedValue(undefined)
       jest.spyOn(connector as any, 'processOrderWebhook').mockResolvedValue(undefined)
       jest.spyOn(connector as any, 'updateWebhookStatus').mockResolvedValue(undefined)
+      
+      // Mock Supabase insert to return data
+      mockSupabase.from.mockReturnValue({
+        insert: jest.fn().mockReturnValue({
+          select: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: { id: 'webhook-123' },
+              error: null
+            })
+          })
+        })
+      })
     })
 
     it('should handle product webhooks', async () => {
