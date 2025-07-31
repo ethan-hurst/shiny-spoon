@@ -277,6 +277,9 @@ describe('NetSuiteConnector', () => {
     })
 
     it('should handle pagination', async () => {
+      // Mock withRetry to actually call the function
+      ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
+      
       mockClient.executeSuiteQL
         .mockResolvedValueOnce({
           items: mockProducts,
