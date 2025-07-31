@@ -44,7 +44,7 @@ describe('Email Queue', () => {
       rpc: jest.fn(),
     }
     
-    // Mock the createClient function to return our mockSupabase
+    // Mock the createClient function to return a resolved promise with our mockSupabase
     ;(createClient as jest.Mock).mockResolvedValue(mockSupabase)
     
     // Mock console methods
@@ -84,7 +84,10 @@ describe('Email Queue', () => {
         error: null 
       })
 
+      // Debug: Check if createClient is being called
+      console.log('Before queueEmail call')
       const result = await queueEmail(validEmail)
+      console.log('After queueEmail call')
 
       expect(result.success).toBe(true)
       expect(result.error).toBeUndefined()
@@ -203,6 +206,7 @@ describe('Email Queue', () => {
       await processEmailQueue()
 
       // Should fetch pending emails with correct filters
+      expect(createClient).toHaveBeenCalled()
       expect(mockSupabase.from).toHaveBeenCalledWith('email_queue')
       expect(emailQueueMock.select).toHaveBeenCalledWith('*')
       expect(emailQueueMock.update).toHaveBeenCalledTimes(4) // 2 processing + 2 sent
