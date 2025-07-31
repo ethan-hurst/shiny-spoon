@@ -22,14 +22,20 @@ describe('Email Queue', () => {
     // Mock Supabase client
     const emailQueueMock = {
       insert: jest.fn().mockResolvedValue({ error: null }),
-      select: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      lt: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockResolvedValue({ 
-        data: [], 
-        error: null 
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          lt: jest.fn().mockReturnValue({
+            order: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue({ 
+                data: [], 
+                error: null 
+              })
+            })
+          })
+        })
+      }),
+      update: jest.fn().mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ data: null, error: null })
       })
     }
     
@@ -168,8 +174,9 @@ describe('Email Queue', () => {
         }
       ]
 
-      // Mock the select chain
-      mockSupabase.from('email_queue').select.mockReturnValue({
+      // Mock the select chain with proper chaining
+      const emailQueueMock = mockSupabase.from('email_queue')
+      emailQueueMock.select.mockReturnValue({
         eq: jest.fn().mockReturnValue({
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
@@ -182,15 +189,17 @@ describe('Email Queue', () => {
         })
       })
 
-      // Mock successful updates
-      mockSupabase.from('email_queue').update.mockResolvedValue({ data: null, error: null })
+      // Mock successful updates - return an object with eq method
+      emailQueueMock.update.mockReturnValue({
+        eq: jest.fn().mockResolvedValue({ data: null, error: null })
+      })
 
       await processEmailQueue()
 
       // Should fetch pending emails with correct filters
       expect(mockSupabase.from).toHaveBeenCalledWith('email_queue')
-      expect(mockSupabase.from('email_queue').select).toHaveBeenCalledWith('*')
-      expect(mockSupabase.from('email_queue').update).toHaveBeenCalledTimes(4) // 2 processing + 2 sent
+      expect(emailQueueMock.select).toHaveBeenCalledWith('*')
+      expect(emailQueueMock.update).toHaveBeenCalledTimes(4) // 2 processing + 2 sent
       
       // Should log emails in console mode
       expect(consoleLogSpy).toHaveBeenCalledTimes(2)
@@ -216,7 +225,8 @@ describe('Email Queue', () => {
 
     it('should handle database errors when fetching', async () => {
       // Mock the select chain with error
-      mockSupabase.from('email_queue').select.mockReturnValue({
+      const emailQueueMock = mockSupabase.from('email_queue')
+      emailQueueMock.select.mockReturnValue({
         eq: jest.fn().mockReturnValue({
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
@@ -252,7 +262,8 @@ describe('Email Queue', () => {
       }
 
       // Mock the select chain
-      mockSupabase.from('email_queue').select.mockReturnValue({
+      const emailQueueMock = mockSupabase.from('email_queue')
+      emailQueueMock.select.mockReturnValue({
         eq: jest.fn().mockReturnValue({
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
@@ -266,12 +277,12 @@ describe('Email Queue', () => {
       })
 
       // Mock successful updates
-      mockSupabase.from('email_queue').update.mockResolvedValue({ data: null, error: null })
+      emailQueueMock.update.mockResolvedValue({ data: null, error: null })
 
       await processEmailQueue()
 
       // Should update status to processing
-      expect(mockSupabase.from('email_queue').update).toHaveBeenCalledWith({
+      expect(emailQueueMock.update).toHaveBeenCalledWith({
         status: 'processing',
         attempts: 3
       })
