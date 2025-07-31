@@ -27,10 +27,10 @@ export const warehouseSchema = z.object({
     .min(2, 'Code must be at least 2 characters')
     .max(20, 'Code must be less than 20 characters')
     .regex(
-      /^[A-Za-z0-9-]+$/,
-      'Code must be letters, numbers, and hyphens only'
+      /^[A-Za-z0-9-\s]+$/,
+      'Code must be letters, numbers, hyphens, and spaces only'
     )
-    .transform((val) => val.trim().toUpperCase()),
+    .transform((val) => val.toUpperCase()),
   address: addressSchema,
   contacts: z
     .array(contactSchema)
