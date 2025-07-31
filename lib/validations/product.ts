@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const productSchema = z.object({
   sku: z
     .string()
+    .trim()
     .min(1, 'SKU is required')
     .max(50, 'SKU must be less than 50 characters')
     .regex(
@@ -11,6 +12,7 @@ export const productSchema = z.object({
     ),
   name: z
     .string()
+    .trim()
     .min(1, 'Product name is required')
     .max(200, 'Name must be less than 200 characters'),
   description: z.string().max(1000).optional(),
