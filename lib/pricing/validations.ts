@@ -13,31 +13,71 @@ import {
 } from '@/types/pricing.types'
 
 // Extended schemas for creation/update operations
-export const createProductPricingSchema = productPricingSchema
-  .extend({
-    // Ensure base price is greater than cost for positive margin
-  })
-  .refine(
-    (data) => {
-      if (data.base_price <= data.cost) {
-        return false
-      }
-      return true
-    },
-    {
-      message: 'Base price must be greater than cost',
+export const createProductPricingSchema = z.object({
+  product_id: z.string().uuid(),
+  cost: z.number().min(0, 'Cost cannot be negative'),
+  base_price: z.number().min(0, 'Base price cannot be negative'),
+  min_margin_percent: z.number().min(0).max(100).default(20),
+  currency: z.string().length(3).default('USD'),
+  pricing_unit: z.enum(['EACH', 'CASE', 'PALLET', 'BOX', 'POUND', 'KILOGRAM']).default('EACH'),
+  unit_quantity: z.number().int().positive().default(1),
+  effective_date: z.string().optional(),
+  expiry_date: z.string().optional(),
+}).refine(
+  (data) => {
+    if (data.base_price <= data.cost) {
+      return false
     }
-  )
+    return true
+  },
+  {
+    message: 'Base price must be greater than cost',
+  }
+)
 
-export const updateProductPricingSchema = productPricingSchema
-  .partial()
-  .extend({
-    id: z.string().uuid(),
-  })
+export const updateProductPricingSchema = z.object({
+  id: z.string().uuid(),
+  product_id: z.string().uuid().optional(),
+  cost: z.number().min(0, 'Cost cannot be negative').optional(),
+  base_price: z.number().min(0, 'Base price cannot be negative').optional(),
+  min_margin_percent: z.number().min(0).max(100).optional(),
+  currency: z.string().length(3).optional(),
+  pricing_unit: z.enum(['EACH', 'CASE', 'PALLET', 'BOX', 'POUND', 'KILOGRAM']).optional(),
+  unit_quantity: z.number().int().positive().optional(),
+  effective_date: z.string().optional(),
+  expiry_date: z.string().optional(),
+})
 
 export const createPricingRuleSchema = z.object({
-  ...pricingRuleSchema.shape,
-  quantity_breaks: z.array(quantityBreakSchema).optional(),
+  name: z.string().min(1, 'Rule name is required'),
+  description: z.string().optional(),
+  rule_type: z.enum(['tier', 'quantity', 'promotion', 'override']),
+  priority: z.number().int().min(0).default(100),
+  conditions: z.object({
+    min_quantity: z.number().int().min(0).optional(),
+    max_quantity: z.number().int().positive().optional(),
+    customer_tiers: z.array(z.string().uuid()).optional(),
+    product_categories: z.array(z.string().uuid()).optional(),
+    custom: z.record(z.any()).optional(),
+  }).default({}),
+  discount_type: z.enum(['percentage', 'fixed', 'price']).optional(),
+  discount_value: z.number().min(0).optional(),
+  product_id: z.string().uuid().optional(),
+  category_id: z.string().uuid().optional(),
+  customer_id: z.string().uuid().optional(),
+  customer_tier_id: z.string().uuid().optional(),
+  is_exclusive: z.boolean().default(false),
+  can_stack: z.boolean().default(true),
+  is_active: z.boolean().default(true),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  quantity_breaks: z.array(z.object({
+    min_quantity: z.number().int().min(0),
+    max_quantity: z.number().int().positive().optional(),
+    discount_type: z.enum(['percentage', 'fixed', 'price']),
+    discount_value: z.number().min(0),
+    sort_order: z.number().int().min(0).default(0),
+  })).optional(),
 })
 
 export const updatePricingRuleSchema = z.object({
@@ -161,7 +201,7 @@ export function validateQuantityBreaks(breaks: QuantityBreak[]): string[] {
     // Check for gaps between breaks
     if (next && current) {
       if (current.max_quantity) {
-        if (next.min_quantity > current.max_quantity) {
+        if (next.min_quantity > current.max_quantity + 1) {
           errors.push(
             `Gap between quantities ${current.max_quantity} and ${next.min_quantity}`
           )
@@ -194,7 +234,7 @@ export function parseQuantityBreaksCSV(csv: string): QuantityBreak[] {
 
     const [min, max] = range.split('-')
     const minQty = parseInt(min || '0')
-    const maxQty = max === '+' ? undefined : parseInt(max || '0')
+    const maxQty = max === '+' ? undefined : (max ? parseInt(max) : undefined)
 
     // Parse discount
     let discountType: 'percentage' | 'fixed' | 'price' = 'percentage'

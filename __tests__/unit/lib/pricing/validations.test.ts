@@ -141,12 +141,8 @@ describe('Pricing Validations', () => {
       })
 
       const result = createProductPricingSchema.safeParse(validProductPricing)
-
-      expect(productPricingSchema.extend).toHaveBeenCalledWith({})
-      expect(mockRefine).toHaveBeenCalledWith(
-        expect.any(Function),
-        { message: 'Base price must be greater than cost' }
-      )
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(validProductPricing)
     })
 
     it('should reject when base price is not greater than cost', () => {
@@ -181,46 +177,24 @@ describe('Pricing Validations', () => {
         cost: 50
       }
 
-      const mockRefine = jest.fn().mockImplementation((refineFn) => ({
-        safeParse: jest.fn().mockImplementation((data) => {
-          const isValid = refineFn(data)
-          return { success: isValid }
-        })
-      }))
-      ;(productPricingSchema.extend as jest.Mock).mockReturnValue({
-        refine: mockRefine
-      })
-
       const result = createProductPricingSchema.safeParse(equalPricing)
 
       // Should be false because base_price must be GREATER than cost, not equal
       expect(result.success).toBe(false)
+      expect(result.error).toBeDefined()
     })
   })
 
   describe('updateProductPricingSchema', () => {
     it('should make all fields optional except id', () => {
-      const mockPartialExtend = jest.fn().mockReturnValue({
-        safeParse: jest.fn().mockReturnValue({ success: true })
-      })
-      const mockPartial = jest.fn().mockReturnValue({
-        extend: mockPartialExtend
-      })
-      ;(productPricingSchema.partial as jest.Mock).mockReturnValue({
-        extend: mockPartialExtend
-      })
-
       const updateData = {
         id: '123e4567-e89b-12d3-a456-426614174000',
         base_price: 120
       }
 
-      updateProductPricingSchema.safeParse(updateData)
-
-      expect(productPricingSchema.partial).toHaveBeenCalled()
-      expect(mockPartialExtend).toHaveBeenCalledWith({
-        id: expect.any(Object) // z.string().uuid()
-      })
+      const result = updateProductPricingSchema.safeParse(updateData)
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual(updateData)
     })
   })
 
