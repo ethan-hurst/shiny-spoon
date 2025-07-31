@@ -216,7 +216,8 @@ describe('NetSuiteConnector', () => {
       mockFrom.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         single: mockSingle,
-        upsert: mockUpsert
+        upsert: mockUpsert,
+        eq: jest.fn().mockReturnThis()
       })
 
       // Mock product query result
