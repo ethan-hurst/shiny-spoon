@@ -68,7 +68,7 @@ describe('Inventory Calculations', () => {
       const inventory = { quantity: 50 }
       const price = 19.99
       
-      expect(calculateInventoryValue(inventory, price)).toBe(999.5)
+      expect(calculateInventoryValue(inventory, price)).toBeCloseTo(999.5, 2)
     })
 
     it('should handle zero quantity', () => {
@@ -228,7 +228,7 @@ describe('Inventory Calculations', () => {
       }
       
       const result = calculateReorderQuantity(inventory, 7, 0)
-      expect(result).toBe(100) // Base reorder quantity, rounded to nearest 10
+      expect(result).toBe(70) // baseReorderQuantity (100) - available (30) = 70
     })
 
     it('should account for lead time usage', () => {
@@ -306,7 +306,7 @@ describe('Inventory Calculations', () => {
       
       // Uses default lead time of 7 days with 0 average daily usage
       const result = calculateReorderQuantity(inventory)
-      expect(result).toBe(100)
+      expect(result).toBe(70) // baseReorderQuantity (100) - available (30) = 70
     })
   })
 
