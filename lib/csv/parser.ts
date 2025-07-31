@@ -28,11 +28,11 @@ function sanitizeCSVContent(content: string): string {
 
   // Check for formula injection attempts
   if (FORMULA_PREFIXES.some((prefix) => trimmed.startsWith(prefix))) {
-    // Prepend single quote to neutralize formula
-    return `'${trimmed}`
+    // Prepend single quote to neutralize formula, but preserve original content
+    return `'${content}`
   }
 
-  return trimmed
+  return content
 }
 
 // Validate cell content for security risks
@@ -115,7 +115,8 @@ export function parseCSV<T>(
   }
 
   // Get schema keys to know which columns we need
-  const schemaKeys = Object.keys((schema as any)._def?.shape || {})
+  const schemaShape = (schema as any)._def?.shape
+  const schemaKeys = typeof schemaShape === 'function' ? Object.keys(schemaShape()) : Object.keys(schemaShape || {})
 
   // Process each row
   parseResult.data.forEach((row: any, index: number) => {
@@ -291,7 +292,7 @@ export function validateCSVFile(file: File): {
   }
 
   // Check minimum file size (prevent empty/suspicious files)
-  if (file.size < 1) {
+  if (file.size < 5) {
     return { valid: false, error: 'File appears to be empty or corrupted' }
   }
 
