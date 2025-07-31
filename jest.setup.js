@@ -233,6 +233,48 @@ jest.mock('crypto', () => ({
   }),
 }))
 
+// Mock global crypto (Web Crypto API) for encryption tests
+global.crypto = {
+  getRandomValues: jest.fn((array) => {
+    // Fill array with deterministic "random" values for testing
+    for (let i = 0; i < array.length; i++) {
+      array[i] = (i * 7 + 13) % 256
+    }
+    return array
+  }),
+  subtle: {
+    importKey: jest.fn().mockImplementation(async (format, keyData, algorithm, extractable, keyUsages) => {
+      // Return a mock key object that can be used by the sign method
+      return {
+        algorithm,
+        extractable,
+        keyUsages,
+        type: 'secret'
+      }
+    }),
+    sign: jest.fn().mockImplementation(async (algorithm, key, data) => {
+      // Create a deterministic signature based on the data
+      const hashArray = new Uint8Array(32)
+      for (let i = 0; i < Math.min(data.length, 32); i++) {
+        hashArray[i] = data[i] ^ 0x42 // Simple XOR for deterministic hash
+      }
+      return hashArray.buffer
+    }),
+    verify: jest.fn().mockResolvedValue(true),
+    encrypt: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer),
+    decrypt: jest.fn().mockResolvedValue(new Uint8Array([5, 6, 7, 8]).buffer),
+    generateKey: jest.fn().mockResolvedValue({}),
+    digest: jest.fn().mockImplementation(async (algorithm, data) => {
+      // Create a deterministic hash based on the data
+      const hashArray = new Uint8Array(32)
+      for (let i = 0; i < Math.min(data.length, 32); i++) {
+        hashArray[i] = data[i] ^ 0x42 // Simple XOR for deterministic hash
+      }
+      return hashArray.buffer
+    }),
+  },
+}
+
 // Mock @upstash/ratelimit
 const MockRatelimit = jest.fn().mockImplementation(() => ({
   limit: jest.fn().mockResolvedValue({
