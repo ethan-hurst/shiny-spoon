@@ -15,6 +15,7 @@ describe('Email Queue', () => {
     // Mock Supabase client with proper chaining
     mockSupabase = {
       from: jest.fn((table) => {
+        // Create a fresh mock for each table call
         const mockTable = {
           insert: jest.fn().mockReturnThis(),
           select: jest.fn().mockReturnThis(),
@@ -27,12 +28,9 @@ describe('Email Queue', () => {
           single: jest.fn(),
         }
         
-        // Store the mock for later access
-        mockSupabase._tableMock = mockTable
         return mockTable
       }),
       rpc: jest.fn(),
-      _tableMock: null,
     }
     
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
@@ -67,12 +65,14 @@ describe('Email Queue', () => {
     }
 
     it('should queue a valid email', async () => {
-      // Mock successful insert
-      const emailQueueMock = mockSupabase.from('email_queue')
-      emailQueueMock.insert.mockResolvedValueOnce({ 
-        data: { id: 'email-123' }, 
-        error: null 
-      })
+      // Mock successful insert with proper return structure
+      const emailQueueMock = {
+        insert: jest.fn().mockResolvedValue({ 
+          data: { id: 'email-123' }, 
+          error: null 
+        })
+      }
+      mockSupabase.from.mockReturnValue(emailQueueMock)
 
       const result = await queueEmail(validEmail)
 
