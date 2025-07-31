@@ -317,6 +317,12 @@ describe('NetSuiteConnector', () => {
     })
 
     it('should handle product transformation errors', async () => {
+      // Mock withRetry to actually call the function
+      ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
+      
+      // Mock withRateLimit to actually call the function
+      ;(connector as any).withRateLimit = jest.fn().mockImplementation((fn) => fn())
+      
       mockTransformers.transformProduct
         .mockResolvedValueOnce({
           sku: 'ITEM001',
