@@ -744,19 +744,10 @@ describe('NetSuiteConnector', () => {
       })
 
       it('should handle save errors', async () => {
-        const mockProduct = { sku: 'ITEM001', name: 'Test Product' }
         const error = new Error('Database error')
-
-        const mockFrom = mockSupabase.from as jest.Mock
-        const mockUpsert = jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnThis()
-        })
-        const mockEq = jest.fn().mockReturnThis()
         
-        mockFrom.mockReturnValue({
-          upsert: mockUpsert,
-          eq: mockEq
-        })
+        // Mock Supabase to throw error on upsert
+        getMockMethod('upsert').mockRejectedValue(error)
 
         await expect((connector as any).saveProduct(mockProduct)).rejects.toThrow(
           'Failed to save product ITEM001: Database error'
