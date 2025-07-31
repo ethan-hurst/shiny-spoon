@@ -12,24 +12,35 @@ describe('Email Queue', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     
-    // Mock Supabase client with proper chaining
+    // Create a more robust mock system for Supabase
+    const createMockTable = () => {
+      const mockTable = {
+        insert: jest.fn(),
+        select: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        eq: jest.fn(),
+        lt: jest.fn(),
+        order: jest.fn(),
+        limit: jest.fn(),
+        single: jest.fn(),
+      }
+      
+      // Set up method chaining
+      mockTable.insert.mockReturnValue(mockTable)
+      mockTable.select.mockReturnValue(mockTable)
+      mockTable.update.mockReturnValue(mockTable)
+      mockTable.delete.mockReturnValue(mockTable)
+      mockTable.eq.mockReturnValue(mockTable)
+      mockTable.lt.mockReturnValue(mockTable)
+      mockTable.order.mockReturnValue(mockTable)
+      mockTable.limit.mockReturnValue(mockTable)
+      
+      return mockTable
+    }
+    
     mockSupabase = {
-      from: jest.fn((table) => {
-        // Create a fresh mock for each table call
-        const mockTable = {
-          insert: jest.fn().mockReturnThis(),
-          select: jest.fn().mockReturnThis(),
-          update: jest.fn().mockReturnThis(),
-          delete: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          lt: jest.fn().mockReturnThis(),
-          order: jest.fn().mockReturnThis(),
-          limit: jest.fn().mockReturnThis(),
-          single: jest.fn(),
-        }
-        
-        return mockTable
-      }),
+      from: jest.fn((table) => createMockTable()),
       rpc: jest.fn(),
     }
     
@@ -65,14 +76,12 @@ describe('Email Queue', () => {
     }
 
     it('should queue a valid email', async () => {
-      // Mock successful insert with proper return structure
-      const emailQueueMock = {
-        insert: jest.fn().mockResolvedValue({ 
-          data: { id: 'email-123' }, 
-          error: null 
-        })
-      }
-      mockSupabase.from.mockReturnValue(emailQueueMock)
+      // Get the mock table and set up the insert response
+      const emailQueueMock = mockSupabase.from('email_queue')
+      emailQueueMock.insert.mockResolvedValue({ 
+        data: { id: 'email-123' }, 
+        error: null 
+      })
 
       const result = await queueEmail(validEmail)
 
@@ -88,14 +97,12 @@ describe('Email Queue', () => {
     })
 
     it('should handle array of recipients', async () => {
-      // Mock successful insert with proper return structure
-      const emailQueueMock = {
-        insert: jest.fn().mockResolvedValue({ 
-          data: { id: 'email-123' }, 
-          error: null 
-        })
-      }
-      mockSupabase.from.mockReturnValue(emailQueueMock)
+      // Get the mock table and set up the insert response
+      const emailQueueMock = mockSupabase.from('email_queue')
+      emailQueueMock.insert.mockResolvedValue({ 
+        data: { id: 'email-123' }, 
+        error: null 
+      })
 
       const emailWithMultipleRecipients: EmailMessage = {
         ...validEmail,
@@ -116,12 +123,10 @@ describe('Email Queue', () => {
 
     it('should handle database errors', async () => {
       const dbError = new Error('Database connection failed')
-      const emailQueueMock = {
-        insert: jest.fn().mockResolvedValue({ 
-          error: { message: dbError.message } 
-        })
-      }
-      mockSupabase.from.mockReturnValue(emailQueueMock)
+      const emailQueueMock = mockSupabase.from('email_queue')
+      emailQueueMock.insert.mockResolvedValue({ 
+        error: { message: dbError.message } 
+      })
 
       const result = await queueEmail(validEmail)
 
@@ -171,28 +176,24 @@ describe('Email Queue', () => {
         }
       ]
 
-      // Mock the query chain with proper chaining
-      const emailQueueMock = {
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            lt: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue({
-                  data: pendingEmails,
-                  error: null
-                })
-              })
-            })
-          })
-        }),
-        update: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({
-            data: null,
-            error: null
-          })
-        })
-      }
-      mockSupabase.from.mockReturnValue(emailQueueMock)
+      // Set up the mock for the query chain
+      const emailQueueMock = mockSupabase.from('email_queue')
+      emailQueueMock.select.mockReturnValue(emailQueueMock)
+      emailQueueMock.eq.mockReturnValue(emailQueueMock)
+      emailQueueMock.lt.mockReturnValue(emailQueueMock)
+      emailQueueMock.order.mockReturnValue(emailQueueMock)
+      emailQueueMock.limit.mockResolvedValue({
+        data: pendingEmails,
+        error: null
+      })
+      
+      // Set up the update mock
+      emailQueueMock.update.mockReturnValue(emailQueueMock)
+      emailQueueMock.eq.mockReturnValue(emailQueueMock)
+      emailQueueMock.single.mockResolvedValue({
+        data: null,
+        error: null
+      })
 
       // Set environment for console mode
       process.env.EMAIL_PROVIDER = 'console'
