@@ -233,6 +233,11 @@ describe('Warehouse Validations', () => {
             ...validWarehouse,
             code: input
           })
+          
+          if (!result.success) {
+            console.log(`Validation failed for input "${input}":`, result.error.issues)
+          }
+          
           expect(result.success).toBe(true)
           if (result.success) {
             expect(result.data.code).toBe(expected)
