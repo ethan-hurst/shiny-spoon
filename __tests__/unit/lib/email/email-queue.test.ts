@@ -84,6 +84,8 @@ describe('Email Queue', () => {
     }
 
     it('should queue a valid email', async () => {
+      console.log('Test starting...')
+      
       // Set up the mock to return the expected structure
       const emailQueueMock = mockSupabase.from('email_queue')
       emailQueueMock.insert.mockResolvedValue({ 
@@ -91,28 +93,12 @@ describe('Email Queue', () => {
         error: null 
       })
 
-      // Debug: Check if createClient is being called
-      console.log('Before queueEmail call')
-      console.log('queueEmail function:', typeof queueEmail)
-      console.log('Mock setup check:', {
-        createClientCalled: createClient.mock.calls.length,
-        fromCalled: mockSupabase.from.mock.calls.length,
-        insertCalled: emailQueueMock.insert.mock.calls.length
-      })
-      
-      try {
-        const result = await queueEmail(validEmail)
-        console.log('After queueEmail call - success')
-        console.log('Result:', result)
-        console.log('Mock calls after:', {
-          createClientCalled: createClient.mock.calls.length,
-          fromCalled: mockSupabase.from.mock.calls.length,
-          insertCalled: emailQueueMock.insert.mock.calls.length
-        })
-      } catch (error) {
-        console.log('After queueEmail call - error:', error)
-      }
+      console.log('About to call queueEmail...')
+      const result = await queueEmail(validEmail)
+      console.log('queueEmail called successfully, result:', result)
 
+      expect(result.success).toBe(true)
+      expect(result.error).toBeUndefined()
       expect(createClient).toHaveBeenCalled()
       expect(mockSupabase.from).toHaveBeenCalledWith('email_queue')
       expect(emailQueueMock.insert).toHaveBeenCalledWith({
