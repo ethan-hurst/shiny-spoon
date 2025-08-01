@@ -56,7 +56,8 @@ describe('NetSuiteConnector', () => {
   // Helper function to access mock methods through the from() chain
   const getMockMethod = (methodName: string) => {
     const mockFrom = mockSupabase.from as jest.Mock
-    return mockFrom()[methodName]
+    const mockChain = mockFrom()
+    return mockChain[methodName]
   }
 
   beforeEach(() => {
