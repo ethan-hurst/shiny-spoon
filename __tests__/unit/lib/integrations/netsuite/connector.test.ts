@@ -725,33 +725,10 @@ describe('NetSuiteConnector', () => {
           metadata: { category: 'test' }
         }
 
-        // Add debugging to see what's happening
-        console.log('About to call saveProduct')
-        console.log('Mock supabase:', (connector as any).supabase)
-        console.log('Mock from method:', (connector as any).supabase.from)
-        
-        // Test the mock chain
-        const mockChain = (connector as any).supabase.from('products')
-        console.log('Mock chain from from():', mockChain)
-        console.log('Mock chain upsert:', mockChain.upsert)
-        
-        // Test the upsert method directly
-        const upsertResult = mockChain.upsert({ test: 'data' })
-        console.log('Upsert result:', upsertResult)
-        console.log('Upsert result eq:', upsertResult.eq)
-        
-        try {
-          await (connector as any).saveProduct(mockProduct)
-          console.log('saveProduct completed')
-        } catch (error) {
-          console.log('saveProduct failed with error:', error)
-          throw error
-        }
-        
-        // Check if any mock methods were called
-        console.log('Mock calls:', getMockMethod('upsert').mock.calls)
-        console.log('MockChain upsert calls:', mockChain.upsert.mock.calls)
-        console.log('MockChain from calls:', (connector as any).supabase.from.mock.calls)
+        // Mock the upsert to return a successful result
+        getMockMethod('upsert').mockResolvedValue({ error: null })
+
+        await (connector as any).saveProduct(mockProduct)
 
         expect(getMockMethod('upsert')).toHaveBeenCalledWith({
           sku: mockProduct.sku,
