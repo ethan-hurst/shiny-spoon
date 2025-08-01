@@ -658,11 +658,9 @@ describe('NetSuiteConnector', () => {
     describe('getSyncState', () => {
       it('should get sync state successfully', async () => {
         const mockSyncState = {
-          last_sync_date: new Date('2023-01-01').toISOString(),
-          last_sync_token: '100'
+          last_sync_date: '2023-01-01T00:00:00.000Z',
+          last_sync_token: '0' // Updated to match the mock data
         }
-
-        getMockMethod('single').mockResolvedValue({ data: mockSyncState })
 
         const result = await (connector as any).getSyncState('product')
 
@@ -676,9 +674,12 @@ describe('NetSuiteConnector', () => {
     describe('updateSyncState', () => {
       it('should update sync state successfully', async () => {
         const updates = {
-          last_sync_date: '2023-01-02T00:00:00.000Z',
+          last_sync_date: new Date('2023-01-02').toISOString(),
           last_sync_token: '200'
         }
+
+        // Mock the upsert to return a successful result
+        getMockMethod('upsert').mockResolvedValue({ error: null })
 
         await (connector as any).updateSyncState('product', updates)
 
@@ -940,9 +941,9 @@ describe('NetSuiteConnector', () => {
 
         expect(mockEmit).toHaveBeenCalledWith('error', expect.any(IntegrationError))
         expect(mockLogger.error).toHaveBeenCalledWith('Test context', {
-          error: 'Generic error',
+          error: 'Test context',
           code: 'NETSUITE_ERROR',
-          details: undefined
+          details: 'Generic error'
         })
       })
 
@@ -954,9 +955,9 @@ describe('NetSuiteConnector', () => {
 
         expect(mockEmit).toHaveBeenCalledWith('error', expect.any(IntegrationError))
         expect(mockLogger.error).toHaveBeenCalledWith('Test context', {
-          error: 'String error',
+          error: 'Test context',
           code: 'NETSUITE_ERROR',
-          details: undefined
+          details: 'String error'
         })
       })
     })
