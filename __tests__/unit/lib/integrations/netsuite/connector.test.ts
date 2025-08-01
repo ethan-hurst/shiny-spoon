@@ -134,6 +134,9 @@ describe('NetSuiteConnector', () => {
     connector = new NetSuiteConnector(mockConfig)
     ;(connector as any).rateLimiter = mockRateLimiter
     ;(connector as any).logger = mockLogger
+    
+    // Apply mock to the connector's Supabase client
+    ;(connector as any).supabase = mockSupabase
   })
 
   describe('constructor', () => {
@@ -722,7 +725,10 @@ describe('NetSuiteConnector', () => {
           metadata: { category: 'test' }
         }
 
+        // Add debugging to see what's happening
+        console.log('About to call saveProduct')
         await (connector as any).saveProduct(mockProduct)
+        console.log('saveProduct completed')
 
         expect(getMockMethod('upsert')).toHaveBeenCalledWith({
           sku: mockProduct.sku,
