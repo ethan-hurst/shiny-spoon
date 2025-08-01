@@ -57,7 +57,9 @@ jest.mock('@supabase/supabase-js', () => ({
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
-      upsert: jest.fn().mockReturnThis(),
+      upsert: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnThis()
+      }),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
     })),
@@ -78,7 +80,9 @@ jest.mock('@supabase/ssr', () => ({
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
-      upsert: jest.fn().mockReturnThis(),
+      upsert: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnThis()
+      }),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
     })),
@@ -95,7 +99,9 @@ jest.mock('@supabase/ssr', () => ({
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
-      upsert: jest.fn().mockReturnThis(),
+      upsert: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnThis()
+      }),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
     })),
