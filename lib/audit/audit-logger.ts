@@ -1,6 +1,6 @@
 // lib/audit/audit-logger.ts
 import { headers } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 
 export type AuditAction =
   | 'create'
@@ -37,10 +37,10 @@ export interface AuditLogEntry {
 }
 
 export class AuditLogger {
-  private supabase: ReturnType<typeof createClient>
+  private supabase: ReturnType<typeof createServerClient>
 
-  constructor(supabaseClient?: ReturnType<typeof createClient>) {
-    this.supabase = supabaseClient || createClient()
+  constructor(supabaseClient?: ReturnType<typeof createServerClient>) {
+    this.supabase = supabaseClient || createServerClient()
   }
 
   async log(entry: AuditLogEntry): Promise<void> {
@@ -67,25 +67,24 @@ export class AuditLogger {
       const realIp = headersList.get('x-real-ip')
       const ip = forwardedFor?.split(',')[0] || realIp || null
 
-      // Create audit log entry using RPC for better security
-      await this.supabase.rpc('create_audit_log', {
-        p_organization_id: profile.organization_id,
-        p_user_id: user.id,
-        p_user_email: user.email || '',
-        p_user_role: profile.role,
-        p_action: entry.action,
-        p_entity_type: entry.entityType,
-        p_entity_id: entry.entityId,
-        p_entity_name: entry.entityName,
-        p_old_values: entry.oldValues,
-        p_new_values: entry.newValues,
-        p_metadata: {
+      // Create audit log entry
+      await this.supabase.from('audit_logs').insert({
+        organization_id: profile.organization_id,
+        user_id: user.id,
+        user_email: user.email || '',
+        user_role: profile.role,
+        action: entry.action,
+        entity_type: entry.entityType,
+        entity_id: entry.entityId,
+        entity_name: entry.entityName,
+        old_values: entry.oldValues,
+        new_values: entry.newValues,
+        metadata: {
           ...entry.metadata,
           user_name: profile.full_name,
         },
-        p_ip_address: ip,
-        p_user_agent: userAgent,
-        p_request_id: crypto.randomUUID(),
+        ip_address: ip,
+        user_agent: userAgent,
       })
     } catch (error) {
       // Log to error tracking service but don't throw

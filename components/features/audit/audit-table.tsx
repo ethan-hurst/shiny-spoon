@@ -185,7 +185,7 @@ export function AuditTable({
           <div className="text-sm">
             <div className="font-medium">{log.entity_type}</div>
             {log.entity_name && (
-              <div className="text-muted-foreground truncate max-w-[200px]">{log.entity_name}</div>
+              <div className="text-muted-foreground">{log.entity_name}</div>
             )}
           </div>
         )
@@ -333,6 +333,7 @@ export function AuditTable({
             <PaginationItem>
               <PaginationPrevious
                 href={buildPageUrl(currentPage - 1, filters)}
+                aria-disabled={currentPage <= 1}
                 className={
                   currentPage <= 1 ? 'pointer-events-none opacity-50' : ''
                 }
@@ -357,6 +358,7 @@ export function AuditTable({
             <PaginationItem>
               <PaginationNext
                 href={buildPageUrl(currentPage + 1, filters)}
+                aria-disabled={currentPage >= totalPages}
                 className={
                   currentPage >= totalPages
                     ? 'pointer-events-none opacity-50'
