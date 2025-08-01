@@ -1,5 +1,5 @@
 import { AuditLogger, withAuditLog } from '@/lib/audit/audit-logger'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 import type { AuditLogEntry, AuditAction, EntityType } from '@/lib/audit/audit-logger'
 
@@ -21,6 +21,7 @@ describe('AuditLogger', () => {
   let mockHeaders: jest.MockedFunction<typeof headers>
   let consoleErrorSpy: jest.SpyInstance
   let mockUserProfilesQuery: any
+  let mockAuditLogsInsert: jest.Mock
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -61,6 +62,8 @@ describe('AuditLogger', () => {
       })
     }
     
+    mockAuditLogsInsert = jest.fn().mockResolvedValue({ data: null, error: null })
+    
     mockSupabase = {
       auth: {
         getUser: jest.fn().mockResolvedValue({
@@ -76,12 +79,16 @@ describe('AuditLogger', () => {
         if (table === 'user_profiles') {
           return mockUserProfilesQuery
         }
+        if (table === 'audit_logs') {
+          return {
+            insert: mockAuditLogsInsert
+          }
+        }
         return {}
-      }),
-      rpc: jest.fn().mockResolvedValue({ data: null, error: null })
+      })
     }
     
-    ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
+    ;(createServerClient as jest.Mock).mockReturnValue(mockSupabase)
     
     logger = new AuditLogger()
   })
@@ -104,21 +111,21 @@ describe('AuditLogger', () => {
 
       expect(mockSupabase.auth.getUser).toHaveBeenCalled()
       expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log', {
-        p_organization_id: 'org-123',
-        p_user_id: 'user-123',
-        p_user_email: 'test@example.com',
-        p_user_role: 'admin',
-        p_action: 'create',
-        p_entity_type: 'product',
-        p_entity_id: 'prod-123',
-        p_entity_name: 'Test Product',
-        p_old_values: undefined,
-        p_new_values: { name: 'Test Product', price: 99.99 },
-        p_metadata: { user_name: 'Test User' },
-        p_ip_address: '192.168.1.1',
-        p_user_agent: 'Mozilla/5.0 Test Browser',
-        p_request_id: 'test-uuid-123'
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith({
+        organization_id: 'org-123',
+        user_id: 'user-123',
+        user_email: 'test@example.com',
+        user_role: 'admin',
+        action: 'create',
+        entity_type: 'product',
+        entity_id: 'prod-123',
+        entity_name: 'Test Product',
+        old_values: undefined,
+        new_values: { name: 'Test Product', price: 99.99 },
+        metadata: { user_name: 'Test User' },
+        ip_address: '192.168.1.1',
+        user_agent: 'Mozilla/5.0 Test Browser'
       })
     })
 
@@ -154,9 +161,10 @@ describe('AuditLogger', () => {
 
       await logger.log(entryWithMetadata)
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log', 
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockSupabase.from('audit_logs').insert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_metadata: {
+          metadata: {
             source: 'bulk_import',
             importId: 'import-123',
             recordCount: 100,
