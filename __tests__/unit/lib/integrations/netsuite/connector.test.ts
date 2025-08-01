@@ -728,7 +728,18 @@ describe('NetSuiteConnector', () => {
         // Mock the upsert to return a successful result
         getMockMethod('upsert').mockResolvedValue({ error: null })
 
+        // Test that the mock is working
+        const mockUpsert = getMockMethod('upsert')
+        console.log('Mock upsert function:', mockUpsert)
+        console.log('Mock upsert calls before:', mockUpsert.mock.calls.length)
+
+        // Test direct call to the mock
+        mockUpsert({ test: 'direct' })
+        console.log('Mock upsert calls after direct call:', mockUpsert.mock.calls.length)
+
         await (connector as any).saveProduct(mockProduct)
+
+        console.log('Mock upsert calls after saveProduct:', mockUpsert.mock.calls.length)
 
         expect(getMockMethod('upsert')).toHaveBeenCalledWith({
           sku: mockProduct.sku,
