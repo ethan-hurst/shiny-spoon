@@ -63,32 +63,9 @@ describe('NetSuiteConnector', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Create a comprehensive mock object that supports all method chains
-    const upsertEqChain = {
-      eq: jest.fn().mockReturnThis()
-    };
-
-    const mockChain = {
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      upsert: jest.fn().mockReturnValue(upsertEqChain),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({
-        data: {
-          last_sync_date: new Date('2023-01-01').toISOString(),
-          last_sync_token: '0'
-        }
-      }),
-      functions: {
-        invoke: jest.fn().mockResolvedValue({ data: null, error: null })
-      }
-    }
-
-    // Create mockSupabase that always returns the same mock chain
+    // Create mockSupabase that uses the global mock from jest.setup.js
     mockSupabase = {
-      from: jest.fn().mockReturnValue(mockChain)
+      from: jest.fn()
     }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
