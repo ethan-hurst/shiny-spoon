@@ -136,7 +136,7 @@ describe('AuditLogger', () => {
 
       await logger.log(validEntry)
 
-      expect(mockSupabase.rpc).not.toHaveBeenCalled()
+      expect(mockAuditLogsInsert).not.toHaveBeenCalled()
     })
 
     it('should handle missing organization gracefully', async () => {
@@ -146,7 +146,7 @@ describe('AuditLogger', () => {
 
       await logger.log(validEntry)
 
-      expect(mockSupabase.rpc).not.toHaveBeenCalled()
+      expect(mockAuditLogsInsert).not.toHaveBeenCalled()
     })
 
     it('should include metadata in the log entry', async () => {
@@ -162,7 +162,7 @@ describe('AuditLogger', () => {
       await logger.log(entryWithMetadata)
 
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
-      expect(mockSupabase.from('audit_logs').insert).toHaveBeenCalledWith(
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: {
             source: 'bulk_import',
@@ -178,9 +178,10 @@ describe('AuditLogger', () => {
       // Test x-forwarded-for parsing
       await logger.log(validEntry)
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_ip_address: '192.168.1.1' // First IP from x-forwarded-for
+          ip_address: '192.168.1.1' // First IP from x-forwarded-for
         })
       )
 
@@ -194,15 +195,16 @@ describe('AuditLogger', () => {
 
       await logger.log(validEntry)
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_ip_address: '10.0.0.1'
+          ip_address: '10.0.0.1'
         })
       )
     })
 
     it('should handle errors without throwing', async () => {
-      mockSupabase.rpc.mockRejectedValueOnce(new Error('Database error'))
+      mockAuditLogsInsert.mockRejectedValueOnce(new Error('Database error'))
 
       await logger.log(validEntry)
 
@@ -213,31 +215,41 @@ describe('AuditLogger', () => {
     })
 
     it('should work with custom supabase client', async () => {
+      const customAuditLogsInsert = jest.fn().mockResolvedValue({ data: null, error: null })
       const customSupabase = {
         auth: {
           getUser: jest.fn().mockResolvedValue({
             data: { user: { id: 'custom-user', email: 'custom@example.com' } }
           })
         },
-        from: jest.fn(() => ({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          single: jest.fn().mockResolvedValue({
-            data: {
-              organization_id: 'custom-org',
-              role: 'user',
-              full_name: 'Custom User'
+        from: jest.fn((table: string) => {
+          if (table === 'user_profiles') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({
+                data: {
+                  organization_id: 'custom-org',
+                  role: 'user',
+                  full_name: 'Custom User'
+                }
+              })
             }
-          })
-        })),
-        rpc: jest.fn().mockResolvedValue({ data: null, error: null })
+          }
+          if (table === 'audit_logs') {
+            return {
+              insert: customAuditLogsInsert
+            }
+          }
+          return {}
+        })
       }
 
       const customLogger = new AuditLogger(customSupabase as any)
       await customLogger.log(validEntry)
 
-      expect(customSupabase.rpc).toHaveBeenCalled()
-      expect(mockSupabase.rpc).not.toHaveBeenCalled()
+      expect(customAuditLogsInsert).toHaveBeenCalled()
+      expect(mockAuditLogsInsert).not.toHaveBeenCalled()
     })
   })
 
@@ -252,14 +264,15 @@ describe('AuditLogger', () => {
 
       await logger.logCreate('product', entity, { source: 'api' })
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_action: 'create',
-          p_entity_type: 'product',
-          p_entity_id: 'prod-123',
-          p_entity_name: 'New Product',
-          p_new_values: entity,
-          p_metadata: expect.objectContaining({ source: 'api' })
+          action: 'create',
+          entity_type: 'product',
+          entity_id: 'prod-123',
+          entity_name: 'New Product',
+          new_values: entity,
+          metadata: expect.objectContaining({ source: 'api' })
         })
       )
     })
@@ -272,15 +285,16 @@ describe('AuditLogger', () => {
         changedBy: 'price_import' 
       })
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_action: 'update',
-          p_entity_type: 'product',
-          p_entity_id: 'prod-123',
-          p_entity_name: 'Updated Product',
-          p_old_values: oldValues,
-          p_new_values: newValues,
-          p_metadata: expect.objectContaining({ changedBy: 'price_import' })
+          action: 'update',
+          entity_type: 'product',
+          entity_id: 'prod-123',
+          entity_name: 'Updated Product',
+          old_values: oldValues,
+          new_values: newValues,
+          metadata: expect.objectContaining({ changedBy: 'price_import' })
         })
       )
     })
@@ -294,14 +308,15 @@ describe('AuditLogger', () => {
 
       await logger.logDelete('product', entity, { reason: 'discontinued' })
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_action: 'delete',
-          p_entity_type: 'product',
-          p_entity_id: 'prod-123',
-          p_entity_name: 'Deleted Product',
-          p_old_values: entity,
-          p_metadata: expect.objectContaining({ reason: 'discontinued' })
+          action: 'delete',
+          entity_type: 'product',
+          entity_id: 'prod-123',
+          entity_name: 'Deleted Product',
+          old_values: entity,
+          metadata: expect.objectContaining({ reason: 'discontinued' })
         })
       )
     })
@@ -314,11 +329,12 @@ describe('AuditLogger', () => {
 
       await logger.logExport('product', filters, 150)
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_action: 'export',
-          p_entity_type: 'product',
-          p_metadata: expect.objectContaining({ 
+          action: 'export',
+          entity_type: 'product',
+          metadata: expect.objectContaining({ 
             filters,
             recordCount: 150
           })
@@ -329,12 +345,13 @@ describe('AuditLogger', () => {
     it('should log view action', async () => {
       await logger.logView('order', 'ord-123', 'Order #12345')
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_action: 'view',
-          p_entity_type: 'order',
-          p_entity_id: 'ord-123',
-          p_entity_name: 'Order #12345'
+          action: 'view',
+          entity_type: 'order',
+          entity_id: 'ord-123',
+          entity_name: 'Order #12345'
         })
       )
     })
@@ -349,9 +366,10 @@ describe('AuditLogger', () => {
 
       await logger.logCreate('pricing_rule', entityWithTitle)
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_entity_name: 'Holiday Discount'
+          entity_name: 'Holiday Discount'
         })
       )
 
@@ -364,9 +382,10 @@ describe('AuditLogger', () => {
 
       await logger.logCreate('inventory', entityWithSku)
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_entity_name: 'SKU-001'
+          entity_name: 'SKU-001'
         })
       )
     })
@@ -394,12 +413,13 @@ describe('AuditLogger', () => {
 
       expect(mockAction).toHaveBeenCalledWith(input)
       expect(result).toEqual({ id: 'result-123', success: true })
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_action: 'create',
-          p_entity_type: 'product',
-          p_entity_id: 'result-123',
-          p_new_values: input
+          action: 'create',
+          entity_type: 'product',
+          entity_id: 'result-123',
+          new_values: input
         })
       )
     })
@@ -420,12 +440,13 @@ describe('AuditLogger', () => {
 
       await expect(auditedAction(input)).rejects.toThrow('Validation failed')
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_action: 'create',
-          p_entity_type: 'product',
-          p_new_values: input,
-          p_metadata: expect.objectContaining({
+          action: 'create',
+          entity_type: 'product',
+          new_values: input,
+          metadata: expect.objectContaining({
             error: 'Validation failed',
             failed: true
           })
@@ -454,7 +475,7 @@ describe('AuditLogger', () => {
     })
 
     it('should handle async errors in audit logging', async () => {
-      mockSupabase.rpc.mockRejectedValueOnce(new Error('Audit log failed'))
+      mockAuditLogsInsert.mockRejectedValueOnce(new Error('Audit log failed'))
 
       const mockAction = jest.fn().mockResolvedValue({ success: true })
 
@@ -489,10 +510,11 @@ describe('AuditLogger', () => {
         entityId: 'prod-123'
       })
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          p_ip_address: null,
-          p_user_agent: ''
+          ip_address: null,
+          user_agent: ''
         })
       )
     })
@@ -509,9 +531,10 @@ describe('AuditLogger', () => {
           entityType: 'product'
         })
 
-        expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockAuditLogsInsert).toHaveBeenCalledWith(
           expect.objectContaining({
-            p_action: action
+            action: action
           })
         )
       }
@@ -529,9 +552,10 @@ describe('AuditLogger', () => {
           entityType
         })
 
-        expect(mockSupabase.rpc).toHaveBeenCalledWith('create_audit_log',
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockAuditLogsInsert).toHaveBeenCalledWith(
           expect.objectContaining({
-            p_entity_type: entityType
+            entity_type: entityType
           })
         )
       }
