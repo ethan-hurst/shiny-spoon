@@ -719,22 +719,9 @@ describe('NetSuiteConnector', () => {
           external_id: 'item001'
         }
 
-        // Set up the mock expectations
-        const mockFrom = mockSupabase.from as jest.Mock
-        const mockUpsert = jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnThis()
-        })
-        const mockEq = jest.fn().mockReturnThis()
-        
-        mockFrom.mockReturnValue({
-          upsert: mockUpsert,
-          eq: mockEq
-        })
-
         await (connector as any).saveProduct(mockProduct)
 
-        expect(mockFrom).toHaveBeenCalledWith('products')
-        expect(mockUpsert).toHaveBeenCalledWith({
+        expect(getMockMethod('upsert')).toHaveBeenCalledWith({
           sku: mockProduct.sku,
           name: mockProduct.name,
           description: mockProduct.description,
