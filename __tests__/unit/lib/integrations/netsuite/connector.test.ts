@@ -712,7 +712,14 @@ describe('NetSuiteConnector', () => {
         const mockProduct = {
           sku: 'ITEM001',
           name: 'Test Product',
-          external_id: 'item001'
+          description: 'Test Description',
+          price: 99.99,
+          weight: 1.5,
+          dimensions: { length: 10, width: 5, height: 2 },
+          is_active: true,
+          external_id: 'item001',
+          external_updated_at: new Date('2023-01-01'),
+          metadata: { category: 'test' }
         }
 
         await (connector as any).saveProduct(mockProduct)
@@ -736,6 +743,20 @@ describe('NetSuiteConnector', () => {
         const error = new Error('Database error')
         // Mock the upsert to return an error object that the saveProduct method expects
         getMockMethod('upsert').mockResolvedValue({ error })
+        
+        const mockProduct = {
+          sku: 'ITEM001',
+          name: 'Test Product',
+          description: 'Test Description',
+          price: 99.99,
+          weight: 1.5,
+          dimensions: { length: 10, width: 5, height: 2 },
+          is_active: true,
+          external_id: 'item001',
+          external_updated_at: new Date('2023-01-01'),
+          metadata: { category: 'test' }
+        }
+        
         await expect((connector as any).saveProduct(mockProduct)).rejects.toThrow(
           'Failed to save product ITEM001: Database error'
         )
@@ -756,7 +777,10 @@ describe('NetSuiteConnector', () => {
         const inventory = {
           product_sku: 'ITEM001',
           warehouse_code: 'WH001',
-          quantity: 100
+          quantity_available: 100,
+          quantity_on_order: 10,
+          reorder_point: 20,
+          preferred_stock_level: 50
         }
 
         await (connector as any).updateInventory(inventory)
@@ -765,7 +789,12 @@ describe('NetSuiteConnector', () => {
           product_id: 'product-456',
           warehouse_id: 'warehouse-123',
           quantity: 100,
-          external_updated_at: expect.any(Date)
+          reserved_quantity: 10,
+          reorder_point: 20,
+          reorder_quantity: 50,
+          last_sync: expect.any(String),
+          sync_status: 'synced',
+          organization_id: mockConfig.organizationId
         })
       })
 
@@ -775,7 +804,7 @@ describe('NetSuiteConnector', () => {
         const inventory = {
           product_sku: 'ITEM001',
           warehouse_code: 'WH001',
-          quantity: 100
+          quantity_available: 100
         }
 
         await expect((connector as any).updateInventory(inventory)).rejects.toThrow(
@@ -791,7 +820,7 @@ describe('NetSuiteConnector', () => {
         const inventory = {
           product_sku: 'ITEM001',
           warehouse_code: 'WH001',
-          quantity: 100
+          quantity_available: 100
         }
 
         await expect((connector as any).updateInventory(inventory)).rejects.toThrow(
@@ -812,7 +841,8 @@ describe('NetSuiteConnector', () => {
           price_tier: 'STANDARD',
           unit_price: 99.99,
           currency_code: 'USD',
-          external_id: 'price-123'
+          external_id: 'price-123',
+          external_updated_at: new Date('2023-01-01')
         }]
 
         await (connector as any).updatePricing(pricing)
@@ -824,7 +854,7 @@ describe('NetSuiteConnector', () => {
           currency_code: 'USD',
           min_quantity: 1,
           external_id: 'price-123',
-          external_updated_at: expect.any(Date)
+          external_updated_at: new Date('2023-01-01')
         })
       })
 
