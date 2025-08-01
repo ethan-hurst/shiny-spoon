@@ -65,7 +65,25 @@ describe('NetSuiteConnector', () => {
 
     // Create mockSupabase that uses the global mock from jest.setup.js
     mockSupabase = {
-      from: jest.fn()
+      from: jest.fn(() => ({
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        update: jest.fn().mockReturnThis(),
+        delete: jest.fn().mockReturnThis(),
+        upsert: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnThis()
+        }),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: {
+            last_sync_date: new Date('2023-01-01').toISOString(),
+            last_sync_token: '0'
+          }
+        }),
+        functions: {
+          invoke: jest.fn().mockResolvedValue({ data: null, error: null })
+        }
+      }))
     }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
