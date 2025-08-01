@@ -1,6 +1,6 @@
 // app/(dashboard)/audit/page.tsx
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 import { AuditTable } from '@/components/features/audit/audit-table'
 import { AuditFilters } from '@/components/features/audit/audit-filters'
 import { AuditExportButton } from '@/components/features/audit/audit-export-button'
@@ -22,7 +22,7 @@ interface AuditPageProps {
 }
 
 export default async function AuditPage({ searchParams }: AuditPageProps) {
-  const supabase = createClient()
+  const supabase = createServerClient()
 
   // Get user's organization and check permissions
   const { data: { user } } = await supabase.auth.getUser()
