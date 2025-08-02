@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Testing Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        
+        .metric-change {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .metric-change.positive {
+            color: #10b981;
+        }
+        
+        .metric-change.negative {
+            color: #ef4444;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .chart-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+        
+        .test-history {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .test-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .test-table th {
+            text-align: left;
+            font-weight: 600;
+            padding: 0.75rem;
+            border-bottom: 2px solid #e5e5e5;
+        }
+        
+        .test-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        
+        .test-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-passed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-failed {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: #666;
+        }
+        
+        .error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🚀 Performance Testing Dashboard</h1>
+    </header>
+    
+    <div class="container">
+        <div id="loading" class="loading">Loading performance data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="dashboard" style="display: none;">
+            <!-- Key Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Average Response Time (P95)</div>
+                    <div class="metric-value" id="avgResponseTime">-</div>
+                    <div class="metric-change" id="avgResponseTimeChange">-</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Error Rate</div>
+                    <div class="metric-value" id="errorRate">-</div>
+                    <div class="metric-change" id="errorRateChange">-</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Throughput (RPS)</div>
+                    <div class="metric-value" id="throughput">-</div>
+                    <div class="metric-change" id="throughputChange">-</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Test Success Rate</div>
+                    <div class="metric-value" id="successRate">-</div>
+                    <div class="metric-change" id="successRateChange">-</div>
+                </div>
+            </div>
+            
+            <!-- Response Time Trend -->
+            <div class="chart-container">
+                <h2 class="chart-title">Response Time Trend (P95)</h2>
+                <div class="chart-wrapper">
+                    <canvas id="responseTimeChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Error Rate Trend -->
+            <div class="chart-container">
+                <h2 class="chart-title">Error Rate Trend</h2>
+                <div class="chart-wrapper">
+                    <canvas id="errorRateChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Test History -->
+            <div class="test-history">
+                <h2 class="chart-title">Recent Test Results</h2>
+                <table class="test-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Test Type</th>
+                            <th>P95 Response</th>
+                            <th>Error Rate</th>
+                            <th>Throughput</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="testHistoryBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global charts
+        let responseTimeChart = null;
+        let errorRateChart = null;
+        
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const response = await fetch('dashboard-data.json');
+                if (!response.ok) throw new Error('Failed to load dashboard data');
+                
+                const data = await response.json();
+                
+                // Hide loading, show dashboard
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                
+                // Update metrics
+                updateMetrics(data);
+                
+                // Create charts
+                createCharts(data);
+                
+                // Update test history
+                updateTestHistory(data);
+                
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = `Error loading dashboard: ${error.message}`;
+            }
+        }
+        
+        function updateMetrics(data) {
+            const latest = data.tests[data.tests.length - 1];
+            const previous = data.tests[data.tests.length - 2];
+            
+            // Response Time
+            const avgResponseTime = latest.metrics.p95_response_time;
+            document.getElementById('avgResponseTime').textContent = `${avgResponseTime.toFixed(0)}ms`;
+            
+            if (previous) {
+                const change = ((avgResponseTime - previous.metrics.p95_response_time) / previous.metrics.p95_response_time * 100).toFixed(1);
+                const changeElement = document.getElementById('avgResponseTimeChange');
+                changeElement.textContent = `${change > 0 ? '+' : ''}${change}% from last test`;
+                changeElement.className = `metric-change ${change > 10 ? 'negative' : 'positive'}`;
+            }
+            
+            // Error Rate
+            const errorRate = latest.metrics.error_rate * 100;
+            document.getElementById('errorRate').textContent = `${errorRate.toFixed(2)}%`;
+            
+            if (previous) {
+                const prevErrorRate = previous.metrics.error_rate * 100;
+                const change = errorRate - prevErrorRate;
+                const changeElement = document.getElementById('errorRateChange');
+                changeElement.textContent = `${change > 0 ? '+' : ''}${change.toFixed(2)}% from last test`;
+                changeElement.className = `metric-change ${change > 0 ? 'negative' : 'positive'}`;
+            }
+            
+            // Throughput
+            const throughput = latest.metrics.requests_per_second;
+            document.getElementById('throughput').textContent = throughput.toFixed(0);
+            
+            if (previous) {
+                const change = ((throughput - previous.metrics.requests_per_second) / previous.metrics.requests_per_second * 100).toFixed(1);
+                const changeElement = document.getElementById('throughputChange');
+                changeElement.textContent = `${change > 0 ? '+' : ''}${change}% from last test`;
+                changeElement.className = `metric-change ${change < -10 ? 'negative' : 'positive'}`;
+            }
+            
+            // Success Rate
+            const successRate = ((data.tests.filter(t => t.status === 'passed').length / data.tests.length) * 100).toFixed(1);
+            document.getElementById('successRate').textContent = `${successRate}%`;
+        }
+        
+        function createCharts(data) {
+            const labels = data.tests.map(t => new Date(t.timestamp).toLocaleDateString());
+            
+            // Response Time Chart
+            const rtCtx = document.getElementById('responseTimeChart').getContext('2d');
+            responseTimeChart = new Chart(rtCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'P95 Response Time (ms)',
+                        data: data.tests.map(t => t.metrics.p95_response_time),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Response Time (ms)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Error Rate Chart
+            const erCtx = document.getElementById('errorRateChart').getContext('2d');
+            errorRateChart = new Chart(erCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Error Rate (%)',
+                        data: data.tests.map(t => t.metrics.error_rate * 100),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            title: {
+                                display: true,
+                                text: 'Error Rate (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateTestHistory(data) {
+            const tbody = document.getElementById('testHistoryBody');
+            tbody.innerHTML = '';
+            
+            // Show last 10 tests
+            const recentTests = data.tests.slice(-10).reverse();
+            
+            recentTests.forEach(test => {
+                const row = tbody.insertRow();
+                
+                row.insertCell(0).textContent = new Date(test.timestamp).toLocaleString();
+                row.insertCell(1).textContent = test.type;
+                row.insertCell(2).textContent = `${test.metrics.p95_response_time.toFixed(0)}ms`;
+                row.insertCell(3).textContent = `${(test.metrics.error_rate * 100).toFixed(2)}%`;
+                row.insertCell(4).textContent = `${test.metrics.requests_per_second.toFixed(0)} RPS`;
+                
+                const statusCell = row.insertCell(5);
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `status-badge status-${test.status}`;
+                statusBadge.textContent = test.status.toUpperCase();
+                statusCell.appendChild(statusBadge);
+            });
+        }
+        
+        // Load dashboard on page load
+        loadDashboard();
+        
+        // Refresh every 5 minutes
+        setInterval(loadDashboard, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
