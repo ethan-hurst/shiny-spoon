@@ -9,12 +9,115 @@ import type {
   ShopifyLineItem,
   ShopifyAddress
 } from '@/types/shopify.types'
-import type { Database } from '@/supabase/types/database-extended'
 
-type Product = Database['public']['Tables']['products']['Insert']
-type Inventory = Database['public']['Tables']['inventory']['Insert']
-type Customer = Database['public']['Tables']['customers']['Insert']
-type CustomerContact = Database['public']['Tables']['customer_contacts']['Insert']
+// Define types based on actual database schema
+interface Product {
+  id?: string
+  organization_id: string
+  sku: string
+  name: string
+  description?: string | null
+  category?: string
+  base_price: number
+  cost?: number
+  weight?: number
+  dimensions?: any
+  image_url?: string
+  active?: boolean
+  metadata?: any
+  created_at?: string
+  updated_at?: string
+}
+
+interface Inventory {
+  id?: string
+  organization_id: string
+  product_id: string
+  warehouse_id: string
+  quantity: number
+  reserved_quantity?: number
+  reorder_point?: number | null
+  reorder_quantity?: number | null
+  last_counted_at?: string | null
+  last_counted_by?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+interface Customer {
+  id?: string
+  organization_id: string
+  company_name: string
+  display_name?: string
+  tax_id?: string | null
+  website?: string
+  tier_id?: string
+  status?: string
+  customer_type?: string
+  billing_address?: any
+  shipping_address?: any
+  credit_limit?: number
+  payment_terms?: number
+  currency?: string
+  settings?: any
+  tags?: string[]
+  portal_enabled?: boolean
+  portal_subdomain?: string
+  notes?: string
+  internal_notes?: string
+  metadata?: any
+  created_at?: string
+  updated_at?: string
+  created_by?: string
+  updated_by?: string
+}
+
+interface CustomerContact {
+  id?: string
+  customer_id: string
+  first_name: string
+  last_name: string
+  email: string
+  phone?: string | null
+  mobile?: string
+  role?: string
+  is_primary?: boolean
+  portal_access?: boolean
+  preferred_contact_method?: string
+  receives_order_updates?: boolean
+  receives_marketing?: boolean
+  notes?: string
+  created_at?: string
+  updated_at?: string
+}
+
+interface Order {
+  id?: string
+  organization_id: string
+  order_number: string
+  customer_id?: string | null
+  status: string
+  subtotal: number
+  tax_amount: number
+  shipping_amount: number
+  discount_amount: number
+  total_amount: number
+  billing_address?: any
+  shipping_address?: any
+  order_date?: string
+  expected_delivery_date?: string
+  actual_delivery_date?: string
+  external_order_id?: string
+  source_platform?: string
+  sync_status?: string
+  last_sync_at?: string
+  notes?: string
+  metadata?: any
+  created_at?: string
+  updated_at?: string
+  created_by?: string
+  updated_by?: string
+}
 
 export class ShopifyTransformers {
   private locationMappings: Record<string, string> = {}
@@ -31,13 +134,26 @@ export class ShopifyTransformers {
   async transformProduct(shopifyProduct: ShopifyProduct): Promise<Product & { id: string }> {
     const internalId = await this.generateInternalId(shopifyProduct.title)
     
+    // Get the first variant for base pricing
+    const firstVariant = shopifyProduct.variants?.edges?.[0]?.node
+    const basePrice = firstVariant ? parseFloat(firstVariant.price) : 0
+    
     return {
       id: internalId,
       organization_id: '', // Will be set by caller
-      sku: shopifyProduct.variants[0]?.sku || '',
+      sku: firstVariant?.sku || '',
       name: shopifyProduct.title,
-      description: shopifyProduct.description || null,
-      is_active: shopifyProduct.status === 'ACTIVE'
+      description: this.stripHtml(shopifyProduct.descriptionHtml || ''),
+      base_price: basePrice,
+      active: shopifyProduct.status === 'ACTIVE',
+      metadata: {
+        shopify_id: shopifyProduct.id,
+        handle: shopifyProduct.handle,
+        vendor: shopifyProduct.vendor,
+        product_type: shopifyProduct.productType,
+        tags: shopifyProduct.tags,
+        metafields: this.extractMetafields(shopifyProduct.metafields)
+      }
     }
   }
 
@@ -48,16 +164,14 @@ export class ShopifyTransformers {
     shopifyInventory: ShopifyInventoryLevel,
     warehouseId: string
   ): Promise<Inventory & { product_id: string }> {
-    const internalId = await this.generateInternalId(shopifyInventory.inventoryItemId.toString())
+    const internalId = await this.generateInternalId(shopifyInventory.item?.variant?.product?.id || shopifyInventory.item?.id || '')
     
     return {
       product_id: internalId,
       organization_id: '', // Will be set by caller
       warehouse_id: warehouseId,
       quantity: shopifyInventory.available,
-      reserved_quantity: 0,
-      reorder_point: null,
-      reorder_quantity: null
+      reserved_quantity: 0
     }
   }
 
@@ -87,43 +201,28 @@ export class ShopifyTransformers {
   /**
    * Transform Shopify order to internal format
    */
-  transformOrder(shopifyOrder: ShopifyOrder): {
-    external_id: string
-    order_number: string
-    customer_email: string | null
-    total_amount: number
-    subtotal_amount: number
-    tax_amount: number
-    currency: string
-    status: string
-    line_items: any[]
-    shipping_address: any
-    billing_address: any
-    customer: { external_id: string; email: string; name: string } | null
-    created_at: string
-    updated_at: string
-  } {
+  transformOrder(shopifyOrder: ShopifyOrder): Order & { id: string } {
+    const internalId = this.generateInternalId(shopifyOrder.name)
+    
     return {
-      external_id: shopifyOrder.id,
+      id: internalId,
+      organization_id: '', // Will be set by caller
       order_number: shopifyOrder.name,
-      customer_email: shopifyOrder.email,
-      total_amount: parseFloat(shopifyOrder.totalPrice),
-      subtotal_amount: parseFloat(shopifyOrder.subtotalPrice),
-      tax_amount: parseFloat(shopifyOrder.totalTax),
-      currency: shopifyOrder.currencyCode,
-      status: this.mapOrderStatus(shopifyOrder.financialStatus, shopifyOrder.fulfillmentStatus),
-      line_items: shopifyOrder.lineItems.edges.map(edge => 
-        this.transformLineItem(edge.node)
-      ),
-      shipping_address: this.transformAddress(shopifyOrder.shippingAddress),
-      billing_address: this.transformAddress(shopifyOrder.billingAddress),
-      customer: shopifyOrder.customer ? {
-        external_id: shopifyOrder.customer.id,
-        email: shopifyOrder.customer.email,
-        name: `${shopifyOrder.customer.firstName || ''} ${shopifyOrder.customer.lastName || ''}`.trim()
-      } : null,
-      created_at: shopifyOrder.createdAt,
-      updated_at: shopifyOrder.updatedAt
+      customer_id: shopifyOrder.customer?.id ? this.generateInternalId(shopifyOrder.customer.id) : null,
+      total_amount: parseFloat(shopifyOrder.totalPrice || '0'),
+      subtotal: parseFloat(shopifyOrder.subtotalPrice || '0'),
+      tax_amount: parseFloat(shopifyOrder.totalTax || '0'),
+      shipping_amount: 0, // Not available in basic Shopify order
+      discount_amount: 0, // Not available in basic Shopify order
+      status: this.mapOrderStatus(shopifyOrder),
+      external_order_id: shopifyOrder.id,
+      source_platform: 'shopify',
+      metadata: {
+        shopify_id: shopifyOrder.id,
+        email: shopifyOrder.email,
+        processed_at: shopifyOrder.createdAt,
+        line_items: shopifyOrder.lineItems?.edges?.map(edge => this.transformLineItem(edge.node)) || []
+      }
     }
   }
 
@@ -135,14 +234,13 @@ export class ShopifyTransformers {
 
     return {
       id: internalId,
-      name: shopifyCustomer.company?.name || 
+      organization_id: '', // Will be set by caller
+      company_name: shopifyCustomer.company?.name || 
             `${shopifyCustomer.firstName || ''} ${shopifyCustomer.lastName || ''}`.trim() ||
             shopifyCustomer.email,
-      email: shopifyCustomer.email,
-      phone: shopifyCustomer.phone,
+      display_name: `${shopifyCustomer.firstName || ''} ${shopifyCustomer.lastName || ''}`.trim(),
       tax_id: shopifyCustomer.taxExempt ? 'EXEMPT' : null,
       status: 'active',
-      external_id: shopifyCustomer.id,
       metadata: {
         shopify_id: shopifyCustomer.id,
         tags: shopifyCustomer.tags,
@@ -150,19 +248,15 @@ export class ShopifyTransformers {
         company: shopifyCustomer.company
       },
       // Transform addresses to contacts
-      contacts: shopifyCustomer.addresses.map((address, index) => ({
+      contacts: shopifyCustomer.addresses?.map((address, index) => ({
         customer_id: internalId,
-        name: `${shopifyCustomer.firstName || ''} ${shopifyCustomer.lastName || ''}`.trim(),
+        first_name: shopifyCustomer.firstName || '',
+        last_name: shopifyCustomer.lastName || '',
         email: shopifyCustomer.email,
-        phone: address.phone || shopifyCustomer.phone,
+        phone: address.phone || shopifyCustomer.phone || null,
         is_primary: index === 0,
-        address_line1: address.address1,
-        address_line2: address.address2,
-        city: address.city,
-        state: address.provinceCode || address.province,
-        postal_code: address.zip,
-        country: address.countryCode || address.country
-      }))
+        role: index === 0 ? 'primary' : 'contact'
+      })) || []
     }
   }
 
@@ -177,8 +271,16 @@ export class ShopifyTransformers {
       organization_id: '', // Will be set by caller
       sku: webhookData.variants?.[0]?.sku || '',
       name: webhookData.title,
-      description: webhookData.body_html || null,
-      is_active: webhookData.status === 'active'
+      description: this.stripHtml(webhookData.body_html || ''),
+      base_price: webhookData.variants?.[0]?.price ? parseFloat(webhookData.variants[0].price) : 0,
+      active: webhookData.status === 'active',
+      metadata: {
+        shopify_id: webhookData.id,
+        handle: webhookData.handle,
+        vendor: webhookData.vendor,
+        product_type: webhookData.product_type,
+        tags: webhookData.tags
+      }
     }
   }
 
@@ -252,34 +354,34 @@ export class ShopifyTransformers {
     return shopifyStatus === 'ACTIVE' ? 'active' : 'inactive'
   }
 
-  private mapOrderStatus(
-    financialStatus: string,
-    fulfillmentStatus: string | null
-  ): string {
-    if (financialStatus === 'REFUNDED' || financialStatus === 'VOIDED') {
+  private mapOrderStatus(shopifyOrder: ShopifyOrder): string {
+    // Check financial status
+    if (shopifyOrder.financialStatus === 'REFUNDED' || shopifyOrder.financialStatus === 'VOIDED') {
       return 'cancelled'
     }
-    
-    if (fulfillmentStatus === 'FULFILLED') {
-      return 'completed'
+
+    // Check fulfillment status
+    if (shopifyOrder.fulfillmentStatus === 'FULFILLED') {
+      return 'delivered'
     }
 
-    if (financialStatus === 'PAID') {
+    if (shopifyOrder.financialStatus === 'PAID') {
       return 'processing'
     }
 
+    // Default to pending
     return 'pending'
   }
 
   private transformLineItem(lineItem: ShopifyLineItem): any {
     return {
       external_id: lineItem.id,
-      product_id: lineItem.product?.id,
+      product_id: lineItem.variant?.id ? this.generateInternalId(lineItem.variant.id) : null,
       variant_id: lineItem.variant?.id,
       sku: lineItem.variant?.sku,
       title: lineItem.title,
       quantity: lineItem.quantity,
-      price: parseFloat(lineItem.price)
+      price: parseFloat(lineItem.price || '0')
     }
   }
 
@@ -298,19 +400,20 @@ export class ShopifyTransformers {
     }
   }
 
-  private async generateInternalId(input: string): Promise<string> {
+  private generateInternalId(input: string): string {
     if (!input || typeof input !== 'string') {
       throw new Error('Input must be a non-empty string')
     }
     
-    // Generate a deterministic ID using SHA-256 hash
-    const encoder = new TextEncoder()
-    const data = encoder.encode(input.trim())
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    // Generate a deterministic ID using simple hash
+    let hash = 0
+    for (let i = 0; i < input.length; i++) {
+      const char = input.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
     
-    return `shopify_${hash.substring(0, 16)}` // Use first 16 chars of hash
+    return `shopify_${Math.abs(hash).toString(16)}`
   }
 
   /**
@@ -343,4 +446,20 @@ export class ShopifyTransformers {
   isLocationMapped(shopifyLocationId: string): boolean {
     return !!this.locationMappings[shopifyLocationId]
   }
+}
+
+// Export individual transform functions for direct use
+export function transformShopifyProduct(shopifyProduct: ShopifyProduct): Product & { id: string } {
+  const transformer = new ShopifyTransformers()
+  return transformer.transformProduct(shopifyProduct) as any
+}
+
+export function transformShopifyOrder(shopifyOrder: ShopifyOrder): Order & { id: string } {
+  const transformer = new ShopifyTransformers()
+  return transformer.transformOrder(shopifyOrder)
+}
+
+export function transformShopifyCustomer(shopifyCustomer: ShopifyCustomer): Customer & { contacts: CustomerContact[] } {
+  const transformer = new ShopifyTransformers()
+  return transformer.transformCustomer(shopifyCustomer)
 }

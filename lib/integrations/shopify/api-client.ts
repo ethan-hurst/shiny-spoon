@@ -5,11 +5,17 @@ import {
   ShopifyGraphQLError,
   ShopifyBulkOperation,
   ShopifyAPIError,
-  ShopifyRateLimitError
+  ShopifyRateLimitError,
+  ShopifyProduct,
+  ShopifyOrder,
+  ShopifyCustomer,
+  ShopifyInventoryLevel,
+  ShopifyB2BCatalog,
+  ShopifyShop
 } from '@/types/shopify.types'
 
 interface ShopifyApiConfig {
-  shop: string
+  shopDomain: string
   accessToken: string
   apiVersion: string
   rateLimiter?: RateLimiter
@@ -31,13 +37,417 @@ export class ShopifyApiClient {
   private apiCallLimit = 1000 // Shopify's default
 
   constructor(private config: ShopifyApiConfig) {
-    this.endpoint = `https://${config.shop}/admin/api/${config.apiVersion}/graphql.json`
+    this.endpoint = `https://${config.shopDomain}/admin/api/${config.apiVersion}/graphql.json`
     this.headers = {
       'X-Shopify-Access-Token': config.accessToken,
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     }
     this.rateLimiter = config.rateLimiter || null
+  }
+
+  /**
+   * Get shop information
+   */
+  async getShop(): Promise<ShopifyShop> {
+    const query = `
+      query {
+        shop {
+          id
+          name
+          email
+          myshopifyDomain
+          primaryDomain {
+            url
+            host
+          }
+          currencyCode
+          currencyFormats {
+            moneyFormat
+            moneyWithCurrencyFormat
+          }
+          plan {
+            displayName
+            partnerDevelopment
+            shopifyPlus
+          }
+        }
+      }
+    `
+
+    const response = await this.query<{ shop: ShopifyShop }>(query)
+    return response.data!.shop
+  }
+
+  /**
+   * Get products with pagination
+   */
+  async getProducts(options: {
+    limit?: number
+    cursor?: string
+    status?: 'active' | 'archived' | 'draft'
+    query?: string
+  } = {}): Promise<ShopifyProduct[]> {
+    const { limit = 50, cursor, status, query } = options
+    
+    const graphqlQuery = `
+      query getProducts($first: Int!, $after: String, $query: String) {
+        products(first: $first, after: $after, query: $query) {
+          edges {
+            node {
+              ${ShopifyApiClient.buildProductQuery()}
+            }
+            cursor
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+          }
+        }
+      }
+    `
+
+    let queryString = ''
+    if (status) {
+      queryString += `status:${status} `
+    }
+    if (query) {
+      queryString += query
+    }
+
+    const response = await this.query<{
+      products: {
+        edges: Array<{
+          node: ShopifyProduct
+          cursor: string
+        }>
+        pageInfo: {
+          hasNextPage: boolean
+          hasPreviousPage: boolean
+        }
+      }
+    }>(graphqlQuery, {
+      first: limit,
+      after: cursor,
+      query: queryString.trim() || undefined
+    })
+
+    return response.data!.products.edges.map(edge => edge.node)
+  }
+
+  /**
+   * Get inventory levels
+   */
+  async getInventoryLevels(): Promise<ShopifyInventoryLevel[]> {
+    const query = `
+      query getInventoryLevels($first: Int!) {
+        inventoryLevels(first: $first) {
+          edges {
+            node {
+              ${ShopifyApiClient.buildInventoryQuery()}
+            }
+          }
+        }
+      }
+    `
+
+    const response = await this.query<{
+      inventoryLevels: {
+        edges: Array<{
+          node: ShopifyInventoryLevel
+        }>
+      }
+    }>(query, { first: 250 })
+
+    return response.data!.inventoryLevels.edges.map(edge => edge.node)
+  }
+
+  /**
+   * Get orders with pagination
+   */
+  async getOrders(options: {
+    limit?: number
+    cursor?: string
+    status?: string
+    financial_status?: string
+  } = {}): Promise<ShopifyOrder[]> {
+    const { limit = 50, cursor, status, financial_status } = options
+    
+    const query = `
+      query getOrders($first: Int!, $after: String, $query: String) {
+        orders(first: $first, after: $after, query: $query) {
+          edges {
+            node {
+              id
+              name
+              orderNumber
+              email
+              phone
+              createdAt
+              updatedAt
+              processedAt
+              cancelledAt
+              cancelReason
+              currencyCode
+              currencyExchangeRate
+              totalPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              subtotalPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              totalTaxSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              totalShippingPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              totalDiscountsSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              customer {
+                id
+                email
+                firstName
+                lastName
+              }
+              lineItems(first: 250) {
+                edges {
+                  node {
+                    id
+                    title
+                    quantity
+                    sku
+                    variant {
+                      id
+                      title
+                      sku
+                      price
+                    }
+                  }
+                }
+              }
+            }
+            cursor
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+          }
+        }
+      }
+    `
+
+    let queryString = ''
+    if (status) {
+      queryString += `status:${status} `
+    }
+    if (financial_status) {
+      queryString += `financial_status:${financial_status} `
+    }
+
+    const response = await this.query<{
+      orders: {
+        edges: Array<{
+          node: ShopifyOrder
+          cursor: string
+        }>
+        pageInfo: {
+          hasNextPage: boolean
+          hasPreviousPage: boolean
+        }
+      }
+    }>(query, {
+      first: limit,
+      after: cursor,
+      query: queryString.trim() || undefined
+    })
+
+    return response.data!.orders.edges.map(edge => edge.node)
+  }
+
+  /**
+   * Get customers with pagination
+   */
+  async getCustomers(options: {
+    limit?: number
+    cursor?: string
+    query?: string
+  } = {}): Promise<ShopifyCustomer[]> {
+    const { limit = 50, cursor, query } = options
+    
+    const graphqlQuery = `
+      query getCustomers($first: Int!, $after: String, $query: String) {
+        customers(first: $first, after: $after, query: $query) {
+          edges {
+            node {
+              ${ShopifyApiClient.buildCustomerQuery()}
+            }
+            cursor
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+          }
+        }
+      }
+    `
+
+    const response = await this.query<{
+      customers: {
+        edges: Array<{
+          node: ShopifyCustomer
+          cursor: string
+        }>
+        pageInfo: {
+          hasNextPage: boolean
+          hasPreviousPage: boolean
+        }
+      }
+    }>(graphqlQuery, {
+      first: limit,
+      after: cursor,
+      query: query || undefined
+    })
+
+    return response.data!.customers.edges.map(edge => edge.node)
+  }
+
+  /**
+   * Get B2B catalogs (Shopify Plus feature)
+   */
+  async getB2BCatalogs(): Promise<ShopifyB2BCatalog[]> {
+    const query = `
+      query getB2BCatalogs {
+        b2bCatalogs(first: 50) {
+          edges {
+            node {
+              id
+              name
+              status
+              priceList {
+                id
+                name
+              }
+              customerTier {
+                id
+                name
+              }
+              discountPercentage
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      }
+    `
+
+    try {
+      const response = await this.query<{
+        b2bCatalogs: {
+          edges: Array<{
+            node: ShopifyB2BCatalog
+          }>
+        }
+      }>(query)
+
+      return response.data!.b2bCatalogs.edges.map(edge => edge.node)
+    } catch (error) {
+      // B2B catalogs might not be available on all plans
+      console.warn('B2B catalogs not available:', error)
+      return []
+    }
+  }
+
+  /**
+   * Create a product
+   */
+  async createProduct(product: Partial<ShopifyProduct>): Promise<ShopifyProduct> {
+    const mutation = `
+      mutation productCreate($input: ProductInput!) {
+        productCreate(input: $input) {
+          product {
+            ${ShopifyApiClient.buildProductQuery()}
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `
+
+    const response = await this.mutation<{
+      productCreate: {
+        product: ShopifyProduct
+        userErrors: Array<{
+          field: string[]
+          message: string
+        }>
+      }
+    }>(mutation, { input: product })
+
+    if (response.data!.productCreate.userErrors.length > 0) {
+      throw new ShopifyAPIError(
+        `Failed to create product: ${response.data!.productCreate.userErrors[0].message}`,
+        'PRODUCT_CREATE_ERROR'
+      )
+    }
+
+    return response.data!.productCreate.product
+  }
+
+  /**
+   * Update a product
+   */
+  async updateProduct(id: string, product: Partial<ShopifyProduct>): Promise<ShopifyProduct> {
+    const mutation = `
+      mutation productUpdate($input: ProductInput!) {
+        productUpdate(input: $input) {
+          product {
+            ${ShopifyApiClient.buildProductQuery()}
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `
+
+    const response = await this.mutation<{
+      productUpdate: {
+        product: ShopifyProduct
+        userErrors: Array<{
+          field: string[]
+          message: string
+        }>
+      }
+    }>(mutation, { input: { id, ...product } })
+
+    if (response.data!.productUpdate.userErrors.length > 0) {
+      throw new ShopifyAPIError(
+        `Failed to update product: ${response.data!.productUpdate.userErrors[0].message}`,
+        'PRODUCT_UPDATE_ERROR'
+      )
+    }
+
+    return response.data!.productUpdate.product
   }
 
   /**
