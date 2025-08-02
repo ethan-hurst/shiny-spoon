@@ -151,16 +151,26 @@ export const rateLimiters = {
       })
     : null,
 
-  // Monitoring operations: 30 per minute per user
-  monitoringOperations: redis
-    ? new Ratelimit({
-        redis,
-        limiter: Ratelimit.slidingWindow(30, '1 m'),
-        analytics: true,
-        prefix: 'rl:monitoring',
-      })
-    : null,
-}
+           // Monitoring operations: 30 per minute per user
+         monitoringOperations: redis
+           ? new Ratelimit({
+               redis,
+               limiter: Ratelimit.slidingWindow(30, '1 m'),
+               analytics: true,
+               prefix: 'rl:monitoring',
+             })
+           : null,
+
+         // Analytics operations: 20 per minute per user
+         analytics: redis
+           ? new Ratelimit({
+               redis,
+               limiter: Ratelimit.slidingWindow(20, '1 m'),
+               analytics: true,
+               prefix: 'rl:analytics',
+             })
+           : null,
+         }
 
 // Helper function to check rate limit
 export async function checkRateLimit(
