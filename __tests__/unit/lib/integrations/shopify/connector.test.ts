@@ -165,14 +165,17 @@ describe('ShopifyConnector', () => {
     })
 
     it('should handle credential decryption errors', () => {
-      // Set up encrypted credentials
+      // Set up encrypted credentials with valid base64 data
       const encryptedConfig = {
         ...mockConfig,
         credentials: {
           encrypted: true,
-          data: 'encrypted-data-here'
+          data: Buffer.alloc(64).toString('base64') // Valid base64 data that's 64 bytes
         }
       }
+
+      // Set encryption key environment variable
+      process.env.ENCRYPTION_KEY = 'test-encryption-key'
 
       // Mock crypto to throw an error during decryption
       const mockCrypto = require('crypto')
