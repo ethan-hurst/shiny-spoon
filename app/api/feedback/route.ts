@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { rateLimiters } from '@/lib/rate-limit'
 
 const feedbackSchema = z.object({
   articleId: z.string(),
@@ -10,6 +11,31 @@ const feedbackSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting check
+    if (rateLimiters.api) {
+      const forwarded = request.headers.get('x-forwarded-for')
+      const realIp = request.headers.get('x-real-ip')
+      const ip = forwarded?.split(',')[0]?.trim() || realIp || '127.0.0.1'
+      const { success, limit, reset, remaining } = await rateLimiters.api.limit(ip)
+      
+      if (!success) {
+        return NextResponse.json(
+          { 
+            error: 'Too many requests. Please try again later.',
+            details: `Rate limit exceeded. Try again in ${Math.round((reset - Date.now()) / 1000 / 60)} minutes.`
+          },
+          { 
+            status: 429,
+            headers: {
+              'X-RateLimit-Limit': limit.toString(),
+              'X-RateLimit-Remaining': remaining.toString(),
+              'X-RateLimit-Reset': reset.toString(),
+            }
+          }
+        )
+      }
+    }
+
     const body = await request.json()
     const validatedData = feedbackSchema.parse(body)
     

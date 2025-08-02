@@ -1,5 +1,4 @@
 // PRP-014: Shopify Data Transformers
-import crypto from 'crypto'
 import type {
   ShopifyProduct,
   ShopifyVariant,
@@ -29,79 +28,43 @@ export class ShopifyTransformers {
   /**
    * Transform Shopify product to internal format
    */
-  transformProduct(shopifyProduct: ShopifyProduct): Product & { id: string } {
-    // Get first variant as the primary variant
-    const primaryVariant = shopifyProduct.variants.edges[0]?.node
-
-    if (!primaryVariant) {
-      throw new Error(`Product ${shopifyProduct.id} has no variants`)
-    }
-
-    // Extract metafields
-    const metafields = this.extractMetafields(shopifyProduct.metafields)
-
-    // Generate internal ID based on SKU or Shopify ID
-    const internalId = this.generateInternalId(primaryVariant.sku || shopifyProduct.id)
-
+  async transformProduct(shopifyProduct: ShopifyProduct): Promise<Product & { id: string }> {
+    const internalId = await this.generateInternalId(shopifyProduct.title)
+    
     return {
       id: internalId,
+      organization_id: '', // Will be set by caller
+      sku: shopifyProduct.variants[0]?.sku || '',
       name: shopifyProduct.title,
-      sku: primaryVariant.sku || `SHOPIFY-${shopifyProduct.id}`,
-      description: this.stripHtml(shopifyProduct.descriptionHtml || ''),
-      price: parseFloat(primaryVariant.price),
-      category: shopifyProduct.productType || 'uncategorized',
-      status: this.mapProductStatus(shopifyProduct.status),
-      external_id: shopifyProduct.id,
-      // Store additional Shopify data in metadata
-      metadata: {
-        shopify_id: shopifyProduct.id,
-        shopify_handle: shopifyProduct.handle,
-        vendor: shopifyProduct.vendor,
-        tags: shopifyProduct.tags,
-        variants: shopifyProduct.variants.edges.map(edge => ({
-          id: edge.node.id,
-          title: edge.node.title,
-          sku: edge.node.sku,
-          price: edge.node.price,
-          barcode: edge.node.barcode,
-          weight: edge.node.weight,
-          weight_unit: edge.node.weightUnit
-        })),
-        metafields: metafields
-      }
+      description: shopifyProduct.description || null,
+      is_active: shopifyProduct.status === 'ACTIVE'
     }
   }
 
   /**
    * Transform Shopify inventory level to internal format
    */
-  transformInventory(
+  async transformInventory(
     shopifyInventory: ShopifyInventoryLevel,
     warehouseId: string
-  ): Inventory & { product_id: string } {
-    // Extract variant SKU for product lookup
-    const sku = shopifyInventory.item.sku
-    if (!sku) {
-      throw new Error(`Inventory item ${shopifyInventory.item.id} has no SKU`)
-    }
-
+  ): Promise<Inventory & { product_id: string }> {
+    const internalId = await this.generateInternalId(shopifyInventory.inventoryItemId.toString())
+    
     return {
-      product_id: this.generateInternalId(sku), // Must match product ID generation
+      product_id: internalId,
+      organization_id: '', // Will be set by caller
       warehouse_id: warehouseId,
       quantity: shopifyInventory.available,
-      reserved_quantity: 0, // Shopify doesn't provide reserved quantity
-      metadata: {
-        shopify_inventory_item_id: shopifyInventory.item.id,
-        shopify_location_id: shopifyInventory.location.id,
-        last_updated: shopifyInventory.updatedAt
-      }
+      reserved_quantity: 0,
+      reorder_point: null,
+      reorder_quantity: null
     }
   }
 
   /**
    * Transform inventory webhook payload
    */
-  transformInventoryFromWebhook(
+  async transformInventoryFromWebhook(
     webhookData: {
       inventory_item_id: number
       location_id: number
@@ -109,18 +72,15 @@ export class ShopifyTransformers {
       updated_at: string
     },
     warehouseId: string
-  ): Partial<Inventory> & { shopify_inventory_item_id: string } {
-    // Return partial inventory data that will be merged with product lookup
+  ): Promise<Partial<Inventory> & { shopify_inventory_item_id: string }> {
+    const internalId = await this.generateInternalId(webhookData.inventory_item_id.toString())
+    
     return {
+      product_id: internalId,
       warehouse_id: warehouseId,
       quantity: webhookData.available,
-      reserved_quantity: 0,
-      shopify_inventory_item_id: webhookData.inventory_item_id.toString(),
-      metadata: {
-        shopify_inventory_item_id: webhookData.inventory_item_id.toString(),
-        shopify_location_id: webhookData.location_id.toString(),
-        last_updated: webhookData.updated_at
-      }
+      updated_at: webhookData.updated_at,
+      shopify_inventory_item_id: webhookData.inventory_item_id.toString()
     }
   }
 
@@ -209,42 +169,16 @@ export class ShopifyTransformers {
   /**
    * Transform webhook product payload (different structure)
    */
-  transformProductFromWebhook(webhookData: any): Product & { id: string } {
-    // Webhook products have a flatter structure
-    const primaryVariant = webhookData.variants?.[0]
-
-    if (!primaryVariant) {
-      throw new Error(`Product ${webhookData.id} has no variants`)
-    }
-
-    const internalId = this.generateInternalId(primaryVariant.sku || webhookData.id.toString())
-
+  async transformProductFromWebhook(webhookData: any): Promise<Product & { id: string }> {
+    const internalId = await this.generateInternalId(webhookData.title)
+    
     return {
       id: internalId,
+      organization_id: '', // Will be set by caller
+      sku: webhookData.variants?.[0]?.sku || '',
       name: webhookData.title,
-      sku: primaryVariant.sku || `SHOPIFY-${webhookData.id}`,
-      description: this.stripHtml(webhookData.body_html || ''),
-      price: parseFloat(primaryVariant.price),
-      category: webhookData.product_type || 'uncategorized',
-      status: webhookData.status === 'active' ? 'active' : 'inactive',
-      external_id: webhookData.admin_graphql_api_id || `gid://shopify/Product/${webhookData.id}`,
-      metadata: {
-        shopify_id: webhookData.id.toString(),
-        shopify_handle: webhookData.handle,
-        vendor: webhookData.vendor,
-        tags: webhookData.tags ? 
-          (webhookData.tags === '' ? [''] : webhookData.tags.split(', ').filter(tag => tag.trim())) : 
-          [],
-        variants: webhookData.variants?.map((v: any) => ({
-          id: v.id.toString(),
-          title: v.title,
-          sku: v.sku,
-          price: v.price,
-          barcode: v.barcode,
-          weight: v.weight,
-          weight_unit: v.weight_unit
-        })) || []
-      }
+      description: webhookData.body_html || null,
+      is_active: webhookData.status === 'active'
     }
   }
 
@@ -364,14 +298,18 @@ export class ShopifyTransformers {
     }
   }
 
-  private generateInternalId(input: string): string {
-    // Validate input
-    if (!input || typeof input !== 'string' || input.trim() === '') {
-      throw new Error('generateInternalId: input must be a non-empty string')
+  private async generateInternalId(input: string): Promise<string> {
+    if (!input || typeof input !== 'string') {
+      throw new Error('Input must be a non-empty string')
     }
     
     // Generate a deterministic ID using SHA-256 hash
-    const hash = crypto.createHash('sha256').update(input.trim()).digest('hex')
+    const encoder = new TextEncoder()
+    const data = encoder.encode(input.trim())
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    
     return `shopify_${hash.substring(0, 16)}` // Use first 16 chars of hash
   }
 

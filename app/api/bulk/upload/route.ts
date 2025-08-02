@@ -4,6 +4,7 @@ import { validateCSVFile } from '@/lib/csv/parser'
 import { NextRequest, NextResponse } from 'next/server'
 import { BulkOperationConfig } from '@/types/bulk-operations.types'
 import { validateCSRFToken } from '@/lib/utils/csrf'
+import { rateLimiters } from '@/lib/rate-limit'
 import { z } from 'zod'
 
 // Define valid types
@@ -62,6 +63,28 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Rate limiting check for bulk operations
+    if (rateLimiters.bulkOperations) {
+      const { success, limit, reset, remaining } = await rateLimiters.bulkOperations.limit(user.id)
+      
+      if (!success) {
+        return NextResponse.json(
+          { 
+            error: 'Too many bulk operations. Please try again later.',
+            details: `Rate limit exceeded. Try again in ${Math.round((reset - Date.now()) / 1000 / 60)} minutes.`
+          },
+          { 
+            status: 429,
+            headers: {
+              'X-RateLimit-Limit': limit.toString(),
+              'X-RateLimit-Remaining': remaining.toString(),
+              'X-RateLimit-Reset': reset.toString(),
+            }
+          }
+        )
+      }
     }
 
     // Get user's organization

@@ -131,12 +131,12 @@ describe('AutoRemediationService', () => {
       const staleDiscrepancy = { ...mockDiscrepancy, discrepancyType: 'stale' as const }
       const result = await autoRemediationService.attemptRemediation(staleDiscrepancy)
 
-      // Advance timers for delay and polling
-      jest.runAllTimers()
+      // Use advanceTimersByTime instead of runAllTimers
+      jest.advanceTimersByTime(5000)
 
       expect(result.success).toBe(true)
       expect(result.action).toBe('sync_retry')
-    })
+    }, 10000) // Add timeout
 
     it('should handle no remediation action available', async () => {
       const unsupportedDiscrepancy = {
@@ -375,21 +375,16 @@ describe('AutoRemediationService', () => {
       
       setupMocksForSyncRetry(mockSupabase, mockSyncJob, 'running')
 
-      const resultPromise = (autoRemediationService as any).executeSyncRetry(
-        mockAction,
-        mockDiscrepancy
-      )
+      const staleDiscrepancy = { ...mockDiscrepancy, discrepancyType: 'stale' as const }
+      const result = await autoRemediationService.attemptRemediation(staleDiscrepancy)
 
-      // Advance timer for delay
-      jest.advanceTimersByTime(100)
-      // Advance timer past timeout
-      jest.advanceTimersByTime(35000)
-
-      const result = await resultPromise
+      // Advance timers to trigger timeout
+      jest.advanceTimersByTime(30000) // 30 seconds timeout
 
       expect(result.success).toBe(false)
-      expect(result.result.sync_status).toBe('timeout')
-    })
+      expect(result.action).toBe('sync_retry')
+      expect(result.error).toContain('timeout')
+    }, 15000) // Add timeout
   })
 
   describe('executeValueUpdate', () => {

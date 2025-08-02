@@ -1,3 +1,19 @@
+// Mock crypto.subtle for test environment
+if (typeof crypto === 'undefined') {
+  (global as any).crypto = {
+    subtle: {
+      digest: jest.fn().mockImplementation(async (algorithm, data) => {
+        // Simple mock implementation that returns a deterministic hash
+        const input = Array.from(new Uint8Array(data)).map(b => String.fromCharCode(b)).join('')
+        const hash = input.split('').reduce((acc, char) => {
+          return acc + char.charCodeAt(0)
+        }, 0).toString(16)
+        return new Uint8Array(hash.padEnd(32, '0').slice(0, 32).split('').map(c => parseInt(c, 16)))
+      })
+    }
+  }
+}
+
 import { ShopifyTransformers } from '@/lib/integrations/shopify/transformers'
 import crypto from 'crypto'
 import type {

@@ -22,7 +22,7 @@ interface AuditPageProps {
 }
 
 export default async function AuditPage({ searchParams }: AuditPageProps) {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
 
   // Get user's organization and check permissions
   const { data: { user } } = await supabase.auth.getUser()

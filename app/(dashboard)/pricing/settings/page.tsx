@@ -9,13 +9,11 @@ export const metadata: Metadata = {
 }
 
 export default async function PricingSettingsPage() {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
 
-  // Auth check
+  // Get user's organization
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    throw new Error('Unauthorized')
-  }
+  if (!user) throw new Error('Unauthorized')
 
   // Get user role
   const { data: profile } = await supabase

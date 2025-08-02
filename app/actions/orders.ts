@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { AuditLogger } from '@/lib/audit/audit-logger'
 import { z } from 'zod'
-import { rateLimiters, checkRateLimit } from '@/lib/rate-limit'
+import { rateLimiters, withRateLimit, getUserIdentifier, checkRateLimit } from '@/lib/rate-limit'
 import type { 
   CreateOrderInput, 
   UpdateOrderInput, 
@@ -76,257 +76,18 @@ async function generateOrderNumber(organizationId: string, supabase: any): Promi
  * Creates a new order with items
  */
 export async function createOrder(input: CreateOrderInput) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Auth check
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
-  }
-
-  // Get user's organization
-  const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (profileError || !profile) {
-    return { error: 'User profile not found' }
   }
 
   // Check rate limit
   const rateLimitResult = await checkRateLimit(rateLimiters.orderCreation, user.id)
   if (!rateLimitResult.success) {
-    return { 
-      error: `Rate limit exceeded. You can create ${rateLimitResult.limit} orders per minute. Please try again later.` 
-    }
-  }
-
-  // Validate input
-  const parsed = createOrderSchema.safeParse(input)
-  if (!parsed.success) {
-    return { error: parsed.error.flatten() }
-  }
-
-  try {
-    // Begin transaction-like operation
-    // First, fetch product details and calculate totals
-    const productIds = parsed.data.items.map(item => item.product_id)
-    const { data: products, error: productsError } = await supabase
-      .from('products')
-      .select('id, sku, name, description, base_price')
-      .in('id', productIds)
-      .eq('organization_id', profile.organization_id)
-
-    if (productsError || !products) {
-      return { error: 'Failed to fetch product details' }
-    }
-
-    // Create a map for quick product lookup
-    const productMap = new Map(products.map(p => [p.id, p]))
-
-    // Calculate order totals
-    let subtotal = 0
-    const orderItems = parsed.data.items.map(item => {
-      const product = productMap.get(item.product_id)
-      if (!product) {
-        throw new Error(`Product ${item.product_id} not found`)
-      }
-
-      const unitPrice = item.unit_price || product.base_price
-      const totalPrice = unitPrice * item.quantity
-
-      subtotal += totalPrice
-
-      return {
-        product_id: item.product_id,
-        sku: product.sku,
-        name: product.name,
-        description: product.description,
-        quantity: item.quantity,
-        unit_price: unitPrice,
-        total_price: totalPrice,
-        warehouse_id: item.warehouse_id,
-        discount_amount: 0,
-        tax_amount: 0,
-        shipped_quantity: 0,
-        metadata: {},
-      }
-    })
-
-    // Calculate tax (simplified - 10% for now)
-    const taxAmount = subtotal * 0.1
-    const totalAmount = subtotal + taxAmount
-
-    // Generate order number
-    const orderNumber = await generateOrderNumber(profile.organization_id, supabase)
-
-    // Create the order
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        organization_id: profile.organization_id,
-        order_number: orderNumber,
-        customer_id: parsed.data.customer_id,
-        status: 'pending',
-        subtotal,
-        tax_amount: taxAmount,
-        shipping_amount: 0,
-        discount_amount: 0,
-        total_amount: totalAmount,
-        billing_address: parsed.data.billing_address,
-        shipping_address: parsed.data.shipping_address || parsed.data.billing_address,
-        notes: parsed.data.notes,
-        metadata: parsed.data.metadata || {},
-        created_by: user.id,
-        updated_by: user.id,
-      })
-      .select()
-      .single()
-
-    if (orderError || !order) {
-      return { error: orderError?.message || 'Failed to create order' }
-    }
-
-    // Create order items
-    const itemsToInsert = orderItems.map(item => ({
-      ...item,
-      order_id: order.id,
-    }))
-
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsToInsert)
-
-    if (itemsError) {
-      // Rollback by deleting the order (cascade will delete items)
-      await supabase.from('orders').delete().eq('id', order.id)
-      return { error: itemsError.message }
-    }
-
-    // Update inventory (reserve quantities)
-    for (const item of orderItems) {
-      if (item.warehouse_id) {
-        const { error: inventoryError } = await supabase
-          .rpc('update_inventory_reserved', {
-            p_product_id: item.product_id,
-            p_warehouse_id: item.warehouse_id,
-            p_quantity: item.quantity,
-            p_operation: 'reserve',
-          })
-
-        if (inventoryError) {
-          console.error('Failed to update inventory:', inventoryError)
-        }
-      }
-    }
-
-    // Log order creation
-    try {
-      const auditLogger = new AuditLogger(supabase)
-      await auditLogger.log({
-        action: 'create',
-        entity_type: 'order',
-        entity_id: order.id,
-        changes: {
-          order_number: orderNumber,
-          item_count: orderItems.length,
-          total_amount: totalAmount,
-        },
-        metadata: {
-          source: 'dashboard',
-          customer_id: parsed.data.customer_id,
-        },
-      })
-    } catch (auditError) {
-      console.error('Failed to log order creation:', auditError)
-    }
-
-    // Send order confirmation email
-    try {
-      // Get customer email
-      let recipientEmail: string | null = null
-      let customerName = 'Valued Customer'
-
-      if (parsed.data.customer_id) {
-        const { data: customer } = await supabase
-          .from('customers')
-          .select('email, name')
-          .eq('id', parsed.data.customer_id)
-          .single()
-
-        if (customer) {
-          recipientEmail = customer.email
-          customerName = customer.name
-        }
-      }
-
-      // If no customer email, try to get organization owner email
-      if (!recipientEmail) {
-        const { data: owner } = await supabase
-          .from('user_profiles')
-          .select('users!inner(email)')
-          .eq('organization_id', profile.organization_id)
-          .eq('role', 'owner')
-          .single()
-
-        recipientEmail = owner?.users?.email
-      }
-
-      if (recipientEmail) {
-        // Queue order confirmation email
-        await supabase.from('email_queue').insert({
-          to: recipientEmail,
-          subject: `Order Confirmation - #${orderNumber}`,
-          template: 'order_confirmation',
-          data: {
-            customer_name: customerName,
-            order_number: orderNumber,
-            order_date: new Date().toLocaleDateString(),
-            items: orderItems.map(item => ({
-              name: item.name,
-              sku: item.sku,
-              quantity: item.quantity,
-              unit_price: item.unit_price,
-              total: item.total_price,
-            })),
-            subtotal,
-            tax_amount: taxAmount,
-            shipping_amount: 0,
-            total_amount: totalAmount,
-            order_url: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${order.id}`,
-          },
-          status: 'pending',
-        })
-      }
-    } catch (emailError) {
-      console.error('Failed to queue order confirmation email:', emailError)
-      // Don't fail the order creation if email fails
-    }
-
-    revalidatePath('/dashboard/orders')
-    if (parsed.data.customer_id) {
-      revalidatePath(`/dashboard/customers/${parsed.data.customer_id}`)
-    }
-
-    return { success: true, data: order }
-  } catch (error) {
-    console.error('Order creation error:', error)
-    return { error: error instanceof Error ? error.message : 'Failed to create order' }
-  }
-}
-
-/**
- * Updates an existing order
- */
-export async function updateOrder(orderId: string, input: UpdateOrderInput) {
-  const supabase = await createClient()
-
-  // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return { error: 'Unauthorized' }
+    return { error: 'Rate limit exceeded. Please try again later.' }
   }
 
   // Get user's organization
@@ -340,120 +101,350 @@ export async function updateOrder(orderId: string, input: UpdateOrderInput) {
     return { error: 'User profile not found' }
   }
 
-  // Validate input
-  const parsed = updateOrderSchema.safeParse(input)
-  if (!parsed.success) {
-    return { error: parsed.error.flatten() }
-  }
+  try {
+    // Validate input
+    const validated = createOrderSchema.parse(input)
 
-  // Get existing order
-  const { data: existingOrder, error: fetchError } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('id', orderId)
-    .eq('organization_id', profile.organization_id)
-    .single()
+    // Get products for validation and pricing
+    const productIds = validated.items.map(item => item.product_id)
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('id, sku, name, description, base_price')
+      .in('id', productIds)
 
-  if (fetchError || !existingOrder) {
-    return { error: 'Order not found' }
-  }
+    if (productsError || !products) {
+      return { error: 'Failed to fetch products' }
+    }
 
-  // Build update object
-  const updates: any = {
-    ...parsed.data,
-    updated_by: user.id,
-    updated_at: new Date().toISOString(),
-  }
+    // Create product map for easy lookup
+    const productMap = new Map(products.map((p: any) => [p.id, p]))
 
-  // Update order
-  const { data: updatedOrder, error: updateError } = await supabase
-    .from('orders')
-    .update(updates)
-    .eq('id', orderId)
-    .select()
-    .single()
-
-  if (updateError) {
-    return { error: updateError.message }
-  }
-
-  // Handle inventory updates based on status changes
-  if (parsed.data.status && parsed.data.status !== existingOrder.status) {
-    if (parsed.data.status === 'cancelled' && existingOrder.status !== 'cancelled') {
-      // Release reserved inventory
-      const { data: items } = await supabase
-        .from('order_items')
-        .select('product_id, warehouse_id, quantity')
-        .eq('order_id', orderId)
-
-      if (items) {
-        for (const item of items) {
-          if (item.warehouse_id) {
-            await supabase.rpc('update_inventory_reserved', {
-              p_product_id: item.product_id,
-              p_warehouse_id: item.warehouse_id,
-              p_quantity: -item.quantity,
-              p_operation: 'release',
-            })
-          }
-        }
+    // Validate all products exist and belong to organization
+    for (const item of validated.items) {
+      const product = productMap.get(item.product_id)
+      if (!product) {
+        return { error: `Product ${item.product_id} not found` }
       }
-    } else if (parsed.data.status === 'shipped' && existingOrder.status !== 'shipped') {
-      // Convert reserved to shipped
-      const { data: items } = await supabase
-        .from('order_items')
-        .select('product_id, warehouse_id, quantity')
-        .eq('order_id', orderId)
+    }
 
-      if (items) {
-        for (const item of items) {
-          if (item.warehouse_id) {
-            await supabase.rpc('ship_inventory', {
-              p_product_id: item.product_id,
-              p_warehouse_id: item.warehouse_id,
-              p_quantity: item.quantity,
-            })
-          }
-        }
+    // Generate order number
+    const orderNumber = await generateOrderNumber(profile.organization_id, supabase)
+
+    // Create order items with pricing
+    const orderItems = validated.items.map(item => {
+      const product = productMap.get(item.product_id) as any
+      const unitPrice = item.unit_price || product?.base_price || 0
+      
+      return {
+        product_id: item.product_id,
+        sku: product?.sku,
+        name: product?.name,
+        description: product?.description,
+        quantity: item.quantity,
+        unit_price: unitPrice,
+        total_price: unitPrice * item.quantity,
+        warehouse_id: item.warehouse_id,
       }
+    })
+
+    // Calculate order totals
+    const subtotal = orderItems.reduce((sum, item) => sum + item.total_price, 0)
+    const tax = subtotal * 0.1 // 10% tax - should be configurable
+    const total = subtotal + tax
+
+    // Create order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        organization_id: profile.organization_id,
+        order_number: orderNumber,
+        customer_id: validated.customer_id,
+        status: 'pending',
+        subtotal,
+        tax,
+        total,
+        billing_address: validated.billing_address,
+        shipping_address: validated.shipping_address,
+        notes: validated.notes,
+        metadata: validated.metadata,
+        created_by: user.id,
+      })
+      .select()
+      .single()
+
+    if (orderError || !order) {
+      return { error: 'Failed to create order' }
+    }
+
+    // Create order items
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems.map(item => ({
+        order_id: order.id,
+        ...item,
+      })))
+
+    if (itemsError) {
+      return { error: 'Failed to create order items' }
+    }
+
+    // Log audit event
+    const auditLogger = new AuditLogger(supabase)
+    await auditLogger.logCreate('order', order)
+
+    // Send order confirmation email
+    try {
+      await sendOrderConfirmationEmail(order, orderItems, profile.organization_id)
+    } catch (emailError) {
+      console.error('Failed to send order confirmation email:', emailError)
+      // Don't fail the order creation if email fails
+    }
+
+    // Generate invoice
+    try {
+      await generateInvoice(order.id, profile.organization_id)
+    } catch (invoiceError) {
+      console.error('Failed to generate invoice:', invoiceError)
+      // Don't fail the order creation if invoice generation fails
+    }
+
+    revalidatePath('/orders')
+
+    return { success: true, data: order }
+  } catch (error) {
+    console.error('Failed to create order:', error)
+    return { error: error instanceof Error ? error.message : 'Failed to create order' }
+  }
+}
+
+/**
+ * Sends order confirmation email
+ */
+async function sendOrderConfirmationEmail(order: any, orderItems: any[], organizationId: string) {
+  const supabase = createClient()
+
+  // Get customer email
+  let recipientEmail: string | null = null
+  let customerName = 'Valued Customer'
+
+  if (order.customer_id) {
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('email, name')
+      .eq('id', order.customer_id)
+      .single()
+
+    if (customer) {
+      recipientEmail = customer.email
+      customerName = customer.name
     }
   }
 
-  // Log order update
-  try {
-    const auditLogger = new AuditLogger(supabase)
-    await auditLogger.logUpdate('order', orderId, existingOrder, updatedOrder, {
-      source: 'dashboard',
-      status_changed: parsed.data.status !== existingOrder.status,
+  // If no customer email, try to get organization owner email
+  if (!recipientEmail) {
+    const { data: owner } = await supabase
+      .from('user_profiles')
+      .select('users!inner(email)')
+      .eq('organization_id', organizationId)
+      .eq('role', 'owner')
+      .single()
+
+    recipientEmail = owner?.users?.email
+  }
+
+  if (recipientEmail) {
+    // Queue order confirmation email
+    await supabase.from('email_queue').insert({
+      to: recipientEmail,
+      subject: `Order Confirmation - #${order.order_number}`,
+      template: 'order_confirmation',
+      data: {
+        customer_name: customerName,
+        order_number: order.order_number,
+        order_date: new Date().toLocaleDateString(),
+        items: orderItems.map(item => ({
+          name: item.name,
+          sku: item.sku,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total: item.total_price,
+        })),
+        subtotal: order.subtotal,
+        tax: order.tax,
+        total: order.total,
+        order_url: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${order.id}`,
+      },
+      status: 'pending',
     })
-  } catch (auditError) {
-    console.error('Failed to log order update:', auditError)
+  }
+}
+
+/**
+ * Generates invoice for an order
+ */
+async function generateInvoice(orderId: string, organizationId: string) {
+  const supabase = createClient()
+
+  // Get order details with items
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      order_items (*),
+      customers (name, email, billing_address)
+    `)
+    .eq('id', orderId)
+    .single()
+
+  if (orderError || !order) {
+    throw new Error('Order not found')
   }
 
-  revalidatePath('/dashboard/orders')
-  revalidatePath(`/dashboard/orders/${orderId}`)
-  if (existingOrder.customer_id) {
-    revalidatePath(`/dashboard/customers/${existingOrder.customer_id}`)
+  // Generate invoice number
+  const invoiceNumber = `INV-${order.order_number}`
+
+  // Create invoice record
+  const { data: invoice, error: invoiceError } = await supabase
+    .from('invoices')
+    .insert({
+      organization_id: organizationId,
+      order_id: orderId,
+      invoice_number: invoiceNumber,
+      customer_id: order.customer_id,
+      subtotal: order.subtotal,
+      tax: order.tax,
+      total: order.total,
+      status: 'pending',
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+
+  if (invoiceError || !invoice) {
+    throw new Error('Failed to create invoice')
   }
 
-  return { success: true, data: updatedOrder }
+  // Create invoice items
+  const invoiceItems = order.order_items.map((item: any) => ({
+    invoice_id: invoice.id,
+    product_id: item.product_id,
+    sku: item.sku,
+    name: item.name,
+    description: item.description,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    total_price: item.total_price,
+  }))
+
+  const { error: itemsError } = await supabase
+    .from('invoice_items')
+    .insert(invoiceItems)
+
+  if (itemsError) {
+    throw new Error('Failed to create invoice items')
+  }
+
+  return invoice
+}
+
+/**
+ * Updates an order
+ */
+export async function updateOrder(orderId: string, input: UpdateOrderInput) {
+  const supabase = createClient()
+
+  // Auth check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Unauthorized' }
+  }
+
+  // Check rate limit
+  const rateLimitResult = await checkRateLimit(rateLimiters.orderUpdates, user.id)
+  if (!rateLimitResult.success) {
+    return { error: 'Rate limit exceeded. Please try again later.' }
+  }
+
+  // Get user's organization
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: 'User profile not found' }
+  }
+
+  try {
+    // Validate input
+    const validated = updateOrderSchema.parse(input)
+
+    // Get existing order
+    const { data: existingOrder, error: orderError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .eq('organization_id', profile.organization_id)
+      .single()
+
+    if (orderError || !existingOrder) {
+      return { error: 'Order not found' }
+    }
+
+    // Update order
+    const { data: updatedOrder, error: updateError } = await supabase
+      .from('orders')
+      .update({
+        ...validated,
+        updated_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId)
+      .select()
+      .single()
+
+    if (updateError || !updatedOrder) {
+      return { error: 'Failed to update order' }
+    }
+
+    // Log audit event
+    const auditLogger = new AuditLogger(supabase)
+    await auditLogger.logUpdate('order', orderId, existingOrder, updatedOrder)
+
+    revalidatePath('/orders')
+    if (existingOrder.customer_id) {
+      revalidatePath(`/customers/${existingOrder.customer_id}`)
+    }
+
+    return { success: true, data: updatedOrder }
+  } catch (error) {
+    console.error('Failed to update order:', error)
+    return { error: error instanceof Error ? error.message : 'Failed to update order' }
+  }
 }
 
 /**
  * Cancels an order
  */
 export async function cancelOrder(orderId: string, reason?: string) {
-  return updateOrder(orderId, { 
+  const updateData: UpdateOrderInput = {
     status: 'cancelled',
-    notes: reason ? `Cancellation reason: ${reason}` : undefined
-  })
+  }
+  
+  if (reason) {
+    updateData.notes = `Cancellation reason: ${reason}`
+  }
+  
+  return updateOrder(orderId, updateData)
 }
 
 /**
  * Gets order details with items
  */
 export async function getOrderDetails(orderId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Auth check
   const { data: { user } } = await supabase.auth.getUser()
@@ -487,7 +478,7 @@ export async function listOrders(filters?: {
   limit?: number
   offset?: number
 }) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Auth check
   const { data: { user } } = await supabase.auth.getUser()
@@ -567,7 +558,7 @@ export async function exportOrders(filters?: {
   from_date?: string
   to_date?: string
 }) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Auth check
   const { data: { user } } = await supabase.auth.getUser()
@@ -575,72 +566,264 @@ export async function exportOrders(filters?: {
     return { error: 'Unauthorized' }
   }
 
-  // Check rate limit for export
-  const rateLimitResult = await checkRateLimit(rateLimiters.export, user.id)
-  if (!rateLimitResult.success) {
-    return { 
-      error: `Export rate limit exceeded. You can export ${rateLimitResult.limit} times per hour. Please try again later.` 
-    }
+  // Get user's organization
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: 'User profile not found' }
   }
 
-  // Get orders without pagination
-  const result = await listOrders({ ...filters, limit: 10000, offset: 0 })
-  
-  if (!result.success || !result.data) {
-    return { error: result.error || 'Failed to fetch orders' }
-  }
-
-  // Dynamic import papaparse
-  const Papa = await import('papaparse').then((mod) => mod.default)
-
-  // Flatten data for CSV
-  const csvData = result.data.orders.map((order: any) => ({
-    'Order Number': order.order_number,
-    'Date': new Date(order.order_date).toLocaleDateString(),
-    'Customer': order.customer_name || 'Guest',
-    'Email': order.customer_email || '',
-    'Status': order.status.charAt(0).toUpperCase() + order.status.slice(1),
-    'Items': order.item_count,
-    'Subtotal': order.subtotal,
-    'Tax': order.tax_amount,
-    'Shipping': order.shipping_amount,
-    'Discount': order.discount_amount,
-    'Total': order.total_amount,
-    'Notes': order.notes || '',
-  }))
-
-  // Generate CSV
-  const csv = Papa.unparse(csvData, {
-    header: true,
-    delimiter: ',',
-  })
-
-  // Log export
   try {
+    // Build query
+    let query = supabase
+      .from('order_summary')
+      .select('*')
+      .eq('organization_id', profile.organization_id)
+      .order('order_date', { ascending: false })
+
+    // Apply filters
+    if (filters?.status) {
+      query = query.eq('status', filters.status)
+    }
+
+    if (filters?.customer_id) {
+      query = query.eq('customer_id', filters.customer_id)
+    }
+
+    if (filters?.from_date) {
+      query = query.gte('order_date', filters.from_date)
+    }
+
+    if (filters?.to_date) {
+      query = query.lte('order_date', filters.to_date)
+    }
+
+    const { data: orders, error } = await query
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    // Log export event
     const auditLogger = new AuditLogger(supabase)
-    await auditLogger.log({
-      action: 'export',
-      entity_type: 'orders',
-      entity_id: null,
-      changes: {
-        count: result.data.orders.length,
-        filters: filters || {},
-      },
-      metadata: {
-        source: 'dashboard',
-        format: 'csv',
-      },
-    })
-  } catch (auditError) {
-    console.error('Failed to log export:', auditError)
+    await auditLogger.logExport('orders', filters, orders?.length || 0)
+
+    return { success: true, data: orders || [] }
+  } catch (error) {
+    console.error('Failed to export orders:', error)
+    return { error: error instanceof Error ? error.message : 'Failed to export orders' }
+  }
+}
+
+/**
+ * Gets order tracking information
+ */
+export async function getOrderTracking(orderId: string) {
+  const supabase = createClient()
+
+  // Auth check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Unauthorized' }
   }
 
-  return {
-    success: true,
-    data: {
-      csv,
-      filename: `orders_export_${new Date().toISOString().split('T')[0]}.csv`,
-      count: result.data.orders.length,
-    },
+  // Get user's organization
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: 'User profile not found' }
+  }
+
+  try {
+    // Get order with tracking info
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        order_tracking (
+          id,
+          status,
+          location,
+          description,
+          timestamp,
+          tracking_number
+        )
+      `)
+      .eq('id', orderId)
+      .eq('organization_id', profile.organization_id)
+      .single()
+
+    if (orderError || !order) {
+      return { error: 'Order not found' }
+    }
+
+    // Sort tracking events by timestamp
+    const trackingEvents = order.order_tracking?.sort((a: any, b: any) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    ) || []
+
+    return { 
+      success: true, 
+      data: {
+        order,
+        tracking: trackingEvents,
+        currentStatus: trackingEvents[0]?.status || order.status
+      }
+    }
+  } catch (error) {
+    console.error('Failed to get order tracking:', error)
+    return { error: error instanceof Error ? error.message : 'Failed to get order tracking' }
+  }
+}
+
+/**
+ * Adds tracking event to an order
+ */
+export async function addTrackingEvent(orderId: string, trackingData: {
+  status: string
+  location?: string
+  description: string
+  tracking_number?: string
+}) {
+  const supabase = createClient()
+
+  // Auth check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Unauthorized' }
+  }
+
+  // Get user's organization
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: 'User profile not found' }
+  }
+
+  try {
+    // Verify order belongs to organization
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, status')
+      .eq('id', orderId)
+      .eq('organization_id', profile.organization_id)
+      .single()
+
+    if (orderError || !order) {
+      return { error: 'Order not found' }
+    }
+
+    // Add tracking event
+    const { data: trackingEvent, error: trackingError } = await supabase
+      .from('order_tracking')
+      .insert({
+        order_id: orderId,
+        status: trackingData.status,
+        location: trackingData.location,
+        description: trackingData.description,
+        tracking_number: trackingData.tracking_number,
+        timestamp: new Date().toISOString(),
+        created_by: user.id,
+      })
+      .select()
+      .single()
+
+    if (trackingError || !trackingEvent) {
+      return { error: 'Failed to add tracking event' }
+    }
+
+    // Update order status if it's a significant status change
+    if (trackingData.status !== order.status) {
+      await supabase
+        .from('orders')
+        .update({ 
+          status: trackingData.status,
+          updated_at: new Date().toISOString(),
+          updated_by: user.id
+        })
+        .eq('id', orderId)
+    }
+
+    // Log audit event
+    const auditLogger = new AuditLogger(supabase)
+    await auditLogger.logUpdate('order', orderId, { status: order.status }, { status: trackingData.status })
+
+    revalidatePath('/orders')
+    revalidatePath(`/orders/${orderId}`)
+
+    return { success: true, data: trackingEvent }
+  } catch (error) {
+    console.error('Failed to add tracking event:', error)
+    return { error: error instanceof Error ? error.message : 'Failed to add tracking event' }
+  }
+}
+
+/**
+ * Gets shipping integration status
+ */
+export async function getShippingStatus(orderId: string) {
+  const supabase = createClient()
+
+  // Auth check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: 'Unauthorized' }
+  }
+
+  // Get user's organization
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { error: 'User profile not found' }
+  }
+
+  try {
+    // Get order with shipping info
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        shipping_integrations (
+          id,
+          provider,
+          tracking_number,
+          label_url,
+          status
+        )
+      `)
+      .eq('id', orderId)
+      .eq('organization_id', profile.organization_id)
+      .single()
+
+    if (orderError || !order) {
+      return { error: 'Order not found' }
+    }
+
+    return { 
+      success: true, 
+      data: {
+        order,
+        shipping: order.shipping_integrations || []
+      }
+    }
+  } catch (error) {
+    console.error('Failed to get shipping status:', error)
+    return { error: error instanceof Error ? error.message : 'Failed to get shipping status' }
   }
 }

@@ -14,6 +14,8 @@ export type AuditAction =
   | 'sync'
   | 'approve'
   | 'reject'
+  | 'bulk_import'
+  | 'duplicate'
 
 export type EntityType =
   | 'product'
@@ -25,6 +27,9 @@ export type EntityType =
   | 'integration'
   | 'user'
   | 'organization'
+  | 'report'
+  | 'products'
+  | 'orders'
 
 export interface AuditLogEntry {
   action: AuditAction
@@ -37,10 +42,15 @@ export interface AuditLogEntry {
 }
 
 export class AuditLogger {
-  private supabase: ReturnType<typeof createServerClient>
+  private supabase: Awaited<ReturnType<typeof createServerClient>>
 
-  constructor(supabaseClient?: ReturnType<typeof createServerClient>) {
-    this.supabase = supabaseClient || createServerClient()
+  constructor(supabaseClient?: Awaited<ReturnType<typeof createServerClient>>) {
+    this.supabase = supabaseClient!
+  }
+
+  static async create(supabaseClient?: Awaited<ReturnType<typeof createServerClient>>): Promise<AuditLogger> {
+    const client = supabaseClient || await createServerClient()
+    return new AuditLogger(client)
   }
 
   async log(entry: AuditLogEntry): Promise<void> {

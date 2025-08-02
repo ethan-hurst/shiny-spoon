@@ -1,5 +1,5 @@
-import { WebhookHandler } from '@/lib/integrations/webhook-handler'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { GenericWebhookHandler, handleWebhook } from '@/lib/integrations/webhook-handler'
+import { createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { Headers } from 'next/dist/compiled/@edge-runtime/primitives'
@@ -10,63 +10,48 @@ import type {
 } from '@/types/integration.types'
 
 // Mock dependencies
-jest.mock('@/lib/supabase/admin', () => ({
-  createAdminClient: jest.fn()
-}))
-jest.mock('crypto', () => ({
-  randomUUID: jest.fn(),
-  timingSafeEqual: jest.fn(),
-  createHmac: jest.fn(() => ({
-    update: jest.fn().mockReturnThis(),
-    digest: jest.fn(() => 'mock-hmac-digest')
-  }))
-}))
+jest.mock('@/lib/supabase/server')
+jest.mock('next/server')
 
-// Mock Next.js Headers
-jest.mock('next/dist/compiled/@edge-runtime/primitives', () => ({
-  Headers: jest.fn().mockImplementation(() => ({
-    get: jest.fn(),
-    set: jest.fn(),
-    has: jest.fn(),
-    delete: jest.fn(),
-    forEach: jest.fn(),
-    entries: jest.fn(),
-    keys: jest.fn(),
-    values: jest.fn()
-  }))
-}))
+const mockSupabase = {
+  from: jest.fn(),
+  auth: {
+    getUser: jest.fn(),
+  },
+}
+
+const mockHeaders = {
+  get: jest.fn(),
+}
+
+;(createServerClient as jest.Mock).mockReturnValue(mockSupabase)
 
 describe('WebhookHandler', () => {
-  let webhookHandler: WebhookHandler
-  let mockSupabase: ReturnType<typeof createMockSupabase>
-  let mockHeaders: jest.Mocked<Headers>
-  
-  // Mock webhook config
-  const mockWebhookConfig = {
-    id: 'webhook-123',
-    integration_id: 'integration-123',
-    organization_id: 'org-123',
-    platform: 'shopify' as IntegrationPlatformType,
-    endpoint_url: 'https://app.example.com/api/webhooks/shopify',
-    secret: 'webhook-secret-123',
-    events: ['products/update', 'inventory_levels/update'],
-    is_active: true,
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z',
-    integrations: {
-      id: 'integration-123',
-      organization_id: 'org-123',
-      platform: 'shopify',
-      config: { shop_domain: 'test-shop.myshopify.com' },
-      status: 'active'
-    }
-  }
+  let webhookHandler: GenericWebhookHandler
+  let mockWebhookConfig: any
 
   beforeEach(() => {
     jest.clearAllMocks()
     
-    mockSupabase = createMockSupabase()
-    ;(createAdminClient as jest.Mock).mockReturnValue(mockSupabase)
+    mockWebhookConfig = {
+      id: 'webhook-123',
+      integration_id: 'integration-123',
+      organization_id: 'org-123',
+      platform: 'shopify',
+      endpoint_url: 'https://api.example.com/webhooks/shopify',
+      secret: 'test-secret',
+      is_active: true,
+      integrations: {
+        id: 'integration-123',
+        organization_id: 'org-123',
+        name: 'Test Integration',
+        platform: 'shopify',
+        config: {
+          shop_domain: 'test-shop.myshopify.com',
+          access_token: 'test-token'
+        }
+      }
+    }
     
     mockHeaders = new Headers() as jest.Mocked<Headers>
     
@@ -76,7 +61,7 @@ describe('WebhookHandler', () => {
       return a.toString() === b.toString()
     })
     
-    webhookHandler = new WebhookHandler()
+    webhookHandler = new GenericWebhookHandler()
   })
 
   describe('getWebhookConfig', () => {
@@ -674,11 +659,3 @@ describe('WebhookHandler', () => {
     })
   })
 })
-
-// Helper function to create mock Supabase client
-function createMockSupabase() {
-  return {
-    from: jest.fn(),
-    rpc: jest.fn()
-  }
-}

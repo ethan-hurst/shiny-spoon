@@ -15,6 +15,8 @@ describe('Rate Limit', () => {
   let mockRedis: jest.Mocked<Redis>
   let mockRatelimit: jest.Mocked<Ratelimit>
   let originalEnv: NodeJS.ProcessEnv
+  let withRateLimit: any
+  let checkRateLimit: any
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -74,7 +76,9 @@ describe('Rate Limit', () => {
 
       // Clear module cache and re-import to trigger initialization
       jest.resetModules()
-      require('@/lib/rate-limit')
+      const rateLimitModule = require('@/lib/rate-limit')
+      withRateLimit = rateLimitModule.withRateLimit
+      checkRateLimit = rateLimitModule.checkRateLimit
 
       console.log('Redis constructor calls:', (Redis as jest.MockedClass<typeof Redis>).mock.calls)
 
@@ -277,7 +281,8 @@ describe('Rate Limit', () => {
         success: true,
         limit: 100,
         remaining: 95,
-        reset: Date.now() + 60000
+        reset: Date.now() + 60000,
+        pending: Promise.resolve()
       }
 
       mockRatelimit.limit.mockResolvedValue(mockResult)
@@ -299,7 +304,8 @@ describe('Rate Limit', () => {
         success: false,
         limit: 100,
         remaining: 0,
-        reset: resetTime
+        reset: resetTime,
+        pending: Promise.resolve()
       }
 
       mockRatelimit.limit.mockResolvedValue(mockResult)

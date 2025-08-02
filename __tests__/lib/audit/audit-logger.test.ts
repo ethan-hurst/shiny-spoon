@@ -10,29 +10,33 @@ const mockSupabase = {
   auth: {
     getUser: jest.fn(),
   },
-  from: jest.fn(() => ({
-    select: jest.fn(() => ({
-      eq: jest.fn(() => ({
-        single: jest.fn(),
-      })),
-    })),
-    insert: jest.fn(),
-  })),
+  from: jest.fn(),
 }
 
 const mockHeaders = {
   get: jest.fn(),
 }
 
+// Simple mock query builder
+const mockQueryBuilder = {
+  select: jest.fn(() => ({
+    eq: jest.fn(() => ({
+      single: jest.fn(),
+    })),
+  })),
+  insert: jest.fn(),
+}
+
+mockSupabase.from.mockReturnValue(mockQueryBuilder)
 ;(createServerClient as jest.Mock).mockReturnValue(mockSupabase)
 ;(headers as jest.Mock).mockReturnValue(mockHeaders)
 
 describe('AuditLogger', () => {
   let auditLogger: AuditLogger
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks()
-    auditLogger = new AuditLogger()
+    auditLogger = await AuditLogger.create()
     
     // Setup default mock returns
     mockSupabase.auth.getUser.mockResolvedValue({
@@ -42,17 +46,22 @@ describe('AuditLogger', () => {
           email: 'test@example.com',
         },
       },
+      error: null,
     })
 
-    mockSupabase.from().select().eq().single.mockResolvedValue({
+    mockQueryBuilder.select().eq().single.mockResolvedValue({
       data: {
         organization_id: 'org-123',
         role: 'admin',
         full_name: 'Test User',
       },
+      error: null,
     })
 
-    mockSupabase.from().insert.mockResolvedValue({ error: null })
+    mockQueryBuilder.insert.mockResolvedValue({ 
+      data: null, 
+      error: null 
+    })
 
     mockHeaders.get.mockImplementation((header: string) => {
       switch (header) {
@@ -81,8 +90,10 @@ describe('AuditLogger', () => {
 
       await auditLogger.log(entry)
 
+      // Check that from() was called with both tables
+      expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith({
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith({
         organization_id: 'org-123',
         user_id: 'user-123',
         user_email: 'test@example.com',
@@ -114,11 +125,11 @@ describe('AuditLogger', () => {
 
       await auditLogger.log(entry)
 
-      expect(mockSupabase.from().insert).not.toHaveBeenCalled()
+      expect(mockQueryBuilder.insert).not.toHaveBeenCalled()
     })
 
     it('should handle missing user profile gracefully', async () => {
-      mockSupabase.from().select().eq().single.mockResolvedValue({
+      mockQueryBuilder.select().eq().single.mockResolvedValue({
         data: null,
       })
 
@@ -129,7 +140,7 @@ describe('AuditLogger', () => {
 
       await auditLogger.log(entry)
 
-      expect(mockSupabase.from().insert).not.toHaveBeenCalled()
+      expect(mockQueryBuilder.insert).not.toHaveBeenCalled()
     })
 
     it('should extract IP address from x-forwarded-for header', async () => {
@@ -140,7 +151,10 @@ describe('AuditLogger', () => {
 
       await auditLogger.log(entry)
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      // Check that from() was called with both tables
+      expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           ip_address: '192.168.1.1',
         })
@@ -166,7 +180,10 @@ describe('AuditLogger', () => {
 
       await auditLogger.log(entry)
 
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      // Check that from() was called with both tables
+      expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           ip_address: '10.0.0.1',
         })
@@ -175,7 +192,7 @@ describe('AuditLogger', () => {
 
     it('should handle database insertion errors gracefully', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
-      mockSupabase.from().insert.mockRejectedValue(new Error('Database error'))
+      mockQueryBuilder.insert.mockRejectedValue(new Error('Database error'))
 
       const entry = {
         action: 'create' as AuditAction,
@@ -213,7 +230,7 @@ describe('AuditLogger', () => {
           entityType: 'product',
         })
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({ action })
         )
       }
@@ -238,7 +255,7 @@ describe('AuditLogger', () => {
           entityType,
         })
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({ entity_type: entityType })
         )
       }
@@ -256,7 +273,10 @@ describe('AuditLogger', () => {
 
         await auditLogger.logCreate('product', entity, { source: 'api' })
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        // Check that from() was called with both tables
+        expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'create',
             entity_type: 'product',
@@ -277,7 +297,10 @@ describe('AuditLogger', () => {
 
         await auditLogger.logCreate('product', entity)
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        // Check that from() was called with both tables
+        expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({
             entity_name: 'TEST-SKU-001',
           })
@@ -298,7 +321,10 @@ describe('AuditLogger', () => {
           { reason: 'price_adjustment' }
         )
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        // Check that from() was called with both tables
+        expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'update',
             entity_type: 'product',
@@ -322,7 +348,10 @@ describe('AuditLogger', () => {
 
         await auditLogger.logDelete('product', entity, { reason: 'discontinued' })
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        // Check that from() was called with both tables
+        expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'delete',
             entity_type: 'product',
@@ -342,7 +371,10 @@ describe('AuditLogger', () => {
 
         await auditLogger.logExport('product', filters, recordCount)
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        // Check that from() was called with both tables
+        expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'export',
             entity_type: 'product',
@@ -359,7 +391,10 @@ describe('AuditLogger', () => {
       it('should log view action with entity information', async () => {
         await auditLogger.logView('product', 'product-123', 'Test Product')
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        // Check that from() was called with both tables
+        expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'view',
             entity_type: 'product',
@@ -372,7 +407,10 @@ describe('AuditLogger', () => {
       it('should work without entity name', async () => {
         await auditLogger.logView('product', 'product-123')
 
-        expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+        // Check that from() was called with both tables
+        expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+        expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+        expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
           expect.objectContaining({
             action: 'view',
             entity_type: 'product',
@@ -400,7 +438,10 @@ describe('AuditLogger', () => {
 
       expect(mockAction).toHaveBeenCalledWith('arg1', 'arg2')
       expect(getAuditInfo).toHaveBeenCalledWith(['arg1', 'arg2'], { id: 'product-123', name: 'Test Product' })
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      // Check that from() was called with both tables
+      expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'create',
           entity_type: 'product',
@@ -424,7 +465,10 @@ describe('AuditLogger', () => {
       await expect(wrappedAction('arg1')).rejects.toThrow('Action failed')
 
       expect(getAuditInfo).toHaveBeenCalledWith(['arg1'])
-      expect(mockSupabase.from().insert).toHaveBeenCalledWith(
+      // Check that from() was called with both tables
+      expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
+      expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
+      expect(mockQueryBuilder.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
             error: 'Action failed',
@@ -472,7 +516,7 @@ describe('AuditLogger', () => {
         })),
       }
 
-      const customAuditLogger = new AuditLogger(customSupabase as any)
+      const customAuditLogger = await AuditLogger.create(customSupabase as any)
 
       await customAuditLogger.log({
         action: 'create',
@@ -481,6 +525,7 @@ describe('AuditLogger', () => {
 
       expect(customSupabase.auth.getUser).toHaveBeenCalled()
       expect(customSupabase.from).toHaveBeenCalledWith('user_profiles')
+      expect(customSupabase.from).toHaveBeenCalledWith('audit_logs')
       expect(customSupabase.from().insert).toHaveBeenCalledWith(
         expect.objectContaining({
           user_id: 'custom-user',

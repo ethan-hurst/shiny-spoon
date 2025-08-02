@@ -20,7 +20,7 @@ interface AnalyticsPageProps {
 }
 
 export default async function AnalyticsPage({ searchParams }: AnalyticsPageProps) {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
 
   // Get user's organization
   const { data: { user } } = await supabase.auth.getUser()

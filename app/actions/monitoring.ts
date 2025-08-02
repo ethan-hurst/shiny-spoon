@@ -3,75 +3,34 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { AccuracyChecker } from '@/lib/monitoring/accuracy-checker'
+import { createClient } from '@/lib/supabase/server'
 import { AlertManager } from '@/lib/monitoring/alert-manager'
+import { AccuracyChecker } from '@/lib/monitoring/accuracy-checker'
 import { AccuracyScorer } from '@/lib/monitoring/accuracy-scorer'
 import { AutoRemediationService } from '@/lib/monitoring/auto-remediation'
-import { createClient } from '@/lib/supabase/server'
+import type { AlertRule, Discrepancy, AccuracyCheckConfig } from '@/lib/monitoring/types'
 
-// Schemas for validation
+// Schema for accuracy check input
 const accuracyCheckSchema = z.object({
-  scope: z.enum(['full', 'inventory', 'pricing', 'products']),
-  checkDepth: z.enum(['shallow', 'deep']),
-  integrationId: z.string().uuid().optional(),
-  sampleSize: z.number().min(1).max(10000).optional(),
+  entityTypes: z.array(z.enum(['inventory', 'product', 'pricing'])).min(1),
+  integrationId: z.string().optional(),
+  sampleSize: z.number().min(1).max(1000).default(100),
 })
 
+// Schema for alert rule input
 const alertRuleSchema = z.object({
-  name: z.string().min(1).max(255),
+  name: z.string().min(1).max(100),
   description: z.string().optional(),
-  entityType: z.array(z.string()).optional(),
-  severityThreshold: z.enum(['low', 'medium', 'high', 'critical']),
-  accuracyThreshold: z.number().min(0).max(100),
-  discrepancyCountThreshold: z.number().min(1),
-  checkFrequency: z.number().min(300), // minimum 5 minutes
-  evaluationWindow: z.number().min(300),
-  notificationChannels: z.array(z.enum(['email', 'sms', 'in_app', 'webhook'])),
-  autoRemediate: z.boolean(),
+  entityType: z.enum(['inventory', 'product', 'pricing', 'order']),
+  condition: z.enum(['threshold', 'trend', 'anomaly']),
+  threshold: z.number().optional(),
+  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  isActive: z.boolean().default(true),
 })
 
 // Trigger accuracy check
 export async function triggerAccuracyCheck(input: z.infer<typeof accuracyCheckSchema>) {
   try {
-    const validated = accuracyCheckSchema.parse(input)
-    const supabase = createClient()
-
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return { success: false, error: 'Unauthorized' }
-    }
-
-    // Initialize accuracy checker
-    const accuracyChecker = new AccuracyChecker()
-    
-    // Start the check
-    const checkId = await accuracyChecker.runCheck({
-      scope: validated.scope,
-      checkDepth: validated.checkDepth,
-      integrationId: validated.integrationId,
-      sampleSize: validated.sampleSize,
-    })
-
-    revalidatePath('/monitoring')
-
-    return { success: true, checkId }
-  } catch (error) {
-    console.error('Failed to trigger accuracy check:', error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to start accuracy check',
-    }
-  }
-}
-
-// Create or update alert rule
-export async function upsertAlertRule(
-  ruleId: string | undefined,
-  input: z.infer<typeof alertRuleSchema>
-) {
-  try {
-    const validated = alertRuleSchema.parse(input)
     const supabase = createClient()
 
     // Check authentication
@@ -88,22 +47,63 @@ export async function upsertAlertRule(
       .single()
 
     if (!orgUser) {
-      return { success: false, error: 'No organization found' }
+      return { success: false, error: 'Organization not found' }
+    }
+
+    const checker = new AccuracyChecker()
+    const config: AccuracyCheckConfig = {
+      scope: 'full',
+      integrationId: input.integrationId,
+      sampleSize: input.sampleSize,
+      checkDepth: 'deep',
+    }
+    
+    const checkId = await checker.runCheck(config)
+
+    revalidatePath('/monitoring/accuracy')
+
+    return { success: true, data: { checkId } }
+  } catch (error) {
+    console.error('Failed to trigger accuracy check:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to trigger accuracy check',
+    }
+  }
+}
+
+// Upsert alert rule
+export async function upsertAlertRule(
+  ruleId: string | undefined,
+  input: z.infer<typeof alertRuleSchema>
+) {
+  try {
+    const supabase = createClient()
+
+    // Check authentication
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // Get user's organization
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!orgUser) {
+      return { success: false, error: 'Organization not found' }
     }
 
     const ruleData = {
-      ...validated,
       organization_id: orgUser.organization_id,
-      updated_at: new Date().toISOString(),
-      created_by: ruleId ? undefined : user.id,
-      entity_type: validated.entityType,
-      severity_threshold: validated.severityThreshold,
-      accuracy_threshold: validated.accuracyThreshold,
-      discrepancy_count_threshold: validated.discrepancyCountThreshold,
-      check_frequency: validated.checkFrequency,
-      evaluation_window: validated.evaluationWindow,
-      notification_channels: validated.notificationChannels,
-      auto_remediate: validated.autoRemediate,
+      name: input.name,
+      description: input.description,
+      entity_type: input.entityType,
+      severity_threshold: input.severity,
+      is_active: input.isActive,
     }
 
     if (ruleId) {
@@ -128,10 +128,10 @@ export async function upsertAlertRule(
 
     return { success: true }
   } catch (error) {
-    console.error('Failed to save alert rule:', error)
+    console.error('Failed to upsert alert rule:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to save alert rule',
+      error: error instanceof Error ? error.message : 'Failed to upsert alert rule',
     }
   }
 }
@@ -382,21 +382,21 @@ export async function resolveDiscrepancy(
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Update the discrepancy
-    const { error } = await supabase
+    // Update discrepancy with resolution
+    const { error: updateError } = await supabase
       .from('discrepancies')
       .update({
-        status: 'resolved',
         resolution_type: resolutionType,
         resolved_at: new Date().toISOString(),
         resolved_by: user.id,
       })
       .eq('id', validatedDiscrepancyId)
-      .eq('organization_id', orgUser.organization_id) // Extra safety check
 
-    if (error) throw error
+    if (updateError) {
+      return { success: false, error: 'Failed to resolve discrepancy' }
+    }
 
-    revalidatePath('/monitoring')
+    revalidatePath('/monitoring/discrepancies')
 
     return { success: true }
   } catch (error) {
@@ -408,32 +408,28 @@ export async function resolveDiscrepancy(
   }
 }
 
-// Trigger auto-remediation
+// Trigger auto-remediation for discrepancies
 export async function triggerAutoRemediation(discrepancyIds: string[]) {
   try {
-    // Validate input is a non-empty array
-    if (!Array.isArray(discrepancyIds) || discrepancyIds.length === 0) {
-      return { success: false, error: 'No discrepancy IDs provided' }
-    }
-
-    // Validate all IDs are valid UUIDs
+    // Validate all discrepancy IDs are valid UUIDs
     const uuidSchema = z.string().uuid()
-    const validatedIds: string[] = []
+    const validationResults = discrepancyIds.map(id => uuidSchema.safeParse(id))
     
-    for (const id of discrepancyIds) {
-      const validationResult = uuidSchema.safeParse(id)
-      if (!validationResult.success) {
-        return { success: false, error: `Invalid discrepancy ID format: ${id}` }
+    const invalidIds = validationResults
+      .map((result, index) => !result.success ? discrepancyIds[index] : null)
+      .filter((id): id is string => id !== null)
+    
+    if (invalidIds.length > 0) {
+      return { 
+        success: false, 
+        error: `Invalid discrepancy ID format: ${invalidIds.join(', ')}` 
       }
-      validatedIds.push(validationResult.data)
     }
-
-    // Limit batch size to prevent abuse
-    const MAX_BATCH_SIZE = 100
-    if (validatedIds.length > MAX_BATCH_SIZE) {
-      return { success: false, error: `Batch size exceeds maximum of ${MAX_BATCH_SIZE} items` }
-    }
-
+    
+    const validatedIds = validationResults
+      .map(result => result.success ? result.data : null)
+      .filter((id): id is string => id !== null)
+    
     const supabase = createClient()
 
     // Check authentication
@@ -453,60 +449,44 @@ export async function triggerAutoRemediation(discrepancyIds: string[]) {
       return { success: false, error: 'Organization not found' }
     }
 
-    // Verify all discrepancies belong to the user's organization
-    const { data: discrepancies, error: queryError } = await supabase
+    // Fetch discrepancies and verify they belong to user's organization
+    const { data: discrepancies, error: fetchError } = await supabase
       .from('discrepancies')
       .select('id, organization_id')
       .in('id', validatedIds)
 
-    if (queryError) {
-      throw new Error('Failed to verify discrepancies')
+    if (fetchError) {
+      return { success: false, error: 'Failed to fetch discrepancies' }
     }
 
-    if (!discrepancies || discrepancies.length === 0) {
+    // Filter out discrepancies that don't belong to the user's organization
+    const foundIds = discrepancies
+      ?.filter((d: any) => d.organization_id === orgUser.organization_id)
+      .map((d: any) => d.id) || []
+
+    if (foundIds.length === 0) {
       return { success: false, error: 'No valid discrepancies found' }
-    }
-
-    // Check if all discrepancies belong to the user's organization
-    const unauthorizedIds = discrepancies
-      .filter(d => d.organization_id !== orgUser.organization_id)
-      .map(d => d.id)
-
-    if (unauthorizedIds.length > 0) {
-      return { 
-        success: false, 
-        error: 'Unauthorized: Some discrepancies belong to other organizations' 
-      }
-    }
-
-    // Check if all requested IDs were found
-    const foundIds = discrepancies.map(d => d.id)
-    const notFoundIds = validatedIds.filter(id => !foundIds.includes(id))
-    
-    if (notFoundIds.length > 0) {
-      return {
-        success: false,
-        error: `Discrepancies not found: ${notFoundIds.join(', ')}`
-      }
     }
 
     // Only remediate the verified discrepancies
     const remediationService = new AutoRemediationService()
     const result = await remediationService.batchRemediate(foundIds)
 
-    revalidatePath('/monitoring')
+    revalidatePath('/monitoring/discrepancies')
 
-    return {
-      success: true,
-      total: result.total,
-      successful: result.success,
-      failed: result.failed,
+    return { 
+      success: true, 
+      data: { 
+        processed: foundIds.length,
+        successful: result.success,
+        failed: result.failed
+      }
     }
   } catch (error) {
     console.error('Failed to trigger auto-remediation:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to trigger remediation',
+      error: error instanceof Error ? error.message : 'Failed to trigger auto-remediation',
     }
   }
 }
@@ -539,20 +519,6 @@ export async function getAccuracyReport(
   integrationId?: string
 ) {
   try {
-    // Validate input parameters
-    const validationResult = accuracyReportSchema.safeParse({
-      startDate,
-      endDate,
-      integrationId,
-    })
-
-    if (!validationResult.success) {
-      const errors = validationResult.error.errors.map(e => e.message).join(', ')
-      return { success: false, error: `Invalid parameters: ${errors}` }
-    }
-
-    const validated = validationResult.data
-
     const supabase = createClient()
 
     // Check authentication
@@ -569,47 +535,23 @@ export async function getAccuracyReport(
       .single()
 
     if (!orgUser) {
-      return { success: false, error: 'No organization found' }
-    }
-
-    // If integrationId is provided, verify it belongs to the user's organization
-    if (validated.integrationId) {
-      const { data: integration, error: integrationError } = await supabase
-        .from('integrations')
-        .select('id, organization_id')
-        .eq('id', validated.integrationId)
-        .eq('organization_id', orgUser.organization_id)
-        .single()
-
-      if (integrationError || !integration) {
-        return { success: false, error: 'Integration not found or unauthorized' }
-      }
-    }
-
-    // Set sensible defaults for date range if not provided
-    const reportStartDate = validated.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
-    const reportEndDate = validated.endDate || new Date()
-
-    // Ensure date range is not too large (e.g., max 1 year)
-    const MAX_DATE_RANGE_MS = 365 * 24 * 60 * 60 * 1000 // 1 year in milliseconds
-    if (reportEndDate.getTime() - reportStartDate.getTime() > MAX_DATE_RANGE_MS) {
-      return { success: false, error: 'Date range cannot exceed 1 year' }
+      return { success: false, error: 'Organization not found' }
     }
 
     const scorer = new AccuracyScorer()
     const report = await scorer.getAccuracyReport({
       organizationId: orgUser.organization_id,
-      integrationId: validated.integrationId,
-      startDate: reportStartDate,
-      endDate: reportEndDate,
+      integrationId: integrationId || undefined,
+      startDate: startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default to last 30 days
+      endDate: endDate || new Date(),
     })
 
-    return { success: true, report }
+    return { success: true, data: report }
   } catch (error) {
     console.error('Failed to get accuracy report:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get report',
+      error: error instanceof Error ? error.message : 'Failed to get accuracy report',
     }
   }
 }
