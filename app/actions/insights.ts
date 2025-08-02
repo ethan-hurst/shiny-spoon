@@ -8,68 +8,49 @@ import { DemandForecaster } from '@/lib/ai/demand-forecasting'
 import { ReorderPointCalculator } from '@/lib/ai/reorder-suggestions'
 import { PriceOptimizer } from '@/lib/ai/price-optimization'
 import { AnomalyDetector } from '@/lib/ai/anomaly-detection'
+import { z } from 'zod'
+import {
+  demandForecastSchema,
+  priceOptimizationSchema,
+  anomalyDetectionSchema,
+} from '@/types/ai.types'
 
 export async function refreshInsights(organizationId: string) {
   try {
     const user = await getCurrentUser()
-    
     if (!user || user.organizationId !== organizationId) {
-      return { success: false, error: 'Unauthorized' }
+      throw new Error('Unauthorized')
     }
 
-    // Initialize AI services
     const aiService = new AIService()
     const anomalyDetector = new AnomalyDetector()
-    const reorderCalculator = new ReorderPointCalculator()
-    const priceOptimizer = new PriceOptimizer()
 
-    // Generate insights in parallel
-    const [generalInsights, anomalies, reorderPoints, priceOptimizations] = await Promise.all([
-      // General AI insights
+    // Generate new insights
+    const [insights, anomalies] = await Promise.all([
       aiService.generateInsights(organizationId, {
         from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        to: new Date()
+        to: new Date(),
       }),
-      
-      // Anomaly detection
-      anomalyDetector.detectAnomalies(organizationId),
-      
-      // Reorder suggestions
-      reorderCalculator.calculateReorderPoints(organizationId),
-      
-      // Price optimizations (limit to 10 products)
-      priceOptimizer.optimizePricing(organizationId)
+      anomalyDetector.detectAnomalies(organizationId, 'all'),
     ])
 
     revalidatePath('/insights')
-    
-    return { 
-      success: true, 
-      data: {
-        generalInsights: generalInsights.summary,
-        anomaliesDetected: anomalies.length,
-        reorderSuggestions: reorderPoints.length,
-        priceRecommendations: priceOptimizations.length
-      }
-    }
+    return { success: true, insights, anomalies }
   } catch (error) {
     console.error('Error refreshing insights:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to refresh insights' 
-    }
+    return { success: false, error: 'Failed to refresh insights' }
   }
 }
 
 export async function dismissInsight(insightId: string) {
   try {
-    const supabase = createServerClient()
     const user = await getCurrentUser()
-    
     if (!user) {
-      return { success: false, error: 'Unauthorized' }
+      throw new Error('Unauthorized')
     }
 
+    const supabase = createServerClient()
+    
     // Verify the insight belongs to the user's organization
     const { data: insight } = await supabase
       .from('ai_insights')
@@ -78,7 +59,7 @@ export async function dismissInsight(insightId: string) {
       .single()
 
     if (!insight || insight.organization_id !== user.organizationId) {
-      return { success: false, error: 'Insight not found' }
+      throw new Error('Unauthorized')
     }
 
     // Update the insight
@@ -87,10 +68,7 @@ export async function dismissInsight(insightId: string) {
       .update({ is_dismissed: true })
       .eq('id', insightId)
 
-    if (error) {
-      console.error('Failed to dismiss insight:', error)
-      return { success: false, error: 'Failed to dismiss insight' }
-    }
+    if (error) throw error
 
     revalidatePath('/insights')
     return { success: true }
@@ -100,15 +78,98 @@ export async function dismissInsight(insightId: string) {
   }
 }
 
-export async function markInsightAsRead(insightId: string) {
+export async function generateDemandForecast(input: z.infer<typeof demandForecastSchema>) {
   try {
-    const supabase = createServerClient()
     const user = await getCurrentUser()
-    
-    if (!user) {
-      return { success: false, error: 'Unauthorized' }
+    if (!user || !user.organizationId) {
+      throw new Error('Unauthorized')
     }
 
+    const forecaster = new DemandForecaster()
+    const forecast = await forecaster.forecastDemand(
+      input.productId,
+      input.warehouseId,
+      user.organizationId,
+      input.horizonDays
+    )
+
+    revalidatePath('/insights')
+    return { success: true, forecast }
+  } catch (error) {
+    console.error('Error generating demand forecast:', error)
+    return { success: false, error: 'Failed to generate forecast' }
+  }
+}
+
+export async function calculateReorderPoints() {
+  try {
+    const user = await getCurrentUser()
+    if (!user || !user.organizationId) {
+      throw new Error('Unauthorized')
+    }
+
+    const calculator = new ReorderPointCalculator()
+    const suggestions = await calculator.calculateReorderPoints(user.organizationId)
+
+    revalidatePath('/insights')
+    return { success: true, suggestions }
+  } catch (error) {
+    console.error('Error calculating reorder points:', error)
+    return { success: false, error: 'Failed to calculate reorder points' }
+  }
+}
+
+export async function optimizePricing(input: z.infer<typeof priceOptimizationSchema>) {
+  try {
+    const user = await getCurrentUser()
+    if (!user || !user.organizationId) {
+      throw new Error('Unauthorized')
+    }
+
+    const optimizer = new PriceOptimizer()
+    const recommendations = await optimizer.optimizePricing(
+      user.organizationId,
+      input.productIds
+    )
+
+    revalidatePath('/insights')
+    return { success: true, recommendations }
+  } catch (error) {
+    console.error('Error optimizing pricing:', error)
+    return { success: false, error: 'Failed to optimize pricing' }
+  }
+}
+
+export async function detectAnomalies(input: z.infer<typeof anomalyDetectionSchema>) {
+  try {
+    const user = await getCurrentUser()
+    if (!user || !user.organizationId) {
+      throw new Error('Unauthorized')
+    }
+
+    const detector = new AnomalyDetector()
+    const anomalies = await detector.detectAnomalies(
+      user.organizationId,
+      input.scope
+    )
+
+    revalidatePath('/insights')
+    return { success: true, anomalies }
+  } catch (error) {
+    console.error('Error detecting anomalies:', error)
+    return { success: false, error: 'Failed to detect anomalies' }
+  }
+}
+
+export async function markInsightAsRead(insightId: string) {
+  try {
+    const user = await getCurrentUser()
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
+
+    const supabase = createServerClient()
+    
     // Verify the insight belongs to the user's organization
     const { data: insight } = await supabase
       .from('ai_insights')
@@ -117,7 +178,7 @@ export async function markInsightAsRead(insightId: string) {
       .single()
 
     if (!insight || insight.organization_id !== user.organizationId) {
-      return { success: false, error: 'Insight not found' }
+      throw new Error('Unauthorized')
     }
 
     // Update the insight
@@ -126,69 +187,12 @@ export async function markInsightAsRead(insightId: string) {
       .update({ is_read: true })
       .eq('id', insightId)
 
-    if (error) {
-      console.error('Failed to mark insight as read:', error)
-      return { success: false, error: 'Failed to update insight' }
-    }
+    if (error) throw error
 
     revalidatePath('/insights')
     return { success: true }
   } catch (error) {
     console.error('Error marking insight as read:', error)
-    return { success: false, error: 'Failed to update insight' }
-  }
-}
-
-export async function generateDemandForecast(
-  productId: string,
-  warehouseId: string,
-  horizonDays: number = 30
-) {
-  try {
-    const user = await getCurrentUser()
-    
-    if (!user?.organizationId) {
-      return { success: false, error: 'Unauthorized' }
-    }
-
-    const forecaster = new DemandForecaster()
-    const forecast = await forecaster.forecastDemand(
-      productId,
-      warehouseId,
-      user.organizationId,
-      horizonDays
-    )
-
-    return { success: true, data: forecast }
-  } catch (error) {
-    console.error('Error generating demand forecast:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to generate forecast' 
-    }
-  }
-}
-
-export async function optimizeProductPricing(productIds?: string[]) {
-  try {
-    const user = await getCurrentUser()
-    
-    if (!user?.organizationId) {
-      return { success: false, error: 'Unauthorized' }
-    }
-
-    const optimizer = new PriceOptimizer()
-    const recommendations = await optimizer.optimizePricing(
-      user.organizationId,
-      productIds
-    )
-
-    return { success: true, data: recommendations }
-  } catch (error) {
-    console.error('Error optimizing pricing:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to optimize pricing' 
-    }
+    return { success: false, error: 'Failed to mark insight as read' }
   }
 }
