@@ -1,14 +1,11 @@
-// components/features/insights/demand-forecast-chart.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { RefreshCw, TrendingUp } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { generateDemandForecasts, getHistoricalDemand } from '@/app/actions/ai-insights'
-import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { TrendingUp, Calendar, Package } from 'lucide-react'
 import type { AIPrediction } from '@/types/ai.types'
 
 interface DemandForecastChartProps {
@@ -17,216 +14,172 @@ interface DemandForecastChartProps {
 }
 
 export function DemandForecastChart({ organizationId, predictions }: DemandForecastChartProps) {
-  const [forecasts, setForecasts] = useState<any[]>([])
-  const [selectedForecast, setSelectedForecast] = useState<any>(null)
-  const [chartData, setChartData] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<string>('all')
+  const [chartType, setChartType] = useState<'line' | 'bar'>('line')
 
-  const loadForecasts = async () => {
-    setIsLoading(true)
-    try {
-      const result = await generateDemandForecasts(organizationId)
-      if (result.success && result.data) {
-        setForecasts(result.data)
-        if (result.data.length > 0) {
-          setSelectedForecast(result.data[0])
-        }
-      } else {
-        toast.error(result.error || 'Failed to load forecasts')
-      }
-    } catch (error) {
-      toast.error('Failed to load forecasts')
-    } finally {
-      setIsLoading(false)
+  // Group predictions by product
+  const productPredictions = predictions.reduce((acc, pred) => {
+    if (!acc[pred.entity_id]) {
+      acc[pred.entity_id] = []
     }
-  }
+    acc[pred.entity_id].push(pred)
+    return acc
+  }, {} as Record<string, AIPrediction[]>)
 
-  const loadHistoricalData = async (productId: string, warehouseId: string) => {
-    try {
-      const result = await getHistoricalDemand(productId, warehouseId, 30)
-      if (result.success && result.data) {
-        return result.data
-      }
-    } catch (error) {
-      console.error('Failed to load historical data:', error)
-    }
-    return []
-  }
+  // Get unique products
+  const products = Object.keys(productPredictions)
 
-  useEffect(() => {
-    loadForecasts()
-  }, [organizationId])
+  // Get chart data
+  const getChartData = () => {
+    if (selectedProduct === 'all') {
+      // Aggregate all predictions
+      const aggregatedData: any[] = []
+      const dateMap = new Map<string, number>()
 
-  useEffect(() => {
-    if (!selectedForecast) return
-
-    const prepareChartData = async () => {
-      const historical = await loadHistoricalData(
-        selectedForecast.productId, 
-        selectedForecast.warehouseId
-      )
-
-      // Combine historical and forecast data
-      const combined = []
-
-      // Add historical data
-      if (historical && historical.length > 0) {
-        historical.slice(-14).forEach((point: any) => {
-          combined.push({
-            date: point.date,
-            historical: point.quantity,
-            forecast: null,
-            type: 'historical'
-          })
-        })
-      }
-
-      // Add forecast data
-      if (selectedForecast.forecast && selectedForecast.forecast.length > 0) {
-        selectedForecast.forecast.forEach((point: any, index: number) => {
-          const forecastDate = new Date()
-          forecastDate.setDate(forecastDate.getDate() + index + 1)
+      predictions.forEach(pred => {
+        const forecast = pred.prediction_value?.forecast || []
+        const startDate = new Date(pred.prediction_start)
+        
+        forecast.forEach((value: number, index: number) => {
+          const date = new Date(startDate)
+          date.setDate(date.getDate() + index)
+          const dateStr = date.toISOString().split('T')[0]
           
-          combined.push({
-            date: forecastDate.toISOString().split('T')[0],
-            historical: null,
-            forecast: Math.round(point.predicted_quantity * 100) / 100,
-            type: 'forecast'
-          })
+          dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + value)
         })
-      }
+      })
 
-      setChartData(combined)
+      dateMap.forEach((value, date) => {
+        aggregatedData.push({
+          date,
+          displayDate: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          demand: Math.round(value),
+        })
+      })
+
+      return aggregatedData.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 30)
+    } else {
+      // Get data for selected product
+      const productPred = productPredictions[selectedProduct]?.[0]
+      if (!productPred) return []
+
+      const forecast = productPred.prediction_value?.forecast || []
+      const startDate = new Date(productPred.prediction_start)
+
+      return forecast.slice(0, 30).map((value: number, index: number) => {
+        const date = new Date(startDate)
+        date.setDate(date.getDate() + index)
+        
+        return {
+          date: date.toISOString().split('T')[0],
+          displayDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          demand: Math.round(value),
+        }
+      })
     }
+  }
 
-    prepareChartData()
-  }, [selectedForecast])
+  const chartData = getChartData()
+  const avgDemand = chartData.length > 0
+    ? Math.round(chartData.reduce((sum, d) => sum + d.demand, 0) / chartData.length)
+    : 0
+
+  const Chart = chartType === 'line' ? LineChart : BarChart
+  const DataComponent = chartType === 'line' ? Line : Bar
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Demand Forecasting</h2>
-          <p className="text-muted-foreground">
-            AI-powered demand predictions for inventory planning
-          </p>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Demand Forecast</CardTitle>
+            <CardDescription>
+              AI-powered demand predictions for the next 30 days
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={chartType} onValueChange={(v) => setChartType(v as 'line' | 'bar')}>
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="line">Line</SelectItem>
+                <SelectItem value="bar">Bar</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select product" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Products</SelectItem>
+                {products.map(productId => (
+                  <SelectItem key={productId} value={productId}>
+                    Product {productId.slice(-6)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={loadForecasts}
-          disabled={isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Generating demand forecasts...</p>
-          </CardContent>
-        </Card>
-      ) : forecasts.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Forecast Data</h3>
-            <p className="text-muted-foreground">
-              Insufficient historical data to generate demand forecasts. More sales data is needed.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {/* Product Selector */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Product for Forecast</CardTitle>
-              <CardDescription>
-                Choose a product to view its demand forecast
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Select 
-                value={selectedForecast?.productId || ''} 
-                onValueChange={(value) => {
-                  const forecast = forecasts.find(f => f.productId === value)
-                  setSelectedForecast(forecast)
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {forecasts.map((forecast) => (
-                    <SelectItem key={forecast.productId} value={forecast.productId}>
-                      {forecast.productName} - {forecast.warehouseName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
-
-          {/* Forecast Chart */}
-          {selectedForecast && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{selectedForecast.productName}</CardTitle>
-                <CardDescription>
-                  30-day demand forecast using {selectedForecast.method} method 
-                  (Confidence: {Math.round(selectedForecast.confidence * 100)}%)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div style={{ width: '100%', height: 400 }}>
-                  <ResponsiveContainer>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="date" 
-                        tick={{ fontSize: 12 }}
-                        tickFormatter={(value) => {
-                          const date = new Date(value)
-                          return `${date.getMonth() + 1}/${date.getDate()}`
-                        }}
-                      />
-                      <YAxis />
-                      <Tooltip 
-                        labelFormatter={(value) => `Date: ${value}`}
-                        formatter={(value, name) => [
-                          value ? Math.round(value * 100) / 100 : 'N/A',
-                          name === 'historical' ? 'Historical Demand' : 'Forecast'
-                        ]}
-                      />
-                      <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="historical" 
-                        stroke="#8884d8" 
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                        name="Historical"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="forecast" 
-                        stroke="#82ca9d" 
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        dot={{ r: 4 }}
-                        name="Forecast"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+      </CardHeader>
+      <CardContent>
+        {predictions.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No demand forecasts available</p>
+          </div>
+        ) : (
+          <>
+            <div className="mb-6 grid gap-4 md:grid-cols-3">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Average Daily Demand</p>
+                <p className="text-2xl font-bold">{avgDemand} units</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Forecast Period</p>
+                <p className="text-2xl font-bold">30 days</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Confidence Level</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-bold">
+                    {Math.round((predictions[0]?.confidence_score || 0) * 100)}%
+                  </p>
+                  <Badge variant="secondary">
+                    {predictions[0]?.confidence_score >= 0.8 ? 'High' : 
+                     predictions[0]?.confidence_score >= 0.6 ? 'Medium' : 'Low'}
+                  </Badge>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-    </div>
+              </div>
+            </div>
+
+            <div className="h-[400px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <Chart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="displayDate" 
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <DataComponent 
+                    type="monotone" 
+                    dataKey="demand" 
+                    stroke="#3b82f6" 
+                    fill="#3b82f6"
+                    name="Predicted Demand"
+                  />
+                </Chart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }

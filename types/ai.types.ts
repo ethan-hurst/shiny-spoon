@@ -1,9 +1,94 @@
-// types/ai.types.ts
+import { z } from 'zod'
+
+// Prediction types
+export type PredictionType = 'demand' | 'reorder' | 'price' | 'anomaly'
+export type EntityType = 'product' | 'warehouse' | 'category'
+export type InsightType = 'summary' | 'recommendation' | 'alert' | 'trend'
+export type SeverityLevel = 'info' | 'warning' | 'critical'
+
+// Time series data point
+export interface TimeSeriesData {
+  date: Date
+  value: number
+  label?: string
+}
+
+// Demand forecast interface
+export interface DemandForecast {
+  productId: string
+  warehouseId: string
+  predictions: number[]
+  confidence: number
+  method: 'arima' | 'lstm' | 'prophet' | 'moving_average' | 'ensemble'
+  generatedAt: Date
+  horizonDays?: number
+}
+
+// Reorder suggestion interface
+export interface ReorderSuggestion {
+  productId: string
+  warehouseId: string
+  currentStock: number
+  reorderPoint: number
+  reorderQuantity: number
+  safetyStock: number
+  leadTimeDays: number
+  confidence: number
+  reasoning: string
+}
+
+// Price recommendation interface
+export interface PriceRecommendation {
+  productId: string
+  currentPrice: number
+  suggestedPrice: number
+  estimatedImpact: {
+    revenueChange: number
+    volumeChange: number
+  }
+  confidence: number
+  reasoning: string
+  factors: {
+    demandElasticity: number
+    competitorAverage: number | null
+    inventoryPressure: number
+    marginTarget: number
+  }
+}
+
+// Anomaly alert interface
+export interface AnomalyAlert {
+  id: string
+  type: string
+  severity: SeverityLevel
+  title: string
+  description: string
+  detectedAt: Date
+  confidence: number
+  relatedEntities: Array<{
+    type: string
+    id: string
+    name: string
+  }>
+  suggestedActions: string[]
+}
+
+// Trend analysis interface
+export interface TrendAnalysis {
+  metric: string
+  trend: 'increasing' | 'decreasing' | 'stable'
+  changeRate: number
+  significance: number
+  forecast: number[]
+  insights: string[]
+}
+
+// AI prediction database type
 export interface AIPrediction {
   id: string
   organization_id: string
-  prediction_type: 'demand' | 'reorder' | 'price' | 'anomaly'
-  entity_type: 'product' | 'warehouse' | 'category'
+  prediction_type: PredictionType
+  entity_type: EntityType
   entity_id: string
   prediction_date: string
   prediction_value: any
@@ -16,13 +101,14 @@ export interface AIPrediction {
   expires_at?: string
 }
 
+// AI insight database type
 export interface AIInsight {
   id: string
   organization_id: string
-  insight_type: 'summary' | 'recommendation' | 'alert' | 'trend'
+  insight_type: InsightType
   title: string
   content: string
-  severity: 'info' | 'warning' | 'critical'
+  severity?: SeverityLevel
   related_entities: Array<{
     type: string
     id: string
@@ -36,78 +122,7 @@ export interface AIInsight {
   valid_until?: string
 }
 
-export interface DemandForecast {
-  productId: string
-  warehouseId: string
-  predictions: number[]
-  dates: string[]
-  confidence: number
-  method: 'moving_average' | 'arima' | 'lstm' | 'ensemble'
-  generatedAt: Date
-}
-
-export interface ReorderSuggestion {
-  productId: string
-  warehouseId: string
-  productName: string
-  warehouseName: string
-  currentStock: number
-  reorderPoint: number
-  reorderQuantity: number
-  safetyStock: number
-  leadTimeDays: number
-  confidence: number
-  reasoning: string
-}
-
-export interface PriceRecommendation {
-  productId: string
-  currentPrice: number
-  suggestedPrice: number
-  estimatedImpact: {
-    revenueChange: number
-    volumeChange: number
-  }
-  confidence: number
-  reasoning: string
-  factors: {
-    demandElasticity: number
-    competitorAverage?: number
-    inventoryPressure: number
-    marginTarget: number
-  }
-}
-
-export interface AnomalyAlert {
-  id: string
-  type: 'inventory_spike' | 'adjustment_pattern' | 'stock_out' | 'excess_inventory' | 'order_spike' | 'large_order' | 'price_volatility' | 'large_price_change'
-  severity: 'info' | 'warning' | 'critical'
-  title: string
-  description: string
-  detectedAt: Date
-  confidence: number
-  relatedEntities: Array<{
-    type: string
-    id: string
-    name: string
-  }>
-  suggestedActions: string[]
-}
-
-export interface TrendAnalysis {
-  metric: string
-  trend: 'increasing' | 'decreasing' | 'stable'
-  changePercent: number
-  period: string
-  confidence: number
-  significanceLevel: number
-}
-
-export interface TimeSeriesData {
-  date: Date
-  value: number
-}
-
+// ML training data type
 export interface MLTrainingData {
   id: string
   organization_id: string
@@ -123,97 +138,36 @@ export interface MLTrainingData {
   created_at: string
 }
 
-export interface InsightSummary {
-  totalInsights: number
-  unreadInsights: number
-  criticalAlerts: number
-  activeRecommendations: number
-  lastUpdated: Date
-}
+// Validation schemas
+export const demandForecastSchema = z.object({
+  productId: z.string().uuid(),
+  warehouseId: z.string().uuid(),
+  horizonDays: z.number().min(1).max(365).default(30)
+})
 
-export interface DemandPattern {
-  productId: string
-  seasonal: boolean
-  trendDirection: 'up' | 'down' | 'stable'
-  volatility: 'low' | 'medium' | 'high'
-  avgDailyDemand: number
-  peakDays: string[]
-  cyclePeriod?: number
-}
+export const priceOptimizationSchema = z.object({
+  productIds: z.array(z.string().uuid()).optional(),
+  includeCompetitors: z.boolean().default(true),
+  targetMargin: z.number().min(0).max(1).optional()
+})
 
-export interface PricingInsight {
-  productId: string
-  currentMargin: number
-  competitorCount: number
-  priceElasticity: number
-  lastPriceChange?: string
-  recommendation: 'increase' | 'decrease' | 'maintain'
-  confidence: number
-}
+export const anomalyDetectionSchema = z.object({
+  scope: z.enum(['all', 'inventory', 'orders', 'pricing']).default('all'),
+  lookbackDays: z.number().min(1).max(90).default(7),
+  sensitivityLevel: z.enum(['low', 'medium', 'high']).default('medium')
+})
 
-export interface InventoryOptimization {
-  productId: string
-  warehouseId: string
-  currentValue: number
-  optimizedValue: number
-  potential_savings: number
-  turnoverRate: number
-  daysOfSupply: number
-}
+export const insightQuerySchema = z.object({
+  types: z.array(z.enum(['summary', 'recommendation', 'alert', 'trend'])).optional(),
+  severity: z.enum(['info', 'warning', 'critical']).optional(),
+  isRead: z.boolean().optional(),
+  limit: z.number().min(1).max(100).default(20)
+})
 
-export interface ForecastAccuracy {
-  model: string
-  mae: number
-  mape: number
-  rmse: number
-  r2: number
-  lastEvaluated: Date
-}
-
-export interface AIServiceConfig {
-  enableForecasting: boolean
-  enablePriceOptimization: boolean
-  enableAnomalyDetection: boolean
-  forecastHorizonDays: number
-  confidenceThreshold: number
-  updateFrequencyHours: number
-}
-
-// Chat/Natural Language Interface Types
+// Chat message type
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
   content: string
-  timestamp: Date
-  metadata?: Record<string, any>
-}
-
-export interface ChatContext {
-  organizationId: string
-  userId: string
-  sessionId: string
-  messages: ChatMessage[]
-}
-
-export interface NLQuery {
-  query: string
-  intent: 'forecast' | 'reorder' | 'anomaly' | 'trend' | 'general'
-  entities: Array<{
-    type: 'product' | 'warehouse' | 'date' | 'metric'
-    value: string
-    confidence: number
-  }>
-  parameters: Record<string, any>
-}
-
-export interface NLResponse {
-  answer: string
-  data?: any
-  visualizations?: Array<{
-    type: 'chart' | 'table' | 'metric'
-    config: any
-    data: any
-  }>
-  suggestedActions?: string[]
-  confidence: number
+  timestamp?: Date
 }

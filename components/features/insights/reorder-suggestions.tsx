@@ -1,175 +1,161 @@
 // components/features/insights/reorder-suggestions.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Package, RefreshCw, TrendingUp } from 'lucide-react'
-import { generateReorderSuggestions } from '@/app/actions/ai-insights'
-import { toast } from 'sonner'
-import type { AIInsight } from '@/types/ai.types'
+import { Progress } from '@/components/ui/progress'
+import { Package, TrendingUp, AlertTriangle, ShoppingCart } from 'lucide-react'
+import type { AIPrediction } from '@/types/ai.types'
 
 interface ReorderSuggestionsProps {
-  organizationId: string
-  insights: AIInsight[]
+  predictions: AIPrediction[]
 }
 
-export function ReorderSuggestions({ organizationId, insights }: ReorderSuggestionsProps) {
-  const [suggestions, setSuggestions] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+export function ReorderSuggestions({ predictions }: ReorderSuggestionsProps) {
+  // Extract reorder suggestions from predictions
+  const reorderSuggestions = predictions.map(pred => ({
+    productId: pred.entity_id,
+    ...pred.prediction_value,
+    confidence: pred.confidence_score,
+  }))
 
-  const loadSuggestions = async () => {
-    setIsLoading(true)
-    try {
-      const result = await generateReorderSuggestions(organizationId)
-      if (result.success && result.data) {
-        setSuggestions(result.data)
-      } else {
-        toast.error(result.error || 'Failed to load reorder suggestions')
-      }
-    } catch (error) {
-      toast.error('Failed to load reorder suggestions')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadSuggestions()
-  }, [organizationId])
-
-  const getPriorityLevel = (currentQuantity: number, suggestedReorderPoint: number) => {
-    if (currentQuantity <= 0) return { level: 'critical', color: 'bg-red-100 text-red-800', label: 'Out of Stock' }
-    if (currentQuantity <= suggestedReorderPoint * 0.5) return { level: 'high', color: 'bg-orange-100 text-orange-800', label: 'Urgent' }
-    if (currentQuantity <= suggestedReorderPoint) return { level: 'medium', color: 'bg-yellow-100 text-yellow-800', label: 'Soon' }
-    return { level: 'low', color: 'bg-green-100 text-green-800', label: 'Normal' }
-  }
+  const urgentReorders = reorderSuggestions.filter(s => {
+    const stockLevel = s.currentStock / s.reorderPoint
+    return stockLevel < 1.2 // Within 20% of reorder point
+  })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Reorder Suggestions</h2>
-          <p className="text-muted-foreground">
-            AI-powered recommendations for optimal inventory levels
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={loadSuggestions}
-          disabled={isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
-
-      {/* AI Insight Recommendations */}
-      {insights.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-4">AI Recommendations</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            {insights.map((insight) => (
-              <Card key={insight.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    <CardTitle className="text-lg">{insight.title}</CardTitle>
-                    <Badge variant="outline">{insight.severity}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="mb-3">
-                    {insight.content}
-                  </CardDescription>
-                  {insight.recommended_actions.length > 0 && (
-                    <div>
-                      <p className="font-medium text-sm mb-2">Actions:</p>
-                      <ul className="text-sm space-y-1">
-                        {insight.recommended_actions.map((action, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-muted-foreground">•</span>
-                            <span>{action}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+    <div className="space-y-4">
+      {urgentReorders.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <CardTitle className="text-orange-800">Urgent Reorders Required</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-orange-700">
+              {urgentReorders.length} product{urgentReorders.length !== 1 ? 's' : ''} approaching or below reorder point
+            </p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Reorder Suggestions Table */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Reorder Analysis</h3>
-        {isLoading ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p>Analyzing inventory levels...</p>
-            </CardContent>
-          </Card>
-        ) : suggestions.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Package className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-green-700 mb-2">Inventory Optimized</h3>
-              <p className="text-muted-foreground">All products are at optimal stock levels</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {suggestions.map((suggestion, index) => {
-              const priority = getPriorityLevel(suggestion.current_quantity, suggestion.suggested_reorder_point)
-              
-              return (
-                <Card key={index}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{suggestion.product_name}</CardTitle>
-                        <CardDescription>{suggestion.warehouse_name}</CardDescription>
+      <Card>
+        <CardHeader>
+          <CardTitle>Reorder Suggestions</CardTitle>
+          <CardDescription>
+            AI-optimized reorder points and quantities based on demand forecasts
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {reorderSuggestions.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">No reorder suggestions available</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {reorderSuggestions.map((suggestion, index) => {
+                const stockLevel = suggestion.currentStock / suggestion.reorderPoint
+                const stockPercentage = Math.min(stockLevel * 100, 100)
+                const isLow = stockLevel < 1.2
+                const isCritical = stockLevel < 0.5
+
+                return (
+                  <div
+                    key={`${suggestion.productId}-${index}`}
+                    className={cn(
+                      'p-4 border rounded-lg',
+                      isCritical ? 'border-red-200 bg-red-50' :
+                      isLow ? 'border-orange-200 bg-orange-50' :
+                      'border-gray-200'
+                    )}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-medium flex items-center gap-2">
+                            Product {suggestion.productId.slice(-6)}
+                            {isCritical && <Badge variant="destructive">Critical</Badge>}
+                            {isLow && !isCritical && <Badge variant="secondary">Low Stock</Badge>}
+                          </h4>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Warehouse {suggestion.warehouseId?.slice(-6) || 'Unknown'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Confidence</p>
+                          <p className="font-medium">{Math.round(suggestion.confidence * 100)}%</p>
+                        </div>
                       </div>
-                      <Badge className={priority.color}>
-                        {priority.label}
-                      </Badge>
+
+                      <div className="grid gap-4 md:grid-cols-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Current Stock</p>
+                          <p className="font-medium">{suggestion.currentStock} units</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Reorder Point</p>
+                          <p className="font-medium text-orange-600">{suggestion.reorderPoint} units</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Reorder Quantity</p>
+                          <p className="font-medium text-green-600">{suggestion.reorderQuantity} units</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Safety Stock</p>
+                          <p className="font-medium">{suggestion.safetyStock} units</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Stock Level</span>
+                          <span>{Math.round(stockPercentage)}% of reorder point</span>
+                        </div>
+                        <Progress 
+                          value={stockPercentage} 
+                          className={cn(
+                            "h-2",
+                            isCritical ? "[&>div]:bg-red-600" :
+                            isLow ? "[&>div]:bg-orange-600" :
+                            "[&>div]:bg-green-600"
+                          )}
+                        />
+                      </div>
+
+                      {suggestion.reasoning && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm text-muted-foreground">{suggestion.reasoning}</p>
+                        </div>
+                      )}
+
+                      {isLow && (
+                        <div className="flex gap-2 pt-2">
+                          <Button size="sm" className="flex-1">
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Create Purchase Order
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            View Details
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Current Stock</p>
-                        <p className="text-2xl font-bold">{suggestion.current_quantity}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Suggested Reorder Point</p>
-                        <p className="text-2xl font-bold text-orange-600">{suggestion.suggested_reorder_point}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Order Quantity</p>
-                        <p className="text-2xl font-bold text-blue-600">{suggestion.suggested_order_quantity}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Lead Time</p>
-                        <p className="text-2xl font-bold">{suggestion.lead_time_days} days</p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-muted/50 p-3 rounded text-sm">
-                      <p className="font-medium mb-1">AI Reasoning:</p>
-                      <p>{suggestion.reasoning}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
+}
+
+function cn(...classes: string[]) {
+  return classes.filter(Boolean).join(' ')
 }
