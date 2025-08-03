@@ -1,43 +1,43 @@
-import { render, screen } from '@testing-library/react'
 import { Metadata } from 'next'
+import { render, screen } from '@testing-library/react'
 import HomePage, { metadata } from '@/app/page'
 
 // Mock the components to focus on page structure and behavior
 jest.mock('@/components/marketing/hero-section', () => ({
-  HeroSection: () => <div data-testid="hero-section">Hero Section</div>
+  HeroSection: () => <div data-testid="hero-section">Hero Section</div>,
 }))
 
 jest.mock('@/components/marketing/features-grid', () => ({
-  FeaturesGrid: () => <div data-testid="features-grid">Features Grid</div>
+  FeaturesGrid: () => <div data-testid="features-grid">Features Grid</div>,
 }))
 
 jest.mock('@/components/marketing/how-it-works', () => ({
-  HowItWorks: () => <div data-testid="how-it-works">How It Works</div>
+  HowItWorks: () => <div data-testid="how-it-works">How It Works</div>,
 }))
 
 jest.mock('@/components/marketing/testimonials', () => ({
-  Testimonials: () => <div data-testid="testimonials">Testimonials</div>
+  Testimonials: () => <div data-testid="testimonials">Testimonials</div>,
 }))
 
 jest.mock('@/components/marketing/cta-section', () => ({
-  CTASection: () => <div data-testid="cta-section">CTA Section</div>
+  CTASection: () => <div data-testid="cta-section">CTA Section</div>,
 }))
 
 jest.mock('@/components/marketing/trusted-by', () => ({
-  TrustedBy: () => <div data-testid="trusted-by">Trusted By</div>
+  TrustedBy: () => <div data-testid="trusted-by">Trusted By</div>,
 }))
 
 jest.mock('@/components/wrapper/page-wrapper', () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="page-wrapper">{children}</div>
-  )
+  ),
 }))
 
 describe('HomePage', () => {
   it('should render all required sections in the correct order', () => {
     render(<HomePage />)
-    
+
     // Verify all sections are present
     expect(screen.getByTestId('hero-section')).toBeInTheDocument()
     expect(screen.getByTestId('trusted-by')).toBeInTheDocument()

@@ -1,6 +1,6 @@
 // PRP-016: Data Accuracy Monitor - Notification Service
 import { createAdminClient } from '@/lib/supabase/admin'
-import { NotificationConfig, Alert, NotificationLog } from './types'
+import { Alert, NotificationConfig, NotificationLog } from './types'
 
 // Notification providers would be initialized with environment variables
 interface NotificationProvider {
@@ -90,7 +90,7 @@ export class NotificationService {
           ...config.metadata,
           recipient,
           logId: logEntry.id,
-        }
+        },
       })
 
       // Update log entry with result
@@ -112,7 +112,9 @@ export class NotificationService {
     }
   }
 
-  private async getRecipient(config: NotificationConfig): Promise<string | null> {
+  private async getRecipient(
+    config: NotificationConfig
+  ): Promise<string | null> {
     // Get organization settings for notification recipients
     const { data: orgSettings } = await this.supabase
       .from('organization_settings')
@@ -133,7 +135,7 @@ export class NotificationService {
     }
 
     const settings = orgSettings.notification_settings as NotificationSettings
-    
+
     switch (config.channel) {
       case 'email':
         return settings.email_recipients?.[0] || settings.default_email || null
@@ -152,7 +154,8 @@ export class NotificationService {
     // Get pending notifications
     const { data: pendingNotifications } = await this.supabase
       .from('notification_log')
-      .select(`
+      .select(
+        `
         *,
         alerts!inner(
           title,
@@ -160,7 +163,8 @@ export class NotificationService {
           severity,
           organization_id
         )
-      `)
+      `
+      )
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
       .limit(50)
@@ -181,9 +185,7 @@ export class NotificationService {
     }
   }
 
-  async getNotificationHistory(
-    alertId: string
-  ): Promise<NotificationLog[]> {
+  async getNotificationHistory(alertId: string): Promise<NotificationLog[]> {
     const { data } = await this.supabase
       .from('notification_log')
       .select('*')
@@ -197,7 +199,7 @@ export class NotificationService {
 // Email Provider using Resend
 class EmailProvider implements NotificationProvider {
   private resend: any
-  
+
   constructor() {
     // Import Resend SDK dynamically to avoid issues during build
     const { Resend } = require('resend')
@@ -248,7 +250,8 @@ class EmailProvider implements NotificationProvider {
     } catch (error) {
       return {
         success: false,
-        errorMessage: error instanceof Error ? error.message : 'Email send failed',
+        errorMessage:
+          error instanceof Error ? error.message : 'Email send failed',
       }
     }
   }
@@ -261,8 +264,10 @@ class EmailProvider implements NotificationProvider {
       low: '#3b82f6',
     }
 
-    const color = severityColors[config.severity as keyof typeof severityColors] || '#6b7280'
-    
+    const color =
+      severityColors[config.severity as keyof typeof severityColors] ||
+      '#6b7280'
+
     // Validate and sanitize actionUrl
     let safeActionUrl: string | null = null
     if (config.actionUrl) {
@@ -271,7 +276,7 @@ class EmailProvider implements NotificationProvider {
         .replace(/[<>"']/g, '') // Remove potentially dangerous characters
         .replace(/\/+/g, '/') // Normalize multiple slashes
         .trim()
-      
+
       if (sanitizedPath.startsWith('/') && sanitizedPath.length > 1) {
         safeActionUrl = sanitizedPath
       }
@@ -308,11 +313,15 @@ class EmailProvider implements NotificationProvider {
           <div class="content">
             <p><span class="severity">${config.severity.toUpperCase()}</span></p>
             <div style="white-space: pre-line; margin-top: 20px;">${htmlEncode(config.message)}</div>
-            ${safeActionUrl ? `
+            ${
+              safeActionUrl
+                ? `
               <a href="${process.env.NEXT_PUBLIC_APP_URL}${safeActionUrl}" class="button">
                 View Alert Details
               </a>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
           <div style="margin-top: 20px; font-size: 12px; color: #6b7280; text-align: center;">
             <p>You're receiving this because you're subscribed to TruthSource alerts.</p>
@@ -328,7 +337,7 @@ class EmailProvider implements NotificationProvider {
 // SMS Provider using Twilio
 class SMSProvider implements NotificationProvider {
   private twilioClient: any
-  
+
   constructor() {
     // Import Twilio SDK dynamically to avoid issues during build
     const twilio = require('twilio')
@@ -369,7 +378,7 @@ class SMSProvider implements NotificationProvider {
       return {
         success: true,
         deliveredAt: new Date(),
-        providerResponse: { 
+        providerResponse: {
           sid: result.sid,
           status: result.status,
           price: result.price,
@@ -392,7 +401,7 @@ class SMSProvider implements NotificationProvider {
   private formatSMSMessage(config: NotificationConfig): string {
     // SMS has character limits, so keep it concise
     const lines = [`🚨 ${config.severity.toUpperCase()} Alert`, config.title]
-    
+
     // Only include URL if actionUrl is valid
     if (config.actionUrl) {
       // Validate actionUrl - ensure it's a relative path starting with /
@@ -400,9 +409,13 @@ class SMSProvider implements NotificationProvider {
         .replace(/[<>"']/g, '') // Remove potentially dangerous characters
         .replace(/\/+/g, '/') // Normalize multiple slashes
         .trim()
-      
+
       if (sanitizedPath.startsWith('/') && sanitizedPath.length > 1) {
-        lines.push('', 'View details:', `${process.env.NEXT_PUBLIC_APP_URL}${sanitizedPath}`)
+        lines.push(
+          '',
+          'View details:',
+          `${process.env.NEXT_PUBLIC_APP_URL}${sanitizedPath}`
+        )
       }
     }
 
@@ -441,17 +454,15 @@ class InAppProvider implements NotificationProvider {
       }
 
       // Broadcast real-time event
-      await this.supabase
-        .channel(`org:${config.organizationId}`)
-        .send({
-          type: 'broadcast',
-          event: 'new_notification',
-          payload: {
-            title: config.title,
-            severity: config.severity,
-            alertId: config.alertId,
-          }
-        })
+      await this.supabase.channel(`org:${config.organizationId}`).send({
+        type: 'broadcast',
+        event: 'new_notification',
+        payload: {
+          title: config.title,
+          severity: config.severity,
+          alertId: config.alertId,
+        },
+      })
 
       return {
         success: true,
@@ -460,7 +471,8 @@ class InAppProvider implements NotificationProvider {
     } catch (error) {
       return {
         success: false,
-        errorMessage: error instanceof Error ? error.message : 'In-app notification failed',
+        errorMessage:
+          error instanceof Error ? error.message : 'In-app notification failed',
       }
     }
   }
@@ -483,7 +495,10 @@ class WebhookProvider implements NotificationProvider {
       try {
         validatedUrl = new URL(webhookUrl)
         // Only allow HTTPS webhooks in production
-        if (process.env.NODE_ENV === 'production' && validatedUrl.protocol !== 'https:') {
+        if (
+          process.env.NODE_ENV === 'production' &&
+          validatedUrl.protocol !== 'https:'
+        ) {
           return {
             success: false,
             errorMessage: 'Only HTTPS webhooks are allowed in production',
@@ -492,11 +507,13 @@ class WebhookProvider implements NotificationProvider {
         // Prevent localhost/internal IPs in production
         if (process.env.NODE_ENV === 'production') {
           const hostname = validatedUrl.hostname.toLowerCase()
-          if (hostname === 'localhost' || 
-              hostname === '127.0.0.1' || 
-              hostname.startsWith('192.168.') ||
-              hostname.startsWith('10.') ||
-              hostname.startsWith('172.')) {
+          if (
+            hostname === 'localhost' ||
+            hostname === '127.0.0.1' ||
+            hostname.startsWith('192.168.') ||
+            hostname.startsWith('10.') ||
+            hostname.startsWith('172.')
+          ) {
             return {
               success: false,
               errorMessage: 'Internal/localhost webhooks are not allowed',
@@ -523,15 +540,16 @@ class WebhookProvider implements NotificationProvider {
       }
 
       const payloadString = JSON.stringify(payload)
-      
+
       // Generate HMAC signature if webhook secret is available
       let signature: string | undefined
-      const webhookSecret = config.metadata?.webhook_secret || process.env.WEBHOOK_SECRET
+      const webhookSecret =
+        config.metadata?.webhook_secret || process.env.WEBHOOK_SECRET
       if (webhookSecret) {
         const encoder = new TextEncoder()
         const keyData = encoder.encode(webhookSecret)
         const messageData = encoder.encode(payloadString)
-        
+
         const key = await crypto.subtle.importKey(
           'raw',
           keyData,
@@ -539,11 +557,15 @@ class WebhookProvider implements NotificationProvider {
           false,
           ['sign']
         )
-        
-        const signatureBuffer = await crypto.subtle.sign('HMAC', key, messageData)
+
+        const signatureBuffer = await crypto.subtle.sign(
+          'HMAC',
+          key,
+          messageData
+        )
         const signatureArray = new Uint8Array(signatureBuffer)
         signature = Array.from(signatureArray)
-          .map(b => b.toString(16).padStart(2, '0'))
+          .map((b) => b.toString(16).padStart(2, '0'))
           .join('')
       }
 
@@ -553,7 +575,7 @@ class WebhookProvider implements NotificationProvider {
         'X-TruthSource-Event': 'accuracy_alert',
         'X-TruthSource-Timestamp': new Date().toISOString(),
       }
-      
+
       if (signature) {
         headers['X-TruthSource-Signature'] = `sha256=${signature}`
       }
@@ -587,7 +609,8 @@ class WebhookProvider implements NotificationProvider {
     } catch (error) {
       return {
         success: false,
-        errorMessage: error instanceof Error ? error.message : 'Webhook call failed',
+        errorMessage:
+          error instanceof Error ? error.message : 'Webhook call failed',
       }
     }
   }

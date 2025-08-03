@@ -1,22 +1,22 @@
+import { z } from 'zod'
 import {
-  createCustomerSchema,
-  updateCustomerSchema,
-  createContactSchema,
-  updateContactSchema,
-  customerImportSchema,
-  customerFiltersSchema,
-  createActivitySchema,
   assignTierSchema,
+  createActivitySchema,
+  createContactSchema,
+  createCustomerSchema,
+  customerFiltersSchema,
+  customerImportSchema,
+  transformImportData,
+  updateContactSchema,
   updateCreditLimitSchema,
+  updateCustomerSchema,
   updatePortalAccessSchema,
-  transformImportData
 } from '@/lib/customers/validations'
 import {
   addressSchema,
   contactSchema,
-  customerSchema
+  customerSchema,
 } from '@/types/customer.types'
-import { z } from 'zod'
 
 // No mocking - test actual schema behavior
 
@@ -27,7 +27,7 @@ describe('Customer Validations', () => {
     city: 'Anytown',
     state: 'CA',
     postal_code: '12345',
-    country: 'US'
+    country: 'US',
   }
 
   const validContact = {
@@ -37,7 +37,7 @@ describe('Customer Validations', () => {
     phone: '555-0123',
     mobile: '555-0124',
     role: 'primary' as const,
-    is_primary: true
+    is_primary: true,
   }
 
   const validCustomer = {
@@ -53,7 +53,7 @@ describe('Customer Validations', () => {
     payment_terms: 30,
     currency: 'USD',
     notes: 'Important customer',
-    tags: ['priority', 'large-account']
+    tags: ['priority', 'large-account'],
   }
 
   describe('createCustomerSchema', () => {
@@ -86,7 +86,7 @@ describe('Customer Validations', () => {
     it('should make all fields optional except id', () => {
       const updateData = {
         id: '123e4567-e89b-12d3-a456-426614174000',
-        company_name: 'Updated Corp'
+        company_name: 'Updated Corp',
       }
 
       const result = updateCustomerSchema.safeParse(updateData)
@@ -104,7 +104,7 @@ describe('Customer Validations', () => {
     it('should require UUID for id field', () => {
       const updateData = {
         id: 'invalid-uuid',
-        company_name: 'Updated Corp'
+        company_name: 'Updated Corp',
       }
 
       const result = updateCustomerSchema.safeParse(updateData)
@@ -113,7 +113,7 @@ describe('Customer Validations', () => {
 
     it('should allow partial updates', () => {
       const partialUpdate = {
-        id: '123e4567-e89b-12d3-a456-426614174000'
+        id: '123e4567-e89b-12d3-a456-426614174000',
       }
 
       const result = updateCustomerSchema.safeParse(partialUpdate)
@@ -126,7 +126,7 @@ describe('Customer Validations', () => {
     it('should extend contact schema with customer_id', () => {
       const contactData = {
         ...validContact,
-        customer_id: '123e4567-e89b-12d3-a456-426614174000'
+        customer_id: '123e4567-e89b-12d3-a456-426614174000',
       }
 
       const result = createContactSchema.safeParse(contactData)
@@ -139,14 +139,14 @@ describe('Customer Validations', () => {
         phone: '555-0123',
         mobile: '555-0124',
         role: 'primary',
-        is_primary: true
+        is_primary: true,
       })
     })
 
     it('should require valid UUID for customer_id', () => {
       const contactData = {
         ...validContact,
-        customer_id: 'invalid-uuid'
+        customer_id: 'invalid-uuid',
       }
 
       const result = createContactSchema.safeParse(contactData)
@@ -158,7 +158,7 @@ describe('Customer Validations', () => {
     it('should make all fields optional except id', () => {
       const updateData = {
         id: '123e4567-e89b-12d3-a456-426614174000',
-        first_name: 'Jane'
+        first_name: 'Jane',
       }
 
       const result = updateContactSchema.safeParse(updateData)
@@ -196,7 +196,7 @@ describe('Customer Validations', () => {
       contact_last_name: 'Contact',
       contact_email: 'contact@import.com',
       contact_phone: '555-9876',
-      contact_mobile: '555-9877'
+      contact_mobile: '555-9877',
     }
 
     it('should validate complete import data', () => {
@@ -216,7 +216,7 @@ describe('Customer Validations', () => {
         billing_city: 'Min City',
         billing_state: 'CA',
         billing_postal_code: '12345',
-        billing_country: 'US'
+        billing_country: 'US',
       }
 
       const result = customerImportSchema.safeParse(minimalData)
@@ -227,7 +227,7 @@ describe('Customer Validations', () => {
     it('should reject invalid status values', () => {
       const invalidStatusData = {
         ...validImportData,
-        status: 'invalid_status'
+        status: 'invalid_status',
       }
 
       const result = customerImportSchema.safeParse(invalidStatusData)
@@ -238,7 +238,7 @@ describe('Customer Validations', () => {
     it('should reject invalid customer_type values', () => {
       const invalidTypeData = {
         ...validImportData,
-        customer_type: 'invalid_type'
+        customer_type: 'invalid_type',
       }
 
       const result = customerImportSchema.safeParse(invalidTypeData)
@@ -250,7 +250,7 @@ describe('Customer Validations', () => {
       const invalidCountryData = {
         ...validImportData,
         billing_country: 'USA', // Too long
-        shipping_country: 'U' // Too short
+        shipping_country: 'U', // Too short
       }
 
       const result = customerImportSchema.safeParse(invalidCountryData)
@@ -261,7 +261,7 @@ describe('Customer Validations', () => {
     it('should validate email format for contact', () => {
       const invalidEmailData = {
         ...validImportData,
-        contact_email: 'invalid-email'
+        contact_email: 'invalid-email',
       }
 
       const result = customerImportSchema.safeParse(invalidEmailData)
@@ -271,7 +271,7 @@ describe('Customer Validations', () => {
 
     it('should allow optional shipping country to be empty', () => {
       const dataWithoutShippingCountry = {
-        ...validImportData
+        ...validImportData,
       }
       delete dataWithoutShippingCountry.shipping_country
 
@@ -283,7 +283,7 @@ describe('Customer Validations', () => {
     it('should validate currency is 3 characters when provided', () => {
       const invalidCurrencyData = {
         ...validImportData,
-        currency: 'USDA' // Too long
+        currency: 'USDA', // Too long
       }
 
       const result = customerImportSchema.safeParse(invalidCurrencyData)
@@ -303,7 +303,7 @@ describe('Customer Validations', () => {
         min_credit_limit: 1000,
         max_credit_limit: 50000,
         created_after: '2024-01-01T00:00:00Z',
-        created_before: '2024-12-31T23:59:59Z'
+        created_before: '2024-12-31T23:59:59Z',
       }
 
       const result = customerFiltersSchema.safeParse(validFilters)
@@ -314,7 +314,7 @@ describe('Customer Validations', () => {
     it('should allow partial filter data', () => {
       const partialFilters = {
         search: 'Corp',
-        status: 'active' as const
+        status: 'active' as const,
       }
 
       const result = customerFiltersSchema.safeParse(partialFilters)
@@ -324,7 +324,7 @@ describe('Customer Validations', () => {
 
     it('should reject negative credit limits', () => {
       const invalidFilters = {
-        min_credit_limit: -1000
+        min_credit_limit: -1000,
       }
 
       const result = customerFiltersSchema.safeParse(invalidFilters)
@@ -334,7 +334,7 @@ describe('Customer Validations', () => {
 
     it('should validate datetime format', () => {
       const invalidDateFilters = {
-        created_after: 'invalid-date'
+        created_after: 'invalid-date',
       }
 
       const result = customerFiltersSchema.safeParse(invalidDateFilters)
@@ -344,7 +344,7 @@ describe('Customer Validations', () => {
 
     it('should validate tier_id as UUID', () => {
       const invalidTierFilters = {
-        tier_id: 'invalid-uuid'
+        tier_id: 'invalid-uuid',
       }
 
       const result = customerFiltersSchema.safeParse(invalidTierFilters)
@@ -362,7 +362,7 @@ describe('Customer Validations', () => {
         description: 'Customer placed a large order',
         metadata: { order_id: '12345', amount: 1500 },
         related_type: 'order',
-        related_id: '987e6543-e21b-12d3-a456-426614174000'
+        related_id: '987e6543-e21b-12d3-a456-426614174000',
       }
 
       const result = createActivitySchema.safeParse(validActivity)
@@ -374,7 +374,7 @@ describe('Customer Validations', () => {
       const minimalActivity = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         type: 'note' as const,
-        title: 'Quick note'
+        title: 'Quick note',
       }
 
       const result = createActivitySchema.safeParse(minimalActivity)
@@ -386,7 +386,7 @@ describe('Customer Validations', () => {
       const invalidTypeActivity = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         type: 'invalid_type',
-        title: 'Invalid activity'
+        title: 'Invalid activity',
       }
 
       const result = createActivitySchema.safeParse(invalidTypeActivity)
@@ -398,7 +398,7 @@ describe('Customer Validations', () => {
       const emptyTitleActivity = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         type: 'note' as const,
-        title: ''
+        title: '',
       }
 
       const result = createActivitySchema.safeParse(emptyTitleActivity)
@@ -411,7 +411,7 @@ describe('Customer Validations', () => {
     it('should validate tier assignment', () => {
       const validAssignment = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
-        tier_id: '987e6543-e21b-12d3-a456-426614174000'
+        tier_id: '987e6543-e21b-12d3-a456-426614174000',
       }
 
       const result = assignTierSchema.safeParse(validAssignment)
@@ -422,7 +422,7 @@ describe('Customer Validations', () => {
     it('should allow null tier_id for tier removal', () => {
       const tierRemoval = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
-        tier_id: null
+        tier_id: null,
       }
 
       const result = assignTierSchema.safeParse(tierRemoval)
@@ -433,7 +433,7 @@ describe('Customer Validations', () => {
     it('should validate UUIDs', () => {
       const invalidUUIDs = {
         customer_id: 'invalid-uuid',
-        tier_id: 'also-invalid'
+        tier_id: 'also-invalid',
       }
 
       const result = assignTierSchema.safeParse(invalidUUIDs)
@@ -447,7 +447,7 @@ describe('Customer Validations', () => {
       const validUpdate = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         credit_limit: 50000,
-        reason: 'Increased based on payment history'
+        reason: 'Increased based on payment history',
       }
 
       const result = updateCreditLimitSchema.safeParse(validUpdate)
@@ -459,24 +459,28 @@ describe('Customer Validations', () => {
       const negativeLimit = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         credit_limit: -1000,
-        reason: 'Test'
+        reason: 'Test',
       }
 
       const tooHighLimit = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         credit_limit: 1000001,
-        reason: 'Test'
+        reason: 'Test',
       }
 
-      expect(updateCreditLimitSchema.safeParse(negativeLimit).success).toBe(false)
-      expect(updateCreditLimitSchema.safeParse(tooHighLimit).success).toBe(false)
+      expect(updateCreditLimitSchema.safeParse(negativeLimit).success).toBe(
+        false
+      )
+      expect(updateCreditLimitSchema.safeParse(tooHighLimit).success).toBe(
+        false
+      )
     })
 
     it('should require reason', () => {
       const noReason = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         credit_limit: 25000,
-        reason: ''
+        reason: '',
       }
 
       const result = updateCreditLimitSchema.safeParse(noReason)
@@ -490,7 +494,7 @@ describe('Customer Validations', () => {
       const validUpdate = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         portal_enabled: true,
-        portal_subdomain: 'acme-corp'
+        portal_subdomain: 'acme-corp',
       }
 
       const result = updatePortalAccessSchema.safeParse(validUpdate)
@@ -502,7 +506,7 @@ describe('Customer Validations', () => {
       const invalidSubdomain = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
         portal_enabled: true,
-        portal_subdomain: 'Acme Corp!' // Invalid characters
+        portal_subdomain: 'Acme Corp!', // Invalid characters
       }
 
       const result = updatePortalAccessSchema.safeParse(invalidSubdomain)
@@ -513,7 +517,7 @@ describe('Customer Validations', () => {
     it('should allow optional subdomain', () => {
       const noSubdomain = {
         customer_id: '123e4567-e89b-12d3-a456-426614174000',
-        portal_enabled: false
+        portal_enabled: false,
       }
 
       const result = updatePortalAccessSchema.safeParse(noSubdomain)
@@ -552,7 +556,7 @@ describe('Customer Validations', () => {
       contact_last_name: 'Person',
       contact_email: 'contact@transform.com',
       contact_phone: '555-1111',
-      contact_mobile: '555-2222'
+      contact_mobile: '555-2222',
     }
 
     it('should transform import data to customer format', () => {
@@ -566,7 +570,7 @@ describe('Customer Validations', () => {
         city: 'Transform City',
         state: 'FL',
         postal_code: '33333',
-        country: 'US'
+        country: 'US',
       })
     })
 
@@ -579,7 +583,7 @@ describe('Customer Validations', () => {
         city: 'Ship City',
         state: 'GA',
         postal_code: '44444',
-        country: 'US'
+        country: 'US',
       })
     })
 
@@ -590,7 +594,7 @@ describe('Customer Validations', () => {
         shipping_city: undefined, // Missing required field
         shipping_state: 'GA',
         shipping_postal_code: '44444',
-        shipping_country: 'US'
+        shipping_country: 'US',
       }
 
       const result = transformImportData(incompleteShipping)
@@ -626,7 +630,7 @@ describe('Customer Validations', () => {
         billing_city: 'Min City',
         billing_state: 'CA',
         billing_postal_code: '12345',
-        billing_country: 'US'
+        billing_country: 'US',
       }
 
       const result = transformImportData(minimalData)
@@ -648,7 +652,7 @@ describe('Customer Validations', () => {
         phone: '555-1111',
         mobile: '555-2222',
         role: 'primary',
-        is_primary: true
+        is_primary: true,
       })
     })
 
@@ -683,7 +687,7 @@ describe('Customer Validations', () => {
         billing_city: 'Min City',
         billing_state: 'CA',
         billing_postal_code: '12345',
-        billing_country: 'US'
+        billing_country: 'US',
       }
 
       const result = transformImportData(minimalData)
@@ -710,7 +714,7 @@ describe('Customer Validations', () => {
         billing_country: 'US',
         contact_first_name: 'John',
         contact_last_name: 'Doe',
-        contact_email: 'john@integration.com'
+        contact_email: 'john@integration.com',
       }
 
       const importResult = customerImportSchema.safeParse(importData)
@@ -722,7 +726,9 @@ describe('Customer Validations', () => {
       expect(transformed.contact).not.toBeNull()
 
       // Step 3: Validate transformed customer data
-      const customerResult = createCustomerSchema.safeParse(transformed.customer)
+      const customerResult = createCustomerSchema.safeParse(
+        transformed.customer
+      )
       expect(customerResult.success).toBe(true)
     })
 
@@ -733,7 +739,7 @@ describe('Customer Validations', () => {
         billing_city: 'Test City',
         billing_state: 'CA',
         billing_postal_code: '12345',
-        billing_country: 'USA' // Invalid country code
+        billing_country: 'USA', // Invalid country code
       }
 
       const result = customerImportSchema.safeParse(invalidData)

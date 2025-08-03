@@ -158,7 +158,15 @@ export function PriceCalculator() {
   }
 
   if (loading) {
-    return <div className="text-center py-8" role="status" aria-label="Loading products and customers">Loading...</div>
+    return (
+      <div
+        className="text-center py-8"
+        role="status"
+        aria-label="Loading products and customers"
+      >
+        Loading...
+      </div>
+    )
   }
 
   return (
@@ -231,7 +239,11 @@ export function PriceCalculator() {
       </Button>
 
       {result && (
-        <Card className="p-6" role="region" aria-label="Price calculation results">
+        <Card
+          className="p-6"
+          role="region"
+          aria-label="Price calculation results"
+        >
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
               <div>

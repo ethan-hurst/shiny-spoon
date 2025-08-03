@@ -4,11 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { useForm } from 'react-hook-form'
 import {
   Form,
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
-  FormDescription,
   FormMessage,
   useFormField,
 } from '@/components/ui/form'
@@ -122,7 +122,7 @@ describe('Form Components', () => {
     it('should handle form validation', async () => {
       const user = userEvent.setup()
       const onSubmit = jest.fn()
-      
+
       const TestFormWithValidation = () => {
         const form = useForm({
           defaultValues: { username: '' },
@@ -233,7 +233,7 @@ describe('Form Components', () => {
 
       const label = screen.getByText('Test Label')
       const input = screen.getByRole('textbox')
-      
+
       expect(label).toBeInTheDocument()
       expect(label.tagName).toBe('LABEL')
       expect(input).toHaveAttribute('id')
@@ -243,7 +243,7 @@ describe('Form Components', () => {
     it('should apply error styling when field has error', () => {
       const TestFormLabelWithError = () => {
         const form = useForm({ defaultValues: { test: '' } })
-        
+
         // Trigger an error
         React.useEffect(() => {
           form.setError('test', { message: 'This field is required' })
@@ -333,7 +333,7 @@ describe('Form Components', () => {
     it('should show error state when field has error', () => {
       const TestFormControlWithError = () => {
         const form = useForm({ defaultValues: { test: '' } })
-        
+
         React.useEffect(() => {
           form.setError('test', { message: 'This field is required' })
         }, [form])
@@ -409,7 +409,9 @@ describe('Form Components', () => {
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
-                  <FormDescription className="custom-desc">Description</FormDescription>
+                  <FormDescription className="custom-desc">
+                    Description
+                  </FormDescription>
                 </FormItem>
               )}
             />
@@ -428,7 +430,7 @@ describe('Form Components', () => {
     it('should render error message when field has error', () => {
       const TestFormMessage = () => {
         const form = useForm({ defaultValues: { test: '' } })
-        
+
         React.useEffect(() => {
           form.setError('test', { message: 'This field is required' })
         }, [form])
@@ -519,7 +521,7 @@ describe('Form Components', () => {
     it('should apply custom className', () => {
       const TestFormMessageCustom = () => {
         const form = useForm({ defaultValues: { test: '' } })
-        
+
         React.useEffect(() => {
           form.setError('test', { message: 'Error message' })
         }, [form])

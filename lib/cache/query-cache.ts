@@ -54,7 +54,7 @@ export class QueryCache {
     let hash = 0
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
+      hash = (hash << 5) - hash + char
       hash = hash & hash // Convert to 32-bit integer
     }
     return hash.toString(36)
@@ -88,7 +88,12 @@ export class QueryCache {
   /**
    * Set cached data
    */
-  async set<T>(query: string, data: T, params: any[] = [], ttl?: number): Promise<void> {
+  async set<T>(
+    query: string,
+    data: T,
+    params: any[] = [],
+    ttl?: number
+  ): Promise<void> {
     const key = this.generateKey(query, params)
     const entry: CacheEntry<T> = {
       key,
@@ -111,14 +116,14 @@ export class QueryCache {
    */
   async invalidate(pattern: string): Promise<void> {
     const keysToDelete: string[] = []
-    
+
     for (const [key] of this.cache) {
       if (key.includes(pattern)) {
         keysToDelete.push(key)
       }
     }
 
-    keysToDelete.forEach(key => this.cache.delete(key))
+    keysToDelete.forEach((key) => this.cache.delete(key))
   }
 
   /**
@@ -133,10 +138,12 @@ export class QueryCache {
    */
   getStats(): CacheStats {
     const totalRequests = this.stats.hits + this.stats.misses
-    const hitRate = totalRequests > 0 ? (this.stats.hits / totalRequests) * 100 : 0
-    const avgResponseTime = this.stats.requestCount > 0 
-      ? this.stats.totalResponseTime / this.stats.requestCount 
-      : 0
+    const hitRate =
+      totalRequests > 0 ? (this.stats.hits / totalRequests) * 100 : 0
+    const avgResponseTime =
+      this.stats.requestCount > 0
+        ? this.stats.totalResponseTime / this.stats.requestCount
+        : 0
 
     return {
       hits: this.stats.hits,
@@ -180,7 +187,7 @@ export class QueryCache {
         }
       }
 
-      keysToDelete.forEach(key => this.cache.delete(key))
+      keysToDelete.forEach((key) => this.cache.delete(key))
     }, 60000) // Clean up every minute
   }
 
@@ -239,22 +246,30 @@ export function withQueryCache<T extends (...args: any[]) => any>(
 }
 
 // Cache invalidation helpers
-export async function invalidateProductCache(organizationId: string): Promise<void> {
+export async function invalidateProductCache(
+  organizationId: string
+): Promise<void> {
   const cache = getQueryCache(`products:${organizationId}`)
   await cache.invalidate('products')
 }
 
-export async function invalidateOrderCache(organizationId: string): Promise<void> {
+export async function invalidateOrderCache(
+  organizationId: string
+): Promise<void> {
   const cache = getQueryCache(`orders:${organizationId}`)
   await cache.invalidate('orders')
 }
 
-export async function invalidateCustomerCache(organizationId: string): Promise<void> {
+export async function invalidateCustomerCache(
+  organizationId: string
+): Promise<void> {
   const cache = getQueryCache(`customers:${organizationId}`)
   await cache.invalidate('customers')
 }
 
-export async function invalidateInventoryCache(organizationId: string): Promise<void> {
+export async function invalidateInventoryCache(
+  organizationId: string
+): Promise<void> {
   const cache = getQueryCache(`inventory:${organizationId}`)
   await cache.invalidate('inventory')
 }
@@ -273,7 +288,7 @@ export function createCachedClient(supabase: any, organizationId: string) {
       select: async (columns?: string) => {
         const query = `SELECT ${columns || '*'} FROM ${table}`
         const params = []
-        
+
         // Try cache first
         const cached = await cache.get(query, params)
         if (cached) {
@@ -282,7 +297,7 @@ export function createCachedClient(supabase: any, organizationId: string) {
 
         // Execute query
         const result = await originalFrom.select(columns)
-        
+
         // Cache successful results
         if (result.data && !result.error) {
           await cache.set(query, result, params)
@@ -294,4 +309,4 @@ export function createCachedClient(supabase: any, organizationId: string) {
   }
 
   return cachedSupabase
-} 
+}

@@ -1,20 +1,21 @@
-import { 
-  Package, 
-  TrendingUp, 
-  Users, 
-  BarChart3, 
-  RefreshCw, 
-  Shield,
-  Zap,
-  Clock
-} from 'lucide-react'
 import Link from 'next/link'
+import {
+  BarChart3,
+  Clock,
+  Package,
+  RefreshCw,
+  Shield,
+  TrendingUp,
+  Users,
+  Zap,
+} from 'lucide-react'
 import { Card } from '@/components/ui/card'
 
 const features = [
   {
     title: 'Real-time Inventory Sync',
-    description: 'Keep stock levels accurate across all channels with instant updates. Prevent overselling and stockouts.',
+    description:
+      'Keep stock levels accurate across all channels with instant updates. Prevent overselling and stockouts.',
     icon: Package,
     href: '/features/inventory-sync',
     color: 'text-blue-600',
@@ -22,7 +23,8 @@ const features = [
   },
   {
     title: 'Dynamic Pricing Rules',
-    description: 'Set customer-specific pricing, volume discounts, and promotional rules that sync everywhere.',
+    description:
+      'Set customer-specific pricing, volume discounts, and promotional rules that sync everywhere.',
     icon: TrendingUp,
     href: '/features/pricing-rules',
     color: 'text-green-600',
@@ -30,7 +32,8 @@ const features = [
   },
   {
     title: 'Customer Portal',
-    description: 'Give customers self-service access to orders, invoices, and real-time inventory availability.',
+    description:
+      'Give customers self-service access to orders, invoices, and real-time inventory availability.',
     icon: Users,
     href: '/features/customer-portal',
     color: 'text-purple-600',
@@ -38,7 +41,8 @@ const features = [
   },
   {
     title: 'Analytics Dashboard',
-    description: 'Track sync performance, identify discrepancies, and monitor data accuracy across systems.',
+    description:
+      'Track sync performance, identify discrepancies, and monitor data accuracy across systems.',
     icon: BarChart3,
     href: '/features/analytics',
     color: 'text-orange-600',
@@ -46,7 +50,8 @@ const features = [
   },
   {
     title: 'Automated Reconciliation',
-    description: 'Automatically detect and resolve data conflicts between systems with smart algorithms.',
+    description:
+      'Automatically detect and resolve data conflicts between systems with smart algorithms.',
     icon: RefreshCw,
     href: '/features/reconciliation',
     color: 'text-indigo-600',
@@ -54,7 +59,8 @@ const features = [
   },
   {
     title: 'Enterprise Security',
-    description: 'Bank-level encryption, SOC 2 compliance, and role-based access control for your peace of mind.',
+    description:
+      'Bank-level encryption, SOC 2 compliance, and role-based access control for your peace of mind.',
     icon: Shield,
     href: '/features/security',
     color: 'text-red-600',
@@ -71,7 +77,8 @@ export function FeaturesGrid() {
             Everything you need for B2B data accuracy
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Stop losing money to data errors. TruthSource keeps your inventory, pricing, and customer data synchronized across all platforms.
+            Stop losing money to data errors. TruthSource keeps your inventory,
+            pricing, and customer data synchronized across all platforms.
           </p>
         </div>
 
@@ -79,15 +86,15 @@ export function FeaturesGrid() {
           {features.map((feature) => (
             <Link key={feature.title} href={feature.href}>
               <Card className="h-full p-6 hover:shadow-lg transition-shadow cursor-pointer group">
-                <div className={`inline-flex p-3 rounded-lg ${feature.bgColor} mb-4 group-hover:scale-110 transition-transform`}>
+                <div
+                  className={`inline-flex p-3 rounded-lg ${feature.bgColor} mb-4 group-hover:scale-110 transition-transform`}
+                >
                   <feature.icon className={`h-6 w-6 ${feature.color}`} />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600">
-                  {feature.description}
-                </p>
+                <p className="text-gray-600">{feature.description}</p>
               </Card>
             </Link>
           ))}
@@ -98,7 +105,9 @@ export function FeaturesGrid() {
             <Zap className="h-6 w-6 text-primary" />
             <div className="text-left">
               <p className="font-semibold">Lightning fast performance</p>
-              <p className="text-sm text-gray-600">Sub-200ms sync times with 99.9% uptime SLA</p>
+              <p className="text-sm text-gray-600">
+                Sub-200ms sync times with 99.9% uptime SLA
+              </p>
             </div>
           </div>
         </div>

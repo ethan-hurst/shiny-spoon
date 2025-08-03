@@ -1,24 +1,22 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-
-// Screens
-import LoginScreen from './src/screens/LoginScreen';
-import DashboardScreen from './src/screens/DashboardScreen';
-import InventoryScreen from './src/screens/InventoryScreen';
-import OrdersScreen from './src/screens/OrdersScreen';
-import MonitoringScreen from './src/screens/MonitoringScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
-
+import React from 'react'
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
+import { NavigationContainer } from '@react-navigation/native'
+import { createStackNavigator } from '@react-navigation/stack'
+import { StatusBar } from 'expo-status-bar'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 // Components
-import { AuthProvider } from './src/contexts/AuthContext';
-import { ThemeProvider } from './src/contexts/ThemeContext';
+import { AuthProvider } from './src/contexts/AuthContext'
+import { ThemeProvider } from './src/contexts/ThemeContext'
+import DashboardScreen from './src/screens/DashboardScreen'
+import InventoryScreen from './src/screens/InventoryScreen'
+// Screens
+import LoginScreen from './src/screens/LoginScreen'
+import MonitoringScreen from './src/screens/MonitoringScreen'
+import OrdersScreen from './src/screens/OrdersScreen'
+import ProfileScreen from './src/screens/ProfileScreen'
 
-const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator()
+const Tab = createBottomTabNavigator()
 
 function TabNavigator() {
   return (
@@ -80,11 +78,19 @@ function TabNavigator() {
         }}
       />
     </Tab.Navigator>
-  );
+  )
 }
 
-function TabBarIcon({ name, color, size }: { name: string; color: string; size: number }) {
-  return null; // We'll implement this with react-native-vector-icons
+function TabBarIcon({
+  name,
+  color,
+  size,
+}: {
+  name: string
+  color: string
+  size: number
+}) {
+  return null // We'll implement this with react-native-vector-icons
 }
 
 export default function App() {
@@ -106,5 +112,5 @@ export default function App() {
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
-  );
+  )
 }

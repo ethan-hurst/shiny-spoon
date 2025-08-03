@@ -14,7 +14,12 @@ export class AppError extends Error {
   public readonly statusCode: number
   public readonly details?: any
 
-  constructor(message: string, code: string = 'INTERNAL_ERROR', statusCode: number = 500, details?: any) {
+  constructor(
+    message: string,
+    code: string = 'INTERNAL_ERROR',
+    statusCode: number = 500,
+    details?: any
+  ) {
     super(message)
     this.name = 'AppError'
     this.code = code
@@ -29,10 +34,18 @@ export const Errors = {
   FORBIDDEN: new AppError('Forbidden', 'FORBIDDEN', 403),
   NOT_FOUND: new AppError('Not found', 'NOT_FOUND', 404),
   VALIDATION_ERROR: new AppError('Validation error', 'VALIDATION_ERROR', 400),
-  RATE_LIMIT_EXCEEDED: new AppError('Rate limit exceeded', 'RATE_LIMIT_EXCEEDED', 429),
+  RATE_LIMIT_EXCEEDED: new AppError(
+    'Rate limit exceeded',
+    'RATE_LIMIT_EXCEEDED',
+    429
+  ),
   CONFLICT: new AppError('Resource conflict', 'CONFLICT', 409),
   INTERNAL_ERROR: new AppError('Internal server error', 'INTERNAL_ERROR', 500),
-  SERVICE_UNAVAILABLE: new AppError('Service unavailable', 'SERVICE_UNAVAILABLE', 503),
+  SERVICE_UNAVAILABLE: new AppError(
+    'Service unavailable',
+    'SERVICE_UNAVAILABLE',
+    503
+  ),
 } as const
 
 /**
@@ -82,7 +95,7 @@ export function validateEnvironment(): void {
     'SUPABASE_SERVICE_ROLE_KEY',
   ]
 
-  const missing = requiredVars.filter(varName => !process.env[varName])
+  const missing = requiredVars.filter((varName) => !process.env[varName])
 
   if (missing.length > 0) {
     throw new AppError(
@@ -96,9 +109,14 @@ export function validateEnvironment(): void {
 /**
  * Validates user authentication
  */
-export async function requireAuth(supabase: any): Promise<{ user: any; profile: any }> {
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
+export async function requireAuth(
+  supabase: any
+): Promise<{ user: any; profile: any }> {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
   if (authError || !user) {
     throw Errors.UNAUTHORIZED
   }
@@ -119,7 +137,10 @@ export async function requireAuth(supabase: any): Promise<{ user: any; profile: 
 /**
  * Validates organization access
  */
-export async function requireOrganizationAccess(supabase: any, organizationId: string): Promise<void> {
+export async function requireOrganizationAccess(
+  supabase: any,
+  organizationId: string
+): Promise<void> {
   const { user, profile } = await requireAuth(supabase)
 
   if (profile.organization_id !== organizationId) {
@@ -138,10 +159,7 @@ export async function requireResourceAccess(
 ): Promise<any> {
   const { profile } = await requireAuth(supabase)
 
-  const query = supabase
-    .from(table)
-    .select('*')
-    .eq('id', resourceId)
+  const query = supabase.from(table).select('*').eq('id', resourceId)
 
   if (organizationId) {
     query.eq('organization_id', organizationId)
@@ -170,7 +188,11 @@ export function handleDatabaseError(error: any): never {
   }
 
   if (error.code === '23503') {
-    throw new AppError('Referenced resource not found', 'FOREIGN_KEY_VIOLATION', 400)
+    throw new AppError(
+      'Referenced resource not found',
+      'FOREIGN_KEY_VIOLATION',
+      400
+    )
   }
 
   if (error.code === '23514') {
@@ -216,4 +238,4 @@ export function createSafeAction<T extends (...args: any[]) => Promise<any>>(
       return { success: false, error: errorResponse.error }
     }
   }) as T
-} 
+}

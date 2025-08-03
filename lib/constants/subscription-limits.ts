@@ -18,60 +18,61 @@ export interface SubscriptionLimits {
 
 export type SubscriptionPlan = 'starter' | 'growth' | 'scale' | 'enterprise'
 
-export const SUBSCRIPTION_LIMITS: Record<SubscriptionPlan, SubscriptionLimits> = {
-  starter: {
-    apiKeys: 3,
-    requests: {
-      perMonth: 10000,
-      perMinute: 60,
+export const SUBSCRIPTION_LIMITS: Record<SubscriptionPlan, SubscriptionLimits> =
+  {
+    starter: {
+      apiKeys: 3,
+      requests: {
+        perMonth: 10000,
+        perMinute: 60,
+      },
+      features: {
+        customDomain: false,
+        sso: false,
+        auditLog: false,
+        multiWarehouse: false,
+      },
     },
-    features: {
-      customDomain: false,
-      sso: false,
-      auditLog: false,
-      multiWarehouse: false,
+    growth: {
+      apiKeys: 10,
+      requests: {
+        perMonth: 100000,
+        perMinute: 300,
+      },
+      features: {
+        customDomain: true,
+        sso: false,
+        auditLog: true,
+        multiWarehouse: true,
+      },
     },
-  },
-  growth: {
-    apiKeys: 10,
-    requests: {
-      perMonth: 100000,
-      perMinute: 300,
+    scale: {
+      apiKeys: -1, // unlimited
+      requests: {
+        perMonth: 1000000,
+        perMinute: 1000,
+      },
+      features: {
+        customDomain: true,
+        sso: true,
+        auditLog: true,
+        multiWarehouse: true,
+      },
     },
-    features: {
-      customDomain: true,
-      sso: false,
-      auditLog: true,
-      multiWarehouse: true,
+    enterprise: {
+      apiKeys: -1, // unlimited
+      requests: {
+        perMonth: -1, // unlimited
+        perMinute: -1, // unlimited
+      },
+      features: {
+        customDomain: true,
+        sso: true,
+        auditLog: true,
+        multiWarehouse: true,
+      },
     },
-  },
-  scale: {
-    apiKeys: -1, // unlimited
-    requests: {
-      perMonth: 1000000,
-      perMinute: 1000,
-    },
-    features: {
-      customDomain: true,
-      sso: true,
-      auditLog: true,
-      multiWarehouse: true,
-    },
-  },
-  enterprise: {
-    apiKeys: -1, // unlimited
-    requests: {
-      perMonth: -1, // unlimited
-      perMinute: -1, // unlimited
-    },
-    features: {
-      customDomain: true,
-      sso: true,
-      auditLog: true,
-      multiWarehouse: true,
-    },
-  },
-}
+  }
 
 export const DEFAULT_PLAN: SubscriptionPlan = 'starter'
 

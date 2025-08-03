@@ -1,10 +1,13 @@
 // PRP-016: Data Accuracy Monitor - Alert Configuration Dialog
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -24,9 +27,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -34,11 +34,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
-import { upsertAlertRule } from '@/app/actions/monitoring'
 import type { AlertRule } from '@/lib/monitoring/types'
-import { Loader2 } from 'lucide-react'
+import { upsertAlertRule } from '@/app/actions/monitoring'
 
 const alertRuleSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
@@ -49,7 +49,9 @@ const alertRuleSchema = z.object({
   discrepancyCountThreshold: z.number().min(1),
   checkFrequency: z.number().min(300), // minimum 5 minutes
   evaluationWindow: z.number().min(300),
-  notificationChannels: z.array(z.enum(['email', 'sms', 'in_app', 'webhook'])).min(1),
+  notificationChannels: z
+    .array(z.enum(['email', 'sms', 'in_app', 'webhook']))
+    .min(1),
   autoRemediate: z.boolean(),
 })
 
@@ -74,29 +76,31 @@ export function AlertConfigDialog({
 
   const form = useForm<AlertRuleForm>({
     resolver: zodResolver(alertRuleSchema),
-    defaultValues: rule ? {
-      name: rule.name,
-      description: rule.description || '',
-      entityType: rule.entityType || [],
-      severityThreshold: rule.severityThreshold || 'medium',
-      accuracyThreshold: rule.accuracyThreshold || 95,
-      discrepancyCountThreshold: rule.discrepancyCountThreshold || 10,
-      checkFrequency: rule.checkFrequency || 3600,
-      evaluationWindow: rule.evaluationWindow || 3600,
-      notificationChannels: rule.notificationChannels || ['in_app'],
-      autoRemediate: rule.autoRemediate || false,
-    } : {
-      name: '',
-      description: '',
-      entityType: [],
-      severityThreshold: 'medium',
-      accuracyThreshold: 95,
-      discrepancyCountThreshold: 10,
-      checkFrequency: 3600,
-      evaluationWindow: 3600,
-      notificationChannels: ['in_app'],
-      autoRemediate: false,
-    },
+    defaultValues: rule
+      ? {
+          name: rule.name,
+          description: rule.description || '',
+          entityType: rule.entityType || [],
+          severityThreshold: rule.severityThreshold || 'medium',
+          accuracyThreshold: rule.accuracyThreshold || 95,
+          discrepancyCountThreshold: rule.discrepancyCountThreshold || 10,
+          checkFrequency: rule.checkFrequency || 3600,
+          evaluationWindow: rule.evaluationWindow || 3600,
+          notificationChannels: rule.notificationChannels || ['in_app'],
+          autoRemediate: rule.autoRemediate || false,
+        }
+      : {
+          name: '',
+          description: '',
+          entityType: [],
+          severityThreshold: 'medium',
+          accuracyThreshold: 95,
+          discrepancyCountThreshold: 10,
+          checkFrequency: 3600,
+          evaluationWindow: 3600,
+          notificationChannels: ['in_app'],
+          autoRemediate: false,
+        },
   })
 
   // Reset form when rule prop changes
@@ -119,7 +123,7 @@ export function AlertConfigDialog({
 
   const handleSubmit = async (data: AlertRuleForm) => {
     setIsSubmitting(true)
-    
+
     const result = await upsertAlertRule(rule?.id, data)
 
     if (result.success) {
@@ -127,7 +131,7 @@ export function AlertConfigDialog({
         title: rule ? 'Alert rule updated' : 'Alert rule created',
         description: 'Your alert rule has been saved successfully.',
       })
-      
+
       form.reset()
       if (onOpenChange) {
         onOpenChange(false)
@@ -163,18 +167,27 @@ export function AlertConfigDialog({
   ]
 
   return (
-    <Dialog open={open !== undefined ? open : isOpen} onOpenChange={onOpenChange || setIsOpen}>
+    <Dialog
+      open={open !== undefined ? open : isOpen}
+      onOpenChange={onOpenChange || setIsOpen}
+    >
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{rule ? 'Edit Alert Rule' : 'Create Alert Rule'}</DialogTitle>
+          <DialogTitle>
+            {rule ? 'Edit Alert Rule' : 'Create Alert Rule'}
+          </DialogTitle>
           <DialogDescription>
-            Configure when and how you want to be notified about data accuracy issues.
+            Configure when and how you want to be notified about data accuracy
+            issues.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -221,7 +234,7 @@ export function AlertConfigDialog({
                         min={0}
                         max={100}
                         {...field}
-                        onChange={e => {
+                        onChange={(e) => {
                           const value = parseFloat(e.target.value)
                           field.onChange(isNaN(value) ? 0 : value)
                         }}
@@ -246,7 +259,7 @@ export function AlertConfigDialog({
                         type="number"
                         min={1}
                         {...field}
-                        onChange={e => {
+                        onChange={(e) => {
                           const value = parseInt(e.target.value)
                           field.onChange(isNaN(value) ? 1 : value)
                         }}
@@ -266,7 +279,10 @@ export function AlertConfigDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Minimum Severity</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select severity threshold" />
@@ -313,7 +329,10 @@ export function AlertConfigDialog({
                                     checked={field.value?.includes(type.value)}
                                     onCheckedChange={(checked) => {
                                       return checked
-                                        ? field.onChange([...(field.value || []), type.value])
+                                        ? field.onChange([
+                                            ...(field.value || []),
+                                            type.value,
+                                          ])
                                         : field.onChange(
                                             field.value?.filter(
                                               (value) => value !== type.value
@@ -395,10 +414,15 @@ export function AlertConfigDialog({
                               >
                                 <FormControl>
                                   <Checkbox
-                                    checked={field.value?.includes(channel.value)}
+                                    checked={field.value?.includes(
+                                      channel.value
+                                    )}
                                     onCheckedChange={(checked) => {
                                       return checked
-                                        ? field.onChange([...field.value, channel.value])
+                                        ? field.onChange([
+                                            ...field.value,
+                                            channel.value,
+                                          ])
                                         : field.onChange(
                                             field.value?.filter(
                                               (value) => value !== channel.value
@@ -446,11 +470,19 @@ export function AlertConfigDialog({
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange ? onOpenChange(false) : setIsOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  onOpenChange ? onOpenChange(false) : setIsOpen(false)
+                }
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {rule ? 'Update Rule' : 'Create Rule'}
               </Button>
             </DialogFooter>

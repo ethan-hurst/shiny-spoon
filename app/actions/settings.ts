@@ -1,8 +1,8 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 
 const updateProfileSchema = z.object({
   displayName: z.string().min(1).max(100).optional(),
@@ -19,20 +19,24 @@ const updateNotificationPrefsSchema = z.object({
   securityAlerts: z.boolean(),
 })
 
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(6),
-  newPassword: z.string().min(6),
-  confirmPassword: z.string().min(6),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-})
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(6),
+    newPassword: z.string().min(6),
+    confirmPassword: z.string().min(6),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  })
 
 export async function updateProfile(formData: FormData) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
     // Parse and validate input
@@ -42,7 +46,9 @@ export async function updateProfile(formData: FormData) {
     }
 
     const parsed = updateProfileSchema.parse({
-      displayName: rawData.displayName ? String(rawData.displayName).trim() : undefined,
+      displayName: rawData.displayName
+        ? String(rawData.displayName).trim()
+        : undefined,
       bio: rawData.bio ? String(rawData.bio).trim() : undefined,
     })
 
@@ -70,8 +76,10 @@ export async function updateProfile(formData: FormData) {
 export async function updateNotificationPreferences(formData: FormData) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
     // Safely parse boolean values
@@ -118,8 +126,10 @@ export async function updateNotificationPreferences(formData: FormData) {
 export async function changePassword(formData: FormData) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
     if (!user.email) throw new Error('User email not found')
 
@@ -131,7 +141,11 @@ export async function changePassword(formData: FormData) {
     }
 
     // Validate all fields are strings
-    if (!rawData.currentPassword || !rawData.newPassword || !rawData.confirmPassword) {
+    if (
+      !rawData.currentPassword ||
+      !rawData.newPassword ||
+      !rawData.confirmPassword
+    ) {
       throw new Error('All password fields are required')
     }
 
@@ -169,31 +183,99 @@ export async function changePassword(formData: FormData) {
 
 export async function enableTwoFactor() {
   const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  // In production, you would implement actual 2FA logic here
-  // This is a placeholder for the implementation
-  throw new Error('Two-factor authentication setup not implemented yet')
+  try {
+    // Generate TOTP secret and QR code
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: 'totp',
+      friendlyName: 'TruthSource 2FA',
+    })
+
+    if (error) throw error
+
+    return {
+      success: true,
+      qrCode: data.totp.qr_code,
+      secret: data.totp.secret,
+      uri: data.totp.uri,
+    }
+  } catch (error) {
+    console.error('2FA enrollment error:', error)
+    throw new Error('Failed to enable two-factor authentication')
+  }
 }
 
 export async function disableTwoFactor() {
   const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  // In production, you would implement actual 2FA logic here
-  // This is a placeholder for the implementation
-  throw new Error('Two-factor authentication disable not implemented yet')
+  try {
+    // Get user's MFA factors
+    const {
+      data: { factors },
+      error: factorsError,
+    } = await supabase.auth.mfa.listFactors()
+    if (factorsError) throw factorsError
+
+    // Find TOTP factor
+    const totpFactor = factors.totp?.[0]
+    if (!totpFactor) {
+      throw new Error('No TOTP factor found')
+    }
+
+    // Unenroll the TOTP factor
+    const { error } = await supabase.auth.mfa.unenroll({
+      factorId: totpFactor.id,
+    })
+
+    if (error) throw error
+
+    return { success: true }
+  } catch (error) {
+    console.error('2FA disable error:', error)
+    throw new Error('Failed to disable two-factor authentication')
+  }
+}
+
+export async function verifyTwoFactor(code: string) {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  try {
+    const { data, error } = await supabase.auth.mfa.challenge({
+      factorId: 'totp',
+      code,
+    })
+
+    if (error) throw error
+
+    return { success: true, data }
+  } catch (error) {
+    console.error('2FA verification error:', error)
+    throw new Error('Invalid verification code')
+  }
 }
 
 export async function downloadAccountData() {
   try {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
     // Get user profile to verify organization

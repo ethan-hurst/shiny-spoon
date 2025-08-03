@@ -30,4 +30,4 @@ export const statuses = [
     label: 'Completed',
     value: 'completed',
   },
-] 
+]

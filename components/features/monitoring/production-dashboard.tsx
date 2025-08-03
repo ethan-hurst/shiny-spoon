@@ -1,15 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Activity, 
-  AlertTriangle, 
+import {
+  Activity,
+  AlertTriangle,
   CheckCircle,
   Clock,
   Database,
@@ -19,11 +13,23 @@ import {
   RefreshCw,
   Server,
   Shield,
-  TrendingUp,
   TrendingDown,
+  TrendingUp,
   Users,
-  Zap
+  Zap,
 } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 
 interface SystemMetrics {
@@ -107,21 +113,31 @@ export function ProductionDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'healthy': return 'bg-green-500'
-      case 'warning': return 'bg-yellow-500'
-      case 'error': return 'bg-red-500'
-      case 'offline': return 'bg-gray-500'
-      default: return 'bg-gray-500'
+      case 'healthy':
+        return 'bg-green-500'
+      case 'warning':
+        return 'bg-yellow-500'
+      case 'error':
+        return 'bg-red-500'
+      case 'offline':
+        return 'bg-gray-500'
+      default:
+        return 'bg-gray-500'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy': return <CheckCircle className="h-4 w-4" />
-      case 'warning': return <AlertTriangle className="h-4 w-4" />
-      case 'error': return <AlertTriangle className="h-4 w-4" />
-      case 'offline': return <Clock className="h-4 w-4" />
-      default: return <Activity className="h-4 w-4" />
+      case 'healthy':
+        return <CheckCircle className="h-4 w-4" />
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4" />
+      case 'error':
+        return <AlertTriangle className="h-4 w-4" />
+      case 'offline':
+        return <Clock className="h-4 w-4" />
+      default:
+        return <Activity className="h-4 w-4" />
     }
   }
 
@@ -145,7 +161,9 @@ export function ProductionDashboard() {
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={loadProductionData} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
           <Badge variant="outline">
@@ -165,9 +183,7 @@ export function ProductionDashboard() {
             <div className="text-2xl font-bold text-green-600">
               {metrics?.uptime ? `${metrics.uptime.toFixed(2)}%` : '99.9%'}
             </div>
-            <p className="text-xs text-muted-foreground">
-              System availability
-            </p>
+            <p className="text-xs text-muted-foreground">System availability</p>
           </CardContent>
         </Card>
 
@@ -178,7 +194,13 @@ export function ProductionDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={metrics?.responseTime && metrics.responseTime > 1000 ? 'text-red-600' : 'text-green-600'}>
+              <span
+                className={
+                  metrics?.responseTime && metrics.responseTime > 1000
+                    ? 'text-red-600'
+                    : 'text-green-600'
+                }
+              >
                 {metrics?.responseTime ? `${metrics.responseTime}ms` : '150ms'}
               </span>
             </div>
@@ -195,8 +217,16 @@ export function ProductionDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={metrics?.errorRate && metrics.errorRate > 5 ? 'text-red-600' : 'text-green-600'}>
-                {metrics?.errorRate ? `${metrics.errorRate.toFixed(2)}%` : '0.1%'}
+              <span
+                className={
+                  metrics?.errorRate && metrics.errorRate > 5
+                    ? 'text-red-600'
+                    : 'text-green-600'
+                }
+              >
+                {metrics?.errorRate
+                  ? `${metrics.errorRate.toFixed(2)}%`
+                  : '0.1%'}
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -236,7 +266,12 @@ export function ProductionDashboard() {
                 <span>Connections</span>
                 <span>{metrics?.databaseConnections || 0}</span>
               </div>
-              <Progress value={Math.min((metrics?.databaseConnections || 0) / 100 * 100, 100)} />
+              <Progress
+                value={Math.min(
+                  ((metrics?.databaseConnections || 0) / 100) * 100,
+                  100
+                )}
+              />
             </div>
           </CardContent>
         </Card>
@@ -252,7 +287,11 @@ export function ProductionDashboard() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Usage</span>
-                <span>{metrics?.memoryUsage ? `${metrics.memoryUsage.toFixed(1)}%` : '45%'}</span>
+                <span>
+                  {metrics?.memoryUsage
+                    ? `${metrics.memoryUsage.toFixed(1)}%`
+                    : '45%'}
+                </span>
               </div>
               <Progress value={metrics?.memoryUsage || 45} />
             </div>
@@ -270,7 +309,11 @@ export function ProductionDashboard() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Usage</span>
-                <span>{metrics?.cpuUsage ? `${metrics.cpuUsage.toFixed(1)}%` : '25%'}</span>
+                <span>
+                  {metrics?.cpuUsage
+                    ? `${metrics.cpuUsage.toFixed(1)}%`
+                    : '25%'}
+                </span>
               </div>
               <Progress value={metrics?.cpuUsage || 25} />
             </div>
@@ -298,14 +341,21 @@ export function ProductionDashboard() {
               {services.length === 0 ? (
                 <div className="text-center py-8">
                   <Server className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No service data available</p>
+                  <p className="text-muted-foreground">
+                    No service data available
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {services.map((service) => (
-                    <div key={service.name} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div
+                      key={service.name}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
                       <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${getStatusColor(service.status)}`} />
+                        <div
+                          className={`w-3 h-3 rounded-full ${getStatusColor(service.status)}`}
+                        />
                         <div>
                           <div className="font-medium">{service.name}</div>
                           <div className="text-sm text-muted-foreground">
@@ -315,7 +365,13 @@ export function ProductionDashboard() {
                       </div>
                       <div className="flex items-center space-x-2">
                         {getStatusIcon(service.status)}
-                        <Badge variant={service.status === 'healthy' ? 'default' : 'destructive'}>
+                        <Badge
+                          variant={
+                            service.status === 'healthy'
+                              ? 'default'
+                              : 'destructive'
+                          }
+                        >
                           {service.status}
                         </Badge>
                       </div>
@@ -340,26 +396,42 @@ export function ProductionDashboard() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground">Version</div>
-                      <div className="text-lg font-semibold">{deployment.version}</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Version
+                      </div>
+                      <div className="text-lg font-semibold">
+                        {deployment.version}
+                      </div>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground">Environment</div>
-                      <div className="text-lg font-semibold">{deployment.environment}</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Environment
+                      </div>
+                      <div className="text-lg font-semibold">
+                        {deployment.environment}
+                      </div>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground">Build Number</div>
-                      <div className="text-lg font-semibold">{deployment.buildNumber}</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Build Number
+                      </div>
+                      <div className="text-lg font-semibold">
+                        {deployment.buildNumber}
+                      </div>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground">Deployed At</div>
+                      <div className="text-sm font-medium text-muted-foreground">
+                        Deployed At
+                      </div>
                       <div className="text-lg font-semibold">
                         {new Date(deployment.deployedAt).toLocaleString()}
                       </div>
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-muted-foreground">Commit Hash</div>
+                    <div className="text-sm font-medium text-muted-foreground">
+                      Commit Hash
+                    </div>
                     <div className="font-mono text-sm bg-muted p-2 rounded">
                       {deployment.commitHash}
                     </div>
@@ -368,7 +440,9 @@ export function ProductionDashboard() {
               ) : (
                 <div className="text-center py-8">
                   <Globe className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No deployment information available</p>
+                  <p className="text-muted-foreground">
+                    No deployment information available
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -390,7 +464,8 @@ export function ProductionDashboard() {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>High Error Rate</AlertTitle>
                     <AlertDescription>
-                      Error rate is {metrics.errorRate.toFixed(2)}%, which is above the threshold of 5%.
+                      Error rate is {metrics.errorRate.toFixed(2)}%, which is
+                      above the threshold of 5%.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -400,7 +475,8 @@ export function ProductionDashboard() {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>Slow Response Time</AlertTitle>
                     <AlertDescription>
-                      Average response time is {metrics.responseTime}ms, which is above the threshold of 1000ms.
+                      Average response time is {metrics.responseTime}ms, which
+                      is above the threshold of 1000ms.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -410,22 +486,23 @@ export function ProductionDashboard() {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>High Memory Usage</AlertTitle>
                     <AlertDescription>
-                      Memory usage is {metrics.memoryUsage.toFixed(1)}%, which is above the threshold of 80%.
+                      Memory usage is {metrics.memoryUsage.toFixed(1)}%, which
+                      is above the threshold of 80%.
                     </AlertDescription>
                   </Alert>
                 )}
 
-                {(!metrics?.errorRate || metrics.errorRate <= 5) && 
-                 (!metrics?.responseTime || metrics.responseTime <= 1000) && 
-                 (!metrics?.memoryUsage || metrics.memoryUsage <= 80) && (
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>All Systems Operational</AlertTitle>
-                    <AlertDescription>
-                      All system metrics are within normal ranges.
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {(!metrics?.errorRate || metrics.errorRate <= 5) &&
+                  (!metrics?.responseTime || metrics.responseTime <= 1000) &&
+                  (!metrics?.memoryUsage || metrics.memoryUsage <= 80) && (
+                    <Alert>
+                      <CheckCircle className="h-4 w-4" />
+                      <AlertTitle>All Systems Operational</AlertTitle>
+                      <AlertDescription>
+                        All system metrics are within normal ranges.
+                      </AlertDescription>
+                    </Alert>
+                  )}
               </div>
             </CardContent>
           </Card>
@@ -433,4 +510,4 @@ export function ProductionDashboard() {
       </Tabs>
     </div>
   )
-} 
+}

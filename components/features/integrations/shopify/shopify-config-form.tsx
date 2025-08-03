@@ -4,15 +4,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { useToast } from '@/components/ui/use-toast'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -22,11 +18,19 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { createShopifyIntegration, updateShopifyIntegration } from '@/app/actions/shopify-integration'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/components/ui/use-toast'
+import {
+  createShopifyIntegration,
+  updateShopifyIntegration,
+} from '@/app/actions/shopify-integration'
 import type { ShopifyConfigFormData } from '@/types/shopify.types'
 
 const formSchema = z.object({
-  shop_domain: z.string()
+  shop_domain: z
+    .string()
     .min(1, 'Shop domain is required')
     .regex(
       /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/,
@@ -39,7 +43,7 @@ const formSchema = z.object({
   sync_orders: z.boolean().default(true),
   sync_customers: z.boolean().default(true),
   b2b_catalog_enabled: z.boolean().default(false),
-  sync_frequency: z.number().min(5).max(1440).default(15)
+  sync_frequency: z.number().min(5).max(1440).default(15),
 })
 
 interface ShopifyConfigFormProps {
@@ -48,7 +52,6 @@ interface ShopifyConfigFormProps {
   initialData?: ShopifyConfigFormData
   onSuccess?: (integrationId: string) => void
 }
-
 
 /**
  * Renders a form for configuring a Shopify integration, supporting both creation and update modes.
@@ -65,7 +68,7 @@ export function ShopifyConfigForm({
   integrationId,
   organizationId,
   initialData,
-  onSuccess
+  onSuccess,
 }: ShopifyConfigFormProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -86,13 +89,13 @@ export function ShopifyConfigForm({
       sync_orders: true,
       sync_customers: true,
       b2b_catalog_enabled: false,
-      sync_frequency: 15
-    }
+      sync_frequency: 15,
+    },
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    
+
     try {
       // Convert form values to FormData
       const formData = new FormData()
@@ -114,9 +117,9 @@ export function ShopifyConfigForm({
 
       toast({
         title: integrationId ? 'Configuration updated' : 'Integration created',
-        description: integrationId 
+        description: integrationId
           ? 'Your Shopify integration has been updated successfully.'
-          : 'Your Shopify integration has been created successfully.'
+          : 'Your Shopify integration has been created successfully.',
       })
 
       // Call onSuccess callback if provided, otherwise redirect
@@ -129,8 +132,11 @@ export function ShopifyConfigForm({
       console.error('Failed to save integration:', error)
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to save integration. Please try again.',
-        variant: 'destructive'
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to save integration. Please try again.',
+        variant: 'destructive',
       })
     } finally {
       setIsLoading(false)
@@ -143,7 +149,7 @@ export function ShopifyConfigForm({
       toast({
         title: 'Missing credentials',
         description: 'Please enter shop domain and access token first.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
       return
     }
@@ -154,19 +160,19 @@ export function ShopifyConfigForm({
       // Test the connection by making a simple API call with timeout
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-      
+
       const response = await fetch('/api/integrations/shopify/test', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           shop_domain: values.shop_domain,
-          access_token: values.access_token
+          access_token: values.access_token,
         }),
-        signal: controller.signal
+        signal: controller.signal,
       })
-      
+
       clearTimeout(timeoutId)
 
       const data = await response.json()
@@ -174,7 +180,7 @@ export function ShopifyConfigForm({
       if (response.ok && data.success) {
         toast({
           title: 'Connection successful',
-          description: 'Successfully connected to your Shopify store.'
+          description: 'Successfully connected to your Shopify store.',
         })
 
         // Check if it's a Shopify Plus store
@@ -190,7 +196,7 @@ export function ShopifyConfigForm({
       }
     } catch (error) {
       let errorMessage = 'Failed to connect to Shopify'
-      
+
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           errorMessage = 'Connection timeout - please try again'
@@ -198,12 +204,12 @@ export function ShopifyConfigForm({
           errorMessage = error.message
         }
       }
-      
+
       console.error('Connection test failed:', error)
       toast({
         title: 'Connection failed',
         description: errorMessage,
-        variant: 'destructive'
+        variant: 'destructive',
       })
     } finally {
       setTestingConnection(false)
@@ -337,7 +343,7 @@ export function ShopifyConfigForm({
 
         <div className="space-y-4 border-t pt-6">
           <h3 className="text-lg font-medium">Sync Settings</h3>
-          
+
           <FormField
             control={form.control}
             name="sync_frequency"
@@ -480,7 +486,7 @@ export function ShopifyConfigForm({
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {integrationId ? 'Update Configuration' : 'Create Integration'}
           </Button>
-          
+
           <Button
             type="button"
             variant="outline"

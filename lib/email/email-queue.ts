@@ -27,26 +27,27 @@ export interface EmailQueueItem {
  * Queue an email for sending
  * This stores the email in the database to be processed by a background job
  */
-export async function queueEmail(message: EmailMessage): Promise<{ success: boolean; error?: string }> {
+export async function queueEmail(
+  message: EmailMessage
+): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient()
-    
-    const queueItem: Omit<EmailQueueItem, 'id' | 'created_at' | 'updated_at'> = {
-      message,
-      status: 'pending',
-      attempts: 0,
-      max_attempts: 3,
-    }
-    
-    const { error } = await supabase
-      .from('email_queue')
-      .insert(queueItem)
-      
+
+    const queueItem: Omit<EmailQueueItem, 'id' | 'created_at' | 'updated_at'> =
+      {
+        message,
+        status: 'pending',
+        attempts: 0,
+        max_attempts: 3,
+      }
+
+    const { error } = await supabase.from('email_queue').insert(queueItem)
+
     if (error) {
       console.error('Failed to queue email:', error)
       return { success: false, error: error.message }
     }
-    
+
     return { success: true }
   } catch (error) {
     console.error('Error queueing email:', error)
@@ -60,7 +61,7 @@ export async function queueEmail(message: EmailMessage): Promise<{ success: bool
  */
 export async function processEmailQueue(): Promise<void> {
   const supabase = await createClient()
-  
+
   // Get pending emails
   const { data: pendingEmails, error } = await supabase
     .from('email_queue')
@@ -69,12 +70,12 @@ export async function processEmailQueue(): Promise<void> {
     .lt('attempts', 3)
     .order('created_at', { ascending: true })
     .limit(10)
-    
+
   if (error || !pendingEmails) {
     console.error('Failed to fetch pending emails:', error)
     return
   }
-  
+
   for (const email of pendingEmails) {
     await processEmail(email)
   }
@@ -85,38 +86,39 @@ export async function processEmailQueue(): Promise<void> {
  */
 async function processEmail(queueItem: EmailQueueItem): Promise<void> {
   const supabase = await createClient()
-  
+
   // Update status to processing
   await supabase
     .from('email_queue')
-    .update({ 
+    .update({
       status: 'processing',
       attempts: queueItem.attempts + 1,
     })
     .eq('id', queueItem.id)
-    
+
   try {
     // Send the email using the configured provider
     await sendEmail(queueItem.message)
-    
+
     // Mark as sent
     await supabase
       .from('email_queue')
-      .update({ 
+      .update({
         status: 'sent',
         sent_at: new Date().toISOString(),
       })
       .eq('id', queueItem.id)
-      
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+
     // Mark as failed if max attempts reached
-    const status = queueItem.attempts + 1 >= queueItem.max_attempts ? 'failed' : 'pending'
-    
+    const status =
+      queueItem.attempts + 1 >= queueItem.max_attempts ? 'failed' : 'pending'
+
     await supabase
       .from('email_queue')
-      .update({ 
+      .update({
         status,
         error: errorMessage,
       })
@@ -132,46 +134,46 @@ function validateEmailMessage(message: EmailMessage): void {
   if (!message.to || (Array.isArray(message.to) && message.to.length === 0)) {
     throw new Error('Email recipient (to) is required')
   }
-  
+
   if (!message.from) {
     throw new Error('Email sender (from) is required')
   }
-  
+
   if (!message.subject || message.subject.trim() === '') {
     throw new Error('Email subject is required')
   }
-  
+
   if (!message.html && !message.text) {
     throw new Error('Email must have either HTML or text content')
   }
-  
+
   // Validate email format for all addresses
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  
+
   const validateEmailAddress = (email: string, field: string) => {
     if (!emailRegex.test(email)) {
       throw new Error(`Invalid email address in ${field}: ${email}`)
     }
   }
-  
+
   // Validate 'to' addresses
   const toAddresses = Array.isArray(message.to) ? message.to : [message.to]
-  toAddresses.forEach(email => validateEmailAddress(email, 'to'))
-  
+  toAddresses.forEach((email) => validateEmailAddress(email, 'to'))
+
   // Validate 'from' address
   validateEmailAddress(message.from, 'from')
-  
+
   // Validate optional addresses if provided
   if (message.replyTo) {
     validateEmailAddress(message.replyTo, 'replyTo')
   }
-  
+
   if (message.cc) {
-    message.cc.forEach(email => validateEmailAddress(email, 'cc'))
+    message.cc.forEach((email) => validateEmailAddress(email, 'cc'))
   }
-  
+
   if (message.bcc) {
-    message.bcc.forEach(email => validateEmailAddress(email, 'bcc'))
+    message.bcc.forEach((email) => validateEmailAddress(email, 'bcc'))
   }
 }
 
@@ -182,21 +184,21 @@ function validateEmailMessage(message: EmailMessage): void {
 async function sendEmail(message: EmailMessage): Promise<void> {
   // Validate the message before sending
   validateEmailMessage(message)
-  
+
   const emailProvider = process.env.EMAIL_PROVIDER || 'console'
-  
+
   switch (emailProvider) {
     case 'resend':
       const resendApiKey = process.env.RESEND_API_KEY
       if (!resendApiKey) {
         throw new Error('RESEND_API_KEY environment variable is not configured')
       }
-      
+
       // Send email via Resend API
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
+          Authorization: `Bearer ${resendApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -210,36 +212,41 @@ async function sendEmail(message: EmailMessage): Promise<void> {
           bcc: message.bcc,
         }),
       })
-      
+
       if (!resendResponse.ok) {
-        const errorData = await resendResponse.json().catch(() => ({ message: 'Unknown error' }))
-        throw new Error(`Resend API error (${resendResponse.status}): ${errorData.message || resendResponse.statusText}`)
+        const errorData = await resendResponse
+          .json()
+          .catch(() => ({ message: 'Unknown error' }))
+        throw new Error(
+          `Resend API error (${resendResponse.status}): ${errorData.message || resendResponse.statusText}`
+        )
       }
       break
-      
+
     case 'sendgrid':
       // Uncomment when SendGrid is configured
       // const sgMail = require('@sendgrid/mail')
       // sgMail.setApiKey(process.env.SENDGRID_API_KEY)
       // await sgMail.send(message)
       throw new Error('SendGrid integration not configured')
-      
+
     case 'ses':
       // Uncomment when AWS SES is configured
       // const aws = require('aws-sdk')
       // const ses = new aws.SES({ region: process.env.AWS_REGION })
       // await ses.sendEmail(convertToSESFormat(message)).promise()
       throw new Error('AWS SES integration not configured')
-      
+
     case 'console':
       // Development mode - just log the email
       console.log('📧 Email would be sent:', {
         to: message.to,
         subject: message.subject,
-        preview: message.text?.substring(0, 100) || message.html?.substring(0, 100),
+        preview:
+          message.text?.substring(0, 100) || message.html?.substring(0, 100),
       })
       break
-      
+
     default:
       throw new Error(`Unknown email provider: ${emailProvider}`)
   }

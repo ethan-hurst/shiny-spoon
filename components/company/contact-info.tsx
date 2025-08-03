@@ -1,5 +1,5 @@
+import { Clock, Mail, MapPin, Phone } from 'lucide-react'
 import { Card } from '@/components/ui/card'
-import { Mail, Phone, MapPin, Clock } from 'lucide-react'
 
 export function ContactInfo() {
   return (
@@ -12,12 +12,18 @@ export function ContactInfo() {
             <div>
               <p className="font-medium">Email</p>
               <p className="text-sm text-gray-600">
-                <a href="mailto:support@truthsource.io" className="hover:text-primary transition-colors">
+                <a
+                  href="mailto:support@truthsource.io"
+                  className="hover:text-primary transition-colors"
+                >
                   support@truthsource.io
                 </a>
               </p>
               <p className="text-sm text-gray-600">
-                <a href="mailto:sales@truthsource.io" className="hover:text-primary transition-colors">
+                <a
+                  href="mailto:sales@truthsource.io"
+                  className="hover:text-primary transition-colors"
+                >
                   sales@truthsource.io
                 </a>
               </p>
@@ -37,7 +43,9 @@ export function ContactInfo() {
             <MapPin className="h-5 w-5 text-primary mt-0.5" />
             <div>
               <p className="font-medium">Office</p>
-              <p className="text-sm text-gray-600">123 Market Street, Suite 100</p>
+              <p className="text-sm text-gray-600">
+                123 Market Street, Suite 100
+              </p>
               <p className="text-sm text-gray-600">San Francisco, CA 94105</p>
             </div>
           </div>
@@ -46,8 +54,12 @@ export function ContactInfo() {
             <Clock className="h-5 w-5 text-primary mt-0.5" />
             <div>
               <p className="font-medium">Business Hours</p>
-              <p className="text-sm text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM PST</p>
-              <p className="text-sm text-gray-600">24/7 Support for Enterprise</p>
+              <p className="text-sm text-gray-600">
+                Monday - Friday: 9:00 AM - 6:00 PM PST
+              </p>
+              <p className="text-sm text-gray-600">
+                24/7 Support for Enterprise
+              </p>
             </div>
           </div>
         </div>

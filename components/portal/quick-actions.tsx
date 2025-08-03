@@ -1,7 +1,20 @@
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  CreditCard,
+  FileText,
+  Key,
+  Package,
+  Settings,
+  Users,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { CreditCard, Key, Users, FileText, Settings, Package } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { SubscriptionData } from '@/lib/billing'
 
 interface QuickActionsProps {
@@ -12,7 +25,10 @@ export function QuickActions({ subscription }: QuickActionsProps) {
   const actions = [
     {
       title: 'Manage Subscription',
-      description: subscription?.id === 'free' ? 'Upgrade your plan' : 'Change or cancel plan',
+      description:
+        subscription?.id === 'free'
+          ? 'Upgrade your plan'
+          : 'Change or cancel plan',
       icon: Package,
       href: '/portal/subscription',
       variant: subscription?.id === 'free' ? 'default' : 'outline',

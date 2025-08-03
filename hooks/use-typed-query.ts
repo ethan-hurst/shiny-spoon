@@ -1,5 +1,5 @@
-import { useQuery, UseQueryOptions } from '@tanstack/react-query'
 import { PostgrestError } from '@supabase/supabase-js'
+import { useQuery, UseQueryOptions } from '@tanstack/react-query'
 
 export function useTypedQuery<TData, TError = PostgrestError>(
   key: unknown[],
@@ -9,6 +9,6 @@ export function useTypedQuery<TData, TError = PostgrestError>(
   return useQuery<TData, TError>({
     queryKey: key,
     queryFn: fn,
-    ...options
+    ...options,
   })
 }

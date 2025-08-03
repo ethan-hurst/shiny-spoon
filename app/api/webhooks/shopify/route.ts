@@ -2,11 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ShopifyConnector } from '@/lib/integrations/shopify/connector'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import type { ShopifyWebhookTopic, ShopifyWebhookPayload } from '@/types/shopify.types'
-import { 
-  shopifyProductWebhookSchema,
+import type {
+  ShopifyWebhookPayload,
+  ShopifyWebhookTopic,
+} from '@/types/shopify.types'
+import {
   shopifyInventoryWebhookSchema,
-  shopifyOrderWebhookSchema 
+  shopifyOrderWebhookSchema,
+  shopifyProductWebhookSchema,
 } from '@/types/shopify.types'
 
 // Disable body parsing to get raw body for HMAC verification
@@ -27,22 +30,23 @@ const MAX_RATE_LIMIT_ENTRIES = 1000 // Prevent memory leak
 function cleanupRateLimits() {
   const now = Date.now()
   const entriesToDelete: string[] = []
-  
+
   for (const [key, limit] of rateLimitMap) {
     if (now > limit.resetTime) {
       entriesToDelete.push(key)
     }
   }
-  
+
   for (const key of entriesToDelete) {
     rateLimitMap.delete(key)
   }
-  
+
   // If still too many entries, remove oldest ones
   if (rateLimitMap.size > MAX_RATE_LIMIT_ENTRIES) {
-    const entries = Array.from(rateLimitMap.entries())
-      .sort((a, b) => a[1].resetTime - b[1].resetTime)
-    
+    const entries = Array.from(rateLimitMap.entries()).sort(
+      (a, b) => a[1].resetTime - b[1].resetTime
+    )
+
     const toRemove = entries.slice(0, entries.length - MAX_RATE_LIMIT_ENTRIES)
     for (const [key] of toRemove) {
       rateLimitMap.delete(key)
@@ -101,7 +105,7 @@ export async function POST(request: NextRequest) {
     console.error('Missing required Shopify webhook headers', {
       topic: !!topic,
       shopDomain: !!shopDomain,
-      hmac: !!hmac
+      hmac: !!hmac,
     })
     return NextResponse.json(
       { error: 'Missing required headers' },
@@ -122,10 +126,7 @@ export async function POST(request: NextRequest) {
   // Check rate limit
   if (!checkRateLimit(shopDomain)) {
     console.warn(`Rate limit exceeded for shop: ${shopDomain}`)
-    return NextResponse.json(
-      { error: 'Too many requests' },
-      { status: 429 }
-    )
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
 
   const supabase = supabaseAdmin
@@ -134,7 +135,8 @@ export async function POST(request: NextRequest) {
     // Find integration by shop domain
     const { data: shopifyConfig, error: configError } = await supabase
       .from('shopify_config')
-      .select(`
+      .select(
+        `
         id,
         integration_id,
         integrations!inner(
@@ -144,7 +146,8 @@ export async function POST(request: NextRequest) {
           status,
           config
         )
-      `)
+      `
+      )
       .eq('shop_domain', shopDomain)
       .single()
 
@@ -175,8 +178,8 @@ export async function POST(request: NextRequest) {
       credentials: integration.credentials,
       settings: {
         ...integration.config,
-        shop_domain: shopDomain
-      }
+        shop_domain: shopDomain,
+      },
     })
 
     // Verify webhook signature
@@ -185,23 +188,20 @@ export async function POST(request: NextRequest) {
     if (!isValid) {
       console.error('Invalid webhook signature from Shopify', {
         shop: shopDomain,
-        topic
+        topic,
       })
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Parse and validate webhook body based on topic
     let parsedData: ShopifyWebhookPayload
     try {
       parsedData = JSON.parse(body)
-      
+
       // Add webhook metadata
       parsedData.webhook_id = webhookId
       parsedData.api_version = apiVersion || '2024-01'
-      
+
       // Validate based on topic
       switch (topic) {
         case 'products/create':
@@ -209,17 +209,17 @@ export async function POST(request: NextRequest) {
         case 'products/delete':
           shopifyProductWebhookSchema.parse(parsedData)
           break
-          
+
         case 'inventory_levels/update':
           shopifyInventoryWebhookSchema.parse(parsedData)
           break
-          
+
         case 'orders/create':
         case 'orders/updated':
         case 'orders/cancelled':
           shopifyOrderWebhookSchema.parse(parsedData)
           break
-          
+
         // Other webhook topics don't need strict validation
         default:
           break
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to parse webhook body', {
         error: parseError,
         topic,
-        shop: shopDomain
+        shop: shopDomain,
       })
       return NextResponse.json(
         { error: 'Invalid webhook payload' },
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
     // Process webhook asynchronously
     try {
       await connector.handleWebhook(topic, parsedData)
-      
+
       // Log successful processing
       await supabase.rpc('log_shopify_sync_activity', {
         p_integration_id: integration.id,
@@ -248,21 +248,18 @@ export async function POST(request: NextRequest) {
         p_details: {
           topic,
           webhook_id: webhookId,
-          shop_domain: shopDomain
-        }
+          shop_domain: shopDomain,
+        },
       })
 
-      return NextResponse.json(
-        { success: true },
-        { status: 200 }
-      )
+      return NextResponse.json({ success: true }, { status: 200 })
     } catch (processError) {
       // Log error but return 200 to prevent immediate retry
       console.error('Webhook processing error:', {
         error: processError,
         topic,
         shop: shopDomain,
-        webhookId
+        webhookId,
       })
 
       await supabase.rpc('log_shopify_sync_activity', {
@@ -273,28 +270,33 @@ export async function POST(request: NextRequest) {
           topic,
           webhook_id: webhookId,
           shop_domain: shopDomain,
-          error: processError instanceof Error ? processError.message : 'Unknown error'
-        }
+          error:
+            processError instanceof Error
+              ? processError.message
+              : 'Unknown error',
+        },
       })
 
       // Refactored error recovery logic
       const isRecoverableError = (error: unknown): boolean => {
         if (!(error instanceof Error)) return false
-        
+
         const recoverablePatterns = [
           'network',
-          'timeout', 
+          'timeout',
           'ECONNREFUSED',
           'ETIMEDOUT',
           'database connection',
           'transaction',
-          'deadlock'
+          'deadlock',
         ]
-        
+
         const errorMessage = error.message.toLowerCase()
-        return recoverablePatterns.some(pattern => errorMessage.includes(pattern))
+        return recoverablePatterns.some((pattern) =>
+          errorMessage.includes(pattern)
+        )
       }
-      
+
       if (isRecoverableError(processError)) {
         return NextResponse.json(
           { error: 'Internal server error' },
@@ -308,9 +310,12 @@ export async function POST(request: NextRequest) {
         platform: 'shopify',
         topic,
         payload: parsedData,
-        error_message: processError instanceof Error ? processError.message : 'Unknown error',
+        error_message:
+          processError instanceof Error
+            ? processError.message
+            : 'Unknown error',
         retry_count: 0,
-        status: 'failed'
+        status: 'failed',
       })
 
       return NextResponse.json(
@@ -337,14 +342,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   // This endpoint can be used to verify webhook configuration
   // or list registered webhooks
-  
+
   const shopDomain = request.nextUrl.searchParams.get('shop')
-  
+
   if (!shopDomain) {
-    return NextResponse.json(
-      { error: 'Shop domain required' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Shop domain required' }, { status: 400 })
   }
 
   // Validate shop domain format
@@ -366,10 +368,7 @@ export async function GET(request: NextRequest) {
     .single()
 
   if (!config) {
-    return NextResponse.json(
-      { error: 'Shop not found' },
-      { status: 404 }
-    )
+    return NextResponse.json({ error: 'Shop not found' }, { status: 404 })
   }
 
   // Return webhook endpoint info
@@ -386,8 +385,8 @@ export async function GET(request: NextRequest) {
       'orders/cancelled',
       'customers/create',
       'customers/update',
-      'bulk_operations/finish'
+      'bulk_operations/finish',
     ],
-    verification: 'HMAC-SHA256'
+    verification: 'HMAC-SHA256',
   })
 }

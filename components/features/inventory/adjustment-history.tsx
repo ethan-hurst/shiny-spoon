@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
-import { format } from 'date-fns'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { 
+import { format } from 'date-fns'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
   Table,
   TableBody,
   TableCell,
@@ -11,9 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import { createClient } from '@/lib/supabase/client'
 import type { InventoryAdjustment as BaseInventoryAdjustment } from '@/types/inventory.types'
 
@@ -41,7 +41,10 @@ const reasonLabels: Record<string, string> = {
   other: 'Other',
 }
 
-const reasonColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const reasonColors: Record<
+  string,
+  'default' | 'secondary' | 'destructive' | 'outline'
+> = {
   sale: 'default',
   return: 'secondary',
   damage: 'destructive',
@@ -56,7 +59,7 @@ const reasonColors: Record<string, 'default' | 'secondary' | 'destructive' | 'ou
 // Query function for fetching adjustments
 async function fetchAdjustments(inventoryId: string, organizationId: string) {
   const supabase = createClient()
-  
+
   // Use the view that includes user details
   const { data, error } = await supabase
     .from('inventory_adjustments_with_user')
@@ -69,23 +72,32 @@ async function fetchAdjustments(inventoryId: string, organizationId: string) {
   if (error) throw error
 
   // Map the data to match our interface
-  const adjustmentsWithUser = data?.map((adj: any) => ({
-    ...adj,
-    user: {
-      full_name: adj.user_full_name || adj.user_email?.split('@')[0] || 'Unknown',
-      email: adj.user_email || 'unknown@example.com'
-    }
-  })) || []
+  const adjustmentsWithUser =
+    data?.map((adj: any) => ({
+      ...adj,
+      user: {
+        full_name:
+          adj.user_full_name || adj.user_email?.split('@')[0] || 'Unknown',
+        email: adj.user_email || 'unknown@example.com',
+      },
+    })) || []
 
   return adjustmentsWithUser as InventoryAdjustment[]
 }
 
-export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHistoryProps) {
+export function AdjustmentHistory({
+  inventoryId,
+  organizationId,
+}: AdjustmentHistoryProps) {
   const supabase = createClient()
   const queryClient = useQueryClient()
 
   // Use React Query for data fetching
-  const { data: adjustments = [], isLoading, error } = useQuery({
+  const {
+    data: adjustments = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['inventory-adjustments', inventoryId, organizationId],
     queryFn: () => fetchAdjustments(inventoryId, organizationId),
     staleTime: 30 * 1000, // Consider data stale after 30 seconds
@@ -107,8 +119,8 @@ export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHis
         },
         () => {
           // Invalidate and refetch the query when new adjustments are added
-          queryClient.invalidateQueries({ 
-            queryKey: ['inventory-adjustments', inventoryId, organizationId] 
+          queryClient.invalidateQueries({
+            queryKey: ['inventory-adjustments', inventoryId, organizationId],
           })
         }
       )
@@ -158,7 +170,9 @@ export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHis
           <CardTitle>Adjustment History</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No adjustments found for this item.</p>
+          <p className="text-sm text-muted-foreground">
+            No adjustments found for this item.
+          </p>
         </CardContent>
       </Card>
     )
@@ -188,14 +202,26 @@ export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHis
                 <TableCell className="whitespace-nowrap">
                   {format(new Date(adjustment.created_at), 'MMM d, yyyy HH:mm')}
                 </TableCell>
-                <TableCell className="max-w-[150px] truncate" title={adjustment.user.email}>
+                <TableCell
+                  className="max-w-[150px] truncate"
+                  title={adjustment.user.email}
+                >
                   {adjustment.user.full_name}
                 </TableCell>
                 <TableCell>{adjustment.previous_quantity}</TableCell>
                 <TableCell>{adjustment.new_quantity}</TableCell>
                 <TableCell>
-                  <span className={adjustment.adjustment > 0 ? 'text-green-600' : adjustment.adjustment < 0 ? 'text-red-600' : ''}>
-                    {adjustment.adjustment > 0 ? '+' : ''}{adjustment.adjustment}
+                  <span
+                    className={
+                      adjustment.adjustment > 0
+                        ? 'text-green-600'
+                        : adjustment.adjustment < 0
+                          ? 'text-red-600'
+                          : ''
+                    }
+                  >
+                    {adjustment.adjustment > 0 ? '+' : ''}
+                    {adjustment.adjustment}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -203,7 +229,10 @@ export function AdjustmentHistory({ inventoryId, organizationId }: AdjustmentHis
                     {reasonLabels[adjustment.reason] || adjustment.reason}
                   </Badge>
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate" title={adjustment.notes || ''}>
+                <TableCell
+                  className="max-w-[200px] truncate"
+                  title={adjustment.notes || ''}
+                >
                   {adjustment.notes || '-'}
                 </TableCell>
               </TableRow>

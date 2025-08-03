@@ -7,7 +7,8 @@ export const BILLING_INTERVALS = {
   YEARLY: 'year',
 } as const
 
-export type BillingInterval = typeof BILLING_INTERVALS[keyof typeof BILLING_INTERVALS]
+export type BillingInterval =
+  (typeof BILLING_INTERVALS)[keyof typeof BILLING_INTERVALS]
 
 export const SUBSCRIPTION_PLANS = {
   BASIC: {
@@ -80,14 +81,16 @@ export const SUBSCRIPTION_PLANS = {
   },
 } as const
 
-export type SubscriptionPlan = typeof SUBSCRIPTION_PLANS[keyof typeof SUBSCRIPTION_PLANS]
+export type SubscriptionPlan =
+  (typeof SUBSCRIPTION_PLANS)[keyof typeof SUBSCRIPTION_PLANS]
 
 export const ANNUAL_DISCOUNT_PERCENTAGE = 17 // 17% off for annual billing (2 months free)
 
 export const BILLING_MESSAGES = {
   ANNUAL_SAVINGS: 'Save 17%',
   ANNUAL_DESCRIPTION: 'Pay annually and get 2 months free on any plan',
-  MONTHLY_DESCRIPTION: 'Pay month-to-month with the flexibility to cancel anytime',
+  MONTHLY_DESCRIPTION:
+    'Pay month-to-month with the flexibility to cancel anytime',
   PLAN_LIMIT_REACHED: "You've reached the limit for your plan.",
   UPGRADE_PROMPT: 'Upgrade to continue adding more.',
 } as const

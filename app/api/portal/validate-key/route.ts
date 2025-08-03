@@ -1,18 +1,21 @@
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import crypto from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
     const { apiKey } = await request.json()
-    
+
     if (!apiKey) {
-      return NextResponse.json({ error: 'API key is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'API key is required' },
+        { status: 400 }
+      )
     }
 
     // Extract key prefix for lookup
     const keyPrefix = apiKey.substring(0, 12)
-    
+
     // Hash the full key for comparison
     const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex')
 
@@ -30,8 +33,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if key is expired
-    if (apiKeyRecord.expires_at && new Date(apiKeyRecord.expires_at) < new Date()) {
-      return NextResponse.json({ valid: false, reason: 'expired' }, { status: 401 })
+    if (
+      apiKeyRecord.expires_at &&
+      new Date(apiKeyRecord.expires_at) < new Date()
+    ) {
+      return NextResponse.json(
+        { valid: false, reason: 'expired' },
+        { status: 401 }
+      )
     }
 
     // Update last used timestamp

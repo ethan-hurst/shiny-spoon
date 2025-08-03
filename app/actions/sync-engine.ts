@@ -4,19 +4,19 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { SyncEngine } from '@/lib/sync/sync-engine'
 import { SyncJobManager } from '@/lib/sync/job-manager'
-import { 
-  syncJobConfigSchema,
-  syncScheduleSchema,
+import { SyncEngine } from '@/lib/sync/sync-engine'
+import {
   ConflictResolutionStrategy,
   SyncEntityType,
+  syncJobConfigSchema,
+  syncScheduleSchema,
 } from '@/types/sync-engine.types'
-import type { 
-  SyncJob, 
-  SyncJobConfig, 
-  SyncSchedule,
+import type {
   SyncConflict,
+  SyncJob,
+  SyncJobConfig,
+  SyncSchedule,
   SyncStatistics,
 } from '@/types/sync-engine.types'
 
@@ -31,12 +31,21 @@ const createSyncJobSchema = z.object({
 const updateScheduleSchema = z.object({
   integration_id: z.string().uuid(),
   enabled: z.boolean(),
-  frequency: z.enum(['every_5_min', 'every_15_min', 'every_30_min', 'hourly', 'daily', 'weekly']),
+  frequency: z.enum([
+    'every_5_min',
+    'every_15_min',
+    'every_30_min',
+    'hourly',
+    'daily',
+    'weekly',
+  ]),
   entity_types: z.array(z.nativeEnum(SyncEntityType)).min(1),
-  active_hours: z.object({
-    start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  }).optional(),
+  active_hours: z
+    .object({
+      start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+      end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+    })
+    .optional(),
 })
 
 const resolveConflictSchema = z.object({
@@ -71,9 +80,11 @@ async function withSyncEngine<T>(
  */
 export async function createManualSyncJob(formData: FormData) {
   const supabase = await createClient()
-  
+
   // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -123,11 +134,11 @@ export async function createManualSyncJob(formData: FormData) {
   // Use the helper function
   return withSyncEngine(async (syncEngine) => {
     const job = await syncEngine.createSyncJob(jobConfig)
-    
+
     // Revalidate sync dashboard
     revalidatePath('/sync')
     revalidatePath(`/integrations/${parsed.integration_id}`)
-    
+
     return { success: true, job }
   })
 }
@@ -141,9 +152,11 @@ export async function createManualSyncJob(formData: FormData) {
  */
 export async function cancelSyncJob(formData: FormData) {
   const supabase = await createClient()
-  
+
   // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -177,10 +190,10 @@ export async function cancelSyncJob(formData: FormData) {
   // Cancel the job
   return withSyncEngine(async (syncEngine) => {
     await syncEngine.cancelJob(jobId)
-    
+
     // Revalidate pages
     revalidatePath('/sync')
-    
+
     return { success: true }
   })
 }
@@ -195,9 +208,11 @@ export async function cancelSyncJob(formData: FormData) {
  */
 export async function retrySyncJob(formData: FormData) {
   const supabase = await createClient()
-  
+
   // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -224,21 +239,24 @@ export async function retrySyncJob(formData: FormData) {
     .eq('user_id', user.id)
     .single()
 
-  if (!profile || originalJob.integrations.organization_id !== profile.organization_id) {
+  if (
+    !profile ||
+    originalJob.integrations.organization_id !== profile.organization_id
+  ) {
     throw new Error('Access denied')
   }
 
   // Create retry job
   return withSyncEngine(async (syncEngine) => {
     const jobManager = new SyncJobManager(syncEngine)
-    
+
     try {
       const retryJob = await jobManager.retryJob(originalJobId)
-      
+
       // Revalidate pages
       revalidatePath('/sync')
       revalidatePath(`/integrations/${originalJob.integration_id}`)
-      
+
       return { success: true, job: retryJob }
     } finally {
       // Stop the job manager to release resources
@@ -256,9 +274,11 @@ export async function retrySyncJob(formData: FormData) {
  */
 export async function updateSyncSchedule(formData: FormData) {
   const supabase = await createClient()
-  
+
   // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -269,10 +289,13 @@ export async function updateSyncSchedule(formData: FormData) {
     enabled: formData.get('enabled') === 'true',
     frequency: formData.get('frequency'),
     entity_types: formData.getAll('entity_types'),
-    active_hours: formData.get('active_hours_enabled') === 'true' ? {
-      start: formData.get('active_hours_start') as string,
-      end: formData.get('active_hours_end') as string,
-    } : undefined,
+    active_hours:
+      formData.get('active_hours_enabled') === 'true'
+        ? {
+            start: formData.get('active_hours_start') as string,
+            end: formData.get('active_hours_end') as string,
+          }
+        : undefined,
   }
 
   const parsed = updateScheduleSchema.parse(rawData)
@@ -319,11 +342,9 @@ export async function updateSyncSchedule(formData: FormData) {
   }
 
   // Upsert schedule
-  const { error } = await supabase
-    .from('sync_schedules')
-    .upsert(scheduleData, {
-      onConflict: 'integration_id',
-    })
+  const { error } = await supabase.from('sync_schedules').upsert(scheduleData, {
+    onConflict: 'integration_id',
+  })
 
   if (error) {
     throw new Error(`Failed to update schedule: ${error.message}`)
@@ -332,7 +353,7 @@ export async function updateSyncSchedule(formData: FormData) {
   // Revalidate pages
   revalidatePath('/sync')
   revalidatePath(`/integrations/${parsed.integration_id}`)
-  
+
   return { success: true }
 }
 
@@ -343,9 +364,11 @@ export async function updateSyncSchedule(formData: FormData) {
  */
 export async function deleteSyncSchedule(formData: FormData) {
   const supabase = await createClient()
-  
+
   // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -390,7 +413,7 @@ export async function deleteSyncSchedule(formData: FormData) {
   // Revalidate pages
   revalidatePath('/sync')
   revalidatePath(`/integrations/${integrationId}`)
-  
+
   return { success: true }
 }
 
@@ -403,9 +426,11 @@ export async function deleteSyncSchedule(formData: FormData) {
  */
 export async function resolveSyncConflict(formData: FormData) {
   const supabase = await createClient()
-  
+
   // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -413,13 +438,13 @@ export async function resolveSyncConflict(formData: FormData) {
   // Parse and validate input
   const resolvedValueStr = formData.get('resolved_value') as string
   let resolvedValue: any
-  
+
   try {
     resolvedValue = JSON.parse(resolvedValueStr)
   } catch (error) {
     throw new Error('Invalid resolved value format')
   }
-  
+
   const rawData = {
     conflict_id: formData.get('conflict_id'),
     resolution_strategy: formData.get('resolution_strategy'),
@@ -431,12 +456,14 @@ export async function resolveSyncConflict(formData: FormData) {
   // Verify conflict belongs to user's organization
   const { data: conflict } = await supabase
     .from('sync_conflicts')
-    .select(`
+    .select(
+      `
       id,
       sync_jobs (
         organization_id
       )
-    `)
+    `
+    )
     .eq('id', parsed.conflict_id)
     .single()
 
@@ -450,7 +477,10 @@ export async function resolveSyncConflict(formData: FormData) {
     .eq('user_id', user.id)
     .single()
 
-  if (!profile || conflict.sync_jobs.organization_id !== profile.organization_id) {
+  if (
+    !profile ||
+    conflict.sync_jobs.organization_id !== profile.organization_id
+  ) {
     throw new Error('Access denied')
   }
 
@@ -472,7 +502,7 @@ export async function resolveSyncConflict(formData: FormData) {
   // Revalidate pages
   revalidatePath('/sync')
   revalidatePath('/sync/conflicts')
-  
+
   return { success: true }
 }
 
@@ -490,9 +520,11 @@ export async function getSyncStatistics(
   period: 'hour' | 'day' | 'week' | 'month' = 'day'
 ): Promise<SyncStatistics> {
   const supabase = await createClient()
-  
+
   // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -530,8 +562,17 @@ export async function getSyncStatistics(
   }
 
   // Get entity-specific breakdown with aggregated query
-  const entityTypes: SyncEntityType[] = ['products', 'inventory', 'pricing', 'customers', 'orders']
-  const byEntityType: Record<SyncEntityType, { count: number; records: number; errors: number }> = {} as any
+  const entityTypes: SyncEntityType[] = [
+    'products',
+    'inventory',
+    'pricing',
+    'customers',
+    'orders',
+  ]
+  const byEntityType: Record<
+    SyncEntityType,
+    { count: number; records: number; errors: number }
+  > = {} as any
 
   // Initialize all entity types
   for (const entityType of entityTypes) {
@@ -550,14 +591,16 @@ export async function getSyncStatistics(
   if (allJobs) {
     for (const job of allJobs) {
       const jobEntityTypes = job.config?.entity_types || []
-      
+
       for (const entityType of jobEntityTypes) {
         if (entityTypes.includes(entityType)) {
           byEntityType[entityType].count += 1
-          
+
           if (job.result?.entity_results?.[entityType]) {
-            byEntityType[entityType].records += job.result.entity_results[entityType].processed || 0
-            byEntityType[entityType].errors += job.result.entity_results[entityType].errors?.length || 0
+            byEntityType[entityType].records +=
+              job.result.entity_results[entityType].processed || 0
+            byEntityType[entityType].errors +=
+              job.result.entity_results[entityType].errors?.length || 0
           }
         }
       }
@@ -586,7 +629,7 @@ export async function getSyncStatistics(
  */
 function getDateForPeriod(period: string): string {
   const now = new Date()
-  
+
   switch (period) {
     case 'hour':
       now.setHours(now.getHours() - 1)
@@ -601,7 +644,7 @@ function getDateForPeriod(period: string): string {
       now.setMonth(now.getMonth() - 1)
       break
   }
-  
+
   return now.toISOString()
 }
 
@@ -609,7 +652,9 @@ export async function getSyncHealthData() {
   const supabase = await createClient()
 
   // Get user session
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -660,22 +705,29 @@ export async function getSyncHealthData() {
       .gte('created_at', oneHourAgo.toISOString())
 
     const totalJobs = jobs?.length || 0
-    const successfulJobs = jobs?.filter(j => j.status === 'completed').length || 0
-    const failedJobs = jobs?.filter(j => j.status === 'failed').length || 0
-    const pendingJobs = jobs?.filter(j => j.status === 'pending').length || 0
+    const successfulJobs =
+      jobs?.filter((j) => j.status === 'completed').length || 0
+    const failedJobs = jobs?.filter((j) => j.status === 'failed').length || 0
+    const pendingJobs = jobs?.filter((j) => j.status === 'pending').length || 0
 
     // Calculate metrics
     const successRate = totalJobs > 0 ? successfulJobs / totalJobs : 1
     const errorRate = totalJobs > 0 ? failedJobs / totalJobs : 0
-    
+
     // Calculate average duration from completed jobs
-    const completedJobs = jobs?.filter(j => j.status === 'completed' && j.started_at && j.completed_at) || []
-    const averageDuration = completedJobs.length > 0
-      ? completedJobs.reduce((sum, job) => {
-          const duration = new Date(job.completed_at!).getTime() - new Date(job.started_at!).getTime()
-          return sum + duration
-        }, 0) / completedJobs.length
-      : 0
+    const completedJobs =
+      jobs?.filter(
+        (j) => j.status === 'completed' && j.started_at && j.completed_at
+      ) || []
+    const averageDuration =
+      completedJobs.length > 0
+        ? completedJobs.reduce((sum, job) => {
+            const duration =
+              new Date(job.completed_at!).getTime() -
+              new Date(job.started_at!).getTime()
+            return sum + duration
+          }, 0) / completedJobs.length
+        : 0
 
     // Get oldest pending job
     const { data: oldestPending } = await supabase
@@ -708,7 +760,8 @@ export async function getSyncHealthData() {
       issues.push(`${pendingJobs} jobs queued`)
     }
 
-    if (oldestPendingAge && oldestPendingAge > 3600000) { // 1 hour
+    if (oldestPendingAge && oldestPendingAge > 3600000) {
+      // 1 hour
       status = 'unhealthy'
       issues.push('Jobs stuck in queue')
     }
@@ -732,13 +785,22 @@ export async function getSyncHealthData() {
   const integrationHealth = await Promise.all(healthPromises)
 
   // Calculate system health
-  const totalQueueDepth = integrationHealth.reduce((sum, h) => sum + h.metrics.queue_depth, 0)
-  const stuckJobs = integrationHealth.filter(h => 
-    h.metrics.oldest_pending_job_age_ms && h.metrics.oldest_pending_job_age_ms > 3600000
+  const totalQueueDepth = integrationHealth.reduce(
+    (sum, h) => sum + h.metrics.queue_depth,
+    0
+  )
+  const stuckJobs = integrationHealth.filter(
+    (h) =>
+      h.metrics.oldest_pending_job_age_ms &&
+      h.metrics.oldest_pending_job_age_ms > 3600000
   ).length
 
-  const unhealthyIntegrations = integrationHealth.filter(h => h.status === 'unhealthy').length
-  const degradedIntegrations = integrationHealth.filter(h => h.status === 'degraded').length
+  const unhealthyIntegrations = integrationHealth.filter(
+    (h) => h.status === 'unhealthy'
+  ).length
+  const degradedIntegrations = integrationHealth.filter(
+    (h) => h.status === 'degraded'
+  ).length
 
   let systemStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy'
   const systemIssues: string[] = []
@@ -759,7 +821,10 @@ export async function getSyncHealthData() {
   // Get active jobs count for engine health
   const { count: activeJobsCount } = await supabase
     .from('sync_jobs')
-    .select('*, integrations!inner(organization_id)', { count: 'exact', head: true })
+    .select('*, integrations!inner(organization_id)', {
+      count: 'exact',
+      head: true,
+    })
     .eq('status', 'running')
     .eq('integrations.organization_id', profile.organization_id)
 
@@ -778,7 +843,10 @@ export async function getSyncHealthData() {
       activeJobs: activeJobsCount || 0,
       maxJobs: 10,
       connectors: integrations.length,
-      issues: activeJobsCount && activeJobsCount > 10 ? ['High concurrent job count'] : [],
+      issues:
+        activeJobsCount && activeJobsCount > 10
+          ? ['High concurrent job count']
+          : [],
     },
   }
 }

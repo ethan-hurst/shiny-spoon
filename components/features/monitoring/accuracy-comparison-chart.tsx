@@ -5,13 +5,13 @@ import { useEffect, useState } from 'react'
 import {
   Bar,
   BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Legend,
-  Cell,
 } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
 
@@ -31,9 +31,9 @@ interface ComparisonData {
   discrepancies: number
 }
 
-export function AccuracyComparisonChart({ 
-  integrations, 
-  organizationId 
+export function AccuracyComparisonChart({
+  integrations,
+  organizationId,
 }: AccuracyComparisonChartProps) {
   const [data, setData] = useState<ComparisonData[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,9 +61,17 @@ export function AccuracyComparisonChart({
             }
 
             // Calculate average accuracy from recent metrics
-            const avgAccuracy = metrics.reduce((sum, m) => sum + m.accuracy_score, 0) / metrics.length
-            const totalChecks = metrics.reduce((sum, m) => sum + m.records_checked, 0)
-            const totalDiscrepancies = metrics.reduce((sum, m) => sum + m.discrepancy_count, 0)
+            const avgAccuracy =
+              metrics.reduce((sum, m) => sum + m.accuracy_score, 0) /
+              metrics.length
+            const totalChecks = metrics.reduce(
+              (sum, m) => sum + m.records_checked,
+              0
+            )
+            const totalDiscrepancies = metrics.reduce(
+              (sum, m) => sum + m.discrepancy_count,
+              0
+            )
 
             return {
               integration: integration.name || integration.platform,
@@ -75,11 +83,13 @@ export function AccuracyComparisonChart({
         )
 
         // Filter out integrations without metrics data
-        const comparisonData = comparisonResults.filter((data): data is ComparisonData => data !== null)
+        const comparisonData = comparisonResults.filter(
+          (data): data is ComparisonData => data !== null
+        )
 
         // Sort by accuracy score
         comparisonData.sort((a, b) => b.accuracy - a.accuracy)
-        
+
         setData(comparisonData)
       } catch (error) {
         console.error('Failed to fetch comparison data:', error)
@@ -126,7 +136,8 @@ export function AccuracyComparisonChart({
           <p className="font-medium">{label}</p>
           <div className="mt-2 space-y-1">
             <p className="text-sm">
-              Accuracy: <span className="font-medium">{data.accuracy.toFixed(2)}%</span>
+              Accuracy:{' '}
+              <span className="font-medium">{data.accuracy.toFixed(2)}%</span>
             </p>
             <p className="text-sm text-muted-foreground">
               Checks: {data.checks.toLocaleString()}
@@ -143,34 +154,27 @@ export function AccuracyComparisonChart({
 
   return (
     <ResponsiveContainer width="100%" height={400}>
-      <BarChart 
-        data={data} 
+      <BarChart
+        data={data}
         margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
       >
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis 
-          dataKey="integration" 
+        <XAxis
+          dataKey="integration"
           angle={-45}
           textAnchor="end"
           height={100}
           interval={0}
           tick={{ fill: 'currentColor', fontSize: 12 }}
         />
-        <YAxis 
+        <YAxis
           domain={[0, 100]}
           tick={{ fill: 'currentColor' }}
           tickFormatter={(value) => `${value}%`}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Legend 
-          verticalAlign="top"
-          height={36}
-        />
-        <Bar 
-          dataKey="accuracy" 
-          name="Accuracy Score"
-          radius={[8, 8, 0, 0]}
-        >
+        <Legend verticalAlign="top" height={36} />
+        <Bar dataKey="accuracy" name="Accuracy Score" radius={[8, 8, 0, 0]}>
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={getBarColor(entry.accuracy)} />
           ))}

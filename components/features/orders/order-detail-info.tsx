@@ -1,8 +1,8 @@
+import { format } from 'date-fns'
+import { Calendar, CreditCard, FileText, MapPin, User } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
-import { format } from 'date-fns'
-import { MapPin, User, Calendar, CreditCard, FileText } from 'lucide-react'
 import type { OrderSummary } from '@/types/order.types'
 
 interface OrderDetailInfoProps {
@@ -24,7 +24,9 @@ export function OrderDetailInfo({ order }: OrderDetailInfoProps) {
       address.line2,
       `${address.city}, ${address.state} ${address.postal_code}`,
       address.country,
-    ].filter(Boolean).join('\n')
+    ]
+      .filter(Boolean)
+      .join('\n')
   }
 
   return (
@@ -41,7 +43,9 @@ export function OrderDetailInfo({ order }: OrderDetailInfoProps) {
           {order.customer_name ? (
             <>
               <p className="font-medium">{order.customer_name}</p>
-              <p className="text-sm text-muted-foreground">{order.customer_email}</p>
+              <p className="text-sm text-muted-foreground">
+                {order.customer_email}
+              </p>
               {order.customer_tier && (
                 <Badge variant="secondary" className="mt-2">
                   {order.customer_tier} Customer
@@ -71,7 +75,9 @@ export function OrderDetailInfo({ order }: OrderDetailInfoProps) {
             {order.discount_amount > 0 && (
               <div className="flex justify-between text-sm">
                 <span>Discount</span>
-                <span className="text-green-600">-{formatCurrency(order.discount_amount)}</span>
+                <span className="text-green-600">
+                  -{formatCurrency(order.discount_amount)}
+                </span>
               </div>
             )}
             <div className="flex justify-between text-sm">
@@ -111,14 +117,19 @@ export function OrderDetailInfo({ order }: OrderDetailInfoProps) {
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No shipping address provided</p>
+              <p className="text-sm text-muted-foreground">
+                No shipping address provided
+              </p>
             )}
 
             {order.expected_delivery_date && (
               <div>
                 <p className="text-sm font-medium mb-1">Expected Delivery</p>
                 <p className="text-sm text-muted-foreground">
-                  {format(new Date(order.expected_delivery_date), 'MMMM d, yyyy')}
+                  {format(
+                    new Date(order.expected_delivery_date),
+                    'MMMM d, yyyy'
+                  )}
                 </p>
               </div>
             )}
@@ -179,12 +190,16 @@ export function OrderDetailInfo({ order }: OrderDetailInfoProps) {
           <CardContent className="space-y-2">
             <div>
               <p className="text-sm font-medium">External Order ID</p>
-              <p className="text-sm text-muted-foreground">{order.external_order_id}</p>
+              <p className="text-sm text-muted-foreground">
+                {order.external_order_id}
+              </p>
             </div>
             {order.source_platform && (
               <div>
                 <p className="text-sm font-medium">Source Platform</p>
-                <p className="text-sm text-muted-foreground capitalize">{order.source_platform}</p>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {order.source_platform}
+                </p>
               </div>
             )}
           </CardContent>

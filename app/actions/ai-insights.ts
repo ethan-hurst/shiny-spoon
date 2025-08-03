@@ -2,14 +2,14 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { AuditLogger } from '@/lib/audit/audit-logger'
-import type { 
-  DemandForecast, 
-  ReorderSuggestion, 
-  AnomalyAlert, 
+import { createClient } from '@/lib/supabase/server'
+import type {
   AIInsight,
-  PriceRecommendation 
+  AnomalyAlert,
+  DemandForecast,
+  PriceRecommendation,
+  ReorderSuggestion,
 } from '@/types/ai.types'
 
 export async function generateInsights(organizationId: string) {
@@ -43,19 +43,25 @@ export async function generateInsights(organizationId: string) {
         related_entities: anomalies.data.map((a: any) => ({
           type: 'product',
           id: a.product_id,
-          name: a.product_name
+          name: a.product_name,
         })),
         recommended_actions: [
           'Review inventory levels',
           'Address out-of-stock items',
-          'Optimize reorder points'
-        ]
+          'Optimize reorder points',
+        ],
       })
     }
 
     // Add reorder insights
-    if (reorderSuggestions.success && reorderSuggestions.data && reorderSuggestions.data.length > 0) {
-      const urgentReorders = reorderSuggestions.data.filter((r: any) => r.current_quantity <= 10)
+    if (
+      reorderSuggestions.success &&
+      reorderSuggestions.data &&
+      reorderSuggestions.data.length > 0
+    ) {
+      const urgentReorders = reorderSuggestions.data.filter(
+        (r: any) => r.current_quantity <= 10
+      )
       if (urgentReorders.length > 0) {
         insights.push({
           organization_id: organizationId,
@@ -66,13 +72,13 @@ export async function generateInsights(organizationId: string) {
           related_entities: urgentReorders.map((r: any) => ({
             type: 'product',
             id: r.product_id,
-            name: r.product_name
+            name: r.product_name,
           })),
           recommended_actions: [
             'Place immediate orders',
             'Review lead times',
-            'Update safety stock levels'
-          ]
+            'Update safety stock levels',
+          ],
         })
       }
     }
@@ -89,8 +95,8 @@ export async function generateInsights(organizationId: string) {
         recommended_actions: [
           'Review forecast accuracy',
           'Adjust inventory planning',
-          'Consider demand drivers'
-        ]
+          'Consider demand drivers',
+        ],
       })
     }
 
@@ -109,10 +115,10 @@ export async function generateInsights(organizationId: string) {
     await auditLogger.log({
       action: 'create',
       entityType: 'ai_insight',
-      metadata: { 
+      metadata: {
         insights_generated: insights.length,
         anomalies_found: anomalies.data?.length || 0,
-        reorder_suggestions: reorderSuggestions.data?.length || 0
+        reorder_suggestions: reorderSuggestions.data?.length || 0,
       },
     })
 
@@ -122,8 +128,8 @@ export async function generateInsights(organizationId: string) {
         insights: insights.length,
         anomalies: anomalies.data?.length || 0,
         reorderSuggestions: reorderSuggestions.data?.length || 0,
-        forecastsGenerated: forecastData.success
-      }
+        forecastsGenerated: forecastData.success,
+      },
     }
   } catch (error) {
     console.error('Generate insights error:', error)
@@ -138,7 +144,7 @@ export async function detectAnomalies(organizationId: string) {
 
   try {
     const { data, error } = await supabase.rpc('detect_inventory_anomalies', {
-      p_organization_id: organizationId
+      p_organization_id: organizationId,
     })
 
     if (error) throw error
@@ -155,7 +161,7 @@ export async function generateReorderSuggestions(organizationId: string) {
 
   try {
     const { data, error } = await supabase.rpc('generate_reorder_suggestions', {
-      p_organization_id: organizationId
+      p_organization_id: organizationId,
     })
 
     if (error) throw error
@@ -174,12 +180,14 @@ export async function generateDemandForecasts(organizationId: string) {
     // Get top products by recent activity
     const { data: topProducts, error: productsError } = await supabase
       .from('inventory')
-      .select(`
+      .select(
+        `
         product_id,
         warehouse_id,
         products!inner(name, is_active),
         warehouses!inner(name)
-      `)
+      `
+      )
       .eq('organization_id', organizationId)
       .eq('products.is_active', true)
       .gt('quantity', 0)
@@ -198,7 +206,7 @@ export async function generateDemandForecasts(organizationId: string) {
             p_product_id: item.product_id,
             p_warehouse_id: item.warehouse_id,
             p_days_forecast: 30,
-            p_window_size: 7
+            p_window_size: 7,
           }
         )
 
@@ -211,11 +219,14 @@ export async function generateDemandForecasts(organizationId: string) {
             forecast: forecast,
             confidence: 0.7, // Simple moving average has moderate confidence
             method: 'moving_average',
-            generatedAt: new Date()
+            generatedAt: new Date(),
           })
         }
       } catch (err) {
-        console.error(`Error generating forecast for product ${item.product_id}:`, err)
+        console.error(
+          `Error generating forecast for product ${item.product_id}:`,
+          err
+        )
       }
     }
 
@@ -292,7 +303,7 @@ export async function getHistoricalDemand(
     const { data, error } = await supabase.rpc('get_historical_demand', {
       p_product_id: productId,
       p_warehouse_id: warehouseId,
-      p_days_back: daysBack
+      p_days_back: daysBack,
     })
 
     if (error) throw error
@@ -317,13 +328,15 @@ export async function generatePriceRecommendations(organizationId: string) {
     // Get products with recent pricing activity
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select(`
+      .select(
+        `
         id,
         name,
         unit_price,
         unit_cost,
         inventory(quantity)
-      `)
+      `
+      )
       .eq('organization_id', organizationId)
       .eq('is_active', true)
       .limit(20)
@@ -337,17 +350,22 @@ export async function generatePriceRecommendations(organizationId: string) {
       const currentPrice = product.unit_price || 0
       const cost = product.unit_cost || 0
       const currentMargin = cost > 0 ? (currentPrice - cost) / currentPrice : 0
-      
+
       // Target 30% margin
       const targetMargin = 0.3
       const suggestedPrice = cost / (1 - targetMargin)
-      
+
       // Calculate inventory pressure
-      const totalInventory = product.inventory?.reduce((sum: number, inv: any) => sum + inv.quantity, 0) || 0
-      const inventoryPressure = totalInventory > 1000 ? -0.05 : totalInventory < 50 ? 0.05 : 0
-      
+      const totalInventory =
+        product.inventory?.reduce(
+          (sum: number, inv: any) => sum + inv.quantity,
+          0
+        ) || 0
+      const inventoryPressure =
+        totalInventory > 1000 ? -0.05 : totalInventory < 50 ? 0.05 : 0
+
       const finalSuggestedPrice = suggestedPrice * (1 + inventoryPressure)
-      
+
       // Only recommend if change is significant (>5%)
       if (Math.abs(finalSuggestedPrice - currentPrice) / currentPrice > 0.05) {
         recommendations.push({
@@ -355,17 +373,19 @@ export async function generatePriceRecommendations(organizationId: string) {
           currentPrice,
           suggestedPrice: Math.round(finalSuggestedPrice * 100) / 100,
           estimatedImpact: {
-            revenueChange: (finalSuggestedPrice - currentPrice) / currentPrice * 0.8, // Assume some demand elasticity
-            volumeChange: -(finalSuggestedPrice - currentPrice) / currentPrice * 0.5
+            revenueChange:
+              ((finalSuggestedPrice - currentPrice) / currentPrice) * 0.8, // Assume some demand elasticity
+            volumeChange:
+              (-(finalSuggestedPrice - currentPrice) / currentPrice) * 0.5,
           },
           confidence: 0.6,
-          reasoning: `Optimize margin from ${(currentMargin * 100).toFixed(1)}% to ${(targetMargin * 100)}%`,
+          reasoning: `Optimize margin from ${(currentMargin * 100).toFixed(1)}% to ${targetMargin * 100}%`,
           factors: {
             demandElasticity: -0.5,
             competitorAverage: currentPrice * 1.02,
             inventoryPressure: inventoryPressure,
-            marginTarget: targetMargin
-          }
+            marginTarget: targetMargin,
+          },
         })
       }
     }
@@ -374,9 +394,9 @@ export async function generatePriceRecommendations(organizationId: string) {
     await auditLogger.log({
       action: 'create',
       entityType: 'price_recommendation',
-      metadata: { 
+      metadata: {
         products_analyzed: products?.length || 0,
-        recommendations_generated: recommendations.length
+        recommendations_generated: recommendations.length,
       },
     })
 

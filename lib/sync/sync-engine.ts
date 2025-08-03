@@ -1,23 +1,23 @@
 // PRP-015: Core Sync Engine
 import { EventEmitter } from 'events'
-import { createClient } from '@/lib/supabase/server'
 import { BaseConnector } from '@/lib/integrations/base-connector'
+import type { ConnectorConfig } from '@/lib/integrations/base-connector'
 import { NetSuiteConnector } from '@/lib/integrations/netsuite/connector'
 import { ShopifyConnector } from '@/lib/integrations/shopify/connector'
+import { createClient } from '@/lib/supabase/server'
 import type {
+  ConflictResolutionStrategy,
+  PerformanceMetrics,
+  SyncConflict,
+  SyncEngineConfig,
+  SyncEngineEvents,
+  SyncEntityType,
+  SyncError,
   SyncJob,
   SyncJobConfig,
   SyncProgress,
   SyncResult,
-  SyncError,
-  SyncEngineConfig,
-  SyncEngineEvents,
-  SyncEntityType,
-  SyncConflict,
-  ConflictResolutionStrategy,
-  PerformanceMetrics,
 } from '@/types/sync-engine.types'
-import type { ConnectorConfig } from '@/lib/integrations/base-connector'
 
 // Default sync engine configuration
 const DEFAULT_CONFIG: SyncEngineConfig = {
@@ -48,9 +48,11 @@ export class SyncEngine extends EventEmitter {
    */
   async createSyncJob(config: SyncJobConfig): Promise<SyncJob> {
     const supabase = await createClient()
-    
+
     // Get user context
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       throw new Error('User not authenticated')
     }
@@ -96,15 +98,14 @@ export class SyncEngine extends EventEmitter {
     }
 
     // Add to queue
-    const priority = config.priority === 'high' ? 80 : config.priority === 'low' ? 20 : 50
-    
-    const { error: queueError } = await supabase
-      .from('sync_queue')
-      .insert({
-        job_id: job.id,
-        priority: priority,
-        max_attempts: config.retry_config?.max_attempts || 3,
-      })
+    const priority =
+      config.priority === 'high' ? 80 : config.priority === 'low' ? 20 : 50
+
+    const { error: queueError } = await supabase.from('sync_queue').insert({
+      job_id: job.id,
+      priority: priority,
+      max_attempts: config.retry_config?.max_attempts || 3,
+    })
 
     if (queueError) {
       // Rollback job creation (fix-53: handle rollback failures)
@@ -113,12 +114,12 @@ export class SyncEngine extends EventEmitter {
           .from('sync_jobs')
           .delete()
           .eq('id', job.id)
-        
+
         if (rollbackError) {
           console.error('Failed to rollback job creation', {
             jobId: job.id,
             originalError: queueError,
-            rollbackError: rollbackError
+            rollbackError: rollbackError,
           })
           // Continue with original error
         }
@@ -126,16 +127,16 @@ export class SyncEngine extends EventEmitter {
         console.error('Exception during rollback', {
           jobId: job.id,
           originalError: queueError,
-          rollbackException
+          rollbackException,
         })
         // Continue with original error
       }
-      
+
       throw new Error(`Failed to queue sync job: ${queueError.message}`)
     }
 
     this.emit('job:created', job)
-    
+
     return job
   }
 
@@ -144,7 +145,7 @@ export class SyncEngine extends EventEmitter {
    */
   async executeJob(jobId: string): Promise<SyncResult> {
     const supabase = await createClient()
-    
+
     // Check concurrent job limit
     if (this.activeJobs.size >= this.config.max_concurrent_jobs) {
       throw new Error('Maximum concurrent jobs reached')
@@ -168,7 +169,7 @@ export class SyncEngine extends EventEmitter {
     // Set up timeout (fix-54: prevent race condition)
     let timeoutId: NodeJS.Timeout | null = null
     let isTimedOut = false
-    
+
     if (this.config.job_timeout_ms > 0) {
       timeoutId = setTimeout(() => {
         isTimedOut = true
@@ -181,9 +182,9 @@ export class SyncEngine extends EventEmitter {
       if (isTimedOut) {
         throw new Error('Job timed out before execution')
       }
-      
+
       this.emit('job:started', job)
-      
+
       // Initialize performance tracking
       if (this.config.enable_performance_tracking) {
         this.performanceTracker.startJob(jobId)
@@ -207,7 +208,7 @@ export class SyncEngine extends EventEmitter {
       if (this.config.enable_performance_tracking) {
         const metrics = await this.performanceTracker.endJob(jobId)
         result.performance_metrics = metrics
-        
+
         // Save metrics to database
         await supabase.from('sync_metrics').insert({
           sync_job_id: jobId,
@@ -222,9 +223,8 @@ export class SyncEngine extends EventEmitter {
       })
 
       this.emit('job:completed', job, result)
-      
+
       return result
-      
     } catch (error) {
       const syncError: SyncError = {
         code: error instanceof Error ? error.constructor.name : 'UNKNOWN_ERROR',
@@ -241,9 +241,8 @@ export class SyncEngine extends EventEmitter {
       })
 
       this.emit('job:failed', job, syncError)
-      
+
       throw error
-      
     } finally {
       if (timeoutId) {
         clearTimeout(timeoutId)
@@ -262,7 +261,7 @@ export class SyncEngine extends EventEmitter {
   ): Promise<SyncResult> {
     const config = job.config as SyncJobConfig
     const entityTypes = config.entity_types
-    
+
     const result: SyncResult = {
       success: true,
       summary: {
@@ -300,7 +299,7 @@ export class SyncEngine extends EventEmitter {
       const entityType = entityTypes[i]
       progress.current_entity = entityType
       progress.phase = 'fetching'
-      
+
       await this.updateJobProgress(job.id, progress)
 
       try {
@@ -341,25 +340,30 @@ export class SyncEngine extends EventEmitter {
           )
           result.conflicts?.push(...conflicts)
         }
-
       } catch (error) {
         const syncError: SyncError = {
-          code: error instanceof Error ? error.constructor.name : 'ENTITY_SYNC_FAILED',
-          message: error instanceof Error ? error.message : 'Failed to sync entity',
+          code:
+            error instanceof Error
+              ? error.constructor.name
+              : 'ENTITY_SYNC_FAILED',
+          message:
+            error instanceof Error ? error.message : 'Failed to sync entity',
           entity_type: entityType,
           timestamp: new Date().toISOString(),
           retryable: true,
         }
-        
+
         result.errors.push(syncError)
         result.success = false
       }
 
       // Update progress
       progress.entities_completed = i + 1
-      progress.percentage = Math.round((progress.entities_completed / progress.entities_total) * 100)
+      progress.percentage = Math.round(
+        (progress.entities_completed / progress.entities_total) * 100
+      )
       progress.records_processed = result.summary.total_processed
-      
+
       await this.updateJobProgress(job.id, progress)
     }
 
@@ -378,13 +382,13 @@ export class SyncEngine extends EventEmitter {
     organizationId: string
   ): Promise<BaseConnector> {
     const cacheKey = `${platform}:${integrationId}`
-    
+
     if (this.connectorCache.has(cacheKey)) {
       return this.connectorCache.get(cacheKey)!
     }
 
     const supabase = await createClient()
-    
+
     // Get integration details
     const { data: integration, error } = await supabase
       .from('integrations')
@@ -417,7 +421,7 @@ export class SyncEngine extends EventEmitter {
         }
         connector = new NetSuiteConnector(connectorConfig)
         break
-        
+
       case 'shopify':
         if (!integration.shopify_config?.[0]) {
           throw new Error('Shopify configuration not found')
@@ -428,7 +432,7 @@ export class SyncEngine extends EventEmitter {
         }
         connector = new ShopifyConnector(connectorConfig)
         break
-        
+
       default:
         throw new Error(`Unsupported platform: ${platform}`)
     }
@@ -436,22 +440,25 @@ export class SyncEngine extends EventEmitter {
     // Initialize connector (fix-52: don't cache on failure)
     try {
       await connector.initialize()
-      
+
       // Only cache if initialization succeeded
       this.connectorCache.set(cacheKey, connector)
-      
+
       return connector
     } catch (error) {
       // Don't cache failed connectors
-      console.error(`Failed to initialize connector for ${platform}:${integrationId}`, error)
-      
+      console.error(
+        `Failed to initialize connector for ${platform}:${integrationId}`,
+        error
+      )
+
       // Try to disconnect if partially initialized
       try {
         await connector.disconnect()
       } catch (disconnectError) {
         // Ignore disconnect errors
       }
-      
+
       throw error
     }
   }
@@ -459,14 +466,17 @@ export class SyncEngine extends EventEmitter {
   /**
    * Update job progress
    */
-  private async updateJobProgress(jobId: string, progress: SyncProgress): Promise<void> {
+  private async updateJobProgress(
+    jobId: string,
+    progress: SyncProgress
+  ): Promise<void> {
     const supabase = await createClient()
-    
+
     await supabase.rpc('update_sync_job_progress', {
       p_job_id: jobId,
       p_progress: progress,
     })
-    
+
     this.emit('job:progress', jobId, progress)
   }
 
@@ -481,15 +491,18 @@ export class SyncEngine extends EventEmitter {
     const supabase = await createClient()
     const conflicts: SyncConflict[] = []
     const failedConflicts: Array<{ conflict: any; error: Error }> = []
-    
+
     for (const conflict of potentialConflicts) {
       try {
         // Validate conflict data (fix-51)
         if (!conflict.record_id || !conflict.field) {
-          console.warn('Invalid conflict data - missing required fields', conflict)
+          console.warn(
+            'Invalid conflict data - missing required fields',
+            conflict
+          )
           continue
         }
-        
+
         const syncConflict: SyncConflict = {
           entity_type: entityType,
           record_id: conflict.record_id,
@@ -498,7 +511,7 @@ export class SyncEngine extends EventEmitter {
           target_value: conflict.target_value,
           detected_at: new Date().toISOString(),
         }
-        
+
         // Apply auto-resolution if enabled
         if (conflict.auto_resolve) {
           try {
@@ -510,7 +523,7 @@ export class SyncEngine extends EventEmitter {
               conflict.source_timestamp,
               conflict.target_timestamp
             )
-            
+
             syncConflict.resolution = {
               strategy: strategy,
               resolved_value: resolvedValue,
@@ -519,53 +532,56 @@ export class SyncEngine extends EventEmitter {
           } catch (resolutionError) {
             console.error('Failed to auto-resolve conflict', {
               conflict: syncConflict,
-              error: resolutionError
+              error: resolutionError,
             })
             // Continue without resolution
           }
         }
-        
+
         conflicts.push(syncConflict)
-        
+
         // Save conflict to database with error handling
         try {
           const { error } = await supabase.from('sync_conflicts').insert({
             sync_job_id: jobId,
             ...syncConflict,
           })
-          
+
           if (error) {
             throw error
           }
-          
+
           this.emit('conflict:detected', syncConflict)
         } catch (dbError) {
           console.error('Failed to save conflict to database', {
             conflict: syncConflict,
-            error: dbError
+            error: dbError,
           })
-          failedConflicts.push({ conflict: syncConflict, error: dbError as Error })
+          failedConflicts.push({
+            conflict: syncConflict,
+            error: dbError as Error,
+          })
           // Continue processing other conflicts
         }
       } catch (error) {
         console.error('Error processing conflict', {
           conflict,
-          error
+          error,
         })
         failedConflicts.push({ conflict, error: error as Error })
       }
     }
-    
+
     // Log summary if there were failures
     if (failedConflicts.length > 0) {
       console.warn(`Failed to process ${failedConflicts.length} conflicts`, {
         jobId,
         entityType,
         failedCount: failedConflicts.length,
-        totalCount: potentialConflicts.length
+        totalCount: potentialConflicts.length,
       })
     }
-    
+
     return conflicts
   }
 
@@ -582,38 +598,40 @@ export class SyncEngine extends EventEmitter {
     switch (strategy) {
       case 'source_wins':
         return sourceValue
-        
+
       case 'target_wins':
         return targetValue
-        
+
       case 'newest_wins': {
         // Implement proper timestamp comparison (fix-48)
         if (!sourceTimestamp || !targetTimestamp) {
           // If timestamps are missing, log warning and default to source
-          this.config.debug_mode && console.warn('Missing timestamps for newest_wins strategy')
+          this.config.debug_mode &&
+            console.warn('Missing timestamps for newest_wins strategy')
           return sourceValue
         }
-        
+
         const sourceTime = new Date(sourceTimestamp).getTime()
         const targetTime = new Date(targetTimestamp).getTime()
-        
+
         // Handle invalid dates
         if (isNaN(sourceTime) || isNaN(targetTime)) {
-          this.config.debug_mode && console.warn('Invalid timestamps for comparison', {
-            source: sourceTimestamp,
-            target: targetTimestamp
-          })
+          this.config.debug_mode &&
+            console.warn('Invalid timestamps for comparison', {
+              source: sourceTimestamp,
+              target: targetTimestamp,
+            })
           return sourceValue
         }
-        
+
         // Return the value with the newer timestamp
         return sourceTime > targetTime ? sourceValue : targetValue
       }
-        
+
       case 'manual':
         // Manual resolution required
         return null
-        
+
       default:
         return sourceValue
     }
@@ -624,12 +642,12 @@ export class SyncEngine extends EventEmitter {
    */
   async cancelJob(jobId: string): Promise<void> {
     const controller = this.activeJobs.get(jobId)
-    
+
     if (controller) {
       controller.abort()
-      
+
       const supabase = await createClient()
-      
+
       await supabase
         .from('sync_jobs')
         .update({
@@ -637,13 +655,13 @@ export class SyncEngine extends EventEmitter {
           completed_at: new Date().toISOString(),
         })
         .eq('id', jobId)
-        
+
       const { data: job } = await supabase
         .from('sync_jobs')
         .select()
         .eq('id', jobId)
         .single()
-        
+
       if (job) {
         this.emit('job:cancelled', job)
       }
@@ -661,7 +679,7 @@ export class SyncEngine extends EventEmitter {
         keysToEvict.push(key)
       }
     }
-    
+
     // Disconnect and remove connectors
     for (const key of keysToEvict) {
       const connector = this.connectorCache.get(key)
@@ -674,7 +692,7 @@ export class SyncEngine extends EventEmitter {
         this.connectorCache.delete(key)
       }
     }
-    
+
     this.emit('connector:evicted', { integrationId, evictedKeys: keysToEvict })
   }
 
@@ -683,7 +701,7 @@ export class SyncEngine extends EventEmitter {
    */
   async evictAllConnectors(): Promise<void> {
     const connectors = Array.from(this.connectorCache.entries())
-    
+
     for (const [key, connector] of connectors) {
       try {
         await connector.disconnect()
@@ -691,7 +709,7 @@ export class SyncEngine extends EventEmitter {
         console.error(`Error disconnecting connector ${key}:`, error)
       }
     }
-    
+
     this.connectorCache.clear()
     this.emit('connector:evicted-all', { count: connectors.length })
   }
@@ -707,49 +725,58 @@ export class SyncEngine extends EventEmitter {
     issues: string[]
   }> {
     const issues: string[] = []
-    
+
     // Check active jobs
     if (this.activeJobs.size >= this.config.max_concurrent_jobs) {
       issues.push('Maximum concurrent jobs reached')
     }
-    
+
     // Check connector health in parallel with timeout (fix-55)
     const healthCheckTimeout = 5000 // 5 seconds per connector
-    const healthChecks = Array.from(this.connectorCache.entries()).map(async ([key, connector]) => {
-      try {
-        // Create a timeout promise
-        const timeoutPromise = new Promise<boolean>((_, reject) => {
-          setTimeout(() => reject(new Error('Health check timed out')), healthCheckTimeout)
-        })
-        
-        // Race between health check and timeout
-        const healthy = await Promise.race([
-          connector.testConnection(),
-          timeoutPromise
-        ])
-        
-        if (!healthy) {
-          return `Connector ${key} is unhealthy`
+    const healthChecks = Array.from(this.connectorCache.entries()).map(
+      async ([key, connector]) => {
+        try {
+          // Create a timeout promise
+          const timeoutPromise = new Promise<boolean>((_, reject) => {
+            setTimeout(
+              () => reject(new Error('Health check timed out')),
+              healthCheckTimeout
+            )
+          })
+
+          // Race between health check and timeout
+          const healthy = await Promise.race([
+            connector.testConnection(),
+            timeoutPromise,
+          ])
+
+          if (!healthy) {
+            return `Connector ${key} is unhealthy`
+          }
+          return null
+        } catch (error) {
+          return `Connector ${key} test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         }
-        return null
-      } catch (error) {
-        return `Connector ${key} test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
-    })
-    
+    )
+
     // Wait for all health checks to complete
     const healthResults = await Promise.all(healthChecks)
-    
+
     // Add non-null results to issues
     for (const result of healthResults) {
       if (result) {
         issues.push(result)
       }
     }
-    
-    const status = issues.length === 0 ? 'healthy' : 
-                   issues.length < 3 ? 'degraded' : 'unhealthy'
-    
+
+    const status =
+      issues.length === 0
+        ? 'healthy'
+        : issues.length < 3
+          ? 'degraded'
+          : 'unhealthy'
+
     return {
       status,
       activeJobs: this.activeJobs.size,
@@ -773,7 +800,7 @@ export class SyncEngine extends EventEmitter {
         console.error(`Error cancelling job ${jobId} during shutdown:`, error)
       }
     }
-    
+
     // Disconnect all connectors (copy to avoid concurrent modification)
     const connectorsCopy = Array.from(this.connectorCache.values())
     for (const connector of connectorsCopy) {
@@ -783,7 +810,7 @@ export class SyncEngine extends EventEmitter {
         console.error('Error disconnecting connector during shutdown:', error)
       }
     }
-    
+
     this.activeJobs.clear()
     this.connectorCache.clear()
     this.removeAllListeners()
@@ -807,17 +834,20 @@ export class SyncEngine extends EventEmitter {
 
 // Performance tracking helper
 class PerformanceTracker {
-  private jobs: Map<string, {
-    startTime: number
-    apiCalls: number
-    apiCallDurations: number[]
-    dbQueries: number
-    dbQueryDurations: number[]
-    bytesReceived: number
-    bytesSent: number
-    startMemory: number
-    startCpuUsage?: NodeJS.CpuUsage
-  }> = new Map()
+  private jobs: Map<
+    string,
+    {
+      startTime: number
+      apiCalls: number
+      apiCallDurations: number[]
+      dbQueries: number
+      dbQueryDurations: number[]
+      bytesReceived: number
+      bytesSent: number
+      startMemory: number
+      startCpuUsage?: NodeJS.CpuUsage
+    }
+  > = new Map()
 
   startJob(jobId: string): void {
     const memoryUsage = process.memoryUsage()
@@ -830,7 +860,7 @@ class PerformanceTracker {
       bytesReceived: 0,
       bytesSent: 0,
       startMemory: memoryUsage.heapUsed,
-      startCpuUsage: process.cpuUsage ? process.cpuUsage() : undefined
+      startCpuUsage: process.cpuUsage ? process.cpuUsage() : undefined,
     })
   }
 
@@ -841,11 +871,13 @@ class PerformanceTracker {
     }
 
     const duration = Date.now() - job.startTime
-    
+
     // Get memory usage (fix-50: actual memory measurements)
     const memoryUsage = process.memoryUsage()
-    const memoryUsedMB = Math.round((memoryUsage.heapUsed - job.startMemory) / 1024 / 1024)
-    
+    const memoryUsedMB = Math.round(
+      (memoryUsage.heapUsed - job.startMemory) / 1024 / 1024
+    )
+
     // Calculate actual CPU usage if available
     let cpuUsagePercent = 0
     if (job.startCpuUsage && process.cpuUsage) {
@@ -853,7 +885,7 @@ class PerformanceTracker {
       const totalCpuTime = (endCpuUsage.user + endCpuUsage.system) / 1000 // Convert to ms
       cpuUsagePercent = Math.round((totalCpuTime / duration) * 100)
     }
-    
+
     // Calculate actual durations
     const apiCallDuration = job.apiCallDurations.reduce((sum, d) => sum + d, 0)
     const dbQueryDuration = job.dbQueryDurations.reduce((sum, d) => sum + d, 0)
@@ -870,7 +902,7 @@ class PerformanceTracker {
     }
 
     this.jobs.delete(jobId)
-    
+
     return metrics
   }
 
@@ -901,7 +933,7 @@ class PerformanceTracker {
       job.bytesReceived += received
     }
   }
-  
+
   // Helper to measure async operation duration
   async measureOperation<T>(
     jobId: string,
@@ -912,23 +944,23 @@ class PerformanceTracker {
     try {
       const result = await operation()
       const duration = Date.now() - startTime
-      
+
       if (type === 'api') {
         this.trackApiCall(jobId, duration)
       } else {
         this.trackDbQuery(jobId, duration)
       }
-      
+
       return result
     } catch (error) {
       const duration = Date.now() - startTime
-      
+
       if (type === 'api') {
         this.trackApiCall(jobId, duration)
       } else {
         this.trackDbQuery(jobId, duration)
       }
-      
+
       throw error
     }
   }

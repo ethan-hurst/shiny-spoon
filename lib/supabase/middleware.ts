@@ -12,7 +12,9 @@ export async function updateSession(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not set. Auth features disabled.')
+    console.warn(
+      'Supabase environment variables not set. Auth features disabled.'
+    )
     // Return unmodified response if Supabase is not configured
     return NextResponse.next({
       request,
@@ -30,7 +32,9 @@ export async function updateSession(request: NextRequest) {
       async getAll() {
         return request.cookies.getAll()
       },
-      async setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+      async setAll(
+        cookiesToSet: Array<{ name: string; value: string; options?: any }>
+      ) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value)
         )
@@ -101,26 +105,22 @@ export async function checkUserRole(
 ) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
+
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase environment variables not set. Role check failed.')
     return false
   }
-  
-  const supabase = createServerClient<Database>(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll() {
-          // Read-only operation
-        },
+
+  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
       },
-    }
-  )
+      setAll() {
+        // Read-only operation
+      },
+    },
+  })
 
   const {
     data: { user },

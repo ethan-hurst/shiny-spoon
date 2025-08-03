@@ -1,7 +1,13 @@
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowRight, FileQuestion, Settings, Shield, Zap } from 'lucide-react'
 import type { HelpArticle } from 'contentlayer2/generated'
+import { ArrowRight, FileQuestion, Settings, Shield, Zap } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 interface HelpCategoriesProps {
   categories: Record<string, HelpArticle[]>
@@ -10,16 +16,16 @@ interface HelpCategoriesProps {
 export function HelpCategories({ categories }: HelpCategoriesProps) {
   const categoryIcons: Record<string, React.ReactNode> = {
     'Getting Started': <Zap className="h-5 w-5" />,
-    'Troubleshooting': <Settings className="h-5 w-5" />,
+    Troubleshooting: <Settings className="h-5 w-5" />,
     'Account & Billing': <Shield className="h-5 w-5" />,
-    'General': <FileQuestion className="h-5 w-5" />,
+    General: <FileQuestion className="h-5 w-5" />,
   }
 
   const categoryDescriptions: Record<string, string> = {
     'Getting Started': 'Learn the basics and get up and running quickly',
-    'Troubleshooting': 'Find solutions to common issues and errors',
+    Troubleshooting: 'Find solutions to common issues and errors',
     'Account & Billing': 'Manage your account, subscription, and billing',
-    'General': 'Frequently asked questions and general information',
+    General: 'Frequently asked questions and general information',
   }
 
   return (
@@ -30,11 +36,14 @@ export function HelpCategories({ categories }: HelpCategoriesProps) {
           <Card key={category} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {categoryIcons[category] || <FileQuestion className="h-5 w-5" />}
+                {categoryIcons[category] || (
+                  <FileQuestion className="h-5 w-5" />
+                )}
                 {category}
               </CardTitle>
               <CardDescription>
-                {categoryDescriptions[category] || `${articles.length} articles`}
+                {categoryDescriptions[category] ||
+                  `${articles.length} articles`}
               </CardDescription>
             </CardHeader>
             <CardContent>

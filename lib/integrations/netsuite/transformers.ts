@@ -1,9 +1,9 @@
 // PRP-013: NetSuite Data Transformers
 import { z } from 'zod'
 import type {
-  ProductTransformResult,
   InventoryTransformResult,
   PricingTransformResult,
+  ProductTransformResult,
 } from '@/types/netsuite.types'
 
 /**
@@ -132,34 +132,40 @@ export class NetSuiteTransformers {
   /**
    * Transform NetSuite item to TruthSource product
    */
-  async transformProduct(item: NetSuiteItemData): Promise<ProductTransformResult> {
+  async transformProduct(
+    item: NetSuiteItemData
+  ): Promise<ProductTransformResult> {
     try {
       // Parse NetSuite boolean values ('T'/'F' to boolean)
       const isActive = item.isactive === 'T'
-      
+
       // Parse price
-      const price = item.baseprice ? (isNaN(parseFloat(item.baseprice)) ? undefined : parseFloat(item.baseprice)) : undefined
-      
+      const price = item.baseprice
+        ? isNaN(parseFloat(item.baseprice))
+          ? undefined
+          : parseFloat(item.baseprice)
+        : undefined
+
       // Parse weight
       const weight = item.weight ? parseFloat(item.weight) : undefined
-      
+
       // Build metadata with custom fields
       const metadata: Record<string, any> = {
         itemType: item.itemtype,
         category: item.category,
         weightUnit: item.weightunit,
       }
-      
+
       // Add custom fields to metadata
-      Object.keys(item).forEach(key => {
+      Object.keys(item).forEach((key) => {
         if (key.startsWith('custitem_') && key !== 'custitem_dimensions') {
           metadata[key] = item[key]
         }
       })
-      
+
       // Apply field mappings
       const mappedData = this.applyFieldMappings(item)
-      
+
       return {
         sku: item.sku,
         name: mappedData.name || item.name,
@@ -187,22 +193,26 @@ export class NetSuiteTransformers {
     try {
       // Map location to warehouse code
       const warehouseCode = this.mapLocationToWarehouse(location)
-      
+
       return {
         product_sku: balance.sku,
         warehouse_code: warehouseCode,
         quantity_available: parseInt(balance.quantityavailable, 10) || 0,
         quantity_on_hand: parseInt(balance.quantityonhand, 10) || 0,
         quantity_on_order: parseInt(balance.quantityonorder, 10) || 0,
-        reorder_point: balance.reorderpoint ? parseInt(balance.reorderpoint, 10) : undefined,
-        preferred_stock_level: balance.preferredstocklevel 
-          ? parseInt(balance.preferredstocklevel, 10) 
+        reorder_point: balance.reorderpoint
+          ? parseInt(balance.reorderpoint, 10)
+          : undefined,
+        preferred_stock_level: balance.preferredstocklevel
+          ? parseInt(balance.preferredstocklevel, 10)
           : undefined,
         external_id: `${balance.itemid}_${location.id}`,
         external_updated_at: this.parseNetSuiteDate(balance.lastmodifieddate),
       }
     } catch (error) {
-      throw new Error(`Failed to transform inventory for ${balance.sku}: ${error}`)
+      throw new Error(
+        `Failed to transform inventory for ${balance.sku}: ${error}`
+      )
     }
   }
 
@@ -214,7 +224,7 @@ export class NetSuiteTransformers {
     prices: NetSuitePriceData[]
   ): Promise<PricingTransformResult[]> {
     try {
-      return prices.map(price => ({
+      return prices.map((price) => ({
         product_sku: itemId,
         price_tier: this.mapPriceLevelToTier(price.pricelevelname),
         unit_price: parseFloat(price.unitprice) || 0,
@@ -233,16 +243,28 @@ export class NetSuiteTransformers {
   async transformCustomer(customer: NetSuiteCustomerData): Promise<any> {
     try {
       const isActive = customer.isinactive === 'F'
-      
+
       return {
         code: customer.customercode,
         name: customer.companyname,
         email: customer.email,
         phone: customer.phone,
         is_active: isActive,
-        credit_limit: customer.creditlimit ? (isNaN(parseFloat(customer.creditlimit)) ? null : parseFloat(customer.creditlimit)) : null,
-        balance: customer.balance ? (isNaN(parseFloat(customer.balance)) ? 0 : parseFloat(customer.balance)) : 0,
-        days_overdue: customer.daysoverdue ? (isNaN(parseInt(customer.daysoverdue, 10)) ? 0 : parseInt(customer.daysoverdue, 10)) : 0,
+        credit_limit: customer.creditlimit
+          ? isNaN(parseFloat(customer.creditlimit))
+            ? null
+            : parseFloat(customer.creditlimit)
+          : null,
+        balance: customer.balance
+          ? isNaN(parseFloat(customer.balance))
+            ? 0
+            : parseFloat(customer.balance)
+          : 0,
+        days_overdue: customer.daysoverdue
+          ? isNaN(parseInt(customer.daysoverdue, 10))
+            ? 0
+            : parseInt(customer.daysoverdue, 10)
+          : 0,
         category: customer.category,
         price_level: customer.pricelevel,
         external_id: customer.id,
@@ -252,18 +274,23 @@ export class NetSuiteTransformers {
         },
       }
     } catch (error) {
-      throw new Error(`Failed to transform customer ${customer.customercode}: ${error}`)
+      throw new Error(
+        `Failed to transform customer ${customer.customercode}: ${error}`
+      )
     }
   }
 
   /**
    * Transform NetSuite sales order to TruthSource order
    */
-  async transformSalesOrder(order: NetSuiteSalesOrderData, lines: NetSuiteSalesOrderLineData[]): Promise<any> {
+  async transformSalesOrder(
+    order: NetSuiteSalesOrderData,
+    lines: NetSuiteSalesOrderLineData[]
+  ): Promise<any> {
     try {
       // Map NetSuite order status to TruthSource status
       const status = this.mapOrderStatus(order.orderstatus)
-      
+
       return {
         order_number: order.ordernumber,
         customer_code: order.customercode,
@@ -276,7 +303,7 @@ export class NetSuiteTransformers {
         total: parseFloat(order.total) || 0,
         external_id: order.id,
         external_updated_at: this.parseNetSuiteDate(order.lastmodifieddate),
-        line_items: lines.map(line => ({
+        line_items: lines.map((line) => ({
           line_number: parseInt(line.linenumber, 10),
           sku: line.sku,
           description: line.itemname,
@@ -289,7 +316,9 @@ export class NetSuiteTransformers {
         })),
       }
     } catch (error) {
-      throw new Error(`Failed to transform order ${order.ordernumber}: ${error}`)
+      throw new Error(
+        `Failed to transform order ${order.ordernumber}: ${error}`
+      )
     }
   }
 
@@ -298,13 +327,13 @@ export class NetSuiteTransformers {
    */
   private applyFieldMappings(data: Record<string, any>): Record<string, any> {
     const mapped: Record<string, any> = {}
-    
+
     Object.entries(this.fieldMappings).forEach(([sourceField, targetField]) => {
       if (data[sourceField] !== undefined) {
         mapped[targetField] = data[sourceField]
       }
     })
-    
+
     return { ...data, ...mapped }
   }
 
@@ -326,19 +355,19 @@ export class NetSuiteTransformers {
   private mapPriceLevelToTier(priceLevel: string): string {
     const mapping: Record<string, string> = {
       'Base Price': 'base',
-      'MSRP': 'retail',
-      'Wholesale': 'wholesale',
-      'Distributor': 'distributor',
-      'Special': 'special',
-      'Employee': 'employee',
+      MSRP: 'retail',
+      Wholesale: 'wholesale',
+      Distributor: 'distributor',
+      Special: 'special',
+      Employee: 'employee',
       'Online Price': 'online',
     }
-    
+
     // Check exact match first
     if (mapping[priceLevel]) {
       return mapping[priceLevel]
     }
-    
+
     // Check case-insensitive match
     const lowerPriceLevel = priceLevel.toLowerCase()
     for (const [key, value] of Object.entries(mapping)) {
@@ -346,7 +375,7 @@ export class NetSuiteTransformers {
         return value
       }
     }
-    
+
     // Default: use sanitized price level name
     return priceLevel
       .toLowerCase()
@@ -365,11 +394,11 @@ export class NetSuiteTransformers {
       'Partially Fulfilled': 'partially_shipped',
       'Pending Billing/Partially Fulfilled': 'partially_shipped',
       'Pending Billing': 'pending_billing',
-      'Billed': 'completed',
-      'Closed': 'completed',
-      'Cancelled': 'cancelled',
+      Billed: 'completed',
+      Closed: 'completed',
+      Cancelled: 'cancelled',
     }
-    
+
     return mapping[netsuiteStatus] || netsuiteStatus.toLowerCase()
   }
 
@@ -379,14 +408,16 @@ export class NetSuiteTransformers {
    */
   private parseNetSuiteDate(dateString: string): string {
     if (!dateString) {
-      throw new Error('NetSuite date is empty or undefined - this indicates missing data in the source system')
+      throw new Error(
+        'NetSuite date is empty or undefined - this indicates missing data in the source system'
+      )
     }
-    
+
     try {
       // NetSuite dates might come in various formats
       // Try to parse and convert to ISO string
       const date = new Date(dateString)
-      
+
       if (isNaN(date.getTime())) {
         // Try alternative format (MM/DD/YYYY)
         const parts = dateString.split('/')
@@ -394,41 +425,68 @@ export class NetSuiteTransformers {
           const [month, day, year] = parts
           // Create date in UTC to avoid timezone issues
           // Note: month is 0-indexed in Date.UTC, so subtract 1
-          const altDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0))
+          const altDate = new Date(
+            Date.UTC(
+              parseInt(year),
+              parseInt(month) - 1,
+              parseInt(day),
+              0,
+              0,
+              0,
+              0
+            )
+          )
           if (!isNaN(altDate.getTime())) {
             return altDate.toISOString()
           }
         }
-        
+
         // If all else fails, throw an error with the invalid date string
-        throw new Error(`Invalid NetSuite date format: "${dateString}" - expected format: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601`)
+        throw new Error(
+          `Invalid NetSuite date format: "${dateString}" - expected format: YYYY-MM-DD, MM/DD/YYYY, or ISO 8601`
+        )
       }
-      
+
       // For MM/DD/YYYY format, we need to handle it specially even if new Date() succeeds
       // because new Date() might interpret it in the wrong timezone
       if (dateString.includes('/') && dateString.split('/').length === 3) {
         const parts = dateString.split('/')
         const [month, day, year] = parts
         // Create date in UTC to avoid timezone issues
-        const altDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0))
+        const altDate = new Date(
+          Date.UTC(
+            parseInt(year),
+            parseInt(month) - 1,
+            parseInt(day),
+            0,
+            0,
+            0,
+            0
+          )
+        )
         return altDate.toISOString()
       }
-      
+
       return date.toISOString()
     } catch (error) {
       if (error instanceof Error) {
         throw error
       }
-      throw new Error(`Failed to parse NetSuite date: "${dateString}" - ${error}`)
+      throw new Error(
+        `Failed to parse NetSuite date: "${dateString}" - ${error}`
+      )
     }
   }
 
   /**
    * Transform weight with unit conversion
    */
-  private transformWeight(weight: number | undefined, unit: string | undefined): number | undefined {
+  private transformWeight(
+    weight: number | undefined,
+    unit: string | undefined
+  ): number | undefined {
     if (!weight) return undefined
-    
+
     // Convert to standard unit (kg)
     switch (unit?.toLowerCase()) {
       case 'lb':
@@ -457,31 +515,31 @@ export class NetSuiteTransformers {
    */
   private parseDimensions(dimensions: string | undefined): string | undefined {
     if (!dimensions) return undefined
-    
+
     // NetSuite might store dimensions in various formats
     // Try to standardize to "L x W x H"
     const cleaned = dimensions.trim()
-    
+
     // If already in correct format, return as is
     if (/^\d+(\.\d+)?\s*x\s*\d+(\.\d+)?\s*x\s*\d+(\.\d+)?/.test(cleaned)) {
       return cleaned
     }
-    
+
     // Try to extract numbers and format
     const numbers = cleaned.match(/\d+(\.\d+)?/g)
     if (numbers && numbers.length >= 3) {
       // Parse and validate numbers
-      const parsedNumbers = numbers.slice(0, 3).map(n => {
+      const parsedNumbers = numbers.slice(0, 3).map((n) => {
         const parsed = parseFloat(n)
         return isNaN(parsed) ? 0 : parsed
       })
-      
+
       // Only return formatted dimensions if all are valid
-      if (parsedNumbers.every(n => n > 0)) {
+      if (parsedNumbers.every((n) => n > 0)) {
         return `${parsedNumbers[0]} x ${parsedNumbers[1]} x ${parsedNumbers[2]}`
       }
     }
-    
+
     // Return original if can't parse
     return dimensions
   }
@@ -490,7 +548,7 @@ export class NetSuiteTransformers {
    * Build composite key for records that need unique identification
    */
   buildCompositeKey(...parts: (string | number)[]): string {
-    return parts.map(p => String(p)).join('_')
+    return parts.map((p) => String(p)).join('_')
   }
 
   /**
@@ -501,7 +559,9 @@ export class NetSuiteTransformers {
       return schema.parse(data)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const issues = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+        const issues = error.errors
+          .map((e) => `${e.path.join('.')}: ${e.message}`)
+          .join(', ')
         throw new Error(`Validation failed: ${issues}`)
       }
       throw error

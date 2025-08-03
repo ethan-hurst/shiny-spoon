@@ -1,12 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 
 interface ApiSidebarProps {
   endpoints: Record<string, any[]>
@@ -24,9 +24,7 @@ export function ApiSidebar({ endpoints, tags = [] }: ApiSidebarProps) {
 
   const toggleTag = (tag: string) => {
     setExpandedTags((prev) =>
-      prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
-        : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
   }
 
@@ -99,7 +97,8 @@ export function ApiSidebar({ endpoints, tags = [] }: ApiSidebarProps) {
                           href={`/developers/docs/${slug}`}
                           className={cn(
                             'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground',
-                            isActive && 'bg-accent font-medium text-accent-foreground'
+                            isActive &&
+                              'bg-accent font-medium text-accent-foreground'
                           )}
                         >
                           <span

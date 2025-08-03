@@ -1,11 +1,15 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getSubscription, getTeamMembers, getPendingInvites } from '@/lib/billing'
-import { TeamMembersList } from '@/components/portal/team/team-members-list'
+import { Users } from 'lucide-react'
 import { PendingInvites } from '@/components/portal/team/pending-invites'
+import { TeamMembersList } from '@/components/portal/team/team-members-list'
 import { TeamStats } from '@/components/portal/team/team-stats'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Users } from 'lucide-react'
+import {
+  getPendingInvites,
+  getSubscription,
+  getTeamMembers,
+} from '@/lib/billing'
+import { createClient } from '@/lib/supabase/server'
 
 interface TeamMember {
   role: string
@@ -19,7 +23,9 @@ interface TeamMember {
 export default async function TeamPage() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -42,7 +48,7 @@ export default async function TeamPage() {
     growth: 10,
     scale: 50,
   }
-  
+
   const teamLimit = teamLimits[subscription?.plan || 'starter'] || 3
   const currentTeamSize = members.length
   const canInviteMore = currentTeamSize < teamLimit
@@ -75,7 +81,8 @@ export default async function TeamPage() {
         <Alert>
           <Users className="h-4 w-4" />
           <AlertDescription>
-            You have view-only access to team management. Contact an admin to make changes.
+            You have view-only access to team management. Contact an admin to
+            make changes.
           </AlertDescription>
         </Alert>
       )}
@@ -83,7 +90,7 @@ export default async function TeamPage() {
       <TeamStats stats={stats} />
 
       <div className="grid gap-6">
-        <TeamMembersList 
+        <TeamMembersList
           members={members}
           currentUserId={user.id}
           isAdmin={isAdmin}
@@ -92,9 +99,7 @@ export default async function TeamPage() {
         />
 
         {isAdmin && pendingInvites.length > 0 && (
-          <PendingInvites 
-            invites={pendingInvites}
-          />
+          <PendingInvites invites={pendingInvites} />
         )}
       </div>
     </div>

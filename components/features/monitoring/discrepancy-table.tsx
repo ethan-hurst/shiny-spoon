@@ -4,14 +4,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { formatDistanceToNow } from 'date-fns'
+import { CheckCircle, Eye, MoreHorizontal, XCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,8 +14,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { CheckCircle, Eye, MoreHorizontal, XCircle } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import type { Discrepancy } from '@/lib/monitoring/types'
 
 interface DiscrepancyTableProps {
@@ -37,15 +37,18 @@ interface DiscrepancyTableProps {
  * @param discrepancies - The list of discrepancies to display in the table.
  * @param onResolve - Callback invoked when a discrepancy is marked as resolved.
  */
-export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableProps) {
+export function DiscrepancyTable({
+  discrepancies,
+  onResolve,
+}: DiscrepancyTableProps) {
   const [resolvingIds, setResolvingIds] = useState<Set<string>>(new Set())
 
   const handleResolve = async (id: string) => {
-    setResolvingIds(prev => new Set(prev).add(id))
+    setResolvingIds((prev) => new Set(prev).add(id))
     try {
       await onResolve(id)
     } finally {
-      setResolvingIds(prev => {
+      setResolvingIds((prev) => {
         const next = new Set(prev)
         next.delete(id)
         return next
@@ -53,7 +56,9 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
     }
   }
 
-  const getSeverityColor = (severity: string): "destructive" | "secondary" | "outline" | "default" => {
+  const getSeverityColor = (
+    severity: string
+  ): 'destructive' | 'secondary' | 'outline' | 'default' => {
     switch (severity) {
       case 'critical':
         return 'destructive'
@@ -120,7 +125,9 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
               <TableCell>
                 <div className="flex items-center gap-2">
                   {getTypeIcon(discrepancy.discrepancy_type)}
-                  <span className="capitalize">{discrepancy.discrepancy_type}</span>
+                  <span className="capitalize">
+                    {discrepancy.discrepancy_type}
+                  </span>
                 </div>
               </TableCell>
               <TableCell>
@@ -129,7 +136,9 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
                 </Badge>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {formatDistanceToNow(new Date(discrepancy.detected_at), { addSuffix: true })}
+                {formatDistanceToNow(new Date(discrepancy.detected_at), {
+                  addSuffix: true,
+                })}
               </TableCell>
               <TableCell>
                 <Badge variant="outline" className="capitalize">
@@ -139,7 +148,11 @@ export function DiscrepancyTable({ discrepancies, onResolve }: DiscrepancyTableP
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" disabled={resolvingIds.has(discrepancy.id)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={resolvingIds.has(discrepancy.id)}
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

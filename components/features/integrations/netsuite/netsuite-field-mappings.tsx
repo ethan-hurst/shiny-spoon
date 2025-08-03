@@ -2,13 +2,25 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, ArrowRight, Save, Loader2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowRight, Loader2, Plus, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from '@/components/ui/use-toast'
 import { updateIntegration } from '@/app/actions/integrations'
 
@@ -124,41 +136,63 @@ interface ExtendedFieldMapping extends FieldMapping {
   customTargetField?: string
 }
 
-export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteFieldMappingsProps) {
+export function NetSuiteFieldMappings({
+  integrationId,
+  mappings,
+}: NetSuiteFieldMappingsProps) {
   const queryClient = useQueryClient()
-  
-  const [fieldMappings, setFieldMappings] = useState<ExtendedFieldMapping[]>(() => {
-    // Convert existing mappings to array format
-    const mappingArray: ExtendedFieldMapping[] = []
-    const validEntityTypes: FieldMapping['entityType'][] = ['product', 'inventory', 'pricing', 'customer', 'order']
-    
-    Object.entries(mappings).forEach(([entityType, fields]) => {
-      if (typeof fields === 'object' && fields !== null && validEntityTypes.includes(entityType as FieldMapping['entityType'])) {
-        Object.entries(fields).forEach(([source, target]) => {
-          if (typeof source === 'string' && typeof target === 'string' && source.trim() !== '' && target.trim() !== '') {
-            mappingArray.push({
-              sourceField: source,
-              targetField: target,
-              entityType: entityType as FieldMapping['entityType'],
-            })
-          }
-        })
-      }
-    })
-    return mappingArray
-  })
+
+  const [fieldMappings, setFieldMappings] = useState<ExtendedFieldMapping[]>(
+    () => {
+      // Convert existing mappings to array format
+      const mappingArray: ExtendedFieldMapping[] = []
+      const validEntityTypes: FieldMapping['entityType'][] = [
+        'product',
+        'inventory',
+        'pricing',
+        'customer',
+        'order',
+      ]
+
+      Object.entries(mappings).forEach(([entityType, fields]) => {
+        if (
+          typeof fields === 'object' &&
+          fields !== null &&
+          validEntityTypes.includes(entityType as FieldMapping['entityType'])
+        ) {
+          Object.entries(fields).forEach(([source, target]) => {
+            if (
+              typeof source === 'string' &&
+              typeof target === 'string' &&
+              source.trim() !== '' &&
+              target.trim() !== ''
+            ) {
+              mappingArray.push({
+                sourceField: source,
+                targetField: target,
+                entityType: entityType as FieldMapping['entityType'],
+              })
+            }
+          })
+        }
+      })
+      return mappingArray
+    }
+  )
 
   // React Query mutation for updating field mappings
   const updateFieldMappingsMutation = useMutation({
-    mutationFn: async (mappingsByEntity: Record<string, Record<string, string>>) => {
+    mutationFn: async (
+      mappingsByEntity: Record<string, Record<string, string>>
+    ) => {
       const formData = new FormData()
       formData.append('id', integrationId)
-      
+
       const config = {
         field_mappings: mappingsByEntity,
       }
       formData.append('config', JSON.stringify(config))
-      
+
       return await updateIntegration(formData)
     },
     onSuccess: () => {
@@ -166,16 +200,19 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
         title: 'Mappings saved',
         description: 'Field mappings have been updated successfully.',
       })
-      
+
       // Invalidate integration cache to refetch updated data
-      queryClient.invalidateQueries({ queryKey: ['integration', integrationId] })
+      queryClient.invalidateQueries({
+        queryKey: ['integration', integrationId],
+      })
       queryClient.invalidateQueries({ queryKey: ['integrations'] })
     },
     onError: (error) => {
       console.error('Failed to save field mappings:', error)
       toast({
         title: 'Save failed',
-        description: error instanceof Error ? error.message : 'Failed to save mappings',
+        description:
+          error instanceof Error ? error.message : 'Failed to save mappings',
         variant: 'destructive',
       })
     },
@@ -199,7 +236,11 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
     setFieldMappings(fieldMappings.filter((_, i) => i !== index))
   }
 
-  function updateMapping(index: number, field: keyof ExtendedFieldMapping, value: string) {
+  function updateMapping(
+    index: number,
+    field: keyof ExtendedFieldMapping,
+    value: string
+  ) {
     const updated = [...fieldMappings]
     updated[index] = { ...updated[index], [field]: value }
     setFieldMappings(updated)
@@ -215,18 +256,31 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
       order: {},
     }
 
-    fieldMappings.forEach(mapping => {
+    fieldMappings.forEach((mapping) => {
       // Use custom fields if they were entered, otherwise use selected values
-      const sourceField = mapping.sourceField === 'custom' ? mapping.customSourceField : mapping.sourceField
-      const targetField = mapping.targetField === 'metadata' ? mapping.customTargetField : mapping.targetField
-      
+      const sourceField =
+        mapping.sourceField === 'custom'
+          ? mapping.customSourceField
+          : mapping.sourceField
+      const targetField =
+        mapping.targetField === 'metadata'
+          ? mapping.customTargetField
+          : mapping.targetField
+
       // Validate custom fields before saving
       if (sourceField && targetField) {
-        const isValidSourceField = typeof sourceField === 'string' && sourceField.trim() !== '' && sourceField.length <= 100
-        const isValidTargetField = typeof targetField === 'string' && targetField.trim() !== '' && targetField.length <= 100
-        
+        const isValidSourceField =
+          typeof sourceField === 'string' &&
+          sourceField.trim() !== '' &&
+          sourceField.length <= 100
+        const isValidTargetField =
+          typeof targetField === 'string' &&
+          targetField.trim() !== '' &&
+          targetField.length <= 100
+
         if (isValidSourceField && isValidTargetField) {
-          mappingsByEntity[mapping.entityType][sourceField.trim()] = targetField.trim()
+          mappingsByEntity[mapping.entityType][sourceField.trim()] =
+            targetField.trim()
         }
       }
     })
@@ -241,18 +295,24 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
         <CardHeader>
           <CardTitle>Custom Field Mappings</CardTitle>
           <CardDescription>
-            Map NetSuite fields to TruthSource fields for custom data transformation
+            Map NetSuite fields to TruthSource fields for custom data
+            transformation
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-4">
             {fieldMappings.map((mapping, index) => (
-              <div key={index} className="flex items-end gap-4 p-4 border rounded-lg">
+              <div
+                key={index}
+                className="flex items-end gap-4 p-4 border rounded-lg"
+              >
                 <div className="flex-1">
                   <Label htmlFor={`entity-${index}`}>Entity Type</Label>
                   <Select
                     value={mapping.entityType}
-                    onValueChange={(value) => updateMapping(index, 'entityType', value)}
+                    onValueChange={(value) =>
+                      updateMapping(index, 'entityType', value)
+                    }
                   >
                     <SelectTrigger id={`entity-${index}`}>
                       <SelectValue />
@@ -271,7 +331,9 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
                   <Label htmlFor={`source-${index}`}>NetSuite Field</Label>
                   <Select
                     value={mapping.sourceField}
-                    onValueChange={(value) => updateMapping(index, 'sourceField', value)}
+                    onValueChange={(value) =>
+                      updateMapping(index, 'sourceField', value)
+                    }
                   >
                     <SelectTrigger id={`source-${index}`}>
                       <SelectValue placeholder="Select field" />
@@ -290,7 +352,13 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
                       className="mt-2"
                       placeholder="e.g., custitem_my_field"
                       value={mapping.customSourceField || ''}
-                      onChange={(e) => updateMapping(index, 'customSourceField', e.target.value)}
+                      onChange={(e) =>
+                        updateMapping(
+                          index,
+                          'customSourceField',
+                          e.target.value
+                        )
+                      }
                     />
                   )}
                 </div>
@@ -301,7 +369,9 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
                   <Label htmlFor={`target-${index}`}>TruthSource Field</Label>
                   <Select
                     value={mapping.targetField}
-                    onValueChange={(value) => updateMapping(index, 'targetField', value)}
+                    onValueChange={(value) =>
+                      updateMapping(index, 'targetField', value)
+                    }
                   >
                     <SelectTrigger id={`target-${index}`}>
                       <SelectValue placeholder="Select field" />
@@ -312,7 +382,9 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
                           {field}
                         </SelectItem>
                       ))}
-                      <SelectItem value="metadata">Metadata Field...</SelectItem>
+                      <SelectItem value="metadata">
+                        Metadata Field...
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   {mapping.targetField === 'metadata' && (
@@ -320,7 +392,13 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
                       className="mt-2"
                       placeholder="e.g., metadata.custom_field"
                       value={mapping.customTargetField || ''}
-                      onChange={(e) => updateMapping(index, 'customTargetField', e.target.value)}
+                      onChange={(e) =>
+                        updateMapping(
+                          index,
+                          'customTargetField',
+                          e.target.value
+                        )
+                      }
                     />
                   )}
                 </div>
@@ -367,14 +445,20 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
                   <code className="bg-muted px-2 py-1 rounded">sku</code>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">displayname</code>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    displayname
+                  </code>
                   <ArrowRight className="h-3 w-3" />
                   <code className="bg-muted px-2 py-1 rounded">name</code>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">salesdescription</code>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    salesdescription
+                  </code>
                   <ArrowRight className="h-3 w-3" />
-                  <code className="bg-muted px-2 py-1 rounded">description</code>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    description
+                  </code>
                 </div>
               </div>
             </div>
@@ -383,14 +467,22 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
               <h4 className="font-medium mb-2">Inventory</h4>
               <div className="grid gap-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">quantityavailable</code>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    quantityavailable
+                  </code>
                   <ArrowRight className="h-3 w-3" />
-                  <code className="bg-muted px-2 py-1 rounded">quantity_available</code>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    quantity_available
+                  </code>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">quantityonhand</code>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    quantityonhand
+                  </code>
                   <ArrowRight className="h-3 w-3" />
-                  <code className="bg-muted px-2 py-1 rounded">quantity_on_hand</code>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    quantity_on_hand
+                  </code>
                 </div>
               </div>
             </div>
@@ -399,7 +491,9 @@ export function NetSuiteFieldMappings({ integrationId, mappings }: NetSuiteField
               <h4 className="font-medium mb-2">Pricing</h4>
               <div className="grid gap-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <code className="bg-muted px-2 py-1 rounded">pricelevelname</code>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    pricelevelname
+                  </code>
                   <ArrowRight className="h-3 w-3" />
                   <code className="bg-muted px-2 py-1 rounded">price_tier</code>
                 </div>

@@ -1,27 +1,33 @@
 // PRP-013: NetSuite Integration Configuration Page
 import { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  CheckCircle2, 
-  AlertCircle, 
+import { redirect } from 'next/navigation'
+import {
+  Activity,
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Database,
+  Key,
   RefreshCw,
   Settings,
-  Key,
-  Activity,
-  Database,
-  ArrowRight
 } from 'lucide-react'
 import { NetSuiteConfigForm } from '@/components/features/integrations/netsuite/netsuite-config-form'
-import { NetSuiteSyncSettings } from '@/components/features/integrations/netsuite/netsuite-sync-settings'
 import { NetSuiteFieldMappings } from '@/components/features/integrations/netsuite/netsuite-field-mappings'
+import { NetSuiteSyncSettings } from '@/components/features/integrations/netsuite/netsuite-sync-settings'
 import { NetSuiteSyncStatus } from '@/components/features/integrations/netsuite/netsuite-sync-status'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { createClient } from '@/lib/supabase/server'
 import { testConnection } from '@/app/actions/integrations'
 
 export const metadata: Metadata = {
@@ -35,11 +41,15 @@ interface PageProps {
   }
 }
 
-export default async function NetSuiteIntegrationPage({ searchParams }: PageProps) {
+export default async function NetSuiteIntegrationPage({
+  searchParams,
+}: PageProps) {
   const supabase = await createClient()
-  
+
   // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -63,15 +73,17 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
     // Get specific integration
     const { data } = await supabase
       .from('integrations')
-      .select(`
+      .select(
+        `
         *,
         netsuite_config (*)
-      `)
+      `
+      )
       .eq('id', searchParams.id)
       .eq('organization_id', profile.organization_id)
       .eq('platform', 'netsuite')
       .single()
-    
+
     integration = data
     if (integration) {
       netsuiteConfig = integration.netsuite_config?.[0]
@@ -80,14 +92,16 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
     // Check for existing NetSuite integration
     const { data } = await supabase
       .from('integrations')
-      .select(`
+      .select(
+        `
         *,
         netsuite_config (*)
-      `)
+      `
+      )
       .eq('organization_id', profile.organization_id)
       .eq('platform', 'netsuite')
       .single()
-    
+
     if (data) {
       integration = data
       netsuiteConfig = data.netsuite_config?.[0]
@@ -103,19 +117,26 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
         <div>
           <h1 className="text-3xl font-bold">NetSuite Integration</h1>
           <p className="text-muted-foreground mt-1">
-            Connect your NetSuite ERP to sync products, inventory, and pricing data
+            Connect your NetSuite ERP to sync products, inventory, and pricing
+            data
           </p>
         </div>
         {integration && (
           <div className="flex items-center gap-2">
-            <Badge variant={integration.status === 'active' ? 'default' : 'secondary'}>
+            <Badge
+              variant={
+                integration.status === 'active' ? 'default' : 'secondary'
+              }
+            >
               {integration.status}
             </Badge>
             {isConfigured && (
-              <form action={async () => {
-                'use server'
-                await testConnection(integration.id)
-              }}>
+              <form
+                action={async () => {
+                  'use server'
+                  await testConnection(integration.id)
+                }}
+              >
                 <Button variant="outline" size="sm">
                   <Activity className="mr-2 h-4 w-4" />
                   Test Connection
@@ -132,7 +153,8 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
           <CardHeader>
             <CardTitle>Get Started with NetSuite</CardTitle>
             <CardDescription>
-              Set up your NetSuite integration to automatically sync inventory and pricing data
+              Set up your NetSuite integration to automatically sync inventory
+              and pricing data
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -214,15 +236,25 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
               <CardContent className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Account ID</p>
-                    <p className="text-sm font-mono">{netsuiteConfig?.account_id || 'Not configured'}</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Account ID
+                    </p>
+                    <p className="text-sm font-mono">
+                      {netsuiteConfig?.account_id || 'Not configured'}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Data Center</p>
-                    <p className="text-sm">{netsuiteConfig?.datacenter_url || 'Not configured'}</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Data Center
+                    </p>
+                    <p className="text-sm">
+                      {netsuiteConfig?.datacenter_url || 'Not configured'}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Authentication</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Authentication
+                    </p>
                     <div className="flex items-center gap-2">
                       {hasCredentials ? (
                         <>
@@ -240,7 +272,9 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Last Updated
+                    </p>
                     <p className="text-sm">
                       {new Date(integration.updated_at).toLocaleDateString()}
                     </p>
@@ -252,13 +286,12 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
                     <Key className="h-4 w-4" />
                     <AlertTitle>Authentication Required</AlertTitle>
                     <AlertDescription>
-                      Connect your NetSuite account using OAuth 2.0 to start syncing data.
-                      <Link href={`/api/integrations/netsuite/auth?integration_id=${integration.id}`}>
-                        <Button 
-                          variant="default" 
-                          size="sm" 
-                          className="mt-2"
-                        >
+                      Connect your NetSuite account using OAuth 2.0 to start
+                      syncing data.
+                      <Link
+                        href={`/api/integrations/netsuite/auth?integration_id=${integration.id}`}
+                      >
+                        <Button variant="default" size="sm" className="mt-2">
                           Connect NetSuite Account
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
@@ -267,8 +300,8 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
                   </Alert>
                 )}
 
-                <NetSuiteConfigForm 
-                  organizationId={profile.organization_id} 
+                <NetSuiteConfigForm
+                  organizationId={profile.organization_id}
                   integration={integration}
                   config={netsuiteConfig}
                 />
@@ -277,23 +310,21 @@ export default async function NetSuiteIntegrationPage({ searchParams }: PageProp
           </TabsContent>
 
           <TabsContent value="sync" className="space-y-4">
-            <NetSuiteSyncSettings 
+            <NetSuiteSyncSettings
               integrationId={integration.id}
               config={netsuiteConfig}
             />
           </TabsContent>
 
           <TabsContent value="mappings" className="space-y-4">
-            <NetSuiteFieldMappings 
+            <NetSuiteFieldMappings
               integrationId={integration.id}
               mappings={netsuiteConfig?.field_mappings || {}}
             />
           </TabsContent>
 
           <TabsContent value="status" className="space-y-4">
-            <NetSuiteSyncStatus 
-              integrationId={integration.id}
-            />
+            <NetSuiteSyncStatus integrationId={integration.id} />
           </TabsContent>
         </Tabs>
       )}

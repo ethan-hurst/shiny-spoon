@@ -1,22 +1,29 @@
 import { type Metadata } from 'next'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 import {
-  Github,
-  FileJson,
   Braces,
+  Check,
   Code2,
   Download,
   ExternalLink,
-  Check,
+  FileJson,
+  Github,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export const metadata: Metadata = {
   title: 'SDKs & Libraries',
-  description: 'Official TruthSource SDKs and libraries for Node.js, Python, PHP, and more.',
+  description:
+    'Official TruthSource SDKs and libraries for Node.js, Python, PHP, and more.',
 }
 
 const sdks = [
@@ -193,15 +200,16 @@ export default function SDKsPage() {
       <div className="space-y-4">
         <h1 className="text-3xl font-bold tracking-tight">SDKs & Libraries</h1>
         <p className="text-lg text-muted-foreground">
-          Official TruthSource SDKs make it easy to integrate our API into your application.
-          Choose your preferred language and get started in minutes.
+          Official TruthSource SDKs make it easy to integrate our API into your
+          application. Choose your preferred language and get started in
+          minutes.
         </p>
       </div>
 
       {/* Official SDKs */}
       <div className="space-y-8">
         <h2 className="text-2xl font-semibold">Official SDKs</h2>
-        
+
         <Tabs defaultValue="nodejs" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             {sdks.map((sdk) => {
@@ -218,7 +226,11 @@ export default function SDKsPage() {
           {sdks.map((sdk) => {
             const Icon = sdk.icon
             return (
-              <TabsContent key={sdk.id} value={sdk.id} className="space-y-6 mt-6">
+              <TabsContent
+                key={sdk.id}
+                value={sdk.id}
+                className="space-y-6 mt-6"
+              >
                 <Card>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -256,7 +268,10 @@ export default function SDKsPage() {
                       <h3 className="font-semibold mb-2">Features</h3>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {sdk.features.map((feature) => (
-                          <div key={feature} className="flex items-center gap-2">
+                          <div
+                            key={feature}
+                            className="flex items-center gap-2"
+                          >
                             <Check className="h-4 w-4 text-green-600" />
                             <span className="text-sm">{feature}</span>
                           </div>
@@ -267,19 +282,31 @@ export default function SDKsPage() {
                     {/* Links */}
                     <div className="flex gap-4 pt-4">
                       <Button variant="outline" asChild>
-                        <Link href={sdk.githubUrl} target="_blank" rel="noopener noreferrer">
+                        <Link
+                          href={sdk.githubUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           <Github className="mr-2 h-4 w-4" />
                           View on GitHub
                         </Link>
                       </Button>
                       <Button variant="outline" asChild>
-                        <Link href={sdk.docsUrl} target="_blank" rel="noopener noreferrer">
+                        <Link
+                          href={sdk.docsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Documentation
                         </Link>
                       </Button>
                       <Button variant="outline" asChild>
-                        <Link href={`${sdk.githubUrl}/releases`} target="_blank" rel="noopener noreferrer">
+                        <Link
+                          href={`${sdk.githubUrl}/releases`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           <Download className="mr-2 h-4 w-4" />
                           Download
                         </Link>
@@ -357,8 +384,8 @@ export default function SDKsPage() {
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold">Community Libraries</h2>
         <p className="text-muted-foreground">
-          These libraries are maintained by the community. We encourage you to evaluate them
-          based on your specific needs.
+          These libraries are maintained by the community. We encourage you to
+          evaluate them based on your specific needs.
         </p>
         <div className="grid gap-4 md:grid-cols-2">
           {communityLibraries.map((lib) => (
@@ -390,19 +417,19 @@ export default function SDKsPage() {
         <CardHeader>
           <CardTitle>Build Your Own</CardTitle>
           <CardDescription>
-            Don't see your language? Our REST API is easy to integrate with any HTTP client.
+            Don't see your language? Our REST API is easy to integrate with any
+            HTTP client.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            All you need is an HTTP client that can send JSON requests with an API key header.
-            Check out our API documentation for complete endpoint details.
+            All you need is an HTTP client that can send JSON requests with an
+            API key header. Check out our API documentation for complete
+            endpoint details.
           </p>
           <div className="flex gap-4">
             <Button asChild>
-              <Link href="/developers/docs">
-                View API Documentation
-              </Link>
+              <Link href="/developers/docs">View API Documentation</Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="/developers/guides/build-sdk">
@@ -447,8 +474,8 @@ export default function SDKsPage() {
           </div>
           <div className="pt-4 border-t">
             <p className="text-sm text-muted-foreground">
-              All official SDKs are maintained by TruthSource and receive regular updates.
-              For support, please visit our{' '}
+              All official SDKs are maintained by TruthSource and receive
+              regular updates. For support, please visit our{' '}
               <Link href="/support" className="text-primary hover:underline">
                 support center
               </Link>{' '}

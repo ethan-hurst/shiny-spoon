@@ -9,9 +9,11 @@ import type { Database } from '@/supabase/types/database'
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not set. Some features will be unavailable.')
+    console.warn(
+      'Supabase environment variables not set. Some features will be unavailable.'
+    )
     // Return a mock client during build time
     return {
       auth: {
@@ -27,41 +29,41 @@ export function createClient() {
     } as any
   }
 
-  return createServerClient<Database>(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        async getAll() {
-          const cookieStore = await cookies()
-          return cookieStore.getAll()
-        },
-        async setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-          try {
-            const cookieStore = await cookies()
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          } catch {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      async getAll() {
+        const cookieStore = await cookies()
+        return cookieStore.getAll()
       },
-    }
-  )
+      async setAll(
+        cookiesToSet: Array<{ name: string; value: string; options?: any }>
+      ) {
+        try {
+          const cookieStore = await cookies()
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options)
+          })
+        } catch {
+          // The `set` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
+    },
+  })
 }
 
 // Async version for when you need to await cookies
 export async function createAsyncClient() {
   const cookieStore = await cookies()
-  
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
+
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not set. Some features will be unavailable.')
+    console.warn(
+      'Supabase environment variables not set. Some features will be unavailable.'
+    )
     // Return a mock client during build time
     return {
       auth: {
@@ -77,28 +79,26 @@ export async function createAsyncClient() {
     } as any
   }
 
-  return createServerClient<Database>(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        async getAll() {
-          return cookieStore.getAll()
-        },
-        async setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          } catch {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      async getAll() {
+        return cookieStore.getAll()
       },
-    }
-  )
+      async setAll(
+        cookiesToSet: Array<{ name: string; value: string; options?: any }>
+      ) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options)
+          })
+        } catch {
+          // The `set` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
+        }
+      },
+    },
+  })
 }
 
 // Helper function to get the current user

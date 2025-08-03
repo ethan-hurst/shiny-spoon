@@ -1,6 +1,6 @@
 import { allDocs } from 'contentlayer2/generated'
-import { DocsSidebar } from '@/components/docs/sidebar'
 import { DocsSearch } from '@/components/docs/search'
+import { DocsSidebar } from '@/components/docs/sidebar'
 import { VersionSelector } from '@/components/docs/version-selector'
 
 export default function DocsLayout({
@@ -9,14 +9,17 @@ export default function DocsLayout({
   children: React.ReactNode
 }) {
   // Type-safe grouping of docs by category
-  const docsByCategory = allDocs.reduce<Record<string, typeof allDocs>>((acc, doc) => {
-    const category = doc.category || 'Uncategorized'
-    if (!acc[category]) {
-      acc[category] = []
-    }
-    acc[category].push(doc)
-    return acc
-  }, {})
+  const docsByCategory = allDocs.reduce<Record<string, typeof allDocs>>(
+    (acc, doc) => {
+      const category = doc.category || 'Uncategorized'
+      if (!acc[category]) {
+        acc[category] = []
+      }
+      acc[category].push(doc)
+      return acc
+    },
+    {}
+  )
 
   // Sort docs within each category by order
   Object.keys(docsByCategory).forEach((category) => {

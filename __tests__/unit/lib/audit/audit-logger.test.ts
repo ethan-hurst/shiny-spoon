@@ -1,7 +1,11 @@
-import { AuditLogger, withAuditLog } from '@/lib/audit/audit-logger'
-import { createServerClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
-import type { AuditLogEntry, AuditAction, EntityType } from '@/lib/audit/audit-logger'
+import { AuditLogger, withAuditLog } from '@/lib/audit/audit-logger'
+import type {
+  AuditAction,
+  AuditLogEntry,
+  EntityType,
+} from '@/lib/audit/audit-logger'
+import { createServerClient } from '@/lib/supabase/server'
 
 jest.mock('@/lib/supabase/server')
 jest.mock('next/headers')
@@ -10,9 +14,9 @@ jest.mock('next/headers')
 const mockRandomUUID = jest.fn(() => 'test-uuid-123')
 Object.defineProperty(global, 'crypto', {
   value: {
-    randomUUID: mockRandomUUID
+    randomUUID: mockRandomUUID,
   },
-  writable: true
+  writable: true,
 })
 
 describe('AuditLogger', () => {
@@ -25,13 +29,13 @@ describe('AuditLogger', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Reset crypto.randomUUID mock
     mockRandomUUID.mockReturnValue('test-uuid-123')
-    
+
     // Mock console.error
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
-    
+
     // Mock headers
     mockHeaders = headers as jest.MockedFunction<typeof headers>
     mockHeaders.mockReturnValue({
@@ -46,9 +50,9 @@ describe('AuditLogger', () => {
           default:
             return null
         }
-      })
+      }),
     } as any)
-    
+
     // Mock Supabase client
     mockUserProfilesQuery = {
       select: jest.fn().mockReturnThis(),
@@ -57,23 +61,25 @@ describe('AuditLogger', () => {
         data: {
           organization_id: 'org-123',
           role: 'admin',
-          full_name: 'Test User'
-        }
-      })
+          full_name: 'Test User',
+        },
+      }),
     }
-    
-    mockAuditLogsInsert = jest.fn().mockResolvedValue({ data: null, error: null })
-    
+
+    mockAuditLogsInsert = jest
+      .fn()
+      .mockResolvedValue({ data: null, error: null })
+
     mockSupabase = {
       auth: {
         getUser: jest.fn().mockResolvedValue({
-          data: { 
-            user: { 
-              id: 'user-123', 
-              email: 'test@example.com' 
-            } 
-          }
-        })
+          data: {
+            user: {
+              id: 'user-123',
+              email: 'test@example.com',
+            },
+          },
+        }),
       },
       from: jest.fn((table: string) => {
         if (table === 'user_profiles') {
@@ -81,15 +87,14 @@ describe('AuditLogger', () => {
         }
         if (table === 'audit_logs') {
           return {
-            insert: mockAuditLogsInsert
+            insert: mockAuditLogsInsert,
           }
         }
         return {}
-      })
+      }),
     }
-    
     ;(createServerClient as jest.Mock).mockReturnValue(mockSupabase)
-    
+
     logger = new AuditLogger()
   })
 
@@ -103,7 +108,7 @@ describe('AuditLogger', () => {
       entityType: 'product',
       entityId: 'prod-123',
       entityName: 'Test Product',
-      newValues: { name: 'Test Product', price: 99.99 }
+      newValues: { name: 'Test Product', price: 99.99 },
     }
 
     it('should create audit log entry with user context', async () => {
@@ -125,13 +130,13 @@ describe('AuditLogger', () => {
         new_values: { name: 'Test Product', price: 99.99 },
         metadata: { user_name: 'Test User' },
         ip_address: '192.168.1.1',
-        user_agent: 'Mozilla/5.0 Test Browser'
+        user_agent: 'Mozilla/5.0 Test Browser',
       })
     })
 
     it('should handle missing user gracefully', async () => {
       mockSupabase.auth.getUser.mockResolvedValueOnce({
-        data: { user: null }
+        data: { user: null },
       })
 
       await logger.log(validEntry)
@@ -141,7 +146,7 @@ describe('AuditLogger', () => {
 
     it('should handle missing organization gracefully', async () => {
       mockUserProfilesQuery.single.mockResolvedValueOnce({
-        data: null
+        data: null,
       })
 
       await logger.log(validEntry)
@@ -155,8 +160,8 @@ describe('AuditLogger', () => {
         metadata: {
           source: 'bulk_import',
           importId: 'import-123',
-          recordCount: 100
-        }
+          recordCount: 100,
+        },
       }
 
       await logger.log(entryWithMetadata)
@@ -168,8 +173,8 @@ describe('AuditLogger', () => {
             source: 'bulk_import',
             importId: 'import-123',
             recordCount: 100,
-            user_name: 'Test User'
-          }
+            user_name: 'Test User',
+          },
         })
       )
     })
@@ -181,7 +186,7 @@ describe('AuditLogger', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
       expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          ip_address: '192.168.1.1' // First IP from x-forwarded-for
+          ip_address: '192.168.1.1', // First IP from x-forwarded-for
         })
       )
 
@@ -190,7 +195,7 @@ describe('AuditLogger', () => {
         get: jest.fn((header: string) => {
           if (header === 'x-real-ip') return '10.0.0.1'
           return null
-        })
+        }),
       } as any)
 
       await logger.log(validEntry)
@@ -198,7 +203,7 @@ describe('AuditLogger', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
       expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          ip_address: '10.0.0.1'
+          ip_address: '10.0.0.1',
         })
       )
     })
@@ -215,12 +220,14 @@ describe('AuditLogger', () => {
     })
 
     it('should work with custom supabase client', async () => {
-      const customAuditLogsInsert = jest.fn().mockResolvedValue({ data: null, error: null })
+      const customAuditLogsInsert = jest
+        .fn()
+        .mockResolvedValue({ data: null, error: null })
       const customSupabase = {
         auth: {
           getUser: jest.fn().mockResolvedValue({
-            data: { user: { id: 'custom-user', email: 'custom@example.com' } }
-          })
+            data: { user: { id: 'custom-user', email: 'custom@example.com' } },
+          }),
         },
         from: jest.fn((table: string) => {
           if (table === 'user_profiles') {
@@ -231,18 +238,18 @@ describe('AuditLogger', () => {
                 data: {
                   organization_id: 'custom-org',
                   role: 'user',
-                  full_name: 'Custom User'
-                }
-              })
+                  full_name: 'Custom User',
+                },
+              }),
             }
           }
           if (table === 'audit_logs') {
             return {
-              insert: customAuditLogsInsert
+              insert: customAuditLogsInsert,
             }
           }
           return {}
-        })
+        }),
       }
 
       const customLogger = new AuditLogger(customSupabase as any)
@@ -259,7 +266,7 @@ describe('AuditLogger', () => {
         id: 'prod-123',
         name: 'New Product',
         sku: 'SKU-001',
-        price: 99.99
+        price: 99.99,
       }
 
       await logger.logCreate('product', entity, { source: 'api' })
@@ -272,7 +279,7 @@ describe('AuditLogger', () => {
           entity_id: 'prod-123',
           entity_name: 'New Product',
           new_values: entity,
-          metadata: expect.objectContaining({ source: 'api' })
+          metadata: expect.objectContaining({ source: 'api' }),
         })
       )
     })
@@ -281,8 +288,8 @@ describe('AuditLogger', () => {
       const oldValues = { name: 'Old Product', price: 79.99 }
       const newValues = { name: 'Updated Product', price: 99.99 }
 
-      await logger.logUpdate('product', 'prod-123', oldValues, newValues, { 
-        changedBy: 'price_import' 
+      await logger.logUpdate('product', 'prod-123', oldValues, newValues, {
+        changedBy: 'price_import',
       })
 
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
@@ -294,7 +301,7 @@ describe('AuditLogger', () => {
           entity_name: 'Updated Product',
           old_values: oldValues,
           new_values: newValues,
-          metadata: expect.objectContaining({ changedBy: 'price_import' })
+          metadata: expect.objectContaining({ changedBy: 'price_import' }),
         })
       )
     })
@@ -303,7 +310,7 @@ describe('AuditLogger', () => {
       const entity = {
         id: 'prod-123',
         name: 'Deleted Product',
-        sku: 'SKU-001'
+        sku: 'SKU-001',
       }
 
       await logger.logDelete('product', entity, { reason: 'discontinued' })
@@ -316,15 +323,15 @@ describe('AuditLogger', () => {
           entity_id: 'prod-123',
           entity_name: 'Deleted Product',
           old_values: entity,
-          metadata: expect.objectContaining({ reason: 'discontinued' })
+          metadata: expect.objectContaining({ reason: 'discontinued' }),
         })
       )
     })
 
     it('should log export action', async () => {
-      const filters = { 
-        status: 'active', 
-        category: 'electronics' 
+      const filters = {
+        status: 'active',
+        category: 'electronics',
       }
 
       await logger.logExport('product', filters, 150)
@@ -334,10 +341,10 @@ describe('AuditLogger', () => {
         expect.objectContaining({
           action: 'export',
           entity_type: 'product',
-          metadata: expect.objectContaining({ 
+          metadata: expect.objectContaining({
             filters,
-            recordCount: 150
-          })
+            recordCount: 150,
+          }),
         })
       )
     })
@@ -351,7 +358,7 @@ describe('AuditLogger', () => {
           action: 'view',
           entity_type: 'order',
           entity_id: 'ord-123',
-          entity_name: 'Order #12345'
+          entity_name: 'Order #12345',
         })
       )
     })
@@ -361,7 +368,7 @@ describe('AuditLogger', () => {
       const entityWithTitle = {
         id: 'rule-123',
         title: 'Holiday Discount',
-        discount: 20
+        discount: 20,
       }
 
       await logger.logCreate('pricing_rule', entityWithTitle)
@@ -369,7 +376,7 @@ describe('AuditLogger', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
       expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          entity_name: 'Holiday Discount'
+          entity_name: 'Holiday Discount',
         })
       )
 
@@ -377,7 +384,7 @@ describe('AuditLogger', () => {
       const entityWithSku = {
         id: 'inv-123',
         sku: 'SKU-001',
-        quantity: 100
+        quantity: 100,
       }
 
       await logger.logCreate('inventory', entityWithSku)
@@ -385,7 +392,7 @@ describe('AuditLogger', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
       expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          entity_name: 'SKU-001'
+          entity_name: 'SKU-001',
         })
       )
     })
@@ -393,20 +400,17 @@ describe('AuditLogger', () => {
 
   describe('withAuditLog wrapper', () => {
     it('should wrap successful actions with audit logging', async () => {
-      const mockAction = jest.fn().mockResolvedValue({ 
-        id: 'result-123', 
-        success: true 
+      const mockAction = jest.fn().mockResolvedValue({
+        id: 'result-123',
+        success: true,
       })
 
-      const auditedAction = withAuditLog(
-        mockAction,
-        (args, result) => ({
-          action: 'create',
-          entityType: 'product',
-          entityId: result?.id,
-          newValues: args[0]
-        })
-      )
+      const auditedAction = withAuditLog(mockAction, (args, result) => ({
+        action: 'create',
+        entityType: 'product',
+        entityId: result?.id,
+        newValues: args[0],
+      }))
 
       const input = { name: 'Test Product', price: 99.99 }
       const result = await auditedAction(input)
@@ -419,22 +423,21 @@ describe('AuditLogger', () => {
           action: 'create',
           entity_type: 'product',
           entity_id: 'result-123',
-          new_values: input
+          new_values: input,
         })
       )
     })
 
     it('should log failed actions with error metadata', async () => {
-      const mockAction = jest.fn().mockRejectedValue(new Error('Validation failed'))
+      const mockAction = jest
+        .fn()
+        .mockRejectedValue(new Error('Validation failed'))
 
-      const auditedAction = withAuditLog(
-        mockAction,
-        (args) => ({
-          action: 'create',
-          entityType: 'product',
-          newValues: args[0]
-        })
-      )
+      const auditedAction = withAuditLog(mockAction, (args) => ({
+        action: 'create',
+        entityType: 'product',
+        newValues: args[0],
+      }))
 
       const input = { name: 'Invalid Product' }
 
@@ -448,26 +451,26 @@ describe('AuditLogger', () => {
           new_values: input,
           metadata: expect.objectContaining({
             error: 'Validation failed',
-            failed: true
-          })
+            failed: true,
+          }),
         })
       )
     })
 
     it('should preserve function signature and types', async () => {
-      const typedAction = async (id: string, data: { name: string }): Promise<{ success: boolean }> => {
+      const typedAction = async (
+        id: string,
+        data: { name: string }
+      ): Promise<{ success: boolean }> => {
         return { success: true }
       }
 
-      const auditedAction = withAuditLog(
-        typedAction,
-        ([id, data]) => ({
-          action: 'update' as AuditAction,
-          entityType: 'product' as EntityType,
-          entityId: id,
-          newValues: data
-        })
-      )
+      const auditedAction = withAuditLog(typedAction, ([id, data]) => ({
+        action: 'update' as AuditAction,
+        entityType: 'product' as EntityType,
+        entityId: id,
+        newValues: data,
+      }))
 
       // TypeScript should recognize the correct signature
       const result = await auditedAction('prod-123', { name: 'Updated' })
@@ -479,13 +482,10 @@ describe('AuditLogger', () => {
 
       const mockAction = jest.fn().mockResolvedValue({ success: true })
 
-      const auditedAction = withAuditLog(
-        mockAction,
-        () => ({
-          action: 'create',
-          entityType: 'product'
-        })
-      )
+      const auditedAction = withAuditLog(mockAction, () => ({
+        action: 'create',
+        entityType: 'product',
+      }))
 
       const result = await auditedAction()
 
@@ -501,40 +501,49 @@ describe('AuditLogger', () => {
   describe('edge cases', () => {
     it('should handle missing headers gracefully', async () => {
       mockHeaders.mockReturnValueOnce({
-        get: jest.fn(() => null)
+        get: jest.fn(() => null),
       } as any)
 
       await logger.log({
         action: 'view',
         entityType: 'product',
-        entityId: 'prod-123'
+        entityId: 'prod-123',
       })
 
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
       expect(mockAuditLogsInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           ip_address: null,
-          user_agent: ''
+          user_agent: '',
         })
       )
     })
 
     it('should handle all action types', async () => {
       const actions: AuditAction[] = [
-        'create', 'update', 'delete', 'view', 'export', 
-        'login', 'logout', 'invite', 'sync', 'approve', 'reject'
+        'create',
+        'update',
+        'delete',
+        'view',
+        'export',
+        'login',
+        'logout',
+        'invite',
+        'sync',
+        'approve',
+        'reject',
       ]
 
       for (const action of actions) {
         await logger.log({
           action,
-          entityType: 'product'
+          entityType: 'product',
         })
 
         expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
         expect(mockAuditLogsInsert).toHaveBeenCalledWith(
           expect.objectContaining({
-            action: action
+            action: action,
           })
         )
       }
@@ -542,20 +551,27 @@ describe('AuditLogger', () => {
 
     it('should handle all entity types', async () => {
       const entityTypes: EntityType[] = [
-        'product', 'inventory', 'order', 'customer', 
-        'pricing_rule', 'warehouse', 'integration', 'user', 'organization'
+        'product',
+        'inventory',
+        'order',
+        'customer',
+        'pricing_rule',
+        'warehouse',
+        'integration',
+        'user',
+        'organization',
       ]
 
       for (const entityType of entityTypes) {
         await logger.log({
           action: 'view',
-          entityType
+          entityType,
         })
 
         expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
         expect(mockAuditLogsInsert).toHaveBeenCalledWith(
           expect.objectContaining({
-            entity_type: entityType
+            entity_type: entityType,
           })
         )
       }

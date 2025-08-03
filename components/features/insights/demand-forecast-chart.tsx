@@ -1,14 +1,38 @@
 // components/features/insights/demand-forecast-chart.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useEffect, useState } from 'react'
 import { RefreshCw, TrendingUp } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { generateDemandForecasts, getHistoricalDemand } from '@/app/actions/ai-insights'
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  generateDemandForecasts,
+  getHistoricalDemand,
+} from '@/app/actions/ai-insights'
 import type { AIPrediction } from '@/types/ai.types'
 
 interface DemandForecastChartProps {
@@ -16,7 +40,10 @@ interface DemandForecastChartProps {
   predictions: AIPrediction[]
 }
 
-export function DemandForecastChart({ organizationId, predictions }: DemandForecastChartProps) {
+export function DemandForecastChart({
+  organizationId,
+  predictions,
+}: DemandForecastChartProps) {
   const [forecasts, setForecasts] = useState<any[]>([])
   const [selectedForecast, setSelectedForecast] = useState<any>(null)
   const [chartData, setChartData] = useState<any[]>([])
@@ -62,7 +89,7 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
 
     const prepareChartData = async () => {
       const historical = await loadHistoricalData(
-        selectedForecast.productId, 
+        selectedForecast.productId,
         selectedForecast.warehouseId
       )
 
@@ -76,7 +103,7 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
             date: point.date,
             historical: point.quantity,
             forecast: null,
-            type: 'historical'
+            type: 'historical',
           })
         })
       }
@@ -86,12 +113,12 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
         selectedForecast.forecast.forEach((point: any, index: number) => {
           const forecastDate = new Date()
           forecastDate.setDate(forecastDate.getDate() + index + 1)
-          
+
           combined.push({
             date: forecastDate.toISOString().split('T')[0],
             historical: null,
             forecast: Math.round(point.predicted_quantity * 100) / 100,
-            type: 'forecast'
+            type: 'forecast',
           })
         })
       }
@@ -111,12 +138,10 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
             AI-powered demand predictions for inventory planning
           </p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={loadForecasts}
-          disabled={isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+        <Button variant="outline" onClick={loadForecasts} disabled={isLoading}>
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+          />
           Refresh
         </Button>
       </div>
@@ -134,7 +159,8 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
             <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Forecast Data</h3>
             <p className="text-muted-foreground">
-              Insufficient historical data to generate demand forecasts. More sales data is needed.
+              Insufficient historical data to generate demand forecasts. More
+              sales data is needed.
             </p>
           </CardContent>
         </Card>
@@ -149,10 +175,10 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Select 
-                value={selectedForecast?.productId || ''} 
+              <Select
+                value={selectedForecast?.productId || ''}
                 onValueChange={(value) => {
-                  const forecast = forecasts.find(f => f.productId === value)
+                  const forecast = forecasts.find((f) => f.productId === value)
                   setSelectedForecast(forecast)
                 }}
               >
@@ -161,7 +187,10 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
                 </SelectTrigger>
                 <SelectContent>
                   {forecasts.map((forecast) => (
-                    <SelectItem key={forecast.productId} value={forecast.productId}>
+                    <SelectItem
+                      key={forecast.productId}
+                      value={forecast.productId}
+                    >
                       {forecast.productName} - {forecast.warehouseName}
                     </SelectItem>
                   ))}
@@ -176,7 +205,7 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
               <CardHeader>
                 <CardTitle>{selectedForecast.productName}</CardTitle>
                 <CardDescription>
-                  30-day demand forecast using {selectedForecast.method} method 
+                  30-day demand forecast using {selectedForecast.method} method
                   (Confidence: {Math.round(selectedForecast.confidence * 100)}%)
                 </CardDescription>
               </CardHeader>
@@ -185,8 +214,8 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
                   <ResponsiveContainer>
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="date" 
+                      <XAxis
+                        dataKey="date"
                         tick={{ fontSize: 12 }}
                         tickFormatter={(value) => {
                           const date = new Date(value)
@@ -194,26 +223,28 @@ export function DemandForecastChart({ organizationId, predictions }: DemandForec
                         }}
                       />
                       <YAxis />
-                      <Tooltip 
+                      <Tooltip
                         labelFormatter={(value) => `Date: ${value}`}
                         formatter={(value, name) => [
                           value ? Math.round(value * 100) / 100 : 'N/A',
-                          name === 'historical' ? 'Historical Demand' : 'Forecast'
+                          name === 'historical'
+                            ? 'Historical Demand'
+                            : 'Forecast',
                         ]}
                       />
                       <Legend />
-                      <Line 
-                        type="monotone" 
-                        dataKey="historical" 
-                        stroke="#8884d8" 
+                      <Line
+                        type="monotone"
+                        dataKey="historical"
+                        stroke="#8884d8"
                         strokeWidth={2}
                         dot={{ r: 4 }}
                         name="Historical"
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="forecast" 
-                        stroke="#82ca9d" 
+                      <Line
+                        type="monotone"
+                        dataKey="forecast"
+                        stroke="#82ca9d"
                         strokeWidth={2}
                         strokeDasharray="5 5"
                         dot={{ r: 4 }}

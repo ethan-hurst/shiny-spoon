@@ -1,10 +1,10 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { productSchema } from '@/lib/validations/product'
-import { isFile } from '@/lib/utils/file'
 import { AuditLogger } from '@/lib/audit/audit-logger'
+import { createClient } from '@/lib/supabase/server'
+import { isFile } from '@/lib/utils/file'
+import { productSchema } from '@/lib/validations/product'
 
 // Image upload configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -429,7 +429,8 @@ export async function bulkImportProducts(csvData: string) {
   }>(csvData, {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_'),
+    transformHeader: (header) =>
+      header.trim().toLowerCase().replace(/\s+/g, '_'),
   })
 
   if (parseResult.errors.length > 0) {
@@ -778,19 +779,23 @@ export async function exportProducts(filters?: ProductFilters) {
   // Flatten data for CSV export
   const csvData = products.map((product) => {
     // Aggregate inventory data
-    const totalQuantity = product.inventory?.reduce(
-      (sum: number, inv: any) => sum + (inv.quantity || 0),
-      0
-    ) || 0
-    
-    const totalReserved = product.inventory?.reduce(
-      (sum: number, inv: any) => sum + (inv.reserved_quantity || 0),
-      0
-    ) || 0
+    const totalQuantity =
+      product.inventory?.reduce(
+        (sum: number, inv: any) => sum + (inv.quantity || 0),
+        0
+      ) || 0
 
-    const warehouses = product.inventory?.map(
-      (inv: any) => inv.warehouses?.name
-    ).filter(Boolean).join(', ') || ''
+    const totalReserved =
+      product.inventory?.reduce(
+        (sum: number, inv: any) => sum + (inv.reserved_quantity || 0),
+        0
+      ) || 0
+
+    const warehouses =
+      product.inventory
+        ?.map((inv: any) => inv.warehouses?.name)
+        .filter(Boolean)
+        .join(', ') || ''
 
     return {
       SKU: product.sku,

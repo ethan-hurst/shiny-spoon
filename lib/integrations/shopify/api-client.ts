@@ -1,18 +1,18 @@
 // PRP-014: Shopify GraphQL API Client
-import type { RateLimiter } from '../base-connector'
-import { 
-  ShopifyGraphQLResponse, 
-  ShopifyGraphQLError,
-  ShopifyBulkOperation,
+import {
   ShopifyAPIError,
-  ShopifyRateLimitError,
-  ShopifyProduct,
-  ShopifyOrder,
-  ShopifyCustomer,
-  ShopifyInventoryLevel,
   ShopifyB2BCatalog,
-  ShopifyShop
+  ShopifyBulkOperation,
+  ShopifyCustomer,
+  ShopifyGraphQLError,
+  ShopifyGraphQLResponse,
+  ShopifyInventoryLevel,
+  ShopifyOrder,
+  ShopifyProduct,
+  ShopifyRateLimitError,
+  ShopifyShop,
 } from '@/types/shopify.types'
+import type { RateLimiter } from '../base-connector'
 
 interface ShopifyApiConfig {
   shopDomain: string
@@ -41,7 +41,7 @@ export class ShopifyApiClient {
     this.headers = {
       'X-Shopify-Access-Token': config.accessToken,
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      Accept: 'application/json',
     }
     this.rateLimiter = config.rateLimiter || null
   }
@@ -82,14 +82,16 @@ export class ShopifyApiClient {
   /**
    * Get products with pagination
    */
-  async getProducts(options: {
-    limit?: number
-    cursor?: string
-    status?: 'active' | 'archived' | 'draft'
-    query?: string
-  } = {}): Promise<ShopifyProduct[]> {
+  async getProducts(
+    options: {
+      limit?: number
+      cursor?: string
+      status?: 'active' | 'archived' | 'draft'
+      query?: string
+    } = {}
+  ): Promise<ShopifyProduct[]> {
     const { limit = 50, cursor, status, query } = options
-    
+
     const graphqlQuery = `
       query getProducts($first: Int!, $after: String, $query: String) {
         products(first: $first, after: $after, query: $query) {
@@ -129,10 +131,10 @@ export class ShopifyApiClient {
     }>(graphqlQuery, {
       first: limit,
       after: cursor,
-      query: queryString.trim() || undefined
+      query: queryString.trim() || undefined,
     })
 
-    return response.data!.products.edges.map(edge => edge.node)
+    return response.data!.products.edges.map((edge) => edge.node)
   }
 
   /**
@@ -159,20 +161,22 @@ export class ShopifyApiClient {
       }
     }>(query, { first: 250 })
 
-    return response.data!.inventoryLevels.edges.map(edge => edge.node)
+    return response.data!.inventoryLevels.edges.map((edge) => edge.node)
   }
 
   /**
    * Get orders with pagination
    */
-  async getOrders(options: {
-    limit?: number
-    cursor?: string
-    status?: string
-    financial_status?: string
-  } = {}): Promise<ShopifyOrder[]> {
+  async getOrders(
+    options: {
+      limit?: number
+      cursor?: string
+      status?: string
+      financial_status?: string
+    } = {}
+  ): Promise<ShopifyOrder[]> {
     const { limit = 50, cursor, status, financial_status } = options
-    
+
     const query = `
       query getOrders($first: Int!, $after: String, $query: String) {
         orders(first: $first, after: $after, query: $query) {
@@ -275,22 +279,24 @@ export class ShopifyApiClient {
     }>(query, {
       first: limit,
       after: cursor,
-      query: queryString.trim() || undefined
+      query: queryString.trim() || undefined,
     })
 
-    return response.data!.orders.edges.map(edge => edge.node)
+    return response.data!.orders.edges.map((edge) => edge.node)
   }
 
   /**
    * Get customers with pagination
    */
-  async getCustomers(options: {
-    limit?: number
-    cursor?: string
-    query?: string
-  } = {}): Promise<ShopifyCustomer[]> {
+  async getCustomers(
+    options: {
+      limit?: number
+      cursor?: string
+      query?: string
+    } = {}
+  ): Promise<ShopifyCustomer[]> {
     const { limit = 50, cursor, query } = options
-    
+
     const graphqlQuery = `
       query getCustomers($first: Int!, $after: String, $query: String) {
         customers(first: $first, after: $after, query: $query) {
@@ -322,10 +328,10 @@ export class ShopifyApiClient {
     }>(graphqlQuery, {
       first: limit,
       after: cursor,
-      query: query || undefined
+      query: query || undefined,
     })
 
-    return response.data!.customers.edges.map(edge => edge.node)
+    return response.data!.customers.edges.map((edge) => edge.node)
   }
 
   /**
@@ -366,7 +372,7 @@ export class ShopifyApiClient {
         }
       }>(query)
 
-      return response.data!.b2bCatalogs.edges.map(edge => edge.node)
+      return response.data!.b2bCatalogs.edges.map((edge) => edge.node)
     } catch (error) {
       // B2B catalogs might not be available on all plans
       console.warn('B2B catalogs not available:', error)
@@ -377,7 +383,9 @@ export class ShopifyApiClient {
   /**
    * Create a product
    */
-  async createProduct(product: Partial<ShopifyProduct>): Promise<ShopifyProduct> {
+  async createProduct(
+    product: Partial<ShopifyProduct>
+  ): Promise<ShopifyProduct> {
     const mutation = `
       mutation productCreate($input: ProductInput!) {
         productCreate(input: $input) {
@@ -415,7 +423,10 @@ export class ShopifyApiClient {
   /**
    * Update a product
    */
-  async updateProduct(id: string, product: Partial<ShopifyProduct>): Promise<ShopifyProduct> {
+  async updateProduct(
+    id: string,
+    product: Partial<ShopifyProduct>
+  ): Promise<ShopifyProduct> {
     const mutation = `
       mutation productUpdate($input: ProductInput!) {
         productUpdate(input: $input) {
@@ -454,12 +465,12 @@ export class ShopifyApiClient {
    * Execute a GraphQL query with cost calculation and rate limiting
    */
   async query<T = any>(
-    query: string, 
+    query: string,
     variables?: Record<string, any>
   ): Promise<ShopifyGraphQLResponse<T>> {
     // Estimate query cost before execution
     const estimatedCost = this.estimateQueryCost(query)
-    
+
     // Acquire rate limit tokens
     if (this.rateLimiter) {
       await this.rateLimiter.acquire(estimatedCost)
@@ -469,31 +480,35 @@ export class ShopifyApiClient {
       // Add timeout support with AbortController
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-      
+
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({ query, variables }),
-        signal: controller.signal
+        signal: controller.signal,
       })
-      
+
       clearTimeout(timeoutId)
 
       // Handle rate limiting
       if (response.status === 429) {
-        const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10)
+        const retryAfter = parseInt(
+          response.headers.get('Retry-After') || '60',
+          10
+        )
         throw new ShopifyRateLimitError(
           'Shopify API rate limit exceeded',
           retryAfter
         )
       }
 
-      const result = await response.json() as ShopifyGraphQLResponse<T>
+      const result = (await response.json()) as ShopifyGraphQLResponse<T>
 
       // Update rate limit info from response
       if (result.extensions?.cost) {
         this.apiCallPoints = result.extensions.cost.actualQueryCost
-        this.apiCallLimit = result.extensions.cost.throttleStatus.maximumAvailable
+        this.apiCallLimit =
+          result.extensions.cost.throttleStatus.maximumAvailable
       }
 
       // Handle GraphQL errors
@@ -512,7 +527,7 @@ export class ShopifyApiClient {
       if (error instanceof ShopifyAPIError) {
         throw error
       }
-      
+
       // Handle timeout errors specifically
       if (error instanceof Error && error.name === 'AbortError') {
         throw new ShopifyAPIError(
@@ -520,7 +535,7 @@ export class ShopifyApiClient {
           'TIMEOUT_ERROR'
         )
       }
-      
+
       throw new ShopifyAPIError(
         `Shopify API request failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'NETWORK_ERROR'
@@ -532,7 +547,7 @@ export class ShopifyApiClient {
    * Execute a GraphQL mutation
    */
   async mutation<T = any>(
-    mutation: string, 
+    mutation: string,
     variables?: Record<string, any>
   ): Promise<ShopifyGraphQLResponse<T>> {
     return this.query<T>(mutation, variables)
@@ -561,10 +576,9 @@ export class ShopifyApiClient {
       }
     `
 
-    const response = await this.mutation<{ bulkOperationRunQuery: BulkOperationResult }>(
-      mutation, 
-      { query }
-    )
+    const response = await this.mutation<{
+      bulkOperationRunQuery: BulkOperationResult
+    }>(mutation, { query })
 
     if (!response.data) {
       throw new ShopifyAPIError('No data returned from bulk operation mutation')
@@ -602,7 +616,9 @@ export class ShopifyApiClient {
       }
     `
 
-    const response = await this.query<{ node: ShopifyBulkOperation }>(query, { id })
+    const response = await this.query<{ node: ShopifyBulkOperation }>(query, {
+      id,
+    })
 
     if (!response.data?.node) {
       throw new ShopifyAPIError('Bulk operation not found', 'NOT_FOUND', 404)
@@ -631,7 +647,7 @@ export class ShopifyApiClient {
     `
 
     const response = await this.mutation<{ bulkOperationCancel: any }>(
-      mutation, 
+      mutation,
       { id }
     )
 
@@ -650,7 +666,7 @@ export class ShopifyApiClient {
     return {
       used: this.apiCallPoints,
       limit: this.apiCallLimit,
-      available: this.apiCallLimit - this.apiCallPoints
+      available: this.apiCallLimit - this.apiCallPoints,
     }
   }
 
@@ -686,7 +702,7 @@ export class ShopifyApiClient {
    */
   private handleGraphQLErrors(errors: ShopifyGraphQLError[]): never {
     const error = errors[0]
-    
+
     // Check for throttling
     if (error.extensions?.code === 'THROTTLED') {
       throw new ShopifyRateLimitError('GraphQL API throttled', 60)
@@ -696,12 +712,7 @@ export class ShopifyApiClient {
     const errorCode = error.extensions?.code || 'GRAPHQL_ERROR'
     const statusCode = this.mapErrorCodeToStatus(errorCode)
 
-    throw new ShopifyAPIError(
-      error.message,
-      errorCode,
-      statusCode,
-      errors
-    )
+    throw new ShopifyAPIError(error.message, errorCode, statusCode, errors)
   }
 
   /**
@@ -709,13 +720,13 @@ export class ShopifyApiClient {
    */
   private mapErrorCodeToStatus(code: string): number {
     const errorMap: Record<string, number> = {
-      'THROTTLED': 429,
-      'ACCESS_DENIED': 403,
-      'FORBIDDEN': 403,
-      'NOT_FOUND': 404,
-      'INTERNAL_SERVER_ERROR': 500,
-      'BAD_USER_INPUT': 400,
-      'INVALID': 422
+      THROTTLED: 429,
+      ACCESS_DENIED: 403,
+      FORBIDDEN: 403,
+      NOT_FOUND: 404,
+      INTERNAL_SERVER_ERROR: 500,
+      BAD_USER_INPUT: 400,
+      INVALID: 422,
     }
 
     return errorMap[code] || 400
@@ -724,7 +735,10 @@ export class ShopifyApiClient {
   /**
    * Helper method to create a complete product query
    */
-  static buildProductQuery(includeMetafields = true, variantLimit = 100): string {
+  static buildProductQuery(
+    includeMetafields = true,
+    variantLimit = 100
+  ): string {
     return `
       id
       title
@@ -756,7 +770,9 @@ export class ShopifyApiClient {
           }
         }
       }
-      ${includeMetafields ? `
+      ${
+        includeMetafields
+          ? `
         metafields(namespace: "truthsource", first: 10) {
           edges {
             node {
@@ -768,7 +784,9 @@ export class ShopifyApiClient {
             }
           }
         }
-      ` : ''}
+      `
+          : ''
+      }
     `
   }
 
@@ -823,7 +841,9 @@ export class ShopifyApiClient {
         phone
         ${includeCompany ? 'company' : ''}
       }
-      ${includeCompany ? `
+      ${
+        includeCompany
+          ? `
         company {
           id
           name
@@ -832,7 +852,9 @@ export class ShopifyApiClient {
           createdAt
           updatedAt
         }
-      ` : ''}
+      `
+          : ''
+      }
     `
   }
 }

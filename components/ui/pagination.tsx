@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface PaginationProps {
@@ -109,9 +109,7 @@ export function Pagination({
         </Link>
       )}
 
-      <div className="flex items-center space-x-1">
-        {renderPageNumbers()}
-      </div>
+      <div className="flex items-center space-x-1">{renderPageNumbers()}</div>
 
       {currentPage < totalPages && (
         <Link href={getPageUrl(currentPage + 1)}>

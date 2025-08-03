@@ -15,15 +15,23 @@ if (typeof window !== 'undefined') {
 function createAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
+
   if (!supabaseUrl || !serviceRoleKey) {
-    console.warn('Supabase admin environment variables not set. Admin features will be unavailable.')
+    console.warn(
+      'Supabase admin environment variables not set. Admin features will be unavailable.'
+    )
     // Return a mock client during build time
     return {
       auth: {
         admin: {
-          createUser: async () => ({ data: null, error: new Error('Admin client not configured') }),
-          deleteUser: async () => ({ data: null, error: new Error('Admin client not configured') }),
+          createUser: async () => ({
+            data: null,
+            error: new Error('Admin client not configured'),
+          }),
+          deleteUser: async () => ({
+            data: null,
+            error: new Error('Admin client not configured'),
+          }),
         },
       },
       from: () => ({
@@ -35,16 +43,12 @@ function createAdminClient() {
     } as any
   }
 
-  return createClient<Database>(
-    supabaseUrl,
-    serviceRoleKey,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  )
+  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 }
 
 // Create admin client instance

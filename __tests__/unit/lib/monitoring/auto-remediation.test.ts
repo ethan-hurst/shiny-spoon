@@ -1,6 +1,6 @@
 import { AutoRemediationService } from '@/lib/monitoring/auto-remediation'
-import { createAdminClient } from '@/lib/supabase/admin'
 import type { Discrepancy, RemediationAction } from '@/lib/monitoring/types'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // Mock dependencies
 jest.mock('@/lib/supabase/admin')
@@ -11,7 +11,7 @@ jest.useFakeTimers()
 describe('AutoRemediationService', () => {
   let autoRemediationService: AutoRemediationService
   let mockSupabase: ReturnType<typeof createMockSupabase>
-  
+
   const mockDiscrepancy: Discrepancy = {
     id: 'discrepancy-123',
     accuracyCheckId: 'check-123',
@@ -26,7 +26,7 @@ describe('AutoRemediationService', () => {
     confidenceScore: 0.95,
     status: 'open',
     detectedAt: new Date('2024-01-15T10:00:00Z'),
-    metadata: {}
+    metadata: {},
   }
 
   const mockIntegration = {
@@ -34,16 +34,16 @@ describe('AutoRemediationService', () => {
     organization_id: 'org-123',
     platform: 'netsuite',
     status: 'active',
-    config: {}
+    config: {},
   }
 
   beforeEach(() => {
     jest.clearAllMocks()
     jest.clearAllTimers()
-    
+
     mockSupabase = createMockSupabase()
     ;(createAdminClient as jest.Mock).mockReturnValue(mockSupabase)
-    
+
     autoRemediationService = new AutoRemediationService()
   })
 
@@ -55,7 +55,7 @@ describe('AutoRemediationService', () => {
     it('should execute remediation successfully', async () => {
       const mockLogEntry = { id: 'log-123' }
       const mockSyncJob = { id: 'sync-123' }
-      
+
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'remediation_log') {
           return {
@@ -63,13 +63,13 @@ describe('AutoRemediationService', () => {
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: mockLogEntry,
-                  error: null
-                })
-              })
+                  error: null,
+                }),
+              }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null })
-            })
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
           } as any
         }
         if (table === 'accuracy_checks') {
@@ -77,11 +77,14 @@ describe('AutoRemediationService', () => {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
-                  data: { integration_id: 'integration-123', organization_id: 'org-123' },
-                  error: null
-                })
-              })
-            })
+                  data: {
+                    integration_id: 'integration-123',
+                    organization_id: 'org-123',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'integrations') {
@@ -91,11 +94,11 @@ describe('AutoRemediationService', () => {
                 eq: jest.fn().mockReturnValue({
                   single: jest.fn().mockResolvedValue({
                     data: mockIntegration,
-                    error: null
-                  })
-                })
-              })
-            })
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'sync_jobs') {
@@ -104,32 +107,36 @@ describe('AutoRemediationService', () => {
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: mockSyncJob,
-                  error: null
-                })
-              })
+                  error: null,
+                }),
+              }),
             }),
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: { status: 'completed' },
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'discrepancies') {
           return {
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null })
-            })
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
           } as any
         }
         return {} as any
       })
 
-      const staleDiscrepancy = { ...mockDiscrepancy, discrepancyType: 'stale' as const }
-      const result = await autoRemediationService.attemptRemediation(staleDiscrepancy)
+      const staleDiscrepancy = {
+        ...mockDiscrepancy,
+        discrepancyType: 'stale' as const,
+      }
+      const result =
+        await autoRemediationService.attemptRemediation(staleDiscrepancy)
 
       // Use advanceTimersByTime instead of runAllTimers
       jest.advanceTimersByTime(5000)
@@ -142,10 +149,12 @@ describe('AutoRemediationService', () => {
       const unsupportedDiscrepancy = {
         ...mockDiscrepancy,
         discrepancyType: 'duplicate' as const,
-        entityType: 'unknown'
+        entityType: 'unknown',
       }
 
-      const result = await autoRemediationService.attemptRemediation(unsupportedDiscrepancy)
+      const result = await autoRemediationService.attemptRemediation(
+        unsupportedDiscrepancy
+      )
 
       expect(result.success).toBe(false)
       expect(result.action).toBe('none')
@@ -160,16 +169,17 @@ describe('AutoRemediationService', () => {
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: null,
-                  error: { message: 'Insert failed' }
-                })
-              })
-            })
+                  error: { message: 'Insert failed' },
+                }),
+              }),
+            }),
           } as any
         }
         return {} as any
       })
 
-      const result = await autoRemediationService.attemptRemediation(mockDiscrepancy)
+      const result =
+        await autoRemediationService.attemptRemediation(mockDiscrepancy)
 
       expect(result.success).toBe(false)
       expect(result.error).toBe('Failed to create remediation log')
@@ -177,7 +187,7 @@ describe('AutoRemediationService', () => {
 
     it('should handle remediation execution failure', async () => {
       const mockLogEntry = { id: 'log-123' }
-      
+
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'remediation_log') {
           return {
@@ -185,13 +195,13 @@ describe('AutoRemediationService', () => {
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: mockLogEntry,
-                  error: null
-                })
-              })
+                  error: null,
+                }),
+              }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null })
-            })
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
           } as any
         }
         if (table === 'accuracy_checks') {
@@ -200,16 +210,17 @@ describe('AutoRemediationService', () => {
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: null,
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         return {} as any
       })
 
-      const result = await autoRemediationService.attemptRemediation(mockDiscrepancy)
+      const result =
+        await autoRemediationService.attemptRemediation(mockDiscrepancy)
 
       expect(result.success).toBe(false)
     })
@@ -219,7 +230,8 @@ describe('AutoRemediationService', () => {
         throw new Error('Unexpected error')
       })
 
-      const result = await autoRemediationService.attemptRemediation(mockDiscrepancy)
+      const result =
+        await autoRemediationService.attemptRemediation(mockDiscrepancy)
 
       expect(result.success).toBe(false)
       expect(result.error).toBe('Unexpected error')
@@ -231,10 +243,12 @@ describe('AutoRemediationService', () => {
       const staleInventory = {
         ...mockDiscrepancy,
         discrepancyType: 'stale' as const,
-        entityType: 'inventory'
+        entityType: 'inventory',
       }
 
-      const action = (autoRemediationService as any).determineRemediationAction(staleInventory)
+      const action = (autoRemediationService as any).determineRemediationAction(
+        staleInventory
+      )
 
       expect(action).toBeDefined()
       expect(action.actionType).toBe('sync_retry')
@@ -245,10 +259,12 @@ describe('AutoRemediationService', () => {
       const missingProduct = {
         ...mockDiscrepancy,
         discrepancyType: 'missing' as const,
-        entityType: 'product'
+        entityType: 'product',
       }
 
-      const action = (autoRemediationService as any).determineRemediationAction(missingProduct)
+      const action = (autoRemediationService as any).determineRemediationAction(
+        missingProduct
+      )
 
       expect(action).toBeDefined()
       expect(action.actionType).toBe('sync_retry')
@@ -261,10 +277,12 @@ describe('AutoRemediationService', () => {
         discrepancyType: 'mismatch' as const,
         entityType: 'pricing',
         fieldName: 'price',
-        sourceValue: 99.99
+        sourceValue: 99.99,
       }
 
-      const action = (autoRemediationService as any).determineRemediationAction(pricingMismatch)
+      const action = (autoRemediationService as any).determineRemediationAction(
+        pricingMismatch
+      )
 
       expect(action).toBeDefined()
       expect(action.actionType).toBe('value_update')
@@ -275,10 +293,12 @@ describe('AutoRemediationService', () => {
     it('should return null for unsupported discrepancy types', () => {
       const unsupported = {
         ...mockDiscrepancy,
-        discrepancyType: 'duplicate' as const
+        discrepancyType: 'duplicate' as const,
       }
 
-      const action = (autoRemediationService as any).determineRemediationAction(unsupported)
+      const action = (autoRemediationService as any).determineRemediationAction(
+        unsupported
+      )
 
       expect(action).toBeNull()
     })
@@ -291,15 +311,15 @@ describe('AutoRemediationService', () => {
       actionConfig: {
         entityType: 'inventory',
         entityId: 'inv-456',
-        forceRefresh: true
+        forceRefresh: true,
       },
       priority: 'high',
-      estimatedImpact: 'Refresh inventory data'
+      estimatedImpact: 'Refresh inventory data',
     }
 
     it('should execute sync retry successfully', async () => {
       const mockSyncJob = { id: 'sync-123' }
-      
+
       setupMocksForSyncRetry(mockSupabase, mockSyncJob, 'completed')
 
       const result = await (autoRemediationService as any).executeSyncRetry(
@@ -323,11 +343,14 @@ describe('AutoRemediationService', () => {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
-                  data: { integration_id: 'integration-123', organization_id: 'org-123' },
-                  error: null
-                })
-              })
-            })
+                  data: {
+                    integration_id: 'integration-123',
+                    organization_id: 'org-123',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'integrations') {
@@ -337,11 +360,11 @@ describe('AutoRemediationService', () => {
                 eq: jest.fn().mockReturnValue({
                   single: jest.fn().mockResolvedValue({
                     data: mockIntegration,
-                    error: null
-                  })
-                })
-              })
-            })
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'sync_jobs') {
@@ -350,10 +373,10 @@ describe('AutoRemediationService', () => {
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: null,
-                  error: { message: 'Insert failed' }
-                })
-              })
-            })
+                  error: { message: 'Insert failed' },
+                }),
+              }),
+            }),
           } as any
         }
         return {} as any
@@ -372,11 +395,15 @@ describe('AutoRemediationService', () => {
 
     it('should handle sync job timeout', async () => {
       const mockSyncJob = { id: 'sync-123' }
-      
+
       setupMocksForSyncRetry(mockSupabase, mockSyncJob, 'running')
 
-      const staleDiscrepancy = { ...mockDiscrepancy, discrepancyType: 'stale' as const }
-      const result = await autoRemediationService.attemptRemediation(staleDiscrepancy)
+      const staleDiscrepancy = {
+        ...mockDiscrepancy,
+        discrepancyType: 'stale' as const,
+      }
+      const result =
+        await autoRemediationService.attemptRemediation(staleDiscrepancy)
 
       // Advance timers to trigger timeout
       jest.advanceTimersByTime(30000) // 30 seconds timeout
@@ -395,10 +422,10 @@ describe('AutoRemediationService', () => {
         entityType: 'inventory',
         entityId: 'inv-456',
         field: 'quantity',
-        newValue: 100
+        newValue: 100,
       },
       priority: 'medium',
-      estimatedImpact: 'Update inventory quantity'
+      estimatedImpact: 'Update inventory quantity',
     }
 
     it('should execute value update successfully', async () => {
@@ -410,16 +437,16 @@ describe('AutoRemediationService', () => {
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: { quantity: currentValue },
-                  error: null
-                })
-              })
+                  error: null,
+                }),
+              }),
             }),
             update: jest.fn().mockImplementation(() => {
               currentValue = 100 // Simulate successful update
               return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null })
+                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
-            })
+            }),
           } as any
         }
         return {} as any
@@ -442,8 +469,8 @@ describe('AutoRemediationService', () => {
         ...mockAction,
         actionConfig: {
           ...mockAction.actionConfig,
-          newValue: -10 // Negative inventory
-        }
+          newValue: -10, // Negative inventory
+        },
       }
 
       const result = await (autoRemediationService as any).executeValueUpdate(
@@ -463,14 +490,21 @@ describe('AutoRemediationService', () => {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
-                single: jest.fn()
-                  .mockResolvedValueOnce({ data: { quantity: 95 }, error: null })
-                  .mockResolvedValueOnce({ data: { quantity: 95 }, error: null }) // Value unchanged
-              })
+                single: jest
+                  .fn()
+                  .mockResolvedValueOnce({
+                    data: { quantity: 95 },
+                    error: null,
+                  })
+                  .mockResolvedValueOnce({
+                    data: { quantity: 95 },
+                    error: null,
+                  }), // Value unchanged
+              }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null })
-            })
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
           } as any
         }
         return {} as any
@@ -494,17 +528,17 @@ describe('AutoRemediationService', () => {
       actionType: 'cache_clear',
       actionConfig: {
         entityType: 'inventory',
-        entityId: 'inv-456'
+        entityId: 'inv-456',
       },
       priority: 'low',
-      estimatedImpact: 'Clear cached data'
+      estimatedImpact: 'Clear cached data',
     }
 
     it('should clear cache successfully', async () => {
       mockSupabase.from.mockReturnValue({
         update: jest.fn().mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ data: null, error: null })
-        })
+          eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+        }),
       } as any)
 
       const result = await (autoRemediationService as any).executeCacheClear(
@@ -527,11 +561,15 @@ describe('AutoRemediationService', () => {
         { field: 'quantity', value: 1000001, expected: false },
         { field: 'quantity', value: 'not a number', expected: false },
         { field: 'reserved', value: 50, expected: true },
-        { field: 'reserved', value: -10, expected: false }
+        { field: 'reserved', value: -10, expected: false },
       ]
 
       for (const { field, value, expected } of testCases) {
-        const result = (autoRemediationService as any).isUpdateSafe('inventory', field, value)
+        const result = (autoRemediationService as any).isUpdateSafe(
+          'inventory',
+          field,
+          value
+        )
         expect(result).toBe(expected)
       }
     })
@@ -543,11 +581,15 @@ describe('AutoRemediationService', () => {
         { field: 'price', value: -10, expected: false },
         { field: 'price', value: 1000001, expected: false },
         { field: 'cost', value: 50, expected: true },
-        { field: 'cost', value: -1, expected: false }
+        { field: 'cost', value: -1, expected: false },
       ]
 
       for (const { field, value, expected } of testCases) {
-        const result = (autoRemediationService as any).isUpdateSafe('pricing', field, value)
+        const result = (autoRemediationService as any).isUpdateSafe(
+          'pricing',
+          field,
+          value
+        )
         expect(result).toBe(expected)
       }
     })
@@ -558,11 +600,15 @@ describe('AutoRemediationService', () => {
         { field: 'name', value: '', expected: false },
         { field: 'name', value: 'A'.repeat(256), expected: false },
         { field: 'description', value: 'Valid description', expected: true },
-        { field: 'description', value: 'A'.repeat(5001), expected: false }
+        { field: 'description', value: 'A'.repeat(5001), expected: false },
       ]
 
       for (const { field, value, expected } of testCases) {
-        const result = (autoRemediationService as any).isUpdateSafe('product', field, value)
+        const result = (autoRemediationService as any).isUpdateSafe(
+          'product',
+          field,
+          value
+        )
         expect(result).toBe(expected)
       }
     })
@@ -571,10 +617,10 @@ describe('AutoRemediationService', () => {
   describe('batchRemediate', () => {
     it('should process batch successfully', async () => {
       const discrepancyIds = ['disc-1', 'disc-2', 'disc-3']
-      const mockDiscrepancies = discrepancyIds.map(id => ({
+      const mockDiscrepancies = discrepancyIds.map((id) => ({
         ...mockDiscrepancy,
         id,
-        discrepancyType: 'stale' as const
+        discrepancyType: 'stale' as const,
       }))
 
       mockSupabase.from.mockImplementation((table: string) => {
@@ -583,12 +629,12 @@ describe('AutoRemediationService', () => {
             select: jest.fn().mockReturnValue({
               in: jest.fn().mockResolvedValue({
                 data: mockDiscrepancies,
-                error: null
-              })
+                error: null,
+              }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null })
-            })
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
           } as any
         }
         if (table === 'remediation_log') {
@@ -597,13 +643,13 @@ describe('AutoRemediationService', () => {
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: { id: 'log-123' },
-                  error: null
-                })
-              })
+                  error: null,
+                }),
+              }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: jest.fn().mockResolvedValue({ data: null, error: null })
-            })
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }),
           } as any
         }
         // Mock other tables for successful remediation
@@ -611,11 +657,14 @@ describe('AutoRemediationService', () => {
           select: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
-                data: { integration_id: 'integration-123', organization_id: 'org-123' },
-                error: null
-              })
-            })
-          })
+                data: {
+                  integration_id: 'integration-123',
+                  organization_id: 'org-123',
+                },
+                error: null,
+              }),
+            }),
+          }),
         } as any
       })
 
@@ -628,21 +677,25 @@ describe('AutoRemediationService', () => {
     })
 
     it('should respect batch size limit', async () => {
-      const discrepancyIds = Array(150).fill(null).map((_, i) => `disc-${i}`)
-      
+      const discrepancyIds = Array(150)
+        .fill(null)
+        .map((_, i) => `disc-${i}`)
+
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'discrepancies') {
           return {
             select: jest.fn().mockReturnValue({
-              in: jest.fn().mockImplementation((field: string, ids: string[]) => {
-                // Should only query first 100 IDs
-                expect(ids.length).toBeLessThanOrEqual(100)
-                return {
-                  data: [],
-                  error: null
-                }
-              })
-            })
+              in: jest
+                .fn()
+                .mockImplementation((field: string, ids: string[]) => {
+                  // Should only query first 100 IDs
+                  expect(ids.length).toBeLessThanOrEqual(100)
+                  return {
+                    data: [],
+                    error: null,
+                  }
+                }),
+            }),
           } as any
         }
         return {} as any
@@ -658,12 +711,15 @@ describe('AutoRemediationService', () => {
         select: jest.fn().mockReturnValue({
           in: jest.fn().mockResolvedValue({
             data: [],
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       } as any)
 
-      const result = await autoRemediationService.batchRemediate(['disc-1', 'disc-2'])
+      const result = await autoRemediationService.batchRemediate([
+        'disc-1',
+        'disc-2',
+      ])
 
       expect(result.total).toBe(2)
       expect(result.success).toBe(0)
@@ -673,15 +729,26 @@ describe('AutoRemediationService', () => {
 
   describe('Helper methods', () => {
     it('should match values with numeric epsilon', () => {
-      expect((autoRemediationService as any).valuesMatch(10.0, 10.005)).toBe(true)
-      expect((autoRemediationService as any).valuesMatch(10.0, 10.02)).toBe(false)
-      expect((autoRemediationService as any).valuesMatch('test', 'test')).toBe(true)
-      expect((autoRemediationService as any).valuesMatch('test', 'TEST')).toBe(false)
+      expect((autoRemediationService as any).valuesMatch(10.0, 10.005)).toBe(
+        true
+      )
+      expect((autoRemediationService as any).valuesMatch(10.0, 10.02)).toBe(
+        false
+      )
+      expect((autoRemediationService as any).valuesMatch('test', 'test')).toBe(
+        true
+      )
+      expect((autoRemediationService as any).valuesMatch('test', 'TEST')).toBe(
+        false
+      )
     })
 
     it('should generate correct cache keys', () => {
-      const keys = (autoRemediationService as any).getCacheKeysForEntity('inventory', 'inv-123')
-      
+      const keys = (autoRemediationService as any).getCacheKeysForEntity(
+        'inventory',
+        'inv-123'
+      )
+
       expect(keys).toContain('inventory:inv-123')
       expect(keys).toContain('inventory:list:*')
       expect(keys).toContain('accuracy:inventory:*')
@@ -694,19 +761,22 @@ describe('AutoRemediationService', () => {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
-                  data: { integration_id: 'integration-123', organization_id: 'different-org' },
-                  error: null
-                })
-              })
-            })
+                  data: {
+                    integration_id: 'integration-123',
+                    organization_id: 'different-org',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         return {} as any
       })
 
-      const integration = await (autoRemediationService as any).getIntegrationForDiscrepancy(
-        mockDiscrepancy
-      )
+      const integration = await (
+        autoRemediationService as any
+      ).getIntegrationForDiscrepancy(mockDiscrepancy)
 
       expect(integration).toBeNull()
     })
@@ -717,23 +787,30 @@ describe('AutoRemediationService', () => {
 function createMockSupabase() {
   return {
     from: jest.fn(),
-    rpc: jest.fn()
+    rpc: jest.fn(),
   }
 }
 
 // Helper to setup mocks for sync retry tests
-function setupMocksForSyncRetry(mockSupabase: any, syncJob: any, finalStatus: string) {
+function setupMocksForSyncRetry(
+  mockSupabase: any,
+  syncJob: any,
+  finalStatus: string
+) {
   mockSupabase.from.mockImplementation((table: string) => {
     if (table === 'accuracy_checks') {
       return {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
-              data: { integration_id: 'integration-123', organization_id: 'org-123' },
-              error: null
-            })
-          })
-        })
+              data: {
+                integration_id: 'integration-123',
+                organization_id: 'org-123',
+              },
+              error: null,
+            }),
+          }),
+        }),
       } as any
     }
     if (table === 'integrations') {
@@ -743,11 +820,11 @@ function setupMocksForSyncRetry(mockSupabase: any, syncJob: any, finalStatus: st
             eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
                 data: { id: 'integration-123', organization_id: 'org-123' },
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       } as any
     }
     if (table === 'sync_jobs') {
@@ -756,18 +833,18 @@ function setupMocksForSyncRetry(mockSupabase: any, syncJob: any, finalStatus: st
           select: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: syncJob,
-              error: null
-            })
-          })
+              error: null,
+            }),
+          }),
         }),
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: { status: finalStatus },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any
     }
     return {} as any

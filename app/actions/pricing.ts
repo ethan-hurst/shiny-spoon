@@ -2,10 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import {
-  clearPricingCache,
-} from '@/lib/pricing/calculate-price'
-import { escapeCSVField } from '@/lib/utils/csv'
+import { clearPricingCache } from '@/lib/pricing/calculate-price'
 import {
   createCustomerPricingSchema,
   createPricingRuleSchema,
@@ -16,6 +13,7 @@ import {
   updateProductPricingSchema,
 } from '@/lib/pricing/validations'
 import { createClient } from '@/lib/supabase/server'
+import { escapeCSVField } from '@/lib/utils/csv'
 import type { QuantityBreak } from '@/types/pricing.types'
 
 // Product Pricing Actions
@@ -248,7 +246,8 @@ export async function getApprovalRules() {
     .eq('active', true)
     .single()
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+  if (error && error.code !== 'PGRST116') {
+    // PGRST116 = no rows returned
     return { error: error.message }
   }
 
@@ -261,9 +260,9 @@ export async function getApprovalRules() {
     require_note_for_approval: true,
   }
 
-  return { 
-    success: true, 
-    data: rules || defaultRules 
+  return {
+    success: true,
+    data: rules || defaultRules,
   }
 }
 
@@ -301,16 +300,17 @@ export async function updateApprovalRules(rules: {
   }
 
   // Upsert approval rules
-  const { error } = await supabase
-    .from('pricing_approval_rules')
-    .upsert({
+  const { error } = await supabase.from('pricing_approval_rules').upsert(
+    {
       organization_id: profile.organization_id,
       ...rules,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
-    }, {
+    },
+    {
       onConflict: 'organization_id',
-    })
+    }
+  )
 
   if (error) {
     return { error: error.message }
@@ -617,7 +617,9 @@ export async function importPricingRules(file: File) {
       await createPricingRule(transformedRule)
       successes.push(`Row ${index + 2}: ${rule.name}`)
     } catch (error) {
-      errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      errors.push(
+        `Row ${index + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 
@@ -663,9 +665,7 @@ export async function exportPricingRules() {
   const csvContent = [
     headers.map(escapeCSVField).join(','),
     ...rules.map((rule: Record<string, any>) =>
-      headers
-        .map((header) => escapeCSVField(rule[header] || ''))
-        .join(',')
+      headers.map((header) => escapeCSVField(rule[header] || '')).join(',')
     ),
   ].join('\n')
 

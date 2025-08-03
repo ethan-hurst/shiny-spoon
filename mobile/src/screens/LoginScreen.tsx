@@ -1,49 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
+import { LinearGradient } from 'expo-linear-gradient'
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 export default function LoginScreen({ navigation }: any) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState('');
-  const { signIn, signUp, isLoading } = useAuth();
-  const { theme } = useTheme();
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [name, setName] = useState('')
+  const { signIn, signUp, isLoading } = useAuth()
+  const { theme } = useTheme()
 
   const handleSubmit = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
+      Alert.alert('Error', 'Please fill in all fields')
+      return
     }
 
     if (isSignUp && !name) {
-      Alert.alert('Error', 'Please enter your name');
-      return;
+      Alert.alert('Error', 'Please enter your name')
+      return
     }
 
     try {
       if (isSignUp) {
-        await signUp(email, password, name);
+        await signUp(email, password, name)
       } else {
-        await signIn(email, password);
+        await signIn(email, password)
       }
       // Navigation will be handled by the auth state change
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Authentication failed');
+      Alert.alert(
+        'Error',
+        error instanceof Error ? error.message : 'Authentication failed'
+      )
     }
-  };
+  }
 
   const styles = StyleSheet.create({
     container: {
@@ -112,7 +115,7 @@ export default function LoginScreen({ navigation }: any) {
       textAlign: 'center',
       marginTop: theme.spacing.md,
     },
-  });
+  })
 
   return (
     <KeyboardAvoidingView
@@ -192,5 +195,5 @@ export default function LoginScreen({ navigation }: any) {
         </ScrollView>
       </LinearGradient>
     </KeyboardAvoidingView>
-  );
-} 
+  )
+}

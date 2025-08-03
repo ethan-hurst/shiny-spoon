@@ -1,9 +1,9 @@
 // PRP-012: Integration Framework Common Types
 import type {
-  IntegrationPlatformType,
-  SyncResult,
-  SyncOptions,
   IntegrationError,
+  IntegrationPlatformType,
+  SyncOptions,
+  SyncResult,
 } from '@/types/integration.types'
 
 // Field mapping types
@@ -164,7 +164,11 @@ export interface ConnectorEventMap {
   disconnect: (reason?: string) => void
   error: (error: IntegrationError) => void
   'sync:start': (entityType: string, options?: SyncOptions) => void
-  'sync:progress': (progress: { current: number; total: number; percentage: number }) => void
+  'sync:progress': (progress: {
+    current: number
+    total: number
+    percentage: number
+  }) => void
   'sync:complete': (result: SyncResult) => void
   'sync:error': (error: IntegrationError) => void
   'rate-limit': (info: { retryAfter: number; limit: number }) => void
@@ -179,7 +183,10 @@ export interface ConnectorEventMap {
 export interface ConnectorLifecycle {
   beforeConnect?: () => Promise<void> | void
   afterConnect?: () => Promise<void> | void
-  beforeSync?: (entityType: string, options?: SyncOptions) => Promise<void> | void
+  beforeSync?: (
+    entityType: string,
+    options?: SyncOptions
+  ) => Promise<void> | void
   afterSync?: (entityType: string, result: SyncResult) => Promise<void> | void
   beforeDisconnect?: () => Promise<void> | void
   afterDisconnect?: () => Promise<void> | void
@@ -220,14 +227,14 @@ export interface QuickBooksConnectorOptions {
 // Data transformation utilities
 export const commonTransforms = {
   // Convert empty strings to null
-  emptyToNull: (value: any) => value === '' ? null : value,
-  
+  emptyToNull: (value: any) => (value === '' ? null : value),
+
   // Parse number safely
   toNumber: (value: any) => {
     const num = parseFloat(value)
     return isNaN(num) ? null : num
   },
-  
+
   // Parse boolean
   toBoolean: (value: any) => {
     if (typeof value === 'boolean') return value
@@ -236,32 +243,32 @@ export const commonTransforms = {
     }
     return !!value
   },
-  
+
   // Parse date to Date object
   toDate: (value: any) => {
     if (!value) return null
     const date = new Date(value)
     return isNaN(date.getTime()) ? null : date
   },
-  
+
   // Parse date to ISO string
   toISOString: (value: any) => {
     if (!value) return null
     const date = new Date(value)
     return isNaN(date.getTime()) ? null : date.toISOString()
   },
-  
+
   // Trim whitespace
   trim: (value: any) => {
     return typeof value === 'string' ? value.trim() : value
   },
-  
+
   // Convert to uppercase
   toUpperCase: (value: any) => {
     return typeof value === 'string' ? value.toUpperCase() : value
   },
-  
-  // Convert to lowercase  
+
+  // Convert to lowercase
   toLowerCase: (value: any) => {
     return typeof value === 'string' ? value.toLowerCase() : value
   },
@@ -269,8 +276,9 @@ export const commonTransforms = {
 
 // Validation utilities
 export const commonValidators = {
-  required: (value: any) => value !== null && value !== undefined && value !== '',
-  
+  required: (value: any) =>
+    value !== null && value !== undefined && value !== '',
+
   email: (value: string) => {
     // More comprehensive email validation regex based on RFC 5322
     // This pattern handles most real-world email formats including:
@@ -278,17 +286,18 @@ export const commonValidators = {
     // - Quoted strings in local part
     // - Multiple subdomain levels
     // - New TLDs of varying lengths
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
-    
+    const emailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+
     // Additional basic checks
     if (!value || typeof value !== 'string') return false
     if (value.length > 254) return false // Max email length per RFC
     if (value.startsWith('.') || value.endsWith('.')) return false
     if (value.includes('..')) return false
-    
+
     return emailRegex.test(value)
   },
-  
+
   url: (value: string) => {
     try {
       new URL(value)
@@ -297,14 +306,15 @@ export const commonValidators = {
       return false
     }
   },
-  
+
   numeric: (value: any) => !isNaN(parseFloat(value)) && isFinite(value),
-  
+
   minLength: (min: number) => (value: string) => value.length >= min,
-  
+
   maxLength: (max: number) => (value: string) => value.length <= max,
-  
-  inRange: (min: number, max: number) => (value: number) => value >= min && value <= max,
-  
+
+  inRange: (min: number, max: number) => (value: number) =>
+    value >= min && value <= max,
+
   pattern: (regex: RegExp) => (value: string) => regex.test(value),
 }

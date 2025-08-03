@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
 import {
   AlertCircle,
   Calendar,
@@ -12,8 +13,10 @@ import {
   Trash,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { ContractDialog } from '@/components/features/pricing/contract-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,16 +38,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { format } from 'date-fns'
-import { ContractDialog } from '@/components/features/pricing/contract-dialog'
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { formatCurrency } from '@/lib/utils'
+import { cancelContract, renewContract } from '@/app/actions/customer-pricing'
 import {
   ContractWithItems,
   getContractStatusColor,
   isContractExpiring,
 } from '@/types/customer-pricing.types'
-import { cancelContract, renewContract } from '@/app/actions/customer-pricing'
 
 interface ContractListProps {
   customerId: string
@@ -69,13 +69,15 @@ export function ContractList({ customerId, contracts }: ContractListProps) {
     try {
       const formData = new FormData()
       formData.append('id', contractToCancel)
-      
+
       await cancelContract(formData)
       toast.success('Contract cancelled successfully')
       router.refresh()
     } catch (error) {
       console.error('Failed to cancel contract:', error)
-      toast.error(`Failed to cancel contract: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast.error(
+        `Failed to cancel contract: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     } finally {
       setLoading(null)
       setContractToCancel(null)
@@ -88,13 +90,15 @@ export function ContractList({ customerId, contracts }: ContractListProps) {
       const formData = new FormData()
       formData.append('id', contractId)
       formData.append('months_to_add', monthsToAdd.toString())
-      
+
       await renewContract(formData)
       toast.success('Contract renewed successfully')
       router.refresh()
     } catch (error) {
       console.error('Failed to renew contract:', error)
-      toast.error(`Failed to renew contract: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast.error(
+        `Failed to renew contract: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     } finally {
       setLoading(null)
     }
@@ -138,8 +142,12 @@ export function ContractList({ customerId, contracts }: ContractListProps) {
         </TableHeader>
         <TableBody>
           {contracts.map((contract) => {
-            const isExpiring = contract.status === 'active' && 
-              isContractExpiring(contract.end_date, contract.expiry_notification_days)
+            const isExpiring =
+              contract.status === 'active' &&
+              isContractExpiring(
+                contract.end_date,
+                contract.expiry_notification_days
+              )
 
             return (
               <TableRow key={contract.id}>
@@ -164,17 +172,22 @@ export function ContractList({ customerId, contracts }: ContractListProps) {
                         {(() => {
                           try {
                             const date = new Date(contract.start_date)
-                            return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy')
+                            return isNaN(date.getTime())
+                              ? 'Invalid date'
+                              : format(date, 'MMM d, yyyy')
                           } catch {
                             return 'Invalid date'
                           }
                         })()}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        to {(() => {
+                        to{' '}
+                        {(() => {
                           try {
                             const date = new Date(contract.end_date)
-                            return isNaN(date.getTime()) ? 'Invalid date' : format(date, 'MMM d, yyyy')
+                            return isNaN(date.getTime())
+                              ? 'Invalid date'
+                              : format(date, 'MMM d, yyyy')
                           } catch {
                             return 'Invalid date'
                           }
@@ -197,9 +210,7 @@ export function ContractList({ customerId, contracts }: ContractListProps) {
                           <TooltipTrigger>
                             <AlertCircle className="h-4 w-4 text-destructive" />
                           </TooltipTrigger>
-                          <TooltipContent>
-                            Expiring soon
-                          </TooltipContent>
+                          <TooltipContent>Expiring soon</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     )}
@@ -209,9 +220,7 @@ export function ContractList({ customerId, contracts }: ContractListProps) {
                           <TooltipTrigger>
                             <RefreshCw className="h-4 w-4 text-blue-600" />
                           </TooltipTrigger>
-                          <TooltipContent>
-                            Auto-renewal enabled
-                          </TooltipContent>
+                          <TooltipContent>Auto-renewal enabled</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     )}
@@ -235,8 +244,8 @@ export function ContractList({ customerId, contracts }: ContractListProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <ContractDialog 
-                        customerId={customerId} 
+                      <ContractDialog
+                        customerId={customerId}
                         contract={contract}
                       >
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
@@ -244,31 +253,35 @@ export function ContractList({ customerId, contracts }: ContractListProps) {
                           Edit Contract
                         </DropdownMenuItem>
                       </ContractDialog>
-                      
+
                       {contract.document_url && (
-                        <DropdownMenuItem 
-                          onClick={() => window.open(contract.document_url!, '_blank')}
+                        <DropdownMenuItem
+                          onClick={() =>
+                            window.open(contract.document_url!, '_blank')
+                          }
                         >
                           <FileText className="h-4 w-4 mr-2" />
                           View Document
                         </DropdownMenuItem>
                       )}
-                      
+
                       {contract.status === 'active' && (
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleRenew(
-                              contract.id, 
-                              contract.renewal_period_months || 12
-                            )}
+                            onClick={() =>
+                              handleRenew(
+                                contract.id,
+                                contract.renewal_period_months || 12
+                              )
+                            }
                           >
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Renew Contract
                           </DropdownMenuItem>
                         </>
                       )}
-                      
+
                       {contract.status !== 'cancelled' && (
                         <>
                           <DropdownMenuSeparator />

@@ -3,7 +3,14 @@
 import { useEffect } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export default function DashboardError({
   error,
@@ -26,7 +33,8 @@ export default function DashboardError({
             <CardTitle>Something went wrong!</CardTitle>
           </div>
           <CardDescription>
-            An error occurred while loading this page. Please try again or contact support if the problem persists.
+            An error occurred while loading this page. Please try again or
+            contact support if the problem persists.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -43,7 +51,10 @@ export default function DashboardError({
         </CardContent>
         <CardFooter className="flex gap-2">
           <Button onClick={reset}>Try again</Button>
-          <Button variant="outline" onClick={() => window.location.href = '/'}>
+          <Button
+            variant="outline"
+            onClick={() => (window.location.href = '/')}
+          >
             Go to Dashboard
           </Button>
         </CardFooter>

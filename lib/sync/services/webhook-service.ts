@@ -1,6 +1,6 @@
-import { WebhookEvent, WebhookType, SyncResult } from '@/lib/sync/types'
-import { createBrowserClient } from '@/lib/supabase/client'
 import crypto from 'crypto'
+import { createBrowserClient } from '@/lib/supabase/client'
+import { SyncResult, WebhookEvent, WebhookType } from '@/lib/sync/types'
 
 export class WebhookService {
   private supabase = createBrowserClient()
@@ -51,16 +51,14 @@ export class WebhookService {
       }
 
       // Log webhook processing
-      await this.supabase
-        .from('webhook_logs')
-        .upsert({
-          webhook_id: event.id,
-          organization_id: org.id,
-          type: event.type,
-          status: 'processed',
-          payload: event.data,
-          processed_at: new Date().toISOString(),
-        })
+      await this.supabase.from('webhook_logs').upsert({
+        webhook_id: event.id,
+        organization_id: org.id,
+        type: event.type,
+        status: 'processed',
+        payload: event.data,
+        processed_at: new Date().toISOString(),
+      })
 
       return {
         success: true,
@@ -68,15 +66,13 @@ export class WebhookService {
       }
     } catch (error) {
       // Log error
-      await this.supabase
-        .from('webhook_logs')
-        .upsert({
-          webhook_id: event.id,
-          type: event.type,
-          status: 'failed',
-          error: error instanceof Error ? error.message : 'Unknown error',
-          payload: event.data,
-        })
+      await this.supabase.from('webhook_logs').upsert({
+        webhook_id: event.id,
+        type: event.type,
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        payload: event.data,
+      })
 
       return {
         success: false,

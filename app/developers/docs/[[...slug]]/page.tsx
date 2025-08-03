@@ -1,15 +1,25 @@
-import { type Metadata } from 'next'
-import { notFound } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { ApiSidebar } from '@/components/developers/api-sidebar'
-import { CodeExample } from '@/components/developers/code-example'
-import { ApiPlayground } from '@/components/developers/api-playground'
-import { parseOpenAPISpec, getEndpointsByTag, getEndpointById } from '@/lib/openapi/parser'
 import { promises as fs } from 'fs'
 import path from 'path'
+import { type Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import { Lock, Unlock } from 'lucide-react'
+import { ApiPlayground } from '@/components/developers/api-playground'
+import { ApiSidebar } from '@/components/developers/api-sidebar'
+import { CodeExample } from '@/components/developers/code-example'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import {
+  getEndpointById,
+  getEndpointsByTag,
+  parseOpenAPISpec,
+} from '@/lib/openapi/parser'
 
 async function loadOpenAPISpec() {
   const specPath = path.join(process.cwd(), 'public', 'openapi.yaml')
@@ -29,7 +39,8 @@ export async function generateMetadata(props: {
     if (endpoint) {
       return {
         title: endpoint.summary || endpoint.operationId,
-        description: endpoint.description || `API documentation for ${endpoint.path}`,
+        description:
+          endpoint.description || `API documentation for ${endpoint.path}`,
       }
     }
   }
@@ -81,7 +92,8 @@ export default async function ApiDocsPage(props: {
               <div>
                 <h3 className="font-semibold mb-2">Authentication</h3>
                 <p className="text-sm text-muted-foreground mb-2">
-                  All API requests require authentication using an API key. Include your API key in the X-API-Key header:
+                  All API requests require authentication using an API key.
+                  Include your API key in the X-API-Key header:
                 </p>
                 <code className="text-sm bg-muted px-2 py-1 rounded">
                   X-API-Key: your_api_key_here
@@ -93,14 +105,17 @@ export default async function ApiDocsPage(props: {
                 <ul className="space-y-1 text-sm text-muted-foreground">
                   <li>• Standard tier: 1,000 requests per hour</li>
                   <li>• Professional tier: 10,000 requests per hour</li>
-                  <li>• Enterprise tier: Unlimited (fair use policy applies)</li>
+                  <li>
+                    • Enterprise tier: Unlimited (fair use policy applies)
+                  </li>
                 </ul>
               </div>
 
               <div>
                 <h3 className="font-semibold mb-2">Response Format</h3>
                 <p className="text-sm text-muted-foreground">
-                  All API responses are returned in JSON format with appropriate HTTP status codes.
+                  All API responses are returned in JSON format with appropriate
+                  HTTP status codes.
                 </p>
               </div>
             </CardContent>
@@ -132,13 +147,15 @@ export default async function ApiDocsPage(props: {
                                   endpoint.method === 'GET'
                                     ? 'default'
                                     : endpoint.method === 'POST'
-                                    ? 'secondary'
-                                    : 'outline'
+                                      ? 'secondary'
+                                      : 'outline'
                                 }
                               >
                                 {endpoint.method}
                               </Badge>
-                              <code className="text-sm font-mono">{endpoint.path}</code>
+                              <code className="text-sm font-mono">
+                                {endpoint.path}
+                              </code>
                               {endpoint.security ? (
                                 <Lock className="h-4 w-4 text-muted-foreground ml-auto" />
                               ) : (
@@ -203,7 +220,9 @@ export default async function ApiDocsPage(props: {
             >
               {endpoint.method}
             </span>
-            <h1 className="text-2xl font-mono font-semibold">{endpoint.path}</h1>
+            <h1 className="text-2xl font-mono font-semibold">
+              {endpoint.path}
+            </h1>
           </div>
           {endpoint.summary && (
             <p className="text-lg text-muted-foreground">{endpoint.summary}</p>
@@ -243,11 +262,17 @@ export default async function ApiDocsPage(props: {
                                       {param.name}
                                     </code>
                                     {param.required && (
-                                      <Badge variant="destructive" className="text-xs">
+                                      <Badge
+                                        variant="destructive"
+                                        className="text-xs"
+                                      >
                                         Required
                                       </Badge>
                                     )}
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
                                       {param.schema?.type || 'string'}
                                     </Badge>
                                   </div>
@@ -302,39 +327,43 @@ export default async function ApiDocsPage(props: {
           <div>
             <h2 className="text-xl font-semibold mb-4">Responses</h2>
             <div className="space-y-3">
-              {Object.entries(endpoint.responses).map(([status, response]: [string, any]) => (
-                <Card key={status}>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={
-                          status.startsWith('2')
-                            ? 'default'
-                            : status.startsWith('4')
-                            ? 'destructive'
-                            : 'secondary'
-                        }
-                      >
-                        {status}
-                      </Badge>
-                      <CardDescription>{response.description}</CardDescription>
-                    </div>
-                  </CardHeader>
-                  {response.content?.['application/json']?.schema && (
-                    <CardContent>
-                      <pre className="overflow-x-auto rounded-lg bg-muted p-4">
-                        <code className="text-sm">
-                          {JSON.stringify(
-                            response.content['application/json'].schema,
-                            null,
-                            2
-                          )}
-                        </code>
-                      </pre>
-                    </CardContent>
-                  )}
-                </Card>
-              ))}
+              {Object.entries(endpoint.responses).map(
+                ([status, response]: [string, any]) => (
+                  <Card key={status}>
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            status.startsWith('2')
+                              ? 'default'
+                              : status.startsWith('4')
+                                ? 'destructive'
+                                : 'secondary'
+                          }
+                        >
+                          {status}
+                        </Badge>
+                        <CardDescription>
+                          {response.description}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    {response.content?.['application/json']?.schema && (
+                      <CardContent>
+                        <pre className="overflow-x-auto rounded-lg bg-muted p-4">
+                          <code className="text-sm">
+                            {JSON.stringify(
+                              response.content['application/json'].schema,
+                              null,
+                              2
+                            )}
+                          </code>
+                        </pre>
+                      </CardContent>
+                    )}
+                  </Card>
+                )
+              )}
             </div>
           </div>
         )}

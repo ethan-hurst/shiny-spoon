@@ -1,24 +1,31 @@
 import { type Metadata } from 'next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import Link from 'next/link'
+import {
+  AlertCircle,
+  Check,
+  CreditCard,
+  Package,
+  Shield,
+  ShoppingCart,
+  Webhook,
+  Zap,
+} from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Webhook,
-  Shield,
-  Zap,
-  AlertCircle,
-  Package,
-  CreditCard,
-  ShoppingCart,
-  Check,
-} from 'lucide-react'
-import Link from 'next/link'
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export const metadata: Metadata = {
   title: 'Webhooks',
-  description: 'Real-time event notifications for inventory, pricing, and order changes in TruthSource.',
+  description:
+    'Real-time event notifications for inventory, pricing, and order changes in TruthSource.',
 }
 
 const webhookEvents = [
@@ -225,8 +232,9 @@ export default function WebhooksPage() {
           <h1 className="text-3xl font-bold tracking-tight">Webhooks</h1>
         </div>
         <p className="text-lg text-muted-foreground">
-          Receive real-time notifications when events occur in TruthSource. Build reactive
-          integrations that respond instantly to inventory changes, price updates, and more.
+          Receive real-time notifications when events occur in TruthSource.
+          Build reactive integrations that respond instantly to inventory
+          changes, price updates, and more.
         </p>
       </div>
 
@@ -235,8 +243,9 @@ export default function WebhooksPage() {
         <Shield className="h-4 w-4" />
         <AlertTitle>Security First</AlertTitle>
         <AlertDescription>
-          All webhook payloads are signed with HMAC-SHA256. Always verify the signature
-          before processing webhook events to ensure they're from TruthSource.
+          All webhook payloads are signed with HMAC-SHA256. Always verify the
+          signature before processing webhook events to ensure they're from
+          TruthSource.
         </AlertDescription>
       </Alert>
 
@@ -284,7 +293,7 @@ export default function WebhooksPage() {
       {/* Available Events */}
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold">Available Events</h2>
-        
+
         <div className="grid gap-4 md:grid-cols-2">
           {webhookEvents.map((event) => {
             const Icon = event.icon
@@ -325,12 +334,13 @@ export default function WebhooksPage() {
       {/* Webhook Security */}
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold">Webhook Security</h2>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Signature Verification</CardTitle>
             <CardDescription>
-              Every webhook request includes a signature in the X-TruthSource-Signature header
+              Every webhook request includes a signature in the
+              X-TruthSource-Signature header
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -340,7 +350,7 @@ export default function WebhooksPage() {
                 <TabsTrigger value="python">Python</TabsTrigger>
                 <TabsTrigger value="php">PHP</TabsTrigger>
               </TabsList>
-              
+
               {Object.entries(verificationExample).map(([lang, code]) => (
                 <TabsContent key={lang} value={lang}>
                   <pre className="overflow-x-auto rounded-lg bg-muted p-4">
@@ -356,7 +366,7 @@ export default function WebhooksPage() {
       {/* Webhook Configuration */}
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold">Configuration</h2>
-        
+
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
@@ -382,8 +392,8 @@ export default function WebhooksPage() {
               <div>
                 <h4 className="font-semibold mb-2">Via Dashboard</h4>
                 <p className="text-sm text-muted-foreground">
-                  Navigate to Settings → Webhooks in your TruthSource dashboard to
-                  configure webhooks with a user-friendly interface.
+                  Navigate to Settings → Webhooks in your TruthSource dashboard
+                  to configure webhooks with a user-friendly interface.
                 </p>
               </div>
             </CardContent>
@@ -447,12 +457,13 @@ export default function WebhooksPage() {
               <li>• 5th retry: 12 hours after 4th retry</li>
             </ul>
           </div>
-          
+
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              After 5 failed attempts, the webhook will be automatically disabled.
-              You'll receive an email notification and can re-enable it from the dashboard.
+              After 5 failed attempts, the webhook will be automatically
+              disabled. You'll receive an email notification and can re-enable
+              it from the dashboard.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -461,7 +472,7 @@ export default function WebhooksPage() {
       {/* Testing Webhooks */}
       <div className="space-y-6">
         <h2 className="text-2xl font-semibold">Testing Webhooks</h2>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Webhook Testing Tools</CardTitle>
@@ -474,8 +485,8 @@ export default function WebhooksPage() {
               <div>
                 <h4 className="font-semibold mb-2">Test Events</h4>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Send test events from the dashboard to verify your endpoint
-                  is working correctly.
+                  Send test events from the dashboard to verify your endpoint is
+                  working correctly.
                 </p>
                 <Button asChild>
                   <Link href="/developers/testing">
@@ -484,7 +495,7 @@ export default function WebhooksPage() {
                   </Link>
                 </Button>
               </div>
-              
+
               <div>
                 <h4 className="font-semibold mb-2">Local Development</h4>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -508,23 +519,29 @@ export default function WebhooksPage() {
         <CardContent className="space-y-4">
           <div className="space-y-3">
             <div>
-              <h4 className="font-semibold text-sm">Webhook not receiving events</h4>
+              <h4 className="font-semibold text-sm">
+                Webhook not receiving events
+              </h4>
               <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
                 <li>• Verify your endpoint URL is publicly accessible</li>
                 <li>• Check that you've subscribed to the correct events</li>
                 <li>• Ensure your endpoint returns a 2xx status code</li>
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-semibold text-sm">Signature verification failing</h4>
+              <h4 className="font-semibold text-sm">
+                Signature verification failing
+              </h4>
               <ul className="mt-1 space-y-1 text-sm text-muted-foreground">
                 <li>• Confirm you're using the correct webhook secret</li>
                 <li>• Ensure you're verifying against the raw request body</li>
-                <li>• Check for encoding issues in your signature comparison</li>
+                <li>
+                  • Check for encoding issues in your signature comparison
+                </li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold text-sm">Duplicate events</h4>
               <ul className="mt-1 space-y-1 text-sm text-muted-foreground">

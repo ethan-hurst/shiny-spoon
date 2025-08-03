@@ -1,14 +1,14 @@
 // PRP-019: Custom Reports Builder - Reports Dashboard
 import { Suspense } from 'react'
-import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { Plus } from 'lucide-react'
+import { ReportTemplates } from '@/components/features/reports/report-templates'
+import { ReportsTable } from '@/components/features/reports/reports-table'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ReportsTable } from '@/components/features/reports/reports-table'
-import { ReportTemplates } from '@/components/features/reports/report-templates'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata = {
   title: 'Reports | TruthSource',
@@ -26,7 +26,7 @@ function ReportsPageSkeleton() {
         </div>
         <Skeleton className="h-10 w-36" />
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="p-6 border rounded-lg space-y-3">
@@ -47,7 +47,9 @@ async function ReportsContent() {
   const supabase = await createClient()
 
   // Get user's organization
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -65,11 +67,15 @@ async function ReportsContent() {
   // Fetch user's reports
   const { data: reports } = await supabase
     .from('reports')
-    .select(`
+    .select(
+      `
       *,
       report_runs(count)
-    `)
-    .or(`created_by.eq.${user.id},organization_id.eq.${profile.organization_id}`)
+    `
+    )
+    .or(
+      `created_by.eq.${user.id},organization_id.eq.${profile.organization_id}`
+    )
     .order('created_at', { ascending: false })
 
   // Fetch available templates
@@ -113,7 +119,7 @@ async function ReportsContent() {
 
         <TabsContent value="scheduled" className="space-y-4">
           <ReportsTable
-            reports={reports?.filter(r => r.schedule_enabled) || []}
+            reports={reports?.filter((r) => r.schedule_enabled) || []}
             showSchedule
           />
         </TabsContent>

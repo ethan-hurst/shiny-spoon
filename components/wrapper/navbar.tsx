@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
-import { BlocksIcon, Menu, ChevronRight } from 'lucide-react'
+import { BlocksIcon, ChevronRight, Menu } from 'lucide-react'
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -13,7 +13,13 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import ModeToggle from '../mode-toggle'
@@ -22,86 +28,87 @@ import { UserProfile } from '../user-profile'
 
 const navigation = {
   features: [
-    { 
-      title: 'Inventory Sync', 
-      href: '/features/inventory-sync', 
-      description: 'Keep inventory accurate across all channels with real-time sync' 
+    {
+      title: 'Inventory Sync',
+      href: '/features/inventory-sync',
+      description:
+        'Keep inventory accurate across all channels with real-time sync',
     },
-    { 
-      title: 'Pricing Rules', 
-      href: '/features/pricing-rules', 
-      description: 'Manage complex B2B pricing with customer-specific rules' 
+    {
+      title: 'Pricing Rules',
+      href: '/features/pricing-rules',
+      description: 'Manage complex B2B pricing with customer-specific rules',
     },
-    { 
-      title: 'Customer Portal', 
-      href: '/features/customer-portal', 
-      description: 'Give customers self-service access to orders and inventory' 
+    {
+      title: 'Customer Portal',
+      href: '/features/customer-portal',
+      description: 'Give customers self-service access to orders and inventory',
     },
-    { 
-      title: 'Analytics', 
-      href: '/features/analytics', 
-      description: 'Track sync performance and data accuracy metrics' 
+    {
+      title: 'Analytics',
+      href: '/features/analytics',
+      description: 'Track sync performance and data accuracy metrics',
     },
   ],
   solutions: [
-    { 
-      title: 'For Distributors', 
-      href: '/solutions/distributors', 
-      description: 'Streamline operations and reduce order errors' 
+    {
+      title: 'For Distributors',
+      href: '/solutions/distributors',
+      description: 'Streamline operations and reduce order errors',
     },
-    { 
-      title: 'For Manufacturers', 
-      href: '/solutions/manufacturers', 
-      description: 'Connect your supply chain in real-time' 
+    {
+      title: 'For Manufacturers',
+      href: '/solutions/manufacturers',
+      description: 'Connect your supply chain in real-time',
     },
-    { 
-      title: 'For Retailers', 
-      href: '/solutions/retailers', 
-      description: 'Manage inventory across all sales channels' 
+    {
+      title: 'For Retailers',
+      href: '/solutions/retailers',
+      description: 'Manage inventory across all sales channels',
     },
   ],
   resources: [
-    { 
-      title: 'Documentation', 
-      href: '/docs', 
-      description: 'Get started with our comprehensive guides' 
+    {
+      title: 'Documentation',
+      href: '/docs',
+      description: 'Get started with our comprehensive guides',
     },
-    { 
-      title: 'API Reference', 
-      href: '/developers', 
-      description: 'Build custom integrations with our API' 
+    {
+      title: 'API Reference',
+      href: '/developers',
+      description: 'Build custom integrations with our API',
     },
-    { 
-      title: 'Blog', 
-      href: '/blog', 
-      description: 'Latest updates and industry insights' 
+    {
+      title: 'Blog',
+      href: '/blog',
+      description: 'Latest updates and industry insights',
     },
-    { 
-      title: 'Help Center', 
-      href: '/help', 
-      description: 'Find answers to common questions' 
+    {
+      title: 'Help Center',
+      href: '/help',
+      description: 'Find answers to common questions',
     },
   ],
   company: [
-    { 
-      title: 'About', 
-      href: '/about', 
-      description: 'Learn about our mission and team' 
+    {
+      title: 'About',
+      href: '/about',
+      description: 'Learn about our mission and team',
     },
-    { 
-      title: 'Careers', 
-      href: '/careers', 
-      description: 'Join our growing team' 
+    {
+      title: 'Careers',
+      href: '/careers',
+      description: 'Join our growing team',
     },
-    { 
-      title: 'Contact', 
-      href: '/contact', 
-      description: 'Get in touch with our team' 
+    {
+      title: 'Contact',
+      href: '/contact',
+      description: 'Get in touch with our team',
     },
-    { 
-      title: 'Partners', 
-      href: '/partners', 
-      description: 'Explore partnership opportunities' 
+    {
+      title: 'Partners',
+      href: '/partners',
+      description: 'Explore partnership opportunities',
     },
   ],
 }
@@ -135,14 +142,20 @@ export default function NavBar() {
   }, [supabase])
 
   return (
-    <div className={cn(
-      'flex min-w-full fixed justify-between p-2 border-b z-50 transition-all duration-200',
-      scrolled 
-        ? 'bg-white/95 dark:bg-black/95 backdrop-blur-sm shadow-sm' 
-        : 'bg-white dark:bg-black dark:bg-opacity-50'
-    )}>
+    <div
+      className={cn(
+        'flex min-w-full fixed justify-between p-2 border-b z-50 transition-all duration-200',
+        scrolled
+          ? 'bg-white/95 dark:bg-black/95 backdrop-blur-sm shadow-sm'
+          : 'bg-white dark:bg-black dark:bg-opacity-50'
+      )}
+    >
       <div className="flex items-center gap-8">
-        <Link href="/" className="pl-2 flex items-center gap-2" aria-label="Home">
+        <Link
+          href="/"
+          className="pl-2 flex items-center gap-2"
+          aria-label="Home"
+        >
           <BlocksIcon aria-hidden="true" className="h-6 w-6 text-primary" />
           <span className="font-bold text-xl hidden sm:block">TruthSource</span>
         </Link>
@@ -219,9 +232,11 @@ export default function NavBar() {
 
             <NavigationMenuItem>
               <Link href="/pricing" legacyBehavior passHref>
-                <NavigationMenuLink className={cn(
-                  'group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50'
-                )}>
+                <NavigationMenuLink
+                  className={cn(
+                    'group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50'
+                  )}
+                >
                   Pricing
                 </NavigationMenuLink>
               </Link>
@@ -230,9 +245,11 @@ export default function NavBar() {
             {user && (
               <NavigationMenuItem>
                 <Link href="/dashboard" legacyBehavior passHref>
-                  <NavigationMenuLink className={cn(
-                    'group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50'
-                  )}>
+                  <NavigationMenuLink
+                    className={cn(
+                      'group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50'
+                    )}
+                  >
                     Dashboard
                   </NavigationMenuLink>
                 </Link>
@@ -258,7 +275,7 @@ export default function NavBar() {
           </>
         )}
         <ModeToggle />
-        
+
         {/* Mobile menu */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild className="lg:hidden">
@@ -270,10 +287,10 @@ export default function NavBar() {
             <SheetHeader>
               <SheetTitle>TruthSource</SheetTitle>
             </SheetHeader>
-            <MobileNav 
-              navigation={navigation} 
-              user={user} 
-              onItemClick={() => setMobileMenuOpen(false)} 
+            <MobileNav
+              navigation={navigation}
+              user={user}
+              onItemClick={() => setMobileMenuOpen(false)}
             />
           </SheetContent>
         </Sheet>
@@ -308,10 +325,14 @@ const ListItem = React.forwardRef<
 })
 ListItem.displayName = 'ListItem'
 
-function MobileNav({ navigation, user, onItemClick }: { 
-  navigation: typeof navigation, 
-  user: User | null,
-  onItemClick: () => void 
+function MobileNav({
+  navigation,
+  user,
+  onItemClick,
+}: {
+  navigation: typeof navigation
+  user: User | null
+  onItemClick: () => void
 }) {
   return (
     <div className="flex flex-col space-y-4 mt-8">
@@ -332,14 +353,16 @@ function MobileNav({ navigation, user, onItemClick }: {
       ) : (
         <>
           <Link href="/login" onClick={onItemClick}>
-            <Button variant="outline" className="w-full">Log in</Button>
+            <Button variant="outline" className="w-full">
+              Log in
+            </Button>
           </Link>
           <Link href="/signup" onClick={onItemClick}>
             <Button className="w-full">Start Free Trial</Button>
           </Link>
         </>
       )}
-      
+
       <div className="border-t pt-4">
         <h3 className="font-semibold mb-2">Features</h3>
         {navigation.features.map((item) => (

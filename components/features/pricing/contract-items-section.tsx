@@ -30,7 +30,8 @@ interface Product {
   base_price: number
 }
 
-type ContractItemFieldValue<K extends keyof ContractItemForm> = ContractItemForm[K]
+type ContractItemFieldValue<K extends keyof ContractItemForm> =
+  ContractItemForm[K]
 
 interface ContractItemsSectionProps {
   contractItems: ContractItemForm[]
@@ -60,12 +61,7 @@ export function ContractItemsSection({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-medium">Contract Items</h4>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onAddItem}
-        >
+        <Button type="button" variant="outline" size="sm" onClick={onAddItem}>
           <Plus className="h-4 w-4 mr-2" />
           Add Item
         </Button>
@@ -78,8 +74,10 @@ export function ContractItemsSection({
       ) : (
         <div className="space-y-4">
           {contractItems.map((item, index) => {
-            const selectedProduct = products.find(p => p.id === item.product_id)
-            
+            const selectedProduct = products.find(
+              (p) => p.id === item.product_id
+            )
+
             return (
               <div
                 key={index}
@@ -133,9 +131,12 @@ export function ContractItemsSection({
                         onChange={(e) => {
                           const value = e.target.value
                           const numValue = parseFloat(value)
-                          
+
                           // Validate the input
-                          if (value === '' || (!isNaN(numValue) && numValue >= 0)) {
+                          if (
+                            value === '' ||
+                            (!isNaN(numValue) && numValue >= 0)
+                          ) {
                             onUpdateItem(
                               index,
                               'contract_price',
@@ -162,7 +163,8 @@ export function ContractItemsSection({
                       value={item.min_quantity}
                       onChange={(e) => {
                         const value = parseInt(e.target.value, 10)
-                        const validatedValue = isNaN(value) || value < 1 ? 1 : value
+                        const validatedValue =
+                          isNaN(value) || value < 1 ? 1 : value
                         onUpdateItem(index, 'min_quantity', validatedValue)
                       }}
                     />
@@ -194,9 +196,7 @@ export function ContractItemsSection({
                           onUpdateItem(index, 'price_locked', checked)
                         }
                       />
-                      <Label className="text-sm font-normal">
-                        Lock price
-                      </Label>
+                      <Label className="text-sm font-normal">Lock price</Label>
                     </div>
                   </div>
                 </div>

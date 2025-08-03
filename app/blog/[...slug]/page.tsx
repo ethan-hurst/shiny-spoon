@@ -1,11 +1,11 @@
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { allPosts } from 'contentlayer2/generated'
-import { getMDXComponent } from 'next-contentlayer2/hooks'
 import { format } from 'date-fns'
-import Image from 'next/image'
+import { getMDXComponent } from 'next-contentlayer2/hooks'
 import { BlogAuthor } from '@/components/blog/blog-author'
-import { ShareButtons } from '@/components/blog/share-buttons'
 import { RelatedPosts } from '@/components/blog/related-posts'
+import { ShareButtons } from '@/components/blog/share-buttons'
 import { NewsletterCTA } from '@/components/marketing/newsletter-cta'
 import { MDXComponents } from '@/components/mdx'
 
@@ -15,7 +15,9 @@ export async function generateStaticParams() {
   }))
 }
 
-export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string[] }>
+}) {
   const params = await props.params
   const post = allPosts.find((post) => post.slug === params.slug.join('/'))
   if (!post) return {}
@@ -40,7 +42,9 @@ export async function generateMetadata(props: { params: Promise<{ slug: string[]
   }
 }
 
-export default async function BlogPost(props: { params: Promise<{ slug: string[] }> }) {
+export default async function BlogPost(props: {
+  params: Promise<{ slug: string[] }>
+}) {
   const params = await props.params
   const post = allPosts.find((post) => post.slug === params.slug.join('/'))
 
@@ -64,7 +68,9 @@ export default async function BlogPost(props: { params: Promise<{ slug: string[]
           </div>
 
           <h1 className="text-4xl font-bold mb-4">{post.title}</h1>
-          <p className="text-xl text-muted-foreground mb-8">{post.description}</p>
+          <p className="text-xl text-muted-foreground mb-8">
+            {post.description}
+          </p>
 
           <div className="flex items-center justify-between">
             <BlogAuthor authors={post.authors} />

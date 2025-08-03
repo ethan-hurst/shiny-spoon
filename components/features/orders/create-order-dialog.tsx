@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Plus, Trash2 } from 'lucide-react'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -31,12 +34,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent } from '@/components/ui/card'
-import { createOrder } from '@/app/actions/orders'
 import { createClient } from '@/lib/supabase/client'
+import { createOrder } from '@/app/actions/orders'
 import type { CreateOrderInput } from '@/types/order.types'
 
 const orderItemSchema = z.object({
@@ -57,12 +57,21 @@ interface CreateOrderDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps) {
+export function CreateOrderDialog({
+  open,
+  onOpenChange,
+}: CreateOrderDialogProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [customers, setCustomers] = useState<Array<{ id: string; name: string; email: string }>>([])
-  const [products, setProducts] = useState<Array<{ id: string; name: string; sku: string; base_price: number }>>([])
-  const [warehouses, setWarehouses] = useState<Array<{ id: string; name: string }>>([])
+  const [customers, setCustomers] = useState<
+    Array<{ id: string; name: string; email: string }>
+  >([])
+  const [products, setProducts] = useState<
+    Array<{ id: string; name: string; sku: string; base_price: number }>
+  >([])
+  const [warehouses, setWarehouses] = useState<
+    Array<{ id: string; name: string }>
+  >([])
 
   const form = useForm<z.infer<typeof createOrderSchema>>({
     resolver: zodResolver(createOrderSchema),
@@ -78,14 +87,14 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
     if (open) {
       const loadData = async () => {
         const supabase = createClient()
-        
+
         // Load customers
         const { data: customersData } = await supabase
           .from('customers')
           .select('id, name, email')
           .eq('active', true)
           .order('name')
-        
+
         if (customersData) {
           setCustomers(customersData)
         }
@@ -96,7 +105,7 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
           .select('id, name, sku, base_price')
           .eq('active', true)
           .order('name')
-        
+
         if (productsData) {
           setProducts(productsData)
         }
@@ -107,7 +116,7 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
           .select('id, name')
           .eq('active', true)
           .order('name')
-        
+
         if (warehousesData) {
           setWarehouses(warehousesData)
         }
@@ -123,7 +132,7 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
       const orderInput: CreateOrderInput = {
         customer_id: values.customer_id || undefined,
         notes: values.notes,
-        items: values.items.map(item => ({
+        items: values.items.map((item) => ({
           product_id: item.product_id,
           quantity: item.quantity,
           unit_price: item.unit_price,
@@ -132,7 +141,7 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
       }
 
       const result = await createOrder(orderInput)
-      
+
       if (result.success) {
         toast.success('Order created successfully')
         router.refresh()
@@ -156,7 +165,10 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
   const removeItem = (index: number) => {
     const currentItems = form.getValues('items')
     if (currentItems.length > 1) {
-      form.setValue('items', currentItems.filter((_, i) => i !== index))
+      form.setValue(
+        'items',
+        currentItems.filter((_, i) => i !== index)
+      )
     }
   }
 
@@ -178,7 +190,10 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Customer (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a customer or leave empty for guest order" />
@@ -223,7 +238,10 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Product</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select a product" />
@@ -231,8 +249,12 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
                                 </FormControl>
                                 <SelectContent>
                                   {products.map((product) => (
-                                    <SelectItem key={product.id} value={product.id}>
-                                      {product.name} ({product.sku}) - ${product.base_price}
+                                    <SelectItem
+                                      key={product.id}
+                                      value={product.id}
+                                    >
+                                      {product.name} ({product.sku}) - $
+                                      {product.base_price}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -253,7 +275,9 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
                                   type="number"
                                   min={1}
                                   {...field}
-                                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                  onChange={(e) =>
+                                    field.onChange(parseInt(e.target.value))
+                                  }
                                 />
                               </FormControl>
                               <FormMessage />
@@ -267,7 +291,10 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Warehouse (Optional)</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
                                 <FormControl>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select warehouse" />
@@ -276,7 +303,10 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
                                 <SelectContent>
                                   <SelectItem value="">Default</SelectItem>
                                   {warehouses.map((warehouse) => (
-                                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                                    <SelectItem
+                                      key={warehouse.id}
+                                      value={warehouse.id}
+                                    >
                                       {warehouse.name}
                                     </SelectItem>
                                   ))}
@@ -300,7 +330,13 @@ export function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps
                                   step={0.01}
                                   placeholder="Use product price"
                                   {...field}
-                                  onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      e.target.value
+                                        ? parseFloat(e.target.value)
+                                        : undefined
+                                    )
+                                  }
                                 />
                               </FormControl>
                               <FormDescription>

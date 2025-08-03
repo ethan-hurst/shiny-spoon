@@ -1,6 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { AlertTriangle, Copy, Eye, EyeOff } from 'lucide-react'
+import { toast } from 'sonner'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,10 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertTriangle, Copy, Eye, EyeOff } from 'lucide-react'
-import { toast } from 'sonner'
 
 interface ViewApiKeyDialogProps {
   apiKeyId: string
@@ -21,13 +21,18 @@ interface ViewApiKeyDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function ViewApiKeyDialog({ apiKeyId, apiKey, open, onOpenChange }: ViewApiKeyDialogProps) {
+export function ViewApiKeyDialog({
+  apiKeyId,
+  apiKey,
+  open,
+  onOpenChange,
+}: ViewApiKeyDialogProps) {
   const [showKey, setShowKey] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const copyToClipboard = async () => {
     if (!apiKey) return
-    
+
     try {
       await navigator.clipboard.writeText(apiKey)
       setCopied(true)
@@ -44,20 +49,20 @@ export function ViewApiKeyDialog({ apiKeyId, apiKey, open, onOpenChange }: ViewA
         <DialogHeader>
           <DialogTitle>API Key Created</DialogTitle>
           <DialogDescription>
-            {apiKey 
-              ? 'Your new API key has been generated. Copy it now as it won\'t be shown again.'
-              : 'API key details'
-            }
+            {apiKey
+              ? "Your new API key has been generated. Copy it now as it won't be shown again."
+              : 'API key details'}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {apiKey && (
             <>
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Make sure to copy your API key now. You won't be able to see it again!
+                  Make sure to copy your API key now. You won't be able to see
+                  it again!
                 </AlertDescription>
               </Alert>
 
@@ -99,7 +104,7 @@ export function ViewApiKeyDialog({ apiKeyId, apiKey, open, onOpenChange }: ViewA
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">Usage Example</h4>
                 <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-{`curl -H "Authorization: Bearer YOUR_API_KEY" \\
+                  {`curl -H "Authorization: Bearer YOUR_API_KEY" \\
      -H "Content-Type: application/json" \\
      https://api.truthsource.io/v1/products`}
                 </pre>

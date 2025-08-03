@@ -67,7 +67,7 @@ export function AccuracyChart({ data }: AccuracyChartProps) {
                 tickLine={false}
                 axisLine={false}
               />
-              <Tooltip 
+              <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (

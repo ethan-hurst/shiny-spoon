@@ -1,15 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { Mail } from 'lucide-react'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { createBrowserClient } from '@/lib/supabase/client'
-import { Mail } from 'lucide-react'
 
 const newsletterSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -20,7 +26,7 @@ type NewsletterFormData = z.infer<typeof newsletterSchema>
 export function NewsletterCTA() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const supabase = createBrowserClient()
-  
+
   const {
     register,
     handleSubmit,
@@ -32,16 +38,14 @@ export function NewsletterCTA() {
 
   const onSubmit = async (data: NewsletterFormData) => {
     setIsSubmitting(true)
-    
+
     try {
-      const { error } = await supabase
-        .from('newsletter_subscribers')
-        .insert({
-          email: data.email,
-          status: 'active',
-          source: 'blog',
-        })
-        
+      const { error } = await supabase.from('newsletter_subscribers').insert({
+        email: data.email,
+        status: 'active',
+        source: 'blog',
+      })
+
       if (error) {
         if (error.code === '23505') {
           toast.error('You are already subscribed to our newsletter!')
@@ -51,10 +55,10 @@ export function NewsletterCTA() {
         }
         return
       }
-      
+
       toast.success('Successfully subscribed to our newsletter!')
       reset()
-      
+
       // Track the subscription event
       if (typeof window !== 'undefined' && window.gtag) {
         window.gtag('event', 'newsletter_signup', {
@@ -78,11 +82,15 @@ export function NewsletterCTA() {
         </div>
         <CardTitle className="text-2xl">Stay Updated</CardTitle>
         <CardDescription>
-          Get the latest insights on B2B e-commerce and data accuracy delivered to your inbox
+          Get the latest insights on B2B e-commerce and data accuracy delivered
+          to your inbox
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col sm:flex-row gap-3">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col sm:flex-row gap-3"
+        >
           <Input
             {...register('email')}
             placeholder="Enter your email"

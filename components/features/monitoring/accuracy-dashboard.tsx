@@ -15,7 +15,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/components/ui/use-toast'
-import { triggerAccuracyCheck, acknowledgeAlert, resolveDiscrepancy } from '@/app/actions/monitoring'
+import {
+  acknowledgeAlert,
+  resolveDiscrepancy,
+  triggerAccuracyCheck,
+} from '@/app/actions/monitoring'
 import { useAccuracyMonitor } from '@/hooks/use-accuracy-monitor'
 import { AccuracyChart } from './accuracy-chart'
 import { AlertHistory } from './alert-history'
@@ -38,7 +42,7 @@ export function AccuracyDashboard({
 }: AccuracyDashboardProps) {
   const { toast } = useToast()
   const [checking, setChecking] = useState(false)
-  
+
   const {
     currentAccuracy,
     recentChecks,
@@ -65,7 +69,8 @@ export function AccuracyDashboard({
       if (result.success) {
         toast({
           title: 'Accuracy check started',
-          description: 'The check is running in the background. You\'ll be notified when it completes.',
+          description:
+            "The check is running in the background. You'll be notified when it completes.",
         })
       } else {
         toast({
@@ -108,9 +113,11 @@ export function AccuracyDashboard({
     )
   }
 
-  const openDiscrepancies = discrepancies.filter(d => d.status === 'open')
-  const criticalDiscrepancies = discrepancies.filter(d => d.severity === 'critical')
-  const highDiscrepancies = discrepancies.filter(d => d.severity === 'high')
+  const openDiscrepancies = discrepancies.filter((d) => d.status === 'open')
+  const criticalDiscrepancies = discrepancies.filter(
+    (d) => d.severity === 'critical'
+  )
+  const highDiscrepancies = discrepancies.filter((d) => d.severity === 'high')
 
   return (
     <div className="space-y-6">
@@ -118,8 +125,15 @@ export function AccuracyDashboard({
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Data Accuracy Monitor</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refresh}
+            disabled={isLoading}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
           <Button onClick={handleManualCheck} disabled={checking}>
@@ -172,16 +186,12 @@ export function AccuracyDashboard({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
-              {openDiscrepancies.length}
-            </div>
+            <div className="text-3xl font-bold">{openDiscrepancies.length}</div>
             <div className="flex gap-2 mt-2">
               <Badge variant="destructive">
                 {criticalDiscrepancies.length} Critical
               </Badge>
-              <Badge variant="secondary">
-                {highDiscrepancies.length} High
-              </Badge>
+              <Badge variant="secondary">{highDiscrepancies.length} High</Badge>
             </div>
           </CardContent>
         </Card>
@@ -214,10 +224,13 @@ export function AccuracyDashboard({
               {recentChecks[0] ? (
                 <>
                   <p className="font-medium">
-                    {new Date(recentChecks[0].completed_at || recentChecks[0].created_at).toLocaleString()}
+                    {new Date(
+                      recentChecks[0].completed_at || recentChecks[0].created_at
+                    ).toLocaleString()}
                   </p>
                   <p className="text-muted-foreground">
-                    {recentChecks[0].records_checked?.toLocaleString() || 0} records
+                    {recentChecks[0].records_checked?.toLocaleString() || 0}{' '}
+                    records
                   </p>
                 </>
               ) : (
@@ -244,9 +257,7 @@ export function AccuracyDashboard({
           <div className="flex items-center justify-between">
             <CardTitle>Active Discrepancies</CardTitle>
             {openDiscrepancies.length > 0 && (
-              <Badge variant="outline">
-                {openDiscrepancies.length} Open
-              </Badge>
+              <Badge variant="outline">{openDiscrepancies.length} Open</Badge>
             )}
           </div>
         </CardHeader>
@@ -265,7 +276,8 @@ export function AccuracyDashboard({
                 } else {
                   toast({
                     title: 'Failed to resolve',
-                    description: result.error || 'Failed to resolve discrepancy',
+                    description:
+                      result.error || 'Failed to resolve discrepancy',
                     variant: 'destructive',
                   })
                 }

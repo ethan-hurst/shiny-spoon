@@ -1,9 +1,9 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { LoginForm } from '@/components/auth/login-form'
 import { signIn } from '@/app/actions/auth'
-import { toast } from 'sonner'
 
 // Mock dependencies
 jest.mock('@/app/actions/auth', () => ({
@@ -41,8 +41,12 @@ describe('LoginForm', () => {
       expect(screen.getByLabelText('Login form')).toBeInTheDocument()
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: 'Reset your password' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Sign in' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('link', { name: 'Reset your password' })
+      ).toBeInTheDocument()
     })
 
     it('should have proper form labels and placeholders', () => {
@@ -56,7 +60,10 @@ describe('LoginForm', () => {
       expect(emailInput).toHaveAttribute('autoComplete', 'email')
 
       expect(passwordInput).toHaveAttribute('type', 'password')
-      expect(passwordInput).toHaveAttribute('placeholder', 'Enter your password')
+      expect(passwordInput).toHaveAttribute(
+        'placeholder',
+        'Enter your password'
+      )
       expect(passwordInput).toHaveAttribute('autoComplete', 'current-password')
     })
 
@@ -65,12 +72,17 @@ describe('LoginForm', () => {
 
       const form = screen.getByLabelText('Login form')
       const submitButton = screen.getByRole('button', { name: 'Sign in' })
-      const forgotPasswordLink = screen.getByRole('link', { name: 'Reset your password' })
+      const forgotPasswordLink = screen.getByRole('link', {
+        name: 'Reset your password',
+      })
 
       expect(form).toBeInTheDocument()
       expect(submitButton).toBeInTheDocument()
       expect(forgotPasswordLink).toHaveAttribute('href', '/reset-password')
-      expect(forgotPasswordLink).toHaveAttribute('aria-label', 'Reset your password')
+      expect(forgotPasswordLink).toHaveAttribute(
+        'aria-label',
+        'Reset your password'
+      )
     })
   })
 
@@ -116,7 +128,9 @@ describe('LoginForm', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Invalid email address')).toBeInTheDocument()
-        expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument()
+        expect(
+          screen.getByText('Password must be at least 8 characters')
+        ).toBeInTheDocument()
       })
     })
 
@@ -138,7 +152,9 @@ describe('LoginForm', () => {
       await user.type(emailInput, 'test@example.com')
 
       await waitFor(() => {
-        expect(screen.queryByText('Invalid email address')).not.toBeInTheDocument()
+        expect(
+          screen.queryByText('Invalid email address')
+        ).not.toBeInTheDocument()
       })
     })
   })
@@ -168,7 +184,9 @@ describe('LoginForm', () => {
 
     it('should show loading state during submission', async () => {
       const user = userEvent.setup()
-      mockSignIn.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockSignIn.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(<LoginForm />)
 
       const emailInput = screen.getByLabelText('Email')
@@ -180,8 +198,12 @@ describe('LoginForm', () => {
       await user.click(submitButton)
 
       // Should show loading state
-      expect(screen.getByRole('button', { name: 'Signing in...' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Signing in...' })).toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: 'Signing in...' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Signing in...' })
+      ).toBeDisabled()
     })
 
     it('should handle signIn error', async () => {
@@ -217,7 +239,9 @@ describe('LoginForm', () => {
       await user.click(submitButton)
 
       await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalledWith('An unexpected error occurred')
+        expect(mockToastError).toHaveBeenCalledWith(
+          'An unexpected error occurred'
+        )
       })
     })
 
@@ -240,7 +264,9 @@ describe('LoginForm', () => {
       })
 
       // Should be back to normal state
-      expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Sign in' })
+      ).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Sign in' })).not.toBeDisabled()
     })
   })
@@ -340,12 +366,16 @@ describe('LoginForm', () => {
       expect(screen.getByLabelText('Login form')).toBeInTheDocument()
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: 'Reset your password' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('link', { name: 'Reset your password' })
+      ).toBeInTheDocument()
     })
 
     it('should disable submit button during loading', async () => {
       const user = userEvent.setup()
-      mockSignIn.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockSignIn.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(<LoginForm />)
 
       const emailInput = screen.getByLabelText('Email')
@@ -356,15 +386,23 @@ describe('LoginForm', () => {
       await user.type(passwordInput, 'password123')
       await user.click(submitButton)
 
-      expect(screen.getByRole('button', { name: 'Signing in...' })).toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: 'Signing in...' })
+      ).toBeDisabled()
     })
 
     it('should show forgot password link with proper styling', () => {
       render(<LoginForm />)
 
-      const forgotPasswordLink = screen.getByRole('link', { name: 'Reset your password' })
-      
-      expect(forgotPasswordLink).toHaveClass('text-sm', 'text-blue-600', 'hover:underline')
+      const forgotPasswordLink = screen.getByRole('link', {
+        name: 'Reset your password',
+      })
+
+      expect(forgotPasswordLink).toHaveClass(
+        'text-sm',
+        'text-blue-600',
+        'hover:underline'
+      )
       expect(forgotPasswordLink).toHaveAttribute('href', '/reset-password')
     })
   })

@@ -28,28 +28,37 @@ const integrations = {
 }
 
 export function IntegrationLogos({ category }: IntegrationLogosProps) {
-  const logos = category === 'all' 
-    ? [...integrations.inventory, ...integrations.pricing, ...integrations.customers]
-    : integrations[category] || []
+  const logos =
+    category === 'all'
+      ? [
+          ...integrations.inventory,
+          ...integrations.pricing,
+          ...integrations.customers,
+        ]
+      : integrations[category] || []
 
-  const uniqueLogos = Array.from(new Map(logos.map(item => [item.name, item])).values())
+  const uniqueLogos = Array.from(
+    new Map(logos.map((item) => [item.name, item])).values()
+  )
   const headingId = 'integration-logos-heading'
   const descriptionId = 'integration-logos-description'
 
   return (
-    <section 
+    <section
       className="py-16 bg-gray-50"
       aria-label="Integration partners and supported platforms"
       aria-describedby={`${headingId} ${descriptionId}`}
     >
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
-          <h3 id={headingId} className="text-2xl font-bold mb-2">Seamless Integrations</h3>
+          <h3 id={headingId} className="text-2xl font-bold mb-2">
+            Seamless Integrations
+          </h3>
           <p id={descriptionId} className="text-gray-600">
             Connect with the tools you already use
           </p>
         </div>
-        <div 
+        <div
           className="flex flex-wrap justify-center items-center gap-8 md:gap-12"
           role="list"
           aria-label="List of integrated platforms"

@@ -1,10 +1,10 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { PlayCircle } from 'lucide-react'
 import { useState } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { PlayCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface FeatureHeroProps {
   title: string
@@ -13,7 +13,12 @@ interface FeatureHeroProps {
   imageUrl?: string
 }
 
-export function FeatureHero({ title, subtitle, videoUrl, imageUrl }: FeatureHeroProps) {
+export function FeatureHero({
+  title,
+  subtitle,
+  videoUrl,
+  imageUrl,
+}: FeatureHeroProps) {
   const [videoError, setVideoError] = useState(false)
   const [imageError, setImageError] = useState(false)
 
@@ -33,7 +38,9 @@ export function FeatureHero({ title, subtitle, videoUrl, imageUrl }: FeatureHero
                 <Button size="lg">Start Free Trial</Button>
               </Link>
               <Link href="/contact">
-                <Button size="lg" variant="outline">Request Demo</Button>
+                <Button size="lg" variant="outline">
+                  Request Demo
+                </Button>
               </Link>
             </div>
           </motion.div>

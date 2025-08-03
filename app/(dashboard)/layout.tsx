@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
-import { DashboardSidebar } from '@/components/layouts/dashboard-sidebar'
 import { DashboardHeader } from '@/components/layouts/dashboard-header'
+import { DashboardSidebar } from '@/components/layouts/dashboard-sidebar'
 import { DashboardSkeleton } from '@/components/layouts/dashboard-skeleton'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 
@@ -16,13 +16,10 @@ export default function DashboardLayout({
         <DashboardHeader />
         <main className="flex-1 overflow-y-auto p-6">
           <ErrorBoundary>
-            <Suspense fallback={<DashboardSkeleton />}>
-              {children}
-            </Suspense>
+            <Suspense fallback={<DashboardSkeleton />}>{children}</Suspense>
           </ErrorBoundary>
         </main>
       </div>
     </div>
   )
 }
-

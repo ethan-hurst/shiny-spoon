@@ -192,7 +192,9 @@ export const netsuiteIntegrationConfigSchema = z.object({
  * @returns The validated and typed NetSuiteIntegrationConfig object
  * @throws If the input does not conform to the required schema
  */
-export function validateNetSuiteConfig(config: unknown): NetSuiteIntegrationConfig {
+export function validateNetSuiteConfig(
+  config: unknown
+): NetSuiteIntegrationConfig {
   return netsuiteIntegrationConfigSchema.parse(config)
 }
 
@@ -201,7 +203,9 @@ export function validateNetSuiteConfig(config: unknown): NetSuiteIntegrationConf
  *
  * Returns true if the input conforms to the NetSuiteIntegrationConfig schema; otherwise, returns false.
  */
-export function isNetSuiteIntegrationConfig(config: unknown): config is NetSuiteIntegrationConfig {
+export function isNetSuiteIntegrationConfig(
+  config: unknown
+): config is NetSuiteIntegrationConfig {
   try {
     netsuiteIntegrationConfigSchema.parse(config)
     return true
@@ -227,13 +231,13 @@ export interface NetSuiteSyncState {
  */
 export function isNetSuiteApiError(error: any): error is NetSuiteApiError {
   return (
-    error && 
-    typeof error === 'object' && 
-    'type' in error && 
+    error &&
+    typeof error === 'object' &&
+    'type' in error &&
     typeof error.type === 'string' &&
-    'status' in error && 
+    'status' in error &&
     typeof error.status === 'number' &&
-    'title' in error && 
+    'title' in error &&
     typeof error.title === 'string' &&
     // Optional properties type checks
     (!('detail' in error) || typeof error.detail === 'string') &&

@@ -1,12 +1,12 @@
-import { createServerClient } from '@/lib/supabase/server'
-import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
+import { createServerClient } from '@/lib/supabase/server'
 import { validateCSRFToken } from '@/lib/utils/csrf'
 
 // Define Zod schema for request body
 const cancelRequestSchema = z.object({
-  operationId: z.string().uuid('Invalid operation ID format')
+  operationId: z.string().uuid('Invalid operation ID format'),
 })
 
 /**
@@ -21,10 +21,7 @@ export async function POST(request: NextRequest) {
     // Validate CSRF token
     const isValidCSRF = await validateCSRFToken(request)
     if (!isValidCSRF) {
-      return NextResponse.json(
-        { error: 'Invalid CSRF token' },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
     }
 
     const supabase = createServerClient()
@@ -41,19 +38,16 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json()
     } catch {
-      return NextResponse.json(
-        { error: 'Invalid JSON input' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid JSON input' }, { status: 400 })
     }
 
     // Validate with Zod schema
     const validationResult = cancelRequestSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Invalid request data',
-          details: validationResult.error.flatten().fieldErrors
+          details: validationResult.error.flatten().fieldErrors,
         },
         { status: 400 }
       )
@@ -83,10 +77,9 @@ export async function POST(request: NextRequest) {
       .single()
 
     // Verify user has permission to cancel this operation
-    const canCancel = (
+    const canCancel =
       operation.created_by === user.id || // User created the operation
       (userProfile && operation.organization_id === userProfile.organization_id) // Same organization
-    )
 
     if (!canCancel) {
       return NextResponse.json(

@@ -1,14 +1,24 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Calendar, Check, CreditCard, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Check, Sparkles, Calendar, CreditCard } from 'lucide-react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  ANNUAL_DISCOUNT_PERCENTAGE,
+  BILLING_MESSAGES,
+} from '@/lib/constants/billing'
 import { changePlan } from '@/app/actions/billing'
-import { BILLING_MESSAGES, ANNUAL_DISCOUNT_PERCENTAGE } from '@/lib/constants/billing'
 
 interface Plan {
   id: string
@@ -25,7 +35,11 @@ interface PlanSelectorProps {
   currentInterval: 'month' | 'year'
 }
 
-export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelectorProps) {
+export function PlanSelector({
+  plans,
+  currentPlan,
+  currentInterval,
+}: PlanSelectorProps) {
   const [selectedInterval, setSelectedInterval] = useState(currentInterval)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
 
@@ -35,11 +49,11 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
     }
 
     setLoadingPlan(planId)
-    
+
     const formData = new FormData()
     formData.append('plan', planId)
     formData.append('interval', selectedInterval)
-    
+
     try {
       await changePlan(formData)
     } catch (error) {
@@ -55,20 +69,23 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
         <CardHeader>
           <CardTitle>Billing Cycle</CardTitle>
           <CardDescription>
-            Choose how often you'd like to be billed. {BILLING_MESSAGES.ANNUAL_DESCRIPTION}
+            Choose how often you'd like to be billed.{' '}
+            {BILLING_MESSAGES.ANNUAL_DESCRIPTION}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RadioGroup 
-            value={selectedInterval} 
-            onValueChange={(value) => setSelectedInterval(value as 'month' | 'year')}
+          <RadioGroup
+            value={selectedInterval}
+            onValueChange={(value) =>
+              setSelectedInterval(value as 'month' | 'year')
+            }
             className="grid md:grid-cols-2 gap-4"
           >
             <div className="relative">
-              <RadioGroupItem 
-                value="month" 
-                id="monthly" 
-                className="peer sr-only" 
+              <RadioGroupItem
+                value="month"
+                id="monthly"
+                className="peer sr-only"
               />
               <Label
                 htmlFor="monthly"
@@ -87,10 +104,10 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
             </div>
 
             <div className="relative">
-              <RadioGroupItem 
-                value="year" 
-                id="yearly" 
-                className="peer sr-only" 
+              <RadioGroupItem
+                value="year"
+                id="yearly"
+                className="peer sr-only"
               />
               <Label
                 htmlFor="yearly"
@@ -101,7 +118,10 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
                     <CreditCard className="h-4 w-4" />
                     <span className="font-medium">Annual billing</span>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300">
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
+                  >
                     {BILLING_MESSAGES.ANNUAL_SAVINGS}
                   </Badge>
                 </div>
@@ -126,13 +146,14 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
           <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan) => {
               const isCurrentPlan = plan.id === currentPlan
-              const price = selectedInterval === 'year' 
-                ? Math.floor(plan.yearlyPrice / 12)
-                : plan.monthlyPrice
+              const price =
+                selectedInterval === 'year'
+                  ? Math.floor(plan.yearlyPrice / 12)
+                  : plan.monthlyPrice
 
               return (
-                <Card 
-                  key={plan.id} 
+                <Card
+                  key={plan.id}
                   className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}
                 >
                   {plan.popular && (
@@ -143,7 +164,7 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
                       </Badge>
                     </div>
                   )}
-                  
+
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       {plan.name}
@@ -165,7 +186,7 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
                       )}
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent>
                     <ul className="space-y-3">
                       {plan.features.map((feature, index) => (
@@ -176,12 +197,22 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
                       ))}
                     </ul>
                   </CardContent>
-                  
+
                   <CardFooter>
                     <Button
                       className="w-full"
-                      variant={isCurrentPlan ? 'outline' : plan.popular ? 'default' : 'outline'}
-                      disabled={isCurrentPlan && selectedInterval === currentInterval || loadingPlan !== null}
+                      variant={
+                        isCurrentPlan
+                          ? 'outline'
+                          : plan.popular
+                            ? 'default'
+                            : 'outline'
+                      }
+                      disabled={
+                        (isCurrentPlan &&
+                          selectedInterval === currentInterval) ||
+                        loadingPlan !== null
+                      }
                       onClick={() => handleSelectPlan(plan.id)}
                     >
                       {loadingPlan === plan.id ? (
@@ -189,11 +220,14 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
                           <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
                           Processing...
                         </>
-                      ) : isCurrentPlan && selectedInterval === currentInterval ? (
+                      ) : isCurrentPlan &&
+                        selectedInterval === currentInterval ? (
                         'Current Plan'
                       ) : isCurrentPlan ? (
                         `Switch to ${selectedInterval === 'year' ? 'Annual' : 'Monthly'}`
-                      ) : currentPlan === 'free' || plans.findIndex(p => p.id === plan.id) > plans.findIndex(p => p.id === currentPlan) ? (
+                      ) : currentPlan === 'free' ||
+                        plans.findIndex((p) => p.id === plan.id) >
+                          plans.findIndex((p) => p.id === currentPlan) ? (
                         'Upgrade'
                       ) : (
                         'Downgrade'
@@ -207,10 +241,14 @@ export function PlanSelector({ plans, currentPlan, currentInterval }: PlanSelect
 
           <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground">
-              All plans include SSL certificates, 99.9% uptime SLA, and 24/7 monitoring
+              All plans include SSL certificates, 99.9% uptime SLA, and 24/7
+              monitoring
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Need a custom plan? <a href="/contact" className="underline">Contact sales</a>
+              Need a custom plan?{' '}
+              <a href="/contact" className="underline">
+                Contact sales
+              </a>
             </p>
           </div>
         </CardContent>

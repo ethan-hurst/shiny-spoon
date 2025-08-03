@@ -80,7 +80,7 @@ export class AnalyticsCalculator {
       // Check for errors in metadata
       const metadata = order.metadata as any
       const hasError = metadata?.hasError || metadata?.errors?.length > 0
-      
+
       if (!hasError) {
         metrics.accurateOrders++
       } else {
@@ -153,7 +153,9 @@ export class AnalyticsCalculator {
 
         jobsForDate.forEach((job) => {
           if (job.updated_at && job.created_at) {
-            const duration = new Date(job.updated_at).getTime() - new Date(job.created_at).getTime()
+            const duration =
+              new Date(job.updated_at).getTime() -
+              new Date(job.created_at).getTime()
             totalDuration += duration
           }
           if (job.status === 'completed') {
@@ -161,8 +163,12 @@ export class AnalyticsCalculator {
           }
         })
 
-        metrics.avgDuration = jobsForDate.length > 0 ? totalDuration / jobsForDate.length : 0
-        metrics.successRate = jobsForDate.length > 0 ? (completedCount / jobsForDate.length) * 100 : 0
+        metrics.avgDuration =
+          jobsForDate.length > 0 ? totalDuration / jobsForDate.length : 0
+        metrics.successRate =
+          jobsForDate.length > 0
+            ? (completedCount / jobsForDate.length) * 100
+            : 0
       })
 
       return Array.from(metricsByDate.values())
@@ -205,8 +211,10 @@ export class AnalyticsCalculator {
         }
       })
 
-      metrics.avgDuration = logsForDate.length > 0 ? totalDuration / logsForDate.length : 0
-      metrics.successRate = logsForDate.length > 0 ? (completedCount / logsForDate.length) * 100 : 0
+      metrics.avgDuration =
+        logsForDate.length > 0 ? totalDuration / logsForDate.length : 0
+      metrics.successRate =
+        logsForDate.length > 0 ? (completedCount / logsForDate.length) * 100 : 0
     })
 
     return Array.from(metricsByDate.values())
@@ -248,11 +256,13 @@ export class AnalyticsCalculator {
           const price = (item.metadata as any)?.price || 10 // Default price
           return sum + (item.available_quantity || 0) * price
         }, 0),
-        lowStockCount: inventory.filter(item => {
+        lowStockCount: inventory.filter((item) => {
           const quantity = item.available_quantity || 0
           return quantity > 0 && quantity < 10
         }).length,
-        outOfStockCount: inventory.filter(item => (item.available_quantity || 0) === 0).length,
+        outOfStockCount: inventory.filter(
+          (item) => (item.available_quantity || 0) === 0
+        ).length,
       }))
     }
 

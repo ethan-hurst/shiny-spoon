@@ -1,7 +1,7 @@
 // PRP-016: Data Accuracy Monitor - Alert Acknowledgment API
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'edge'
 
@@ -15,9 +15,11 @@ export async function POST(
 ) {
   try {
     const supabase = createClient()
-    
+
     // Verify authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -30,7 +32,10 @@ export async function POST(
       .single()
 
     if (!orgUser) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Organization not found' },
+        { status: 404 }
+      )
     }
 
     // Verify alert exists and belongs to organization
@@ -57,13 +62,15 @@ export async function POST(
     const validatedData = requestSchema.parse(body)
 
     // Use RPC function for atomic alert acknowledgment
-    const { data: result, error: rpcError } = await supabase
-      .rpc('acknowledge_alert', {
+    const { data: result, error: rpcError } = await supabase.rpc(
+      'acknowledge_alert',
+      {
         p_alert_id: params.id,
         p_organization_id: orgUser.organization_id,
         p_user_id: user.id,
         p_note: validatedData.note || null,
-      })
+      }
+    )
 
     if (rpcError) {
       throw rpcError
@@ -76,7 +83,7 @@ export async function POST(
     })
   } catch (error) {
     console.error('Alert acknowledgment API error:', error)
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
@@ -98,9 +105,11 @@ export async function GET(
 ) {
   try {
     const supabase = createClient()
-    
+
     // Verify authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -113,13 +122,17 @@ export async function GET(
       .single()
 
     if (!orgUser) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Organization not found' },
+        { status: 404 }
+      )
     }
 
     // Get alert with related data
     const { data: alert, error } = await supabase
       .from('alerts')
-      .select(`
+      .select(
+        `
         *,
         alert_rules (
           id,
@@ -137,7 +150,8 @@ export async function GET(
           target_value,
           severity
         )
-      `)
+      `
+      )
       .eq('id', params.id)
       .eq('organization_id', orgUser.organization_id)
       .single()

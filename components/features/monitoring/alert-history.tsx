@@ -22,14 +22,16 @@ interface AlertHistoryProps {
 }
 
 export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
-  const [acknowledgingIds, setAcknowledgingIds] = useState<Set<string>>(new Set())
+  const [acknowledgingIds, setAcknowledgingIds] = useState<Set<string>>(
+    new Set()
+  )
 
   const handleAcknowledge = async (id: string) => {
-    setAcknowledgingIds(prev => new Set(prev).add(id))
+    setAcknowledgingIds((prev) => new Set(prev).add(id))
     try {
       await onAcknowledge(id)
     } finally {
-      setAcknowledgingIds(prev => {
+      setAcknowledgingIds((prev) => {
         const next = new Set(prev)
         next.delete(id)
         return next
@@ -52,7 +54,9 @@ export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
     }
   }
 
-  const getStatusColor = (status: string): "destructive" | "secondary" | "outline" | "default" => {
+  const getStatusColor = (
+    status: string
+  ): 'destructive' | 'secondary' | 'outline' | 'default' => {
     switch (status) {
       case 'active':
         return 'destructive'
@@ -70,7 +74,9 @@ export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
       <div className="text-center py-8 text-muted-foreground">
         <CheckCircle className="h-12 w-12 mx-auto mb-2 text-green-500" />
         <p>No active alerts</p>
-        <p className="text-sm mt-1">Your data accuracy is within acceptable thresholds.</p>
+        <p className="text-sm mt-1">
+          Your data accuracy is within acceptable thresholds.
+        </p>
       </div>
     )
   }
@@ -85,7 +91,10 @@ export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-medium">{alert.title}</h4>
-                  <Badge variant={getStatusColor(alert.status)} className="text-xs">
+                  <Badge
+                    variant={getStatusColor(alert.status)}
+                    className="text-xs"
+                  >
                     {alert.status}
                   </Badge>
                 </div>
@@ -94,7 +103,9 @@ export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
                 </p>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span>
-                    {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(alert.created_at), {
+                      addSuffix: true,
+                    })}
                   </span>
                   {alert.alert_rules?.name && (
                     <>
@@ -105,7 +116,10 @@ export function AlertHistory({ alerts, onAcknowledge }: AlertHistoryProps) {
                   {alert.trigger_value?.accuracy_score !== undefined && (
                     <>
                       <span>•</span>
-                      <span>Accuracy: {alert.trigger_value.accuracy_score.toFixed(1)}%</span>
+                      <span>
+                        Accuracy:{' '}
+                        {alert.trigger_value.accuracy_score.toFixed(1)}%
+                      </span>
                     </>
                   )}
                 </div>

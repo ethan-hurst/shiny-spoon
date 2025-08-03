@@ -8,9 +8,9 @@ import {
   Settings,
   Shield,
   ShoppingCart,
+  TrendingUp,
   Users,
   Warehouse,
-  TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 

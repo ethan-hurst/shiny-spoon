@@ -8,9 +8,7 @@ interface EditWarehousePageProps {
   }>
 }
 
-export default async function EditWarehousePage(
-  props: EditWarehousePageProps
-) {
+export default async function EditWarehousePage(props: EditWarehousePageProps) {
   const params = await props.params
   const supabase = await createClient()
 

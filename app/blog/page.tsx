@@ -6,7 +6,8 @@ import { Pagination } from '@/components/ui/pagination'
 
 export const metadata = {
   title: 'Blog - TruthSource',
-  description: 'Insights on B2B e-commerce, inventory management, and data accuracy.',
+  description:
+    'Insights on B2B e-commerce, inventory management, and data accuracy.',
 }
 
 const POSTS_PER_PAGE = 12
@@ -17,8 +18,12 @@ export default async function BlogPage(props: {
   const searchParams = await props.searchParams
   // Parse and validate search params
   const rawPage = Number(searchParams.page) || 1
-  const selectedCategory = typeof searchParams.category === 'string' ? searchParams.category : undefined
-  const selectedTag = typeof searchParams.tag === 'string' ? searchParams.tag : undefined
+  const selectedCategory =
+    typeof searchParams.category === 'string'
+      ? searchParams.category
+      : undefined
+  const selectedTag =
+    typeof searchParams.tag === 'string' ? searchParams.tag : undefined
 
   // Filter and sort posts
   let filteredPosts = allPosts
@@ -38,17 +43,22 @@ export default async function BlogPage(props: {
   }
 
   // Pagination with boundary check
-  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE))
-  
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredPosts.length / POSTS_PER_PAGE)
+  )
+
   // Validate and clamp current page
   const currentPage = Math.min(Math.max(1, rawPage), totalPages)
-  
+
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE
   const endIndex = startIndex + POSTS_PER_PAGE
   const currentPosts = filteredPosts.slice(startIndex, endIndex)
 
   // Get all categories and tags for filters
-  const allCategories = [...new Set(allPosts.flatMap((post) => post.categories))]
+  const allCategories = [
+    ...new Set(allPosts.flatMap((post) => post.categories)),
+  ]
   const allTags = [...new Set(allPosts.flatMap((post) => post.tags))]
 
   return (

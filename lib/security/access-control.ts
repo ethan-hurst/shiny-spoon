@@ -45,7 +45,10 @@ export class AccessControl {
   /**
    * Check if IP is allowed
    */
-  async isIPAllowed(ipAddress: string, organizationId: string): Promise<{
+  async isIPAllowed(
+    ipAddress: string,
+    organizationId: string
+  ): Promise<{
     allowed: boolean
     reason?: string
     rule?: IPRule
@@ -129,7 +132,10 @@ export class AccessControl {
   /**
    * Remove IP from whitelist
    */
-  async removeIPFromWhitelist(ruleId: string, organizationId: string): Promise<void> {
+  async removeIPFromWhitelist(
+    ruleId: string,
+    organizationId: string
+  ): Promise<void> {
     const { error } = await this.supabase
       .from('ip_rules')
       .update({ is_active: false })
@@ -164,12 +170,10 @@ export class AccessControl {
    */
   async logAccess(access: Omit<AccessLog, 'id' | 'timestamp'>): Promise<void> {
     try {
-      await this.supabase
-        .from('access_logs')
-        .insert({
-          ...access,
-          timestamp: new Date().toISOString(),
-        })
+      await this.supabase.from('access_logs').insert({
+        ...access,
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
       console.error('Failed to log access:', error)
     }
@@ -218,7 +222,10 @@ export class AccessControl {
    */
   async createSecurityPolicy(
     organizationId: string,
-    policy: Omit<SecurityPolicy, 'id' | 'organization_id' | 'created_at' | 'updated_at'>
+    policy: Omit<
+      SecurityPolicy,
+      'id' | 'organization_id' | 'created_at' | 'updated_at'
+    >
   ): Promise<SecurityPolicy> {
     const { data, error } = await this.supabase
       .from('security_policies')
@@ -274,7 +281,10 @@ export class AccessControl {
   /**
    * Check geo-blocking rules
    */
-  private async checkGeoBlocking(ipAddress: string, organizationId: string): Promise<boolean> {
+  private async checkGeoBlocking(
+    ipAddress: string,
+    organizationId: string
+  ): Promise<boolean> {
     try {
       // Get organization's geo-blocking policies
       const { data: policies } = await this.supabase
@@ -304,12 +314,12 @@ export class AccessControl {
    */
   private isIPMatch(ip: string, pattern: string): boolean {
     if (pattern === '*') return true
-    
+
     const ipParts = ip.split('.')
     const patternParts = pattern.split('.')
-    
+
     if (ipParts.length !== 4 || patternParts.length !== 4) return false
-    
+
     return patternParts.every((part, index) => {
       if (part === '*') return true
       return ipParts[index] === part
@@ -320,7 +330,8 @@ export class AccessControl {
    * Validate IP address format
    */
   private isValidIP(ip: string): boolean {
-    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+    const ipRegex =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
     return ipRegex.test(ip)
   }
 
@@ -344,7 +355,10 @@ export class AccessControl {
 
       // Count failed attempts
       if (log.status_code >= 400) {
-        failedAttempts.set(log.ip_address, (failedAttempts.get(log.ip_address) || 0) + 1)
+        failedAttempts.set(
+          log.ip_address,
+          (failedAttempts.get(log.ip_address) || 0) + 1
+        )
       }
     }
 
@@ -353,13 +367,15 @@ export class AccessControl {
 
     // Detect suspicious patterns
     for (const [ip, count] of ipCounts) {
-      if (count > 1000) { // More than 1000 requests in 24 hours
+      if (count > 1000) {
+        // More than 1000 requests in 24 hours
         suspiciousIPs.push(ip)
         recommendations.push(`High request volume from ${ip}`)
       }
 
       const failedCount = failedAttempts.get(ip) || 0
-      if (failedCount > 100) { // More than 100 failed attempts
+      if (failedCount > 100) {
+        // More than 100 failed attempts
         suspiciousIPs.push(ip)
         recommendations.push(`High failure rate from ${ip}`)
       }
@@ -371,4 +387,4 @@ export class AccessControl {
       recommendations,
     }
   }
-} 
+}

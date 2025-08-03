@@ -48,7 +48,7 @@ export function IntegrationStats({ stats }: IntegrationStatsProps) {
       {STAT_CARD_CONFIG.map((config) => {
         const Icon = config.icon
         const value = stats[config.key]
-        
+
         return (
           <Card key={config.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

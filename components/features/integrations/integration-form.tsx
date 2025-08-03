@@ -1,15 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useRouter } from 'next/navigation'
+import { Loader2, Plus, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2, Plus } from 'lucide-react'
+import { createIntegration, updateIntegration } from '@/app/actions/integrations'
 
 interface IntegrationFormProps {
   integrationType?: string
@@ -24,8 +42,8 @@ const integrationTypes = [
 ]
 
 export function IntegrationForm({ integrationType }: IntegrationFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [formData, setFormData] = React.useState({
     name: '',
     type: integrationType || '',
     apiKey: '',
@@ -43,7 +61,7 @@ export function IntegrationForm({ integrationType }: IntegrationFormProps) {
 
     try {
       // TODO: Implement actual integration creation
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 2000)) // Simulate API call
 
       toast({
         title: 'Integration created',
@@ -63,7 +81,7 @@ export function IntegrationForm({ integrationType }: IntegrationFormProps) {
   }
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   return (
@@ -180,4 +198,4 @@ export function IntegrationForm({ integrationType }: IntegrationFormProps) {
       </CardContent>
     </Card>
   )
-} 
+}

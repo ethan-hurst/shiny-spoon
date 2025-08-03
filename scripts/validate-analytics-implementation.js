@@ -14,13 +14,13 @@ console.log('🚀 Validating PRP-018 Analytics Dashboard Implementation...\n')
 const requiredFiles = [
   // Database Schema
   'supabase/migrations/020_analytics_dashboard.sql',
-  
+
   // Core Analytics Service
   'lib/analytics/calculate-metrics.ts',
-  
+
   // Main Dashboard Page
   'app/(dashboard)/analytics/page.tsx',
-  
+
   // Analytics Components
   'components/features/analytics/metrics-cards.tsx',
   'components/features/analytics/accuracy-chart.tsx',
@@ -30,18 +30,18 @@ const requiredFiles = [
   'components/features/analytics/date-range-picker.tsx',
   'components/features/analytics/export-analytics-button.tsx',
   'components/features/analytics/analytics-skeleton.tsx',
-  
+
   // Server Actions
   'app/actions/analytics.ts',
-  
+
   // Scheduled Job
   'app/api/cron/analytics/route.ts',
-  
+
   // Navigation Update
   'lib/constants/navigation.ts',
-  
+
   // Test Suite
-  '__tests__/analytics/analytics-dashboard.test.ts'
+  '__tests__/analytics/analytics-dashboard.test.ts',
 ]
 
 // Function to check if a file exists and get its stats
@@ -52,13 +52,13 @@ function validateFile(filePath) {
     return {
       exists: true,
       size: stats.size,
-      path: filePath
+      path: filePath,
     }
   } catch (error) {
     return {
       exists: false,
       path: filePath,
-      error: error.message
+      error: error.message,
     }
   }
 }
@@ -71,10 +71,10 @@ let totalSize = 0
 console.log('📁 File Validation:')
 console.log('─'.repeat(80))
 
-requiredFiles.forEach(file => {
+requiredFiles.forEach((file) => {
   const result = validateFile(file)
   totalFiles++
-  
+
   if (result.exists) {
     existingFiles++
     totalSize += result.size
@@ -85,7 +85,9 @@ requiredFiles.forEach(file => {
 })
 
 console.log('─'.repeat(80))
-console.log(`📊 Summary: ${existingFiles}/${totalFiles} files present (${(totalSize / 1024).toFixed(1)}KB total)\n`)
+console.log(
+  `📊 Summary: ${existingFiles}/${totalFiles} files present (${(totalSize / 1024).toFixed(1)}KB total)\n`
+)
 
 // Check for key functionality
 console.log('🔍 Feature Validation:')
@@ -95,12 +97,12 @@ const features = [
   {
     name: 'Database Schema',
     files: ['supabase/migrations/020_analytics_dashboard.sql'],
-    description: 'Analytics tables with RLS policies'
+    description: 'Analytics tables with RLS policies',
   },
   {
     name: 'Metrics Calculation Service',
     files: ['lib/analytics/calculate-metrics.ts'],
-    description: 'Core business logic for analytics'
+    description: 'Core business logic for analytics',
   },
   {
     name: 'Dashboard UI Components',
@@ -108,35 +110,33 @@ const features = [
       'components/features/analytics/metrics-cards.tsx',
       'components/features/analytics/accuracy-chart.tsx',
       'components/features/analytics/sync-performance-chart.tsx',
-      'components/features/analytics/inventory-trends-chart.tsx'
+      'components/features/analytics/inventory-trends-chart.tsx',
     ],
-    description: 'Visual components for data presentation'
+    description: 'Visual components for data presentation',
   },
   {
     name: 'Data Export Functionality',
     files: [
       'components/features/analytics/export-analytics-button.tsx',
-      'app/actions/analytics.ts'
+      'app/actions/analytics.ts',
     ],
-    description: 'CSV export capabilities'
+    description: 'CSV export capabilities',
   },
   {
     name: 'Scheduled Analytics Job',
     files: ['app/api/cron/analytics/route.ts'],
-    description: 'Automated metrics calculation'
+    description: 'Automated metrics calculation',
   },
   {
     name: 'Navigation Integration',
     files: ['lib/constants/navigation.ts'],
-    description: 'Dashboard accessibility'
-  }
+    description: 'Dashboard accessibility',
+  },
 ]
 
-features.forEach(feature => {
-  const allFilesExist = feature.files.every(file => 
-    validateFile(file).exists
-  )
-  
+features.forEach((feature) => {
+  const allFilesExist = feature.files.every((file) => validateFile(file).exists)
+
   if (allFilesExist) {
     console.log(`✅ ${feature.name} - ${feature.description}`)
   } else {
@@ -162,8 +162,8 @@ const contentChecks = [
       'calculateOrderAccuracy',
       'calculateSyncPerformance',
       'calculateInventoryTrends',
-      'calculateRevenueImpact'
-    ]
+      'calculateRevenueImpact',
+    ],
   },
   {
     file: 'app/(dashboard)/analytics/page.tsx',
@@ -175,26 +175,27 @@ const contentChecks = [
       'InventoryTrendsChart',
       'RevenueImpactCard',
       'DateRangePicker',
-      'ExportAnalyticsButton'
-    ]
+      'ExportAnalyticsButton',
+    ],
   },
   {
     file: 'lib/constants/navigation.ts',
-    checks: [
-      'Analytics Dashboard',
-      '/analytics',
-      'TrendingUp'
-    ]
-  }
+    checks: ['Analytics Dashboard', '/analytics', 'TrendingUp'],
+  },
 ]
 
-contentChecks.forEach(check => {
+contentChecks.forEach((check) => {
   const result = validateFile(check.file)
   if (result.exists) {
     try {
-      const content = fs.readFileSync(path.join(process.cwd(), check.file), 'utf8')
-      const missingItems = check.checks.filter(item => !content.includes(item))
-      
+      const content = fs.readFileSync(
+        path.join(process.cwd(), check.file),
+        'utf8'
+      )
+      const missingItems = check.checks.filter(
+        (item) => !content.includes(item)
+      )
+
       if (missingItems.length === 0) {
         console.log(`✅ ${check.file} - All required content present`)
       } else {
@@ -212,7 +213,9 @@ console.log('─'.repeat(80))
 
 // Final assessment
 const completionRate = (existingFiles / totalFiles) * 100
-console.log(`\n🎯 Implementation Status: ${completionRate.toFixed(1)}% complete\n`)
+console.log(
+  `\n🎯 Implementation Status: ${completionRate.toFixed(1)}% complete\n`
+)
 
 if (completionRate === 100) {
   console.log('🎉 SUCCESS: PRP-018 Analytics Dashboard is fully implemented!')
@@ -227,7 +230,7 @@ if (completionRate === 100) {
   console.log('  • Database schema with proper RLS policies')
   console.log('  • Scheduled job for automatic metric calculation')
   console.log('  • Navigation integration and loading states')
-  
+
   console.log('\n🚀 Next steps:')
   console.log('  • Run database migrations to create analytics tables')
   console.log('  • Test the /analytics dashboard route in the application')

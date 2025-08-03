@@ -1,22 +1,27 @@
 'use client'
 
-import { 
-  MoreHorizontal, 
-  Play, 
-  Pause, 
-  RefreshCw, 
-  Settings, 
-  Trash,
-  ShoppingBag,
-  BarChart3,
-  DollarSign,
-  Building2,
-  Briefcase,
-  Wrench,
-  Link as LinkIcon
-} from 'lucide-react'
+import React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
+import {
+  BarChart3,
+  Briefcase,
+  Building2,
+  DollarSign,
+  Link as LinkIcon,
+  MoreHorizontal,
+  Pause,
+  Play,
+  RefreshCw,
+  Settings,
+  ShoppingBag,
+  Trash,
+  Wrench,
+} from 'lucide-react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,20 +29,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import type { IntegrationFull, SyncJob, IntegrationStatusType, IntegrationPlatformType } from '@/types/integration.types'
+import type {
+  IntegrationFull,
+  IntegrationPlatformType,
+  IntegrationStatusType,
+  SyncJob,
+} from '@/types/integration.types'
 
 interface IntegrationItemProps {
   integration: IntegrationFull
   onSync: (id: string) => Promise<void> | void
-  onToggleStatus: (id: string, currentStatus: IntegrationStatusType) => Promise<void> | void
+  onToggleStatus: (
+    id: string,
+    currentStatus: IntegrationStatusType
+  ) => Promise<void> | void
   onDelete: (id: string) => Promise<void> | void
   isLoading: boolean
 }
 
-const platformIcons: Record<IntegrationPlatformType, React.ComponentType<{ className?: string }>> = {
+const platformIcons: Record<
+  IntegrationPlatformType,
+  React.ComponentType<{ className?: string }>
+> = {
   shopify: ShoppingBag,
   netsuite: BarChart3,
   quickbooks: DollarSign,
@@ -54,12 +67,12 @@ const statusColors: Record<IntegrationStatusType, string> = {
   suspended: 'bg-yellow-100 text-yellow-800',
 }
 
-export function IntegrationItem({ 
-  integration, 
-  onSync, 
-  onToggleStatus, 
-  onDelete, 
-  isLoading 
+export function IntegrationItem({
+  integration,
+  onSync,
+  onToggleStatus,
+  onDelete,
+  isLoading,
 }: IntegrationItemProps) {
   const lastSyncDate = integration.last_sync_at
     ? (() => {
@@ -70,11 +83,15 @@ export function IntegrationItem({
   const hasError = integration.status === 'error'
   const runningJobs = Array.isArray(integration.sync_jobs)
     ? integration.sync_jobs.filter(
-        (job): job is SyncJob => job && typeof job === 'object' && (job as SyncJob).status === 'running'
+        (job): job is SyncJob =>
+          job &&
+          typeof job === 'object' &&
+          (job as SyncJob).status === 'running'
       ).length
     : 0
 
-  const IconComponent = platformIcons[integration.platform as IntegrationPlatformType] || LinkIcon
+  const IconComponent =
+    platformIcons[integration.platform as IntegrationPlatformType] || LinkIcon
 
   return (
     <div className="p-4 hover:bg-muted/50 transition-colors">
@@ -85,7 +102,7 @@ export function IntegrationItem({
               <IconComponent className="h-6 w-6" />
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <Link
@@ -96,25 +113,31 @@ export function IntegrationItem({
               </Link>
               <Badge
                 variant="secondary"
-                className={statusColors[integration.status as IntegrationStatusType]}
+                className={
+                  statusColors[integration.status as IntegrationStatusType]
+                }
               >
                 {integration.status}
               </Badge>
               {runningJobs > 0 && (
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <Badge
+                  variant="secondary"
+                  className="bg-blue-100 text-blue-800"
+                >
                   <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
                   Syncing
                 </Badge>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <span className="capitalize">{integration.platform}</span>
               {lastSyncDate && (
                 <>
                   <span>•</span>
                   <span>
-                    Last sync: {(() => {
+                    Last sync:{' '}
+                    {(() => {
                       try {
                         return format(lastSyncDate, 'MMM d, h:mm a')
                       } catch (error) {
@@ -144,7 +167,9 @@ export function IntegrationItem({
             onClick={() => onSync(integration.id)}
             disabled={isLoading || integration.status !== 'active'}
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''} ${isLoading ? 'mr-2' : 'mr-1'}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''} ${isLoading ? 'mr-2' : 'mr-1'}`}
+            />
             {isLoading ? 'Syncing...' : 'Sync Now'}
           </Button>
 
@@ -156,7 +181,12 @@ export function IntegrationItem({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => onToggleStatus(integration.id, integration.status as IntegrationStatusType)}
+                onClick={() =>
+                  onToggleStatus(
+                    integration.id,
+                    integration.status as IntegrationStatusType
+                  )
+                }
               >
                 {integration.status === 'active' ? (
                   <>
@@ -170,23 +200,23 @@ export function IntegrationItem({
                   </>
                 )}
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem asChild>
                 <Link href={`/integrations/${integration.id}/settings`}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Link>
               </DropdownMenuItem>
-              
+
               <DropdownMenuItem asChild>
                 <Link href={`/integrations/${integration.id}/logs`}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   View Logs
                 </Link>
               </DropdownMenuItem>
-              
+
               <DropdownMenuSeparator />
-              
+
               <DropdownMenuItem
                 className="text-red-600"
                 onClick={() => onDelete(integration.id)}

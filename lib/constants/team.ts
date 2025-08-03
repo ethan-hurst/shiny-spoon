@@ -37,7 +37,7 @@ export const TEAM_ROLES = {
   },
 } as const
 
-export type TeamRole = typeof TEAM_ROLES[keyof typeof TEAM_ROLES]['value']
+export type TeamRole = (typeof TEAM_ROLES)[keyof typeof TEAM_ROLES]['value']
 
 export const INVITE_STATUS = {
   PENDING: 'pending',
@@ -45,7 +45,7 @@ export const INVITE_STATUS = {
   EXPIRED: 'expired',
 } as const
 
-export type InviteStatus = typeof INVITE_STATUS[keyof typeof INVITE_STATUS]
+export type InviteStatus = (typeof INVITE_STATUS)[keyof typeof INVITE_STATUS]
 
 export const TEAM_MESSAGES = {
   INVITE_SENT: 'Team invitation sent successfully',

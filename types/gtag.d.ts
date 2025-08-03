@@ -4,7 +4,11 @@ interface Window {
   gtag?: (
     command: 'event' | 'config' | 'set' | 'consent',
     targetId: string,
-    config?: Gtag.ControlParams | Gtag.EventParams | Gtag.ConfigParams | Gtag.ConsentParams
+    config?:
+      | Gtag.ControlParams
+      | Gtag.EventParams
+      | Gtag.ConfigParams
+      | Gtag.ConsentParams
   ) => void
 }
 

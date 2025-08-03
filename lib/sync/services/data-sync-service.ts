@@ -1,5 +1,10 @@
-import { SyncType, SyncStatus, SyncResult, SyncOperation } from '@/lib/sync/types'
 import { createBrowserClient } from '@/lib/supabase/client'
+import {
+  SyncOperation,
+  SyncResult,
+  SyncStatus,
+  SyncType,
+} from '@/lib/sync/types'
 
 export class DataSyncService {
   private supabase = createBrowserClient()
@@ -25,12 +30,16 @@ export class DataSyncService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error:
+          error instanceof Error ? error.message : 'Unknown error occurred',
       }
     }
   }
 
-  private async syncInventory(integrationId: string, options: any): Promise<SyncResult> {
+  private async syncInventory(
+    integrationId: string,
+    options: any
+  ): Promise<SyncResult> {
     const { data: integration } = await this.supabase
       .from('integrations')
       .select('*')
@@ -45,19 +54,28 @@ export class DataSyncService {
     const externalData = await this.fetchExternalInventory(integration)
 
     // Process and sync data
-    const results = await this.processInventoryData(externalData, integration.organization_id)
+    const results = await this.processInventoryData(
+      externalData,
+      integration.organization_id
+    )
 
     return {
       success: true,
       data: {
         records_synced: results.synced,
         records_failed: results.failed,
-        status: results.failed > 0 ? SyncStatus.COMPLETED_WITH_ERRORS : SyncStatus.COMPLETED,
+        status:
+          results.failed > 0
+            ? SyncStatus.COMPLETED_WITH_ERRORS
+            : SyncStatus.COMPLETED,
       },
     }
   }
 
-  private async syncPricing(integrationId: string, options: any): Promise<SyncResult> {
+  private async syncPricing(
+    integrationId: string,
+    options: any
+  ): Promise<SyncResult> {
     const { data: integration } = await this.supabase
       .from('integrations')
       .select('*')
@@ -79,7 +97,10 @@ export class DataSyncService {
     }
   }
 
-  private async syncProducts(integrationId: string, options: any): Promise<SyncResult> {
+  private async syncProducts(
+    integrationId: string,
+    options: any
+  ): Promise<SyncResult> {
     return {
       success: true,
       data: {
@@ -90,7 +111,10 @@ export class DataSyncService {
     }
   }
 
-  private async syncOrders(integrationId: string, options: any): Promise<SyncResult> {
+  private async syncOrders(
+    integrationId: string,
+    options: any
+  ): Promise<SyncResult> {
     return {
       success: true,
       data: {
@@ -101,7 +125,10 @@ export class DataSyncService {
     }
   }
 
-  private async syncCustomers(integrationId: string, options: any): Promise<SyncResult> {
+  private async syncCustomers(
+    integrationId: string,
+    options: any
+  ): Promise<SyncResult> {
     return {
       success: true,
       data: {
@@ -118,21 +145,22 @@ export class DataSyncService {
     return []
   }
 
-  private async processInventoryData(data: any[], organizationId: string): Promise<{ synced: number; failed: number }> {
+  private async processInventoryData(
+    data: any[],
+    organizationId: string
+  ): Promise<{ synced: number; failed: number }> {
     let synced = 0
     let failed = 0
 
     for (const item of data) {
       try {
-        await this.supabase
-          .from('inventory')
-          .upsert({
-            organization_id: organizationId,
-            sku: item.sku,
-            quantity: item.quantity,
-            warehouse_id: item.warehouse_id,
-            updated_at: new Date().toISOString(),
-          })
+        await this.supabase.from('inventory').upsert({
+          organization_id: organizationId,
+          sku: item.sku,
+          quantity: item.quantity,
+          warehouse_id: item.warehouse_id,
+          updated_at: new Date().toISOString(),
+        })
         synced++
       } catch (error) {
         failed++

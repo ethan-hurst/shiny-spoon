@@ -1,6 +1,5 @@
 // PRP-012: Base Connector Class for Integration Framework
 import { EventEmitter } from 'events'
-
 import {
   IntegrationError,
   RateLimitError,
@@ -52,9 +51,9 @@ export interface ConnectorEvents {
   'sync:progress': (progress: { current: number; total: number }) => void
   'sync:complete': (result: SyncResult) => void
   'sync:error': (error: IntegrationError) => void
-  'retry': (attempt: { attempt: number; error: string }) => void
+  retry: (attempt: { attempt: number; error: string }) => void
   'rate-limit': (info: { retryAfter: number }) => void
-  'error': (error: IntegrationError) => void
+  error: (error: IntegrationError) => void
 }
 
 // Logger adapter that delegates to an injected logger implementation
@@ -77,28 +76,28 @@ export class LoggerAdapter implements Logger {
   debug(message: string, data?: any): void {
     this.logger!.debug(`[${this.integrationId}] ${message}`, {
       integrationId: this.integrationId,
-      ...data
+      ...data,
     })
   }
 
   info(message: string, data?: any): void {
     this.logger!.info(`[${this.integrationId}] ${message}`, {
       integrationId: this.integrationId,
-      ...data
+      ...data,
     })
   }
 
   warn(message: string, data?: any): void {
     this.logger!.warn(`[${this.integrationId}] ${message}`, {
       integrationId: this.integrationId,
-      ...data
+      ...data,
     })
   }
 
   error(message: string, data?: any): void {
     this.logger!.error(`[${this.integrationId}] ${message}`, {
       integrationId: this.integrationId,
-      ...data
+      ...data,
     })
   }
 }
@@ -115,9 +114,9 @@ export class DefaultLogger extends LoggerAdapter {
 
 /**
  * Example usage with Winston:
- * 
+ *
  * import winston from 'winston'
- * 
+ *
  * const winstonLogger = winston.createLogger({
  *   level: 'info',
  *   format: winston.format.json(),
@@ -126,7 +125,7 @@ export class DefaultLogger extends LoggerAdapter {
  *     new winston.transports.File({ filename: 'combined.log' })
  *   ]
  * })
- * 
+ *
  * const config: ConnectorConfig = {
  *   integrationId: 'int_123',
  *   organizationId: 'org_456',
@@ -134,18 +133,18 @@ export class DefaultLogger extends LoggerAdapter {
  *   settings: { ... },
  *   logger: new LoggerAdapter('int_123', winstonLogger)
  * }
- * 
+ *
  * Example usage with Pino:
- * 
+ *
  * import pino from 'pino'
- * 
+ *
  * const pinoLogger = pino({
  *   level: 'info',
  *   transport: {
  *     target: 'pino-pretty'
  *   }
  * })
- * 
+ *
  * const config: ConnectorConfig = {
  *   integrationId: 'int_123',
  *   organizationId: 'org_456',
@@ -224,7 +223,7 @@ export abstract class BaseConnector extends EventEmitter {
   // Common initialization
   async initialize(): Promise<void> {
     this.logger.info('Initializing connector')
-    
+
     if (!this.authenticated) {
       await this.authenticate()
       this.authenticated = true
@@ -326,13 +325,13 @@ export abstract class BaseConnector extends EventEmitter {
     } = options
 
     let lastError: Error
-    
+
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         return await fn()
       } catch (error) {
         lastError = error as Error
-        
+
         if (attempt === retries) {
           throw error
         }
@@ -344,7 +343,7 @@ export abstract class BaseConnector extends EventEmitter {
 
         // Calculate delay with exponential backoff
         let delay = Math.min(minTimeout * Math.pow(factor, attempt), maxTimeout)
-        
+
         // Add jitter if randomize is enabled
         if (randomize) {
           delay = delay * (0.5 + Math.random() * 0.5)
@@ -360,13 +359,13 @@ export abstract class BaseConnector extends EventEmitter {
           `Attempt ${attempt + 1} failed, retrying in ${Math.round(delay)}ms`,
           { error: lastError.message }
         )
-        
+
         this.emit('retry', {
           attempt: attempt + 1,
           error: lastError.message,
         })
 
-        await new Promise(resolve => setTimeout(resolve, delay))
+        await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
 
@@ -389,12 +388,12 @@ export abstract class BaseConnector extends EventEmitter {
   // Common error handling
   protected handleError(error: any, context: string): void {
     const standardError = this.standardizeError(error)
-    
+
     this.logger.error(`${context}: ${standardError.message}`, {
       code: standardError.code,
       details: standardError.details,
     })
-    
+
     this.emit('error', standardError)
     throw standardError
   }

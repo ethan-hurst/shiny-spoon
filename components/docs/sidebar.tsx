@@ -1,13 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import type { Doc } from 'contentlayer2/generated'
+import { ChevronRight, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ChevronRight, Menu, X } from 'lucide-react'
-import { useState } from 'react'
-import type { Doc } from 'contentlayer2/generated'
+import { cn } from '@/lib/utils'
 
 interface DocsSidebarProps {
   categories: Record<string, Doc[]>
@@ -25,7 +25,7 @@ export function DocsSidebar({ categories }: DocsSidebarProps) {
         size="icon"
         className="fixed top-4 left-4 z-50 md:hidden"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label={isOpen ? "Close menu" : "Open menu"}
+        aria-label={isOpen ? 'Close menu' : 'Open menu'}
         aria-expanded={isOpen}
         aria-controls="docs-sidebar"
       >
@@ -47,7 +47,7 @@ export function DocsSidebar({ categories }: DocsSidebarProps) {
               Documentation
             </Link>
           </div>
-          
+
           <ScrollArea className="flex-1 px-4 py-6">
             <nav className="space-y-6">
               {Object.entries(categories).map(([category, docs]) => (
@@ -65,7 +65,8 @@ export function DocsSidebar({ categories }: DocsSidebarProps) {
                             onClick={() => setIsOpen(false)}
                             className={cn(
                               'group flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground',
-                              isActive && 'bg-accent text-accent-foreground font-medium'
+                              isActive &&
+                                'bg-accent text-accent-foreground font-medium'
                             )}
                           >
                             <span>{doc.title}</span>

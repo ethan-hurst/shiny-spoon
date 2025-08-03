@@ -11,7 +11,7 @@ interface RemediationResult {
 
 export class AutoRemediationService {
   private supabase = createAdminClient()
-  
+
   // Safety limits
   private readonly MAX_RETRIES = 3
   private readonly MAX_CHANGES_PER_RUN = 100
@@ -23,7 +23,7 @@ export class AutoRemediationService {
     try {
       // Determine remediation action based on discrepancy type
       const action = this.determineRemediationAction(discrepancy)
-      
+
       if (!action) {
         return {
           success: false,
@@ -80,7 +80,7 @@ export class AutoRemediationService {
             metadata: {
               ...discrepancy.metadata,
               auto_remediation_id: logEntry.id,
-            }
+            },
           })
           .eq('id', discrepancy.id)
       }
@@ -166,7 +166,9 @@ export class AutoRemediationService {
       },
     }
 
-    return strategies[discrepancy.discrepancyType]?.[discrepancy.entityType] || null
+    return (
+      strategies[discrepancy.discrepancyType]?.[discrepancy.entityType] || null
+    )
   }
 
   private async executeRemediation(
@@ -179,16 +181,16 @@ export class AutoRemediationService {
     switch (action.actionType) {
       case 'sync_retry':
         return await this.executeSyncRetry(action, discrepancy)
-      
+
       case 'value_update':
         return await this.executeValueUpdate(action, discrepancy)
-      
+
       case 'cache_clear':
         return await this.executeCacheClear(action, discrepancy)
-      
+
       case 'force_refresh':
         return await this.executeForceRefresh(action, discrepancy)
-      
+
       default:
         return {
           success: false,
@@ -277,7 +279,11 @@ export class AutoRemediationService {
       }
 
       // Get current value for rollback
-      const currentValue = await this.getCurrentValue(entityType, entityId, field)
+      const currentValue = await this.getCurrentValue(
+        entityType,
+        entityId,
+        field
+      )
 
       // Execute the update based on entity type
       let updateResult
@@ -285,15 +291,15 @@ export class AutoRemediationService {
         case 'inventory':
           updateResult = await this.updateInventory(entityId, field, newValue)
           break
-        
+
         case 'pricing':
           updateResult = await this.updatePricing(entityId, field, newValue)
           break
-        
+
         case 'product':
           updateResult = await this.updateProduct(entityId, field, newValue)
           break
-        
+
         default:
           return {
             success: false,
@@ -311,7 +317,11 @@ export class AutoRemediationService {
       }
 
       // Verify the update was applied
-      const verifiedValue = await this.getCurrentValue(entityType, entityId, field)
+      const verifiedValue = await this.getCurrentValue(
+        entityType,
+        entityId,
+        field
+      )
       const updateVerified = this.valuesMatch(verifiedValue, newValue)
 
       return {
@@ -358,7 +368,7 @@ export class AutoRemediationService {
             ...discrepancy.metadata,
             cache_cleared_at: new Date().toISOString(),
             cache_keys_cleared: cacheKeys,
-          }
+          },
         })
         .eq('id', discrepancy.id)
 
@@ -386,7 +396,7 @@ export class AutoRemediationService {
     try {
       // Force refresh is similar to sync_retry but more aggressive
       // It bypasses caches and forces data reload from source
-      
+
       const integration = await this.getIntegrationForDiscrepancy(discrepancy)
       if (!integration) {
         return {
@@ -407,7 +417,7 @@ export class AutoRemediationService {
             ...action.actionConfig,
             forceRefresh: true,
             skipCache: true,
-          }
+          },
         },
         discrepancy
       )
@@ -463,7 +473,11 @@ export class AutoRemediationService {
         .single()
 
       if (!job) {
-        return { success: false, status: 'not_found', error: 'Sync job not found' }
+        return {
+          success: false,
+          status: 'not_found',
+          error: 'Sync job not found',
+        }
       }
 
       if (job.status === 'completed') {
@@ -487,7 +501,10 @@ export class AutoRemediationService {
     newValue: any
   ): boolean {
     // Safety rules for automated updates
-    const safetyRules: Record<string, Record<string, (value: any) => boolean>> = {
+    const safetyRules: Record<
+      string,
+      Record<string, (value: any) => boolean>
+    > = {
       inventory: {
         quantity: (val) => typeof val === 'number' && val >= 0 && val < 1000000,
         reserved: (val) => typeof val === 'number' && val >= 0,
@@ -497,7 +514,8 @@ export class AutoRemediationService {
         cost: (val) => typeof val === 'number' && val >= 0,
       },
       product: {
-        name: (val) => typeof val === 'string' && val.length > 0 && val.length < 255,
+        name: (val) =>
+          typeof val === 'string' && val.length > 0 && val.length < 255,
         description: (val) => typeof val === 'string' && val.length < 5000,
       },
     }
@@ -582,7 +600,7 @@ export class AutoRemediationService {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   // Batch remediation for multiple discrepancies
@@ -613,7 +631,7 @@ export class AutoRemediationService {
     // Process each discrepancy
     for (const discrepancy of discrepancies) {
       const result = await this.attemptRemediation(discrepancy)
-      
+
       if (result.success) {
         successCount++
       } else {

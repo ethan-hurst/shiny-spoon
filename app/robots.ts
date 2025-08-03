@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://truthsource.io'
-  
+
   return {
     rules: [
       {
@@ -16,7 +16,7 @@ export default function robots(): MetadataRoute.Robots {
           '/_next/',
           '/private/',
           '/*.json$',
-          '/*?*',  // URLs with query parameters
+          '/*?*', // URLs with query parameters
           '/auth/',
           '/reset-password/',
         ],

@@ -1,6 +1,7 @@
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 
-export type RealtimeChangePayload<T extends { [key: string]: any }> = RealtimePostgresChangesPayload<T>
+export type RealtimeChangePayload<T extends { [key: string]: any }> =
+  RealtimePostgresChangesPayload<T>
 
 export type RealtimeEventHandler<T extends { [key: string]: any }> = (
   payload: RealtimeChangePayload<T>

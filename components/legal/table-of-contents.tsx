@@ -24,7 +24,10 @@ export function TableOfContents({ content }: TableOfContentsProps) {
     const usedIds = new Set<string>()
 
     headings.forEach((heading) => {
-      let baseId = heading.id || heading.textContent?.toLowerCase().replace(/\s+/g, '-') || ''
+      let baseId =
+        heading.id ||
+        heading.textContent?.toLowerCase().replace(/\s+/g, '-') ||
+        ''
       let uniqueId = baseId
       let counter = 1
 
@@ -35,7 +38,7 @@ export function TableOfContents({ content }: TableOfContentsProps) {
       }
 
       usedIds.add(uniqueId)
-      
+
       // Set the ID on the heading element if it doesn't already have one
       if (!heading.id) {
         heading.id = uniqueId
@@ -86,7 +89,9 @@ export function TableOfContents({ content }: TableOfContentsProps) {
               href={`#${section.id}`}
               className={cn(
                 'text-sm hover:text-primary transition-colors',
-                activeSection === section.id ? 'text-primary font-medium' : 'text-gray-600'
+                activeSection === section.id
+                  ? 'text-primary font-medium'
+                  : 'text-gray-600'
               )}
             >
               {section.title}

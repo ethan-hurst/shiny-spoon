@@ -65,7 +65,11 @@ export class AccuracyScorer {
     const baseScore = 100 - (weightedImpact / totalRecords) * 100
 
     // Apply additional factors
-    const adjustedScore = this.applyAdjustments(baseScore, discrepancies, totalRecords)
+    const adjustedScore = this.applyAdjustments(
+      baseScore,
+      discrepancies,
+      totalRecords
+    )
 
     // Ensure score is between 0 and 100
     return Math.max(0, Math.min(100, adjustedScore))
@@ -79,22 +83,29 @@ export class AccuracyScorer {
     let adjustedScore = baseScore
 
     // Penalty for high concentration of critical issues
-    const criticalCount = discrepancies.filter(d => d.severity === 'critical').length
+    const criticalCount = discrepancies.filter(
+      (d) => d.severity === 'critical'
+    ).length
     const criticalRatio = criticalCount / totalRecords
-    if (criticalRatio > 0.01) { // More than 1% critical
-      adjustedScore *= (1 - criticalRatio * 0.5) // Up to 50% penalty
+    if (criticalRatio > 0.01) {
+      // More than 1% critical
+      adjustedScore *= 1 - criticalRatio * 0.5 // Up to 50% penalty
     }
 
     // Bonus for low overall discrepancy rate
     const discrepancyRate = discrepancies.length / totalRecords
-    if (discrepancyRate < 0.01) { // Less than 1% discrepancies
+    if (discrepancyRate < 0.01) {
+      // Less than 1% discrepancies
       adjustedScore += (100 - adjustedScore) * 0.1 // 10% bonus towards perfect
     }
 
     // Penalty for stale data
-    const staleCount = discrepancies.filter(d => d.discrepancyType === 'stale').length
+    const staleCount = discrepancies.filter(
+      (d) => d.discrepancyType === 'stale'
+    ).length
     const staleRatio = staleCount / totalRecords
-    if (staleRatio > 0.05) { // More than 5% stale
+    if (staleRatio > 0.05) {
+      // More than 5% stale
       adjustedScore *= 0.95 // 5% penalty
     }
 
@@ -144,12 +155,12 @@ export class AccuracyScorer {
       latestCheck.records_checked,
       config.organizationId
     )
-    
+
     const bySeverity = this.calculateSeverityBreakdown(
       discrepancies,
       latestCheck.records_checked
     )
-    
+
     const byDiscrepancyType = this.calculateTypeBreakdown(
       discrepancies,
       latestCheck.records_checked
@@ -173,18 +184,19 @@ export class AccuracyScorer {
 
     // Count discrepancies by entity type
     for (const discrepancy of discrepancies) {
-      entityCounts[discrepancy.entity_type] = 
+      entityCounts[discrepancy.entity_type] =
         (entityCounts[discrepancy.entity_type] || 0) + 1
     }
 
     // Get actual entity counts from database
     const actualEntityCounts = await this.getActualEntityCounts(organizationId)
-    
+
     // Calculate accuracy for each entity type
     for (const [entityType, discrepancyCount] of Object.entries(entityCounts)) {
       const actualCount = actualEntityCounts[entityType] || 0
       if (actualCount > 0) {
-        const entityScore = ((actualCount - discrepancyCount) / actualCount) * 100
+        const entityScore =
+          ((actualCount - discrepancyCount) / actualCount) * 100
         breakdown[entityType] = Math.max(0, Math.min(100, entityScore))
       } else {
         // If no records for this entity type, assume 100% accuracy
@@ -199,42 +211,41 @@ export class AccuracyScorer {
     organizationId: string
   ): Promise<Record<string, number>> {
     const counts: Record<string, number> = {}
-    
+
     try {
       // Get product count
       const { count: productCount } = await this.supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-      
+
       // Get inventory count
       const { count: inventoryCount } = await this.supabase
         .from('inventory')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-      
+
       // Get customer count
       const { count: customerCount } = await this.supabase
         .from('customers')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-      
+
       // Get pricing count
       const { count: pricingCount } = await this.supabase
         .from('pricing_rules')
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId)
-      
+
       counts.product = productCount || 0
       counts.inventory = inventoryCount || 0
       counts.customer = customerCount || 0
       counts.pricing = pricingCount || 0
-      
     } catch (error) {
       console.error('Error fetching entity counts:', error)
       // Return empty counts on error
     }
-    
+
     return counts
   }
 
@@ -254,10 +265,11 @@ export class AccuracyScorer {
     }
 
     const breakdown: Record<string, number> = {}
-    
+
     for (const [severity, count] of Object.entries(severityCounts)) {
       // Higher severity has more impact
-      const weight = this.SEVERITY_WEIGHTS[severity as keyof typeof this.SEVERITY_WEIGHTS]
+      const weight =
+        this.SEVERITY_WEIGHTS[severity as keyof typeof this.SEVERITY_WEIGHTS]
       const impact = (count * weight) / totalRecords
       breakdown[severity] = Math.max(0, 100 - impact * 100)
     }
@@ -281,7 +293,7 @@ export class AccuracyScorer {
     }
 
     const breakdown: Record<string, number> = {}
-    
+
     for (const [type, count] of Object.entries(typeCounts)) {
       const ratio = count / totalRecords
       breakdown[type] = Math.max(0, 100 - ratio * 100)
@@ -290,9 +302,7 @@ export class AccuracyScorer {
     return breakdown
   }
 
-  async getTrendAnalysis(
-    config: ScoringConfig
-  ): Promise<TrendAnalysis> {
+  async getTrendAnalysis(config: ScoringConfig): Promise<TrendAnalysis> {
     // Get historical metrics
     const query = this.supabase
       .from('accuracy_metrics')
@@ -325,9 +335,9 @@ export class AccuracyScorer {
     }
 
     // Calculate trend
-    const scores = metrics.map(m => m.accuracy_score).reverse()
+    const scores = metrics.map((m) => m.accuracy_score).reverse()
     const trend = this.calculateTrend(scores)
-    
+
     // Calculate change rate
     const latestScore = scores[scores.length - 1]
     const firstScore = scores[0]
@@ -335,7 +345,9 @@ export class AccuracyScorer {
 
     // Calculate volatility (standard deviation)
     const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length
-    const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length
+    const variance =
+      scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) /
+      scores.length
     const volatility = Math.sqrt(variance)
 
     // Simple forecast (linear regression)
@@ -377,7 +389,8 @@ export class AccuracyScorer {
 
     // Simple moving average for forecast
     const recentScores = scores.slice(-5) // Last 5 scores
-    const average = recentScores.reduce((sum, s) => sum + s, 0) / recentScores.length
+    const average =
+      recentScores.reduce((sum, s) => sum + s, 0) / recentScores.length
 
     // Apply trend adjustment
     const trend = this.calculateTrend(scores)
@@ -412,7 +425,7 @@ export class AccuracyScorer {
 
     if (!metrics) return []
 
-    return metrics.map(metric => ({
+    return metrics.map((metric) => ({
       timestamp: new Date(metric.metric_timestamp),
       accuracyScore: metric.accuracy_score,
       recordsChecked: metric.total_records,
@@ -431,23 +444,19 @@ export class AccuracyScorer {
   ): Promise<void> {
     const bucketDuration = 300 // 5 minutes
 
-    await this.supabase
-      .from('accuracy_metrics')
-      .insert({
-        organization_id: organizationId,
-        integration_id: integrationId,
-        accuracy_score: accuracyScore,
-        total_records: totalRecords,
-        discrepancy_count: discrepancyCount,
-        metrics_by_type: metricsByType || {},
-        metric_timestamp: new Date().toISOString(),
-        bucket_duration: bucketDuration,
-      })
+    await this.supabase.from('accuracy_metrics').insert({
+      organization_id: organizationId,
+      integration_id: integrationId,
+      accuracy_score: accuracyScore,
+      total_records: totalRecords,
+      discrepancy_count: discrepancyCount,
+      metrics_by_type: metricsByType || {},
+      metric_timestamp: new Date().toISOString(),
+      bucket_duration: bucketDuration,
+    })
   }
 
-  async getBenchmarkComparison(
-    organizationId: string
-  ): Promise<{
+  async getBenchmarkComparison(organizationId: string): Promise<{
     organizationScore: number
     industryAverage: number
     percentile: number
@@ -482,9 +491,13 @@ export class AccuracyScorer {
   private zScoreToPercentile(zScore: number): number {
     // Approximation of normal CDF
     const t = 1 / (1 + 0.2316419 * Math.abs(zScore))
-    const d = 0.3989423 * Math.exp(-zScore * zScore / 2)
-    const probability = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
-    
+    const d = 0.3989423 * Math.exp((-zScore * zScore) / 2)
+    const probability =
+      d *
+      t *
+      (0.3193815 +
+        t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
+
     if (zScore > 0) {
       return (1 - probability) * 100
     } else {
@@ -492,9 +505,7 @@ export class AccuracyScorer {
     }
   }
 
-  async getAccuracyReport(
-    config: ScoringConfig
-  ): Promise<{
+  async getAccuracyReport(config: ScoringConfig): Promise<{
     summary: AccuracyBreakdown
     trend: TrendAnalysis
     benchmark: {
@@ -510,7 +521,11 @@ export class AccuracyScorer {
       this.getBenchmarkComparison(config.organizationId),
     ])
 
-    const recommendations = this.generateRecommendations(summary, trend, benchmark)
+    const recommendations = this.generateRecommendations(
+      summary,
+      trend,
+      benchmark
+    )
 
     return {
       summary,

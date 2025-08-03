@@ -1,16 +1,18 @@
 // PRP-016: Data Accuracy Monitor - Alerts List API
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'edge'
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient()
-    
+
     // Verify authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -23,18 +25,23 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!orgUser) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Organization not found' },
+        { status: 404 }
+      )
     }
 
     // Define query parameters schema
     const queryParamsSchema = z.object({
-      status: z.enum(['all', 'active', 'acknowledged', 'resolved']).default('active'),
+      status: z
+        .enum(['all', 'active', 'acknowledged', 'resolved'])
+        .default('active'),
       severity: z.enum(['critical', 'high', 'medium', 'low']).optional(),
       integrationId: z.string().uuid().optional(),
       limit: z.coerce.number().int().min(1).max(100).default(50),
-      offset: z.coerce.number().int().min(0).default(0)
+      offset: z.coerce.number().int().min(0).default(0),
     })
-    
+
     // Get and validate query parameters
     const { searchParams } = new URL(request.url)
     const rawParams = {
@@ -42,27 +49,36 @@ export async function GET(request: NextRequest) {
       severity: searchParams.get('severity') || undefined,
       integrationId: searchParams.get('integrationId') || undefined,
       limit: searchParams.get('limit') || '50',
-      offset: searchParams.get('offset') || '0'
+      offset: searchParams.get('offset') || '0',
     }
-    
+
     // Validate parameters
     let validatedParams
     try {
       validatedParams = queryParamsSchema.parse(rawParams)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errors = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
-        return NextResponse.json({ error: `Invalid parameters: ${errors}` }, { status: 400 })
+        const errors = error.errors
+          .map((e) => `${e.path.join('.')}: ${e.message}`)
+          .join(', ')
+        return NextResponse.json(
+          { error: `Invalid parameters: ${errors}` },
+          { status: 400 }
+        )
       }
-      return NextResponse.json({ error: 'Invalid query parameters' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid query parameters' },
+        { status: 400 }
+      )
     }
-    
+
     const { status, severity, integrationId, limit, offset } = validatedParams
 
     // Build query
     let query = supabase
       .from('alerts')
-      .select(`
+      .select(
+        `
         *,
         alert_rules (
           id,
@@ -76,7 +92,9 @@ export async function GET(request: NextRequest) {
           platform,
           name
         )
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .eq('organization_id', orgUser.organization_id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
@@ -121,7 +139,7 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    stats?.forEach(alert => {
+    stats?.forEach((alert) => {
       summary.byStatus[alert.status as keyof typeof summary.byStatus]++
       summary.bySeverity[alert.severity as keyof typeof summary.bySeverity]++
     })

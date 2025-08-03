@@ -1,9 +1,11 @@
 # PRP-015: Strict Type Safety Implementation
 
 ## Overview
+
 This PRP addresses the widespread type safety issues throughout the TruthSource application by implementing strict TypeScript configurations and eliminating all implicit `any` types. The goal is to achieve complete type safety across the codebase, improving developer experience, reducing runtime errors, and ensuring code maintainability.
 
 ## Goals
+
 - Enable strict TypeScript configuration
 - Eliminate all implicit and explicit `any` types
 - Implement proper type definitions for all external data sources
@@ -16,6 +18,7 @@ This PRP addresses the widespread type safety issues throughout the TruthSource 
 ### 1. TypeScript Configuration Updates
 
 #### Update tsconfig.json
+
 ```json
 {
   "compilerOptions": {
@@ -42,12 +45,14 @@ This PRP addresses the widespread type safety issues throughout the TruthSource 
 ### 2. Supabase Type Definitions
 
 #### Generate and maintain database types
+
 ```bash
 # Generate types from Supabase
 pnpm supabase gen types typescript --local > supabase/types/database.ts
 ```
 
 #### Create typed Supabase clients
+
 ```typescript
 // lib/supabase/typed-client.ts
 import { createClient } from '@supabase/supabase-js'
@@ -81,10 +86,7 @@ export const createTypedClient = () => {
 }
 
 // Option 2: Accept parameters with defaults
-export const createTypedClientWithParams = (
-  url?: string,
-  anonKey?: string
-) => {
+export const createTypedClientWithParams = (url?: string, anonKey?: string) => {
   const supabaseUrl = url || process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = anonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -98,7 +100,9 @@ export const createTypedClientWithParams = (
 }
 
 // Option 3: Return null for graceful handling
-export const createTypedClientSafe = (): ReturnType<typeof createClient<Database>> | null => {
+export const createTypedClientSafe = (): ReturnType<
+  typeof createClient<Database>
+> | null => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -116,6 +120,7 @@ export const createTypedClientSafe = (): ReturnType<typeof createClient<Database
 ### 3. Common Type Definitions
 
 #### Create shared types for real-time events
+
 ```typescript
 // types/realtime.types.ts
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
@@ -136,6 +141,7 @@ export interface RealtimeChannelConfig<T> {
 ```
 
 #### Create auth event types
+
 ```typescript
 // types/auth.types.ts
 import { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
@@ -156,6 +162,7 @@ export interface AuthState {
 ### 4. Component Type Safety
 
 #### Form component types
+
 ```typescript
 // types/form.types.ts
 import { FieldError, Path, UseFormRegister } from 'react-hook-form'
@@ -177,6 +184,7 @@ export interface FormState<T> {
 ```
 
 #### Table component types
+
 ```typescript
 // types/table.types.ts
 export interface Column<T> {
@@ -199,10 +207,11 @@ export interface TableProps<T> {
 ### 5. Hook Type Safety
 
 #### Typed query hooks
+
 ```typescript
 // hooks/use-typed-query.ts
-import { useQuery, UseQueryOptions } from '@tanstack/react-query'
 import { PostgrestError } from '@supabase/supabase-js'
+import { useQuery, UseQueryOptions } from '@tanstack/react-query'
 
 export function useTypedQuery<TData, TError = PostgrestError>(
   key: unknown[],
@@ -212,7 +221,7 @@ export function useTypedQuery<TData, TError = PostgrestError>(
   return useQuery<TData, TError>({
     queryKey: key,
     queryFn: fn,
-    ...options
+    ...options,
   })
 }
 ```
@@ -220,6 +229,7 @@ export function useTypedQuery<TData, TError = PostgrestError>(
 ### 6. API Response Types
 
 #### Create standardized API response types
+
 ```typescript
 // types/api.types.ts
 export interface ApiResponse<T> {
@@ -246,6 +256,7 @@ export interface PaginatedResponse<T> {
 ### 7. Type Guards and Utilities
 
 #### Create type guard utilities
+
 ```typescript
 // lib/type-guards.ts
 export function isNotNull<T>(value: T | null): value is T {
@@ -273,6 +284,7 @@ export function hasProperty<T, K extends PropertyKey>(
 #### Common patterns to fix:
 
 1. **Replace implicit any in event handlers**
+
 ```typescript
 // Before
 onAuthStateChange((event, session) => {})
@@ -282,27 +294,30 @@ onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {})
 ```
 
 2. **Type array methods properly**
+
 ```typescript
 // Before
-data.filter(item => item.active)
+data.filter((item) => item.active)
 
 // After
 data.filter((item: Product): boolean => item.active)
 ```
 
 3. **Type async functions**
+
 ```typescript
 // Before
-async function fetchData() { }
+async function fetchData() {}
 
 // After
-async function fetchData(): Promise<Product[]> { }
+async function fetchData(): Promise<Product[]> {}
 ```
 
 4. **Type component props**
+
 ```typescript
 // Before
-export function MyComponent({ data, onUpdate }) { }
+export function MyComponent({ data, onUpdate }) {}
 
 // After
 interface MyComponentProps {
@@ -310,12 +325,13 @@ interface MyComponentProps {
   onUpdate: (id: string, updates: Partial<Product>) => void
 }
 
-export function MyComponent({ data, onUpdate }: MyComponentProps) { }
+export function MyComponent({ data, onUpdate }: MyComponentProps) {}
 ```
 
 ### 9. Testing Type Safety
 
 #### Create type-safe test utilities
+
 ```typescript
 // test-utils/typed-render.tsx
 import { render, RenderOptions } from '@testing-library/react'
@@ -337,6 +353,7 @@ export function renderWithProviders(
 ### 10. Documentation and Guidelines
 
 #### Type safety guidelines:
+
 - Never use `any` - use `unknown` if type is truly unknown
 - Always type function parameters and return values
 - Use generic types for reusable components/hooks
@@ -347,25 +364,29 @@ export function renderWithProviders(
 ## Implementation Steps
 
 ### Phase 1: Configuration (Day 1) ✅ COMPLETED
+
 1. ✅ Update tsconfig.json with strict settings
 2. ✅ Set up pre-commit hooks for type checking
 3. ✅ Configure ESLint rules for TypeScript
 
 ### Phase 2: Core Types (Days 2-3) ✅ COMPLETED
+
 1. ✅ Generate and update Supabase types
 2. ✅ Create shared type definitions
 3. ✅ Implement type guards and utilities
 
 ### Phase 3: Fix Existing Errors (Days 4-7) 🏗️ IN PROGRESS
+
 1. ✅ Fix type errors in test utilities
 2. ✅ Fix Supabase client type imports
 3. 🏗️ Fix type errors in test files
-4. 🔲 Fix type errors in hooks (use-*.ts files)
+4. 🔲 Fix type errors in hooks (use-\*.ts files)
 5. 🔲 Fix type errors in components
 6. 🔲 Fix type errors in API routes and server actions
 7. 🔲 Fix type errors in utility functions
 
 ### Phase 4: Testing and Documentation (Day 8)
+
 1. 🔲 Add type tests for critical functions
 2. 🔲 Document type patterns and guidelines
 3. 🔲 Set up CI/CD type checking
@@ -373,6 +394,7 @@ export function renderWithProviders(
 ## Progress Tracking
 
 ### Completed Tasks
+
 - ✅ Fixed React import in types/table.types.ts
 - ✅ Verified tsconfig.json has strict TypeScript settings enabled
 - ✅ Fixed MockQueryBuilder type compatibility in test utilities
@@ -381,6 +403,7 @@ export function renderWithProviders(
 - ✅ Fixed RPC mock response types in pricing tests
 
 ### Remaining Work
+
 - ✅ Fixed test file type errors (rls-policies.test.ts, pricing-benchmark.test.ts)
 - ✅ Fixed type errors in hooks directory (use-customer-realtime, use-inventory-presence, use-inventory, use-pricing-realtime)
 - ✅ Fixed type errors in types directory (auth.types, form.types, realtime.types, etc.)
@@ -391,12 +414,14 @@ export function renderWithProviders(
 - 🔲 Set up automated type checking in CI/CD
 
 ### Type Error Reduction Progress
+
 - Initial errors: 429 errors in 136 files
 - Current errors: 392 errors in 122 files
 - **Errors fixed: 37 (8.6% reduction)**
 - **Files with errors reduced: 14 (10.3% reduction)**
 
 ## Success Criteria
+
 - Zero TypeScript errors with strict mode enabled
 - 100% of files have explicit types (no implicit any)
 - All Supabase queries are fully typed
@@ -405,26 +430,31 @@ export function renderWithProviders(
 - Developer productivity improved with better IDE support
 
 ## Error Handling
+
 - Use discriminated unions for error states
 - Implement proper error boundaries with typed errors
 - Create typed error classes for different error scenarios
 
 ## Performance Considerations
+
 - Type checking should not impact runtime performance
 - Use type-only imports where possible
 - Lazy load type definitions for large schemas
 
 ## Security Benefits
+
 - Prevent type confusion vulnerabilities
 - Ensure proper validation through types
 - Reduce attack surface with strict null checks
 
 ## Dependencies
+
 - TypeScript 5.x
-- @types/* packages for all dependencies
+- @types/\* packages for all dependencies
 - Latest Supabase client with TypeScript support
 
 ## Validation
+
 - Run `npm run type-check` with zero errors
 - All PRs must pass type checking
 - Regular type coverage reports

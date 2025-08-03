@@ -2,8 +2,8 @@
  * API Key Management for TruthSource
  */
 
-import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
 
 export interface APIKey {
   id: string
@@ -33,7 +33,13 @@ export interface APIKeyUsage {
 
 export interface SecurityEvent {
   id: string
-  type: 'api_key_created' | 'api_key_revoked' | 'api_key_rotated' | 'failed_auth' | 'rate_limit_exceeded' | 'suspicious_activity'
+  type:
+    | 'api_key_created'
+    | 'api_key_revoked'
+    | 'api_key_rotated'
+    | 'failed_auth'
+    | 'rate_limit_exceeded'
+    | 'suspicious_activity'
   severity: 'low' | 'medium' | 'high' | 'critical'
   description: string
   metadata: Record<string, any>
@@ -146,16 +152,22 @@ export class APIKeyManager {
 
       // Check IP whitelist
       if (apiKey.ip_whitelist && ipAddress) {
-        const allowedIPs = Array.isArray(apiKey.ip_whitelist) 
-          ? apiKey.ip_whitelist 
+        const allowedIPs = Array.isArray(apiKey.ip_whitelist)
+          ? apiKey.ip_whitelist
           : [apiKey.ip_whitelist]
-        
-        if (!allowedIPs.some(allowedIP => this.isIPMatch(ipAddress, allowedIP))) {
+
+        if (
+          !allowedIPs.some((allowedIP) => this.isIPMatch(ipAddress, allowedIP))
+        ) {
           await this.logSecurityEvent({
             type: 'failed_auth',
             severity: 'high',
             description: 'API key used from unauthorized IP',
-            metadata: { key_id: apiKey.id, ip_address: ipAddress, allowed_ips: allowedIPs },
+            metadata: {
+              key_id: apiKey.id,
+              ip_address: ipAddress,
+              allowed_ips: allowedIPs,
+            },
             ip_address: ipAddress,
             organization_id: apiKey.organization_id,
             timestamp: new Date(),
@@ -166,16 +178,20 @@ export class APIKeyManager {
 
       // Check permissions
       if (requiredPermissions.length > 0) {
-        const hasPermission = requiredPermissions.every(permission =>
+        const hasPermission = requiredPermissions.every((permission) =>
           apiKey.permissions.includes(permission)
         )
-        
+
         if (!hasPermission) {
           await this.logSecurityEvent({
             type: 'failed_auth',
             severity: 'high',
             description: 'Insufficient permissions for API key',
-            metadata: { key_id: apiKey.id, required_permissions: requiredPermissions, actual_permissions: apiKey.permissions },
+            metadata: {
+              key_id: apiKey.id,
+              required_permissions: requiredPermissions,
+              actual_permissions: apiKey.permissions,
+            },
             ip_address: ipAddress,
             organization_id: apiKey.organization_id,
             timestamp: new Date(),
@@ -200,7 +216,10 @@ export class APIKeyManager {
   /**
    * Rotate API key
    */
-  async rotateAPIKey(keyId: string, organizationId: string): Promise<{ newKey: string; apiKey: APIKey }> {
+  async rotateAPIKey(
+    keyId: string,
+    organizationId: string
+  ): Promise<{ newKey: string; apiKey: APIKey }> {
     // Get current API key
     const { data: currentKey, error } = await this.supabase
       .from('api_keys')
@@ -293,7 +312,10 @@ export class APIKeyManager {
   /**
    * Get API key usage statistics
    */
-  async getAPIKeyUsage(keyId: string, days: number = 30): Promise<APIKeyUsage[]> {
+  async getAPIKeyUsage(
+    keyId: string,
+    days: number = 30
+  ): Promise<APIKeyUsage[]> {
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
 
@@ -315,12 +337,10 @@ export class APIKeyManager {
    * Log API key usage
    */
   async logAPIKeyUsage(usage: Omit<APIKeyUsage, 'timestamp'>): Promise<void> {
-    await this.supabase
-      .from('api_key_usage')
-      .insert({
-        ...usage,
-        timestamp: new Date().toISOString(),
-      })
+    await this.supabase.from('api_key_usage').insert({
+      ...usage,
+      timestamp: new Date().toISOString(),
+    })
   }
 
   /**
@@ -370,13 +390,14 @@ export class APIKeyManager {
    * Generate secure API key
    */
   private generateSecureKey(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    const chars =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     let result = 'ts_'
-    
+
     for (let i = 0; i < 32; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length))
     }
-    
+
     return result
   }
 
@@ -388,7 +409,7 @@ export class APIKeyManager {
     const data = encoder.encode(key)
     const hashBuffer = await crypto.subtle.digest('SHA-256', data)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
   }
 
   /**
@@ -396,12 +417,12 @@ export class APIKeyManager {
    */
   private isIPMatch(ip: string, pattern: string): boolean {
     if (pattern === '*') return true
-    
+
     const ipParts = ip.split('.')
     const patternParts = pattern.split('.')
-    
+
     if (ipParts.length !== 4 || patternParts.length !== 4) return false
-    
+
     return patternParts.every((part, index) => {
       if (part === '*') return true
       return ipParts[index] === part
@@ -411,16 +432,16 @@ export class APIKeyManager {
   /**
    * Log security event
    */
-  private async logSecurityEvent(event: Omit<SecurityEvent, 'id'>): Promise<void> {
+  private async logSecurityEvent(
+    event: Omit<SecurityEvent, 'id'>
+  ): Promise<void> {
     try {
-      await this.supabase
-        .from('security_events')
-        .insert({
-          ...event,
-          timestamp: event.timestamp.toISOString(),
-        })
+      await this.supabase.from('security_events').insert({
+        ...event,
+        timestamp: event.timestamp.toISOString(),
+      })
     } catch (error) {
       console.error('Failed to log security event:', error)
     }
   }
-} 
+}

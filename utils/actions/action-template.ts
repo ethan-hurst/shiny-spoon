@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function actionTemplate() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
     return 'You must be signed in'

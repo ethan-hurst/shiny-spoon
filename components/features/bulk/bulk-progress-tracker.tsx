@@ -124,14 +124,16 @@ export function BulkProgressTracker({
       eventSource.onerror = (err) => {
         console.error('SSE error:', err)
         eventSource?.close()
-        
+
         if (!isMounted) return
 
         // Attempt reconnection if not at max attempts
         if (reconnectAttempts < maxReconnectAttempts) {
           reconnectAttempts++
-          setError(`Connection lost. Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`)
-          
+          setError(
+            `Connection lost. Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`
+          )
+
           reconnectTimeout = setTimeout(() => {
             if (isMounted) {
               createEventSource()
@@ -170,7 +172,7 @@ export function BulkProgressTracker({
 
     try {
       setIsRollingBack(true)
-      
+
       const response = await fetch('/api/bulk/rollback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,7 +207,7 @@ export function BulkProgressTracker({
 
   const getStatusVariant = (status: string, isRollback: boolean = false) => {
     if (isRollback) return 'destructive' as const
-    
+
     switch (status) {
       case 'completed':
         return 'success' as const
@@ -271,7 +273,12 @@ export function BulkProgressTracker({
             <CardTitle className="text-base">
               Operation {operationId.slice(0, 8)}...
             </CardTitle>
-            <Badge variant={getStatusVariant(currentProgress.status, !!rollbackProgress)}>
+            <Badge
+              variant={getStatusVariant(
+                currentProgress.status,
+                !!rollbackProgress
+              )}
+            >
               {rollbackProgress ? 'Rolling Back' : currentProgress.status}
             </Badge>
           </div>
@@ -320,11 +327,12 @@ export function BulkProgressTracker({
               {currentProgress.processedRecords.toLocaleString()} /{' '}
               {currentProgress.totalRecords.toLocaleString()} records
             </span>
-            {currentProgress.estimatedTimeRemaining && currentProgress.status === 'processing' && (
-              <span>
-                {formatTimeRemaining(currentProgress.estimatedTimeRemaining)}
-              </span>
-            )}
+            {currentProgress.estimatedTimeRemaining &&
+              currentProgress.status === 'processing' && (
+                <span>
+                  {formatTimeRemaining(currentProgress.estimatedTimeRemaining)}
+                </span>
+              )}
           </div>
         </div>
 
@@ -342,10 +350,9 @@ export function BulkProgressTracker({
 
           {currentProgress.status === 'processing' && (
             <div className="text-xs text-muted-foreground">
-              {rollbackProgress 
+              {rollbackProgress
                 ? 'Undoing changes in reverse order for data integrity'
-                : 'Processing in batches for optimal performance'
-              }
+                : 'Processing in batches for optimal performance'}
             </div>
           )}
         </div>

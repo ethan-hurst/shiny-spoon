@@ -1,4 +1,9 @@
-import { queueEmail, processEmailQueue, type EmailMessage, type EmailQueueItem } from '@/lib/email/email-queue'
+import {
+  processEmailQueue,
+  queueEmail,
+  type EmailMessage,
+  type EmailQueueItem,
+} from '@/lib/email/email-queue'
 import { createClient } from '@/lib/supabase/server'
 
 // Mock dependencies
@@ -11,7 +16,7 @@ describe('Email Queue', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Create a more robust mock system for Supabase
     const createMockTable = () => {
       const mockTable = {
@@ -25,7 +30,7 @@ describe('Email Queue', () => {
         limit: jest.fn(),
         single: jest.fn(),
       }
-      
+
       // Set up method chaining
       mockTable.insert.mockReturnValue(mockTable)
       mockTable.select.mockReturnValue(mockTable)
@@ -35,25 +40,25 @@ describe('Email Queue', () => {
       mockTable.lt.mockReturnValue(mockTable)
       mockTable.order.mockReturnValue(mockTable)
       mockTable.limit.mockReturnValue(mockTable)
-      
+
       return mockTable
     }
-    
+
     mockSupabase = {
       from: jest.fn((table) => createMockTable()),
       rpc: jest.fn(),
     }
-    
+
     // Mock the createClient function to return a resolved promise with our mockSupabase
     ;(createClient as jest.Mock).mockResolvedValue(mockSupabase)
-    
+
     // Mock console methods
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation()
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
-    
+
     // Mock global.fetch
     global.fetch = jest.fn()
-    
+
     // Reset environment variables
     delete process.env.EMAIL_PROVIDER
     delete process.env.RESEND_API_KEY
@@ -73,18 +78,18 @@ describe('Email Queue', () => {
       from: 'sender@example.com',
       subject: 'Test Email',
       html: '<p>Test content</p>',
-      text: 'Test content'
+      text: 'Test content',
     }
 
     it('should queue a valid email', async () => {
       // Set up the mock to return the expected structure
       const emailQueueMock = {
-        insert: jest.fn().mockResolvedValue({ 
-          data: { id: 'email-123' }, 
-          error: null 
-        })
+        insert: jest.fn().mockResolvedValue({
+          data: { id: 'email-123' },
+          error: null,
+        }),
       }
-      
+
       // Make sure from() returns our mock
       mockSupabase.from.mockReturnValue(emailQueueMock)
 
@@ -98,19 +103,19 @@ describe('Email Queue', () => {
         message: validEmail,
         status: 'pending',
         attempts: 0,
-        max_attempts: 3
+        max_attempts: 3,
       })
     })
 
     it('should handle array of recipients', async () => {
       // Set up the mock to return the expected structure
       const emailQueueMock = {
-        insert: jest.fn().mockResolvedValue({ 
-          data: { id: 'email-123' }, 
-          error: null 
-        })
+        insert: jest.fn().mockResolvedValue({
+          data: { id: 'email-123' },
+          error: null,
+        }),
       }
-      
+
       // Make sure from() returns our mock
       mockSupabase.from.mockReturnValue(emailQueueMock)
 
@@ -118,7 +123,7 @@ describe('Email Queue', () => {
         ...validEmail,
         to: ['user1@example.com', 'user2@example.com'],
         cc: ['cc1@example.com'],
-        bcc: ['bcc1@example.com', 'bcc2@example.com']
+        bcc: ['bcc1@example.com', 'bcc2@example.com'],
       }
 
       const result = await queueEmail(emailWithMultipleRecipients)
@@ -126,7 +131,7 @@ describe('Email Queue', () => {
       expect(result.success).toBe(true)
       expect(emailQueueMock.insert).toHaveBeenCalledWith(
         expect.objectContaining({
-          message: emailWithMultipleRecipients
+          message: emailWithMultipleRecipients,
         })
       )
     })
@@ -134,11 +139,11 @@ describe('Email Queue', () => {
     it('should handle database errors', async () => {
       const dbError = new Error('Database connection failed')
       const emailQueueMock = {
-        insert: jest.fn().mockResolvedValue({ 
-          error: { message: dbError.message } 
-        })
+        insert: jest.fn().mockResolvedValue({
+          error: { message: dbError.message },
+        }),
       }
-      
+
       // Make sure from() returns our mock
       mockSupabase.from.mockReturnValue(emailQueueMock)
 
@@ -146,7 +151,10 @@ describe('Email Queue', () => {
 
       expect(result.success).toBe(false)
       expect(result.error).toBe('Database connection failed')
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to queue email:', expect.any(Object))
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to queue email:',
+        expect.any(Object)
+      )
     })
 
     it('should handle unexpected errors', async () => {
@@ -170,11 +178,11 @@ describe('Email Queue', () => {
             to: 'test1@example.com',
             from: 'sender@example.com',
             subject: 'Test 1',
-            text: 'Content 1'
+            text: 'Content 1',
           },
           status: 'pending',
           attempts: 0,
-          max_attempts: 3
+          max_attempts: 3,
         },
         {
           id: 'email-2',
@@ -182,12 +190,12 @@ describe('Email Queue', () => {
             to: 'test2@example.com',
             from: 'sender@example.com',
             subject: 'Test 2',
-            html: '<p>Content 2</p>'
+            html: '<p>Content 2</p>',
           },
           status: 'pending',
           attempts: 1,
-          max_attempts: 3
-        }
+          max_attempts: 3,
+        },
       ]
 
       // Set up the mock for the query chain
@@ -198,15 +206,15 @@ describe('Email Queue', () => {
         order: jest.fn().mockReturnThis(),
         limit: jest.fn().mockResolvedValue({
           data: pendingEmails,
-          error: null
+          error: null,
         }),
         update: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           data: null,
-          error: null
-        })
+          error: null,
+        }),
       }
-      
+
       // Ensure from() always returns the same mock object
       mockSupabase.from.mockReturnValue(emailQueueMock)
 
@@ -220,13 +228,13 @@ describe('Email Queue', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('email_queue')
       expect(emailQueueMock.select).toHaveBeenCalledWith('*')
       expect(emailQueueMock.update).toHaveBeenCalledTimes(4) // 2 processing + 2 sent
-      
+
       // Should log emails in console mode
       expect(consoleLogSpy).toHaveBeenCalledTimes(2)
       expect(consoleLogSpy).toHaveBeenCalledWith(
         '📧 Email would be sent:',
         expect.objectContaining({
-          subject: 'Test 1'
+          subject: 'Test 1',
         })
       )
     })
@@ -240,11 +248,11 @@ describe('Email Queue', () => {
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
                 data: [],
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       })
 
       await processEmailQueue()
@@ -262,12 +270,12 @@ describe('Email Queue', () => {
               order: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
                   data: null,
-                  error: new Error('Database error')
-                })
-              })
-            })
-          })
-        })
+                  error: new Error('Database error'),
+                }),
+              }),
+            }),
+          }),
+        }),
       }
       mockSupabase.from.mockReturnValue(emailQueueMock)
 
@@ -286,11 +294,11 @@ describe('Email Queue', () => {
           to: 'test@example.com',
           from: 'sender@example.com',
           subject: 'Test',
-          text: 'Content'
+          text: 'Content',
         },
         status: 'pending',
         attempts: 2,
-        max_attempts: 3
+        max_attempts: 3,
       }
 
       // Mock the query chain
@@ -301,18 +309,18 @@ describe('Email Queue', () => {
               order: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
                   data: [queueItem],
-                  error: null
-                })
-              })
-            })
-          })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
         }),
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             data: null,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       }
       mockSupabase.from.mockReturnValue(emailQueueMock)
 
@@ -331,7 +339,7 @@ describe('Email Queue', () => {
         to: [],
         from: 'sender@example.com',
         subject: 'Test',
-        html: '<p>Content</p>'
+        html: '<p>Content</p>',
       }
 
       // Queue will succeed (validation happens during send)
@@ -345,23 +353,25 @@ describe('Email Queue', () => {
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
-                data: [{
-                  id: 'test-1',
-                  message: invalidEmail,
-                  status: 'pending',
-                  attempts: 0,
-                  max_attempts: 3
-                }],
-                error: null
-              })
-            })
-          })
-        })
+                data: [
+                  {
+                    id: 'test-1',
+                    message: invalidEmail,
+                    status: 'pending',
+                    attempts: 0,
+                    max_attempts: 3,
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
       })
 
       // Mock successful updates
       emailQueueMock.update.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: null, error: null })
+        eq: jest.fn().mockResolvedValue({ data: null, error: null }),
       })
 
       await processEmailQueue()
@@ -369,7 +379,7 @@ describe('Email Queue', () => {
       expect(emailQueueMock.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'pending',
-          error: 'Email recipient (to) is required'
+          error: 'Email recipient (to) is required',
         })
       )
     })
@@ -379,7 +389,7 @@ describe('Email Queue', () => {
         to: 'test@example.com',
         from: '',
         subject: 'Test',
-        text: 'Content'
+        text: 'Content',
       }
 
       // Mock the select chain
@@ -389,30 +399,32 @@ describe('Email Queue', () => {
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
-                data: [{
-                  id: 'test-1',
-                  message: invalidEmail,
-                  status: 'pending',
-                  attempts: 0,
-                  max_attempts: 3
-                }],
-                error: null
-              })
-            })
-          })
-        })
+                data: [
+                  {
+                    id: 'test-1',
+                    message: invalidEmail,
+                    status: 'pending',
+                    attempts: 0,
+                    max_attempts: 3,
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
       })
 
       // Mock successful updates
       emailQueueMock.update.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: null, error: null })
+        eq: jest.fn().mockResolvedValue({ data: null, error: null }),
       })
 
       await processEmailQueue()
 
       expect(emailQueueMock.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Email sender (from) is required'
+          error: 'Email sender (from) is required',
         })
       )
     })
@@ -421,8 +433,8 @@ describe('Email Queue', () => {
       const invalidEmail: EmailMessage = {
         to: 'test@example.com',
         from: 'sender@example.com',
-        subject: '   ',  // Only whitespace
-        html: '<p>Content</p>'
+        subject: '   ', // Only whitespace
+        html: '<p>Content</p>',
       }
 
       // Mock the select chain
@@ -432,30 +444,32 @@ describe('Email Queue', () => {
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
-                data: [{
-                  id: 'test-1',
-                  message: invalidEmail,
-                  status: 'pending',
-                  attempts: 0,
-                  max_attempts: 3
-                }],
-                error: null
-              })
-            })
-          })
-        })
+                data: [
+                  {
+                    id: 'test-1',
+                    message: invalidEmail,
+                    status: 'pending',
+                    attempts: 0,
+                    max_attempts: 3,
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
       })
 
       // Mock successful updates
       emailQueueMock.update.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: null, error: null })
+        eq: jest.fn().mockResolvedValue({ data: null, error: null }),
       })
 
       await processEmailQueue()
 
       expect(emailQueueMock.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Email subject is required'
+          error: 'Email subject is required',
         })
       )
     })
@@ -464,7 +478,7 @@ describe('Email Queue', () => {
       const invalidEmail: EmailMessage = {
         to: 'test@example.com',
         from: 'sender@example.com',
-        subject: 'Test'
+        subject: 'Test',
         // No html or text
       }
 
@@ -475,30 +489,32 @@ describe('Email Queue', () => {
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
-                data: [{
-                  id: 'test-1',
-                  message: invalidEmail,
-                  status: 'pending',
-                  attempts: 0,
-                  max_attempts: 3
-                }],
-                error: null
-              })
-            })
-          })
-        })
+                data: [
+                  {
+                    id: 'test-1',
+                    message: invalidEmail,
+                    status: 'pending',
+                    attempts: 0,
+                    max_attempts: 3,
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
       })
 
       // Mock successful updates
       emailQueueMock.update.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: null, error: null })
+        eq: jest.fn().mockResolvedValue({ data: null, error: null }),
       })
 
       await processEmailQueue()
 
       expect(emailQueueMock.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Email must have either HTML or text content'
+          error: 'Email must have either HTML or text content',
         })
       )
     })
@@ -507,9 +523,18 @@ describe('Email Queue', () => {
       const invalidFormats = [
         { to: 'notanemail', expectedError: 'Invalid email address in to' },
         { from: 'sender@', expectedError: 'Invalid email address in from' },
-        { replyTo: '@example.com', expectedError: 'Invalid email address in replyTo' },
-        { cc: ['valid@example.com', 'invalid@'], expectedError: 'Invalid email address in cc' },
-        { bcc: ['missing-at-sign.com'], expectedError: 'Invalid email address in bcc' }
+        {
+          replyTo: '@example.com',
+          expectedError: 'Invalid email address in replyTo',
+        },
+        {
+          cc: ['valid@example.com', 'invalid@'],
+          expectedError: 'Invalid email address in cc',
+        },
+        {
+          bcc: ['missing-at-sign.com'],
+          expectedError: 'Invalid email address in bcc',
+        },
       ]
 
       for (const testCase of invalidFormats) {
@@ -520,7 +545,7 @@ describe('Email Queue', () => {
           text: 'Content',
           replyTo: testCase.replyTo,
           cc: testCase.cc,
-          bcc: testCase.bcc
+          bcc: testCase.bcc,
         }
 
         // Mock the select chain
@@ -530,30 +555,32 @@ describe('Email Queue', () => {
             lt: jest.fn().mockReturnValue({
               order: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
-                  data: [{
-                    id: 'test-1',
-                    message: email,
-                    status: 'pending',
-                    attempts: 0,
-                    max_attempts: 3
-                  }],
-                  error: null
-                })
-              })
-            })
-          })
+                  data: [
+                    {
+                      id: 'test-1',
+                      message: email,
+                      status: 'pending',
+                      attempts: 0,
+                      max_attempts: 3,
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          }),
         })
 
         // Mock successful updates
         emailQueueMock.update.mockReturnValue({
-          eq: jest.fn().mockResolvedValue({ data: null, error: null })
+          eq: jest.fn().mockResolvedValue({ data: null, error: null }),
         })
 
         await processEmailQueue()
 
         expect(emailQueueMock.update).toHaveBeenCalledWith(
           expect.objectContaining({
-            error: expect.stringContaining(testCase.expectedError)
+            error: expect.stringContaining(testCase.expectedError),
           })
         )
       }
@@ -568,7 +595,7 @@ describe('Email Queue', () => {
         to: 'test@example.com',
         from: 'sender@example.com',
         subject: 'Test Email',
-        text: 'This is a test email with a longer content to test the preview functionality'
+        text: 'This is a test email with a longer content to test the preview functionality',
       }
 
       // Mock the select chain
@@ -578,23 +605,25 @@ describe('Email Queue', () => {
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
-                data: [{
-                  id: 'test-1',
-                  message: email,
-                  status: 'pending',
-                  attempts: 0,
-                  max_attempts: 3
-                }],
-                error: null
-              })
-            })
-          })
-        })
+                data: [
+                  {
+                    id: 'test-1',
+                    message: email,
+                    status: 'pending',
+                    attempts: 0,
+                    max_attempts: 3,
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
       })
 
       // Mock successful updates
       emailQueueMock.update.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: null, error: null })
+        eq: jest.fn().mockResolvedValue({ data: null, error: null }),
       })
 
       await processEmailQueue()
@@ -604,7 +633,8 @@ describe('Email Queue', () => {
         expect.objectContaining({
           to: 'test@example.com',
           subject: 'Test Email',
-          preview: 'This is a test email with a longer content to test the preview functionality'
+          preview:
+            'This is a test email with a longer content to test the preview functionality',
         })
       )
     })
@@ -621,7 +651,7 @@ describe('Email Queue', () => {
         text: 'Test content',
         replyTo: 'replyto@example.com',
         cc: ['cc@example.com'],
-        bcc: ['bcc@example.com']
+        bcc: ['bcc@example.com'],
       }
 
       // Mock the select chain
@@ -631,28 +661,29 @@ describe('Email Queue', () => {
           lt: jest.fn().mockReturnValue({
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
-                data: [{
-                  id: 'test-1',
-                  message: email,
-                  status: 'pending',
-                  attempts: 0,
-                  max_attempts: 3
-                }],
-                error: null
-              })
-            })
-          })
-        })
+                data: [
+                  {
+                    id: 'test-1',
+                    message: email,
+                    status: 'pending',
+                    attempts: 0,
+                    max_attempts: 3,
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
       })
 
       // Mock successful updates
       emailQueueMock.update.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ data: null, error: null })
+        eq: jest.fn().mockResolvedValue({ data: null, error: null }),
       })
-
       ;(global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ id: 'resend-123' })
+        json: async () => ({ id: 'resend-123' }),
       })
 
       await processEmailQueue()
@@ -662,10 +693,10 @@ describe('Email Queue', () => {
         expect.objectContaining({
           method: 'POST',
           headers: {
-            'Authorization': 'Bearer test-api-key',
-            'Content-Type': 'application/json'
+            Authorization: 'Bearer test-api-key',
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify(email)
+          body: JSON.stringify(email),
         })
       )
 
@@ -673,7 +704,7 @@ describe('Email Queue', () => {
       expect(emailQueueMock.update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'sent',
-          sent_at: expect.any(String)
+          sent_at: expect.any(String),
         })
       )
     })
@@ -686,25 +717,26 @@ describe('Email Queue', () => {
         to: 'test@example.com',
         from: 'sender@example.com',
         subject: 'Test',
-        text: 'Content'
+        text: 'Content',
       }
 
       mockSupabase.from('email_queue').limit.mockResolvedValueOnce({
-        data: [{
-          id: 'test-1',
-          message: email,
-          status: 'pending',
-          attempts: 0,
-          max_attempts: 3
-        }],
-        error: null
+        data: [
+          {
+            id: 'test-1',
+            message: email,
+            status: 'pending',
+            attempts: 0,
+            max_attempts: 3,
+          },
+        ],
+        error: null,
       })
-
       ;(global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 401,
         statusText: 'Unauthorized',
-        json: async () => ({ message: 'Invalid API key' })
+        json: async () => ({ message: 'Invalid API key' }),
       })
 
       await processEmailQueue()
@@ -712,7 +744,7 @@ describe('Email Queue', () => {
       expect(mockSupabase.from('email_queue').update).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'pending',
-          error: 'Resend API error (401): Invalid API key'
+          error: 'Resend API error (401): Invalid API key',
         })
       )
     })
@@ -725,25 +757,27 @@ describe('Email Queue', () => {
         to: 'test@example.com',
         from: 'sender@example.com',
         subject: 'Test',
-        text: 'Content'
+        text: 'Content',
       }
 
       mockSupabase.from('email_queue').limit.mockResolvedValueOnce({
-        data: [{
-          id: 'test-1',
-          message: email,
-          status: 'pending',
-          attempts: 0,
-          max_attempts: 3
-        }],
-        error: null
+        data: [
+          {
+            id: 'test-1',
+            message: email,
+            status: 'pending',
+            attempts: 0,
+            max_attempts: 3,
+          },
+        ],
+        error: null,
       })
 
       await processEmailQueue()
 
       expect(mockSupabase.from('email_queue').update).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'RESEND_API_KEY environment variable is not configured'
+          error: 'RESEND_API_KEY environment variable is not configured',
         })
       )
     })
@@ -755,25 +789,27 @@ describe('Email Queue', () => {
         to: 'test@example.com',
         from: 'sender@example.com',
         subject: 'Test',
-        text: 'Content'
+        text: 'Content',
       }
 
       mockSupabase.from('email_queue').limit.mockResolvedValueOnce({
-        data: [{
-          id: 'test-1',
-          message: email,
-          status: 'pending',
-          attempts: 0,
-          max_attempts: 3
-        }],
-        error: null
+        data: [
+          {
+            id: 'test-1',
+            message: email,
+            status: 'pending',
+            attempts: 0,
+            max_attempts: 3,
+          },
+        ],
+        error: null,
       })
 
       await processEmailQueue()
 
       expect(mockSupabase.from('email_queue').update).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Unknown email provider: unknown-provider'
+          error: 'Unknown email provider: unknown-provider',
         })
       )
     })

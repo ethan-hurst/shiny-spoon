@@ -1,19 +1,27 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { FileText, BookOpen, Code, Zap, Shield, Database } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { BookOpen, Code, Database, FileText, Shield, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export const metadata: Metadata = {
   title: 'Integration Guides | TruthSource Developer Portal',
-  description: 'Step-by-step guides for integrating TruthSource APIs with your systems',
+  description:
+    'Step-by-step guides for integrating TruthSource APIs with your systems',
 }
 
 const guides = [
   {
     title: 'Getting Started with TruthSource API',
-    description: 'Learn the basics of authenticating and making your first API call',
+    description:
+      'Learn the basics of authenticating and making your first API call',
     category: 'Basics',
     icon: BookOpen,
     href: '/developers/guides/getting-started',
@@ -22,7 +30,8 @@ const guides = [
   },
   {
     title: 'Inventory Sync Integration',
-    description: 'Implement real-time inventory synchronization between systems',
+    description:
+      'Implement real-time inventory synchronization between systems',
     category: 'Integration',
     icon: Database,
     href: '/developers/guides/inventory-sync',
@@ -40,7 +49,8 @@ const guides = [
   },
   {
     title: 'Authentication & Security',
-    description: 'Best practices for secure API authentication and data handling',
+    description:
+      'Best practices for secure API authentication and data handling',
     category: 'Security',
     icon: Shield,
     href: '/developers/guides/authentication',
@@ -49,7 +59,8 @@ const guides = [
   },
   {
     title: 'Batch Operations',
-    description: 'Efficiently handle bulk data operations for large-scale integrations',
+    description:
+      'Efficiently handle bulk data operations for large-scale integrations',
     category: 'Advanced',
     icon: Code,
     href: '/developers/guides/batch-operations',
@@ -58,7 +69,8 @@ const guides = [
   },
   {
     title: 'Error Handling & Retry Logic',
-    description: 'Implement robust error handling and automatic retry mechanisms',
+    description:
+      'Implement robust error handling and automatic retry mechanisms',
     category: 'Best Practices',
     icon: FileText,
     href: '/developers/guides/error-handling',
@@ -86,7 +98,8 @@ export default function GuidesPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Integration Guides</h1>
         <p className="text-muted-foreground">
-          Step-by-step tutorials and best practices for integrating TruthSource APIs
+          Step-by-step tutorials and best practices for integrating TruthSource
+          APIs
         </p>
       </div>
 
@@ -94,7 +107,10 @@ export default function GuidesPage() {
         {guides.map((guide) => {
           const Icon = guide.icon
           return (
-            <Card key={guide.href} className="hover:shadow-lg transition-shadow">
+            <Card
+              key={guide.href}
+              className="hover:shadow-lg transition-shadow"
+            >
               <CardHeader>
                 <div className="flex items-start justify-between mb-2">
                   <Icon className="h-8 w-8 text-primary" />
@@ -102,7 +118,9 @@ export default function GuidesPage() {
                     <Badge variant="secondary" className="text-xs">
                       {guide.category}
                     </Badge>
-                    <Badge className={`text-xs ${getDifficultyColor(guide.difficulty)}`}>
+                    <Badge
+                      className={`text-xs ${getDifficultyColor(guide.difficulty)}`}
+                    >
                       {guide.difficulty}
                     </Badge>
                   </div>

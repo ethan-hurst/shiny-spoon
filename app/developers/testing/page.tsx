@@ -1,14 +1,28 @@
 import type { Metadata } from 'next'
-import { Terminal, Play, FileJson, Key, Database, AlertCircle } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  AlertCircle,
+  Database,
+  FileJson,
+  Key,
+  Play,
+  Terminal,
+} from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export const metadata: Metadata = {
   title: 'API Testing Tools | TruthSource Developer Portal',
-  description: 'Test and debug TruthSource APIs with our interactive testing tools',
+  description:
+    'Test and debug TruthSource APIs with our interactive testing tools',
 }
 
 export default function TestingPage() {
@@ -25,7 +39,8 @@ export default function TestingPage() {
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Testing Environment</AlertTitle>
         <AlertDescription>
-          Use the sandbox environment for testing. Data in sandbox is reset daily and doesn't affect production.
+          Use the sandbox environment for testing. Data in sandbox is reset
+          daily and doesn't affect production.
         </AlertDescription>
       </Alert>
 
@@ -41,7 +56,8 @@ export default function TestingPage() {
             <CardHeader>
               <CardTitle>Interactive API Explorer</CardTitle>
               <CardDescription>
-                Test API endpoints directly in your browser with our interactive explorer
+                Test API endpoints directly in your browser with our interactive
+                explorer
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -57,14 +73,17 @@ export default function TestingPage() {
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Retrieve current inventory levels with filtering and pagination
+                  Retrieve current inventory levels with filtering and
+                  pagination
                 </p>
               </div>
 
               <div className="rounded-lg border p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-green-500/10 text-green-500">POST</Badge>
+                    <Badge className="bg-green-500/10 text-green-500">
+                      POST
+                    </Badge>
                     <code className="text-sm">/api/v1/pricing/calculate</code>
                   </div>
                   <Button size="sm">
@@ -80,7 +99,9 @@ export default function TestingPage() {
               <div className="rounded-lg border p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-yellow-500/10 text-yellow-500">PUT</Badge>
+                    <Badge className="bg-yellow-500/10 text-yellow-500">
+                      PUT
+                    </Badge>
                     <code className="text-sm">/api/v1/products/{'{id}'}</code>
                   </div>
                   <Button size="sm">
@@ -131,7 +152,8 @@ export default function TestingPage() {
             <CardHeader>
               <CardTitle>Postman Collection</CardTitle>
               <CardDescription>
-                Download our pre-configured Postman collection for easy API testing
+                Download our pre-configured Postman collection for easy API
+                testing
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -139,9 +161,12 @@ export default function TestingPage() {
                 <Card>
                   <CardHeader>
                     <FileJson className="h-8 w-8 text-primary mb-2" />
-                    <CardTitle className="text-lg">Full API Collection</CardTitle>
+                    <CardTitle className="text-lg">
+                      Full API Collection
+                    </CardTitle>
                     <CardDescription>
-                      Complete collection with all endpoints and example requests
+                      Complete collection with all endpoints and example
+                      requests
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -154,7 +179,9 @@ export default function TestingPage() {
                 <Card>
                   <CardHeader>
                     <Database className="h-8 w-8 text-primary mb-2" />
-                    <CardTitle className="text-lg">Environment Variables</CardTitle>
+                    <CardTitle className="text-lg">
+                      Environment Variables
+                    </CardTitle>
                     <CardDescription>
                       Pre-configured environment for sandbox testing
                     </CardDescription>
@@ -169,7 +196,8 @@ export default function TestingPage() {
 
               <Alert>
                 <AlertDescription>
-                  Import both files into Postman and select the "TruthSource Sandbox" environment to get started.
+                  Import both files into Postman and select the "TruthSource
+                  Sandbox" environment to get started.
                 </AlertDescription>
               </Alert>
             </CardContent>
@@ -181,7 +209,8 @@ export default function TestingPage() {
             <CardHeader>
               <CardTitle>Sandbox Test Data</CardTitle>
               <CardDescription>
-                Use these pre-configured test entities in the sandbox environment
+                Use these pre-configured test entities in the sandbox
+                environment
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -217,7 +246,8 @@ export default function TestingPage() {
 
           <Alert>
             <AlertDescription>
-              Sandbox data is reset every 24 hours at midnight UTC. Any changes made will not persist.
+              Sandbox data is reset every 24 hours at midnight UTC. Any changes
+              made will not persist.
             </AlertDescription>
           </Alert>
         </TabsContent>

@@ -10,28 +10,31 @@ export class NetSuiteQueries {
     if (!value) {
       return ''
     }
-    
+
     // First, escape single quotes by doubling them (standard SQL escaping)
     let sanitized = value.replace(/'/g, "''")
-    
+
     // Remove SQL comment tokens
     sanitized = sanitized.replace(/--/g, '')
     sanitized = sanitized.replace(/\/\*/g, '')
     sanitized = sanitized.replace(/\*\//g, '')
-    
+
     // Remove or escape other dangerous characters
     sanitized = sanitized.replace(/;/g, '') // Remove semicolons
     sanitized = sanitized.replace(/\\/g, '') // Remove backslashes
-    
+
     // Remove common SQL injection patterns
-    sanitized = sanitized.replace(/\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b/gi, '')
-    
+    sanitized = sanitized.replace(
+      /\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b/gi,
+      ''
+    )
+
     // Remove null bytes
     sanitized = sanitized.replace(/\x00/g, '')
-    
+
     return sanitized
   }
-  
+
   /**
    * Validate SQL identifier (table/column names) to prevent SQL injection
    * - Must start with a letter or underscore
@@ -42,23 +45,41 @@ export class NetSuiteQueries {
     if (!identifier) {
       throw new Error('SQL identifier cannot be empty')
     }
-    
+
     // Check if identifier matches the safe pattern
     const identifierPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/
-    
+
     if (!identifierPattern.test(identifier)) {
-      throw new Error(`Invalid SQL identifier: "${identifier}". Identifiers must start with a letter or underscore and contain only letters, numbers, and underscores.`)
+      throw new Error(
+        `Invalid SQL identifier: "${identifier}". Identifiers must start with a letter or underscore and contain only letters, numbers, and underscores.`
+      )
     }
-    
+
     // Additional check for reserved keywords (optional but recommended)
-    const reservedKeywords = ['select', 'from', 'where', 'insert', 'update', 'delete', 'drop', 'create', 'alter', 'table', 'column', 'database', 'schema']
+    const reservedKeywords = [
+      'select',
+      'from',
+      'where',
+      'insert',
+      'update',
+      'delete',
+      'drop',
+      'create',
+      'alter',
+      'table',
+      'column',
+      'database',
+      'schema',
+    ]
     if (reservedKeywords.includes(identifier.toLowerCase())) {
-      throw new Error(`Invalid SQL identifier: "${identifier}" is a reserved keyword`)
+      throw new Error(
+        `Invalid SQL identifier: "${identifier}" is a reserved keyword`
+      )
     }
-    
+
     return identifier
   }
-  
+
   /**
    * Safely format date for NetSuite SuiteQL
    */
@@ -67,11 +88,11 @@ export class NetSuiteQueries {
     if (!date) {
       throw new Error('Invalid date: date parameter is null or undefined')
     }
-    
+
     if (!(date instanceof Date) || isNaN(date.getTime())) {
       throw new Error('Invalid date: parameter must be a valid Date object')
     }
-    
+
     // Format date as YYYY-MM-DD HH:MM:SS
     const year = date.getUTCFullYear()
     const month = String(date.getUTCMonth() + 1).padStart(2, '0')
@@ -79,7 +100,7 @@ export class NetSuiteQueries {
     const hours = String(date.getUTCHours()).padStart(2, '0')
     const minutes = String(date.getUTCMinutes()).padStart(2, '0')
     const seconds = String(date.getUTCSeconds()).padStart(2, '0')
-    
+
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
   }
   /**
@@ -156,9 +177,7 @@ export class NetSuiteQueries {
   /**
    * Get pricing query with price levels
    */
-  getPricingQuery(options: {
-    modifiedAfter?: Date
-  }): string {
+  getPricingQuery(options: { modifiedAfter?: Date }): string {
     const dateFilter = options.modifiedAfter
       ? `WHERE ip.lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
       : ''
@@ -269,9 +288,9 @@ export class NetSuiteQueries {
     const dateFilter = options.modifiedAfter
       ? `AND so.lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
       : ''
-    
+
     const statusFilter = options.status?.length
-      ? `AND so.orderstatus IN (${options.status.map(s => `'${this.sanitizeSqlValue(s)}'`).join(', ')})`
+      ? `AND so.orderstatus IN (${options.status.map((s) => `'${this.sanitizeSqlValue(s)}'`).join(', ')})`
       : ''
 
     return `
@@ -400,7 +419,7 @@ export class NetSuiteQueries {
     limit: number
   }): string {
     const dateFilter = `lastmodifieddate > TO_DATE('${this.formatDate(options.modifiedAfter)}', 'YYYY-MM-DD HH24:MI:SS')`
-    
+
     switch (options.recordType) {
       case 'item':
         return `
@@ -460,17 +479,19 @@ export class NetSuiteQueries {
   ): string {
     // Validate table name
     const validatedTable = this.validateIdentifier(table)
-    
+
     // Validate and build SELECT clause
-    const validatedFields = fields.map(field => this.validateIdentifier(field))
+    const validatedFields = fields.map((field) =>
+      this.validateIdentifier(field)
+    )
     const selectClause = validatedFields.join(', ')
-    
+
     // Build WHERE clause with validated field names
     const whereConditions = Object.entries(conditions)
       .map(([field, value]) => {
         // Validate field name
         const validatedField = this.validateIdentifier(field)
-        
+
         if (value === null) {
           return `${validatedField} IS NULL`
         } else if (typeof value === 'string') {
@@ -483,16 +504,18 @@ export class NetSuiteQueries {
           return `${validatedField} = '${value ? 'T' : 'F'}'`
         } else if (Array.isArray(value)) {
           // Handle IN clause
-          const values = value.map(v => 
-            typeof v === 'string' ? `'${this.sanitizeSqlValue(v)}'` : v
-          ).join(', ')
+          const values = value
+            .map((v) =>
+              typeof v === 'string' ? `'${this.sanitizeSqlValue(v)}'` : v
+            )
+            .join(', ')
           return `${validatedField} IN (${values})`
         }
         return ''
       })
       .filter(Boolean)
       .join(' AND ')
-    
+
     // Build query with validated identifiers
     let query = `SELECT ${selectClause} FROM ${validatedTable}`
     if (whereConditions) {
@@ -509,7 +532,7 @@ export class NetSuiteQueries {
     if (options.offset) {
       query += ` OFFSET ${options.offset}`
     }
-    
+
     return query
   }
 }

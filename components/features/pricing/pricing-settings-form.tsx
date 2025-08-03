@@ -2,14 +2,28 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { updateApprovalRules } from '@/app/actions/pricing'
 
@@ -40,7 +54,7 @@ export function PricingSettingsForm({ initialData }: PricingSettingsFormProps) {
     setLoading(true)
     try {
       const result = await updateApprovalRules(values)
-      
+
       if (result.success) {
         toast.success('Pricing settings updated successfully')
         router.refresh()
@@ -77,11 +91,14 @@ export function PricingSettingsForm({ initialData }: PricingSettingsFormProps) {
                       min={0}
                       max={100}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value))
+                      }
                     />
                   </FormControl>
                   <FormDescription>
-                    Price changes with discounts exceeding this percentage require approval
+                    Price changes with discounts exceeding this percentage
+                    require approval
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -100,11 +117,14 @@ export function PricingSettingsForm({ initialData }: PricingSettingsFormProps) {
                       min={0}
                       max={100}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value))
+                      }
                     />
                   </FormControl>
                   <FormDescription>
-                    Price changes resulting in margins below this percentage require approval
+                    Price changes resulting in margins below this percentage
+                    require approval
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -123,7 +143,9 @@ export function PricingSettingsForm({ initialData }: PricingSettingsFormProps) {
                       min={0}
                       max={500}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value))
+                      }
                     />
                   </FormControl>
                   <FormDescription>
@@ -146,11 +168,14 @@ export function PricingSettingsForm({ initialData }: PricingSettingsFormProps) {
                       min={0}
                       step={0.01}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        field.onChange(parseFloat(e.target.value))
+                      }
                     />
                   </FormControl>
                   <FormDescription>
-                    Price changes for items under this amount are automatically approved
+                    Price changes for items under this amount are automatically
+                    approved
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -167,7 +192,8 @@ export function PricingSettingsForm({ initialData }: PricingSettingsFormProps) {
                       Require Note for Approval
                     </FormLabel>
                     <FormDescription>
-                      Users must provide a reason when submitting prices for approval
+                      Users must provide a reason when submitting prices for
+                      approval
                     </FormDescription>
                   </div>
                   <FormControl>

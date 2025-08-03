@@ -1,32 +1,36 @@
 // PRP-013: NetSuite API Client with Rate Limiting
 import { z } from 'zod'
-import { 
-  IntegrationError, 
+import {
+  AuthenticationError,
+  IntegrationError,
   RateLimitError,
-  AuthenticationError 
 } from '@/types/integration.types'
-import type { 
+import type {
+  NetSuiteApiError,
   NetSuiteSuiteQLResponse,
-  NetSuiteApiError 
 } from '@/types/netsuite.types'
-import { NetSuiteAuth } from './auth'
 import type { RateLimiter } from '../base-connector'
+import { NetSuiteAuth } from './auth'
 
 // API response schemas
 const suiteQLResponseSchema = z.object({
   items: z.array(z.any()),
   hasMore: z.boolean().optional().default(false),
   totalResults: z.number().optional(),
-  links: z.array(z.object({
-    rel: z.string(),
-    href: z.string(),
-  })).optional(),
+  links: z
+    .array(
+      z.object({
+        rel: z.string(),
+        href: z.string(),
+      })
+    )
+    .optional(),
 })
 
 export class NetSuiteApiClient {
   private baseUrl: string
   private suiteQLUrl: string
-  
+
   constructor(
     private auth: NetSuiteAuth,
     datacenterUrl: string,
@@ -49,7 +53,7 @@ export class NetSuiteApiClient {
   ): Promise<NetSuiteSuiteQLResponse<T>> {
     let rateLimitToken = 0
     let rateLimiterAcquired = false
-    
+
     try {
       // Acquire rate limit token
       if (this.rateLimiter) {
@@ -59,17 +63,17 @@ export class NetSuiteApiClient {
       }
 
       const token = await this.auth.getValidAccessToken()
-      
+
       // Build query with pagination - validate numeric values
       let finalQuery = query
       if (options.limit !== undefined || options.offset !== undefined) {
         const limit = Math.min(Math.max(1, options.limit || 1000), 10000) // Validate range
         const offset = Math.max(0, options.offset || 0)
-        
+
         // Check for existing LIMIT/OFFSET using regex to be case-insensitive
         const hasLimit = /\bLIMIT\b/i.test(query)
         const hasOffset = /\bOFFSET\b/i.test(query)
-        
+
         if (!hasLimit && limit > 0) {
           finalQuery += ` LIMIT ${limit}`
         }
@@ -81,12 +85,13 @@ export class NetSuiteApiClient {
       const response = await fetch(this.suiteQLUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Prefer': options.preferQueryMode === 'stream' 
-            ? 'transient'
-            : 'respond-async,wait=10', // Wait up to 10 seconds
+          Accept: 'application/json',
+          Prefer:
+            options.preferQueryMode === 'stream'
+              ? 'transient'
+              : 'respond-async,wait=10', // Wait up to 10 seconds
         },
         body: JSON.stringify({
           q: finalQuery,
@@ -101,8 +106,10 @@ export class NetSuiteApiClient {
       const validated = suiteQLResponseSchema.parse(data)
 
       // Check for hasMore based on result count
-      const hasMore = validated.hasMore || 
-        (options.limit !== undefined && validated.items.length === options.limit)
+      const hasMore =
+        validated.hasMore ||
+        (options.limit !== undefined &&
+          validated.items.length === options.limit)
 
       return {
         items: validated.items as T[],
@@ -123,7 +130,7 @@ export class NetSuiteApiClient {
    */
   async getRecord(recordType: string, recordId: string): Promise<any> {
     let rateLimiterAcquired = false
-    
+
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
@@ -135,8 +142,8 @@ export class NetSuiteApiClient {
 
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
       })
 
@@ -163,7 +170,7 @@ export class NetSuiteApiClient {
    */
   async createRecord(recordType: string, data: any): Promise<any> {
     let rateLimiterAcquired = false
-    
+
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
@@ -176,9 +183,9 @@ export class NetSuiteApiClient {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify(data),
       })
@@ -204,9 +211,13 @@ export class NetSuiteApiClient {
   /**
    * Update a record
    */
-  async updateRecord(recordType: string, recordId: string, data: any): Promise<any> {
+  async updateRecord(
+    recordType: string,
+    recordId: string,
+    data: any
+  ): Promise<any> {
     let rateLimiterAcquired = false
-    
+
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
@@ -219,9 +230,9 @@ export class NetSuiteApiClient {
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify(data),
       })
@@ -249,7 +260,7 @@ export class NetSuiteApiClient {
    */
   async deleteRecord(recordType: string, recordId: string): Promise<void> {
     let rateLimiterAcquired = false
-    
+
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
@@ -262,8 +273,8 @@ export class NetSuiteApiClient {
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
       })
 
@@ -290,13 +301,13 @@ export class NetSuiteApiClient {
     queries: string[]
   ): Promise<NetSuiteSuiteQLResponse<T>[]> {
     const results: NetSuiteSuiteQLResponse<T>[] = []
-    
+
     // Execute queries sequentially to respect rate limits
     for (const query of queries) {
       const result = await this.executeSuiteQL<T>(query)
       results.push(result)
     }
-    
+
     return results
   }
 
@@ -305,7 +316,7 @@ export class NetSuiteApiClient {
    */
   async getRecordMetadata(recordType: string): Promise<any> {
     let rateLimiterAcquired = false
-    
+
     try {
       if (this.rateLimiter) {
         await this.rateLimiter.acquire(1)
@@ -317,8 +328,8 @@ export class NetSuiteApiClient {
 
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
       })
 
@@ -345,7 +356,9 @@ export class NetSuiteApiClient {
    */
   private validateIdentifier(identifier: string): string {
     // Allow alphanumeric, underscore, and dot (for table.column)
-    if (!/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$/.test(identifier)) {
+    if (
+      !/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$/.test(identifier)
+    ) {
       throw new IntegrationError(
         `Invalid identifier: ${identifier}`,
         'INVALID_IDENTIFIER'
@@ -369,18 +382,18 @@ export class NetSuiteApiClient {
   ): Promise<NetSuiteSuiteQLResponse<T>> {
     // Validate table name
     const validatedTable = this.validateIdentifier(table)
-    
+
     // Build SELECT clause with validation
-    const selectClause = options.select?.length 
-      ? options.select.map(field => this.validateIdentifier(field)).join(', ')
+    const selectClause = options.select?.length
+      ? options.select.map((field) => this.validateIdentifier(field)).join(', ')
       : '*'
-    
+
     // Build WHERE clause
     const whereConditions = Object.entries(conditions)
       .map(([field, value]) => {
         // Validate field name
         const validatedField = this.validateIdentifier(field)
-        
+
         if (value === null) {
           return `${validatedField} IS NULL`
         } else if (typeof value === 'string') {
@@ -397,18 +410,20 @@ export class NetSuiteApiClient {
               'INVALID_QUERY_CONDITION'
             )
           }
-          const values = value.map(v => {
-            if (typeof v === 'string') {
-              return `'${v.replace(/'/g, "''")}'`
-            } else if (typeof v === 'number') {
-              return v.toString()
-            } else {
-              throw new IntegrationError(
-                `Unsupported array element type "${typeof v}" for field "${field}" - arrays can only contain strings or numbers`,
-                'INVALID_QUERY_CONDITION'
-              )
-            }
-          }).join(', ')
+          const values = value
+            .map((v) => {
+              if (typeof v === 'string') {
+                return `'${v.replace(/'/g, "''")}'`
+              } else if (typeof v === 'number') {
+                return v.toString()
+              } else {
+                throw new IntegrationError(
+                  `Unsupported array element type "${typeof v}" for field "${field}" - arrays can only contain strings or numbers`,
+                  'INVALID_QUERY_CONDITION'
+                )
+              }
+            })
+            .join(', ')
           return `${validatedField} IN (${values})`
         } else if (value === undefined) {
           throw new IntegrationError(
@@ -424,7 +439,7 @@ export class NetSuiteApiClient {
       })
       .filter(Boolean)
       .join(' AND ')
-    
+
     // Build query
     let query = `SELECT ${selectClause} FROM ${validatedTable}`
     if (whereConditions) {
@@ -435,7 +450,7 @@ export class NetSuiteApiClient {
       const validatedOrderBy = this.validateIdentifier(options.orderBy)
       query += ` ORDER BY ${validatedOrderBy}`
     }
-    
+
     return this.executeSuiteQL<T>(query, {
       limit: options.limit,
       offset: options.offset,
@@ -447,7 +462,7 @@ export class NetSuiteApiClient {
    */
   private async handleApiError(response: Response): Promise<never> {
     let errorData: NetSuiteApiError | null = null
-    
+
     try {
       errorData = await response.json()
     } catch {
@@ -457,8 +472,11 @@ export class NetSuiteApiClient {
     // Check for rate limiting
     if (response.status === 429) {
       // NetSuite returns Retry-After header in seconds
-      const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10)
-      
+      const retryAfter = parseInt(
+        response.headers.get('Retry-After') || '60',
+        10
+      )
+
       throw new RateLimitError(
         'NetSuite API rate limit exceeded',
         retryAfter * 1000, // Convert to milliseconds
@@ -468,17 +486,15 @@ export class NetSuiteApiClient {
 
     // Check for authentication errors
     if (response.status === 401) {
-      throw new AuthenticationError(
-        'NetSuite authentication failed',
-        errorData
-      )
+      throw new AuthenticationError('NetSuite authentication failed', errorData)
     }
 
     // Generic API error
-    const message = errorData?.detail || 
-      errorData?.title || 
+    const message =
+      errorData?.detail ||
+      errorData?.title ||
       `NetSuite API error: ${response.status} ${response.statusText}`
-    
+
     throw new IntegrationError(
       message,
       errorData?.['o:errorCode'] || response.status,
@@ -529,7 +545,7 @@ export class NetSuiteApiClient {
 
     for await (const batch of this.iterateSuiteQLResults<T>(query)) {
       allResults.push(...batch)
-      
+
       if (allResults.length >= maxResults) {
         return allResults.slice(0, maxResults)
       }

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { allHelpArticles } from 'contentlayer2/generated'
 import Fuse from 'fuse.js'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { allHelpArticles } from 'contentlayer2/generated'
 
 export function HelpSearch() {
   const router = useRouter()
@@ -14,11 +14,15 @@ export function HelpSearch() {
   const [results, setResults] = useState<typeof allHelpArticles>([])
 
   // Memoize Fuse instance to avoid recreating on each render
-  const fuse = useMemo(() => new Fuse(allHelpArticles, {
-    keys: ['title', 'description', 'body.raw', 'keywords'],
-    threshold: 0.3,
-    includeScore: true,
-  }), [])
+  const fuse = useMemo(
+    () =>
+      new Fuse(allHelpArticles, {
+        keys: ['title', 'description', 'body.raw', 'keywords'],
+        threshold: 0.3,
+        includeScore: true,
+      }),
+    []
+  )
 
   useEffect(() => {
     if (query) {

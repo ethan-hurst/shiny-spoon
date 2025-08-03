@@ -48,5 +48,12 @@
     ".contentlayer/generated"
   ],
   "types": ["jest", "@testing-library/jest-dom"],
-  "exclude": ["node_modules", "__tests__/**/*", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"]
+  "exclude": [
+    "node_modules",
+    "__tests__/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ]
 }

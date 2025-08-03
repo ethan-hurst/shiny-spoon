@@ -1,27 +1,43 @@
 import { format } from 'date-fns'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Building2,
+  Calendar,
+  CreditCard,
+  ExternalLink,
+  Receipt,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { openBillingPortal } from '@/app/actions/billing'
-import type { SubscriptionData, Organization, PlanPricing } from '@/types/billing.types'
-import { 
-  Building2, 
-  CreditCard, 
-  Calendar, 
-  Receipt,
-  ExternalLink
-} from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { SUBSCRIPTION_PLANS } from '@/lib/constants/billing'
+import { openBillingPortal } from '@/app/actions/billing'
+import type {
+  Organization,
+  PlanPricing,
+  SubscriptionData,
+} from '@/types/billing.types'
 
 interface BillingDetailsProps {
   subscription: SubscriptionData
   organization: Organization
 }
 
-export function BillingDetails({ subscription, organization }: BillingDetailsProps) {
+export function BillingDetails({
+  subscription,
+  organization,
+}: BillingDetailsProps) {
   const getPlanPrice = (): number => {
     // Map subscription plan names to our constants
-    const planMap: Record<string, typeof SUBSCRIPTION_PLANS[keyof typeof SUBSCRIPTION_PLANS]> = {
+    const planMap: Record<
+      string,
+      (typeof SUBSCRIPTION_PLANS)[keyof typeof SUBSCRIPTION_PLANS]
+    > = {
       starter: SUBSCRIPTION_PLANS.BASIC,
       growth: SUBSCRIPTION_PLANS.PRO,
       scale: SUBSCRIPTION_PLANS.PRO, // You may want to add a SCALE plan to your constants
@@ -99,7 +115,9 @@ export function BillingDetails({ subscription, organization }: BillingDetailsPro
               </h3>
               <div className="flex items-center gap-2">
                 <span className="font-medium">
-                  {subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan
+                  {subscription.plan.charAt(0).toUpperCase() +
+                    subscription.plan.slice(1)}{' '}
+                  Plan
                 </span>
                 <Badge variant="outline">
                   {subscription.interval === 'year' ? 'Annual' : 'Monthly'}
@@ -120,7 +138,9 @@ export function BillingDetails({ subscription, organization }: BillingDetailsPro
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  <span>Due {format(subscription.currentPeriodEnd, 'MMM d, yyyy')}</span>
+                  <span>
+                    Due {format(subscription.currentPeriodEnd, 'MMM d, yyyy')}
+                  </span>
                 </div>
               </div>
             </div>
@@ -132,11 +152,18 @@ export function BillingDetails({ subscription, organization }: BillingDetailsPro
               <address className="text-sm not-italic">
                 {organization.billing_address ? (
                   <>
-                    {organization.billing_address.line1}<br />
+                    {organization.billing_address.line1}
+                    <br />
                     {organization.billing_address.line2 && (
-                      <>{organization.billing_address.line2}<br /></>
+                      <>
+                        {organization.billing_address.line2}
+                        <br />
+                      </>
                     )}
-                    {organization.billing_address.city}, {organization.billing_address.state} {organization.billing_address.postal_code}<br />
+                    {organization.billing_address.city},{' '}
+                    {organization.billing_address.state}{' '}
+                    {organization.billing_address.postal_code}
+                    <br />
                     {organization.billing_address.country}
                   </>
                 ) : (
@@ -152,8 +179,9 @@ export function BillingDetails({ subscription, organization }: BillingDetailsPro
             <div className="flex items-center gap-2">
               <Receipt className="h-4 w-4 text-amber-600" />
               <p className="text-sm text-amber-900 dark:text-amber-200">
-                Your subscription will end on {format(subscription.currentPeriodEnd, 'MMM d, yyyy')}. 
-                No further charges will be made.
+                Your subscription will end on{' '}
+                {format(subscription.currentPeriodEnd, 'MMM d, yyyy')}. No
+                further charges will be made.
               </p>
             </div>
           </div>

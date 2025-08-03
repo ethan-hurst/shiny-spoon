@@ -2,16 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { MoreHorizontal, Eye, Edit, X } from 'lucide-react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Edit, Eye, MoreHorizontal, X } from 'lucide-react'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -21,11 +16,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Badge } from '@/components/ui/badge'
 import { Pagination } from '@/components/ui/pagination'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { cancelOrder } from '@/app/actions/orders'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 import type { OrderSummary } from '@/types/order.types'
 
 interface OrdersTableProps {
@@ -61,10 +61,22 @@ export function OrdersTable({ orders, total, page, limit }: OrdersTableProps) {
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: any; className: string }> = {
       pending: { variant: 'secondary', className: 'bg-gray-100 text-gray-800' },
-      confirmed: { variant: 'secondary', className: 'bg-blue-100 text-blue-800' },
-      processing: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-800' },
-      shipped: { variant: 'secondary', className: 'bg-purple-100 text-purple-800' },
-      delivered: { variant: 'secondary', className: 'bg-green-100 text-green-800' },
+      confirmed: {
+        variant: 'secondary',
+        className: 'bg-blue-100 text-blue-800',
+      },
+      processing: {
+        variant: 'secondary',
+        className: 'bg-yellow-100 text-yellow-800',
+      },
+      shipped: {
+        variant: 'secondary',
+        className: 'bg-purple-100 text-purple-800',
+      },
+      delivered: {
+        variant: 'secondary',
+        className: 'bg-green-100 text-green-800',
+      },
       cancelled: { variant: 'destructive', className: '' },
       refunded: { variant: 'destructive', className: '' },
     }
@@ -113,7 +125,7 @@ export function OrdersTable({ orders, total, page, limit }: OrdersTableProps) {
               orders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">
-                    <Link 
+                    <Link
                       href={`/dashboard/orders/${order.id}`}
                       className="hover:underline"
                     >
@@ -141,8 +153,8 @@ export function OrdersTable({ orders, total, page, limit }: OrdersTableProps) {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           className="h-8 w-8 p-0"
                           disabled={cancellingId === order.id}
                         >
@@ -165,18 +177,19 @@ export function OrdersTable({ orders, total, page, limit }: OrdersTableProps) {
                             Edit Order
                           </Link>
                         </DropdownMenuItem>
-                        {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleCancel(order.id)}
-                              className="text-destructive"
-                            >
-                              <X className="mr-2 h-4 w-4" />
-                              Cancel Order
-                            </DropdownMenuItem>
-                          </>
-                        )}
+                        {order.status !== 'cancelled' &&
+                          order.status !== 'delivered' && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleCancel(order.id)}
+                                className="text-destructive"
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Cancel Order
+                              </DropdownMenuItem>
+                            </>
+                          )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

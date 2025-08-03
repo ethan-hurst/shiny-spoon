@@ -8,7 +8,6 @@ import { CalendarIcon, FileText, Plus, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { useProductsQuery } from '@/hooks/use-products-query'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -45,10 +44,14 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { cn } from '@/lib/utils'
 import { createBrowserClient } from '@/lib/supabase/client'
-import { contractSchema, ContractWithItems } from '@/types/customer-pricing.types'
+import { cn } from '@/lib/utils'
 import { createContract, updateContract } from '@/app/actions/customer-pricing'
+import { useProductsQuery } from '@/hooks/use-products-query'
+import {
+  contractSchema,
+  ContractWithItems,
+} from '@/types/customer-pricing.types'
 
 interface ContractDialogProps {
   customerId: string
@@ -77,7 +80,7 @@ function ContractDialogInner({
   const [loading, setLoading] = useState(false)
   // Use React Query for products
   const { data: products = [], isError: productsError } = useProductsQuery()
-  
+
   // Handle error state
   if (productsError) {
     toast.error('Failed to load products')
@@ -92,7 +95,9 @@ function ContractDialogInner({
       contract_name: contract?.contract_name || '',
       description: contract?.description || '',
       start_date: contract?.start_date || format(new Date(), 'yyyy-MM-dd'),
-      end_date: contract?.end_date || format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+      end_date:
+        contract?.end_date ||
+        format(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
       signed_date: contract?.signed_date || undefined,
       status: contract?.status || 'draft',
       auto_renew: contract?.auto_renew || false,
@@ -108,7 +113,7 @@ function ContractDialogInner({
   useEffect(() => {
     if (contract?.contract_items) {
       setContractItems(
-        contract.contract_items.map(item => ({
+        contract.contract_items.map((item) => ({
           product_id: item.product_id || '',
           contract_price: item.contract_price || 0,
           min_quantity: item.min_quantity || 0,
@@ -150,7 +155,7 @@ function ContractDialogInner({
     setLoading(true)
     try {
       const formData = new FormData()
-      
+
       // Add contract fields
       Object.entries(values).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -159,7 +164,10 @@ function ContractDialogInner({
       })
 
       // Add contract items as JSON
-      formData.append('contract_items', JSON.stringify(contractItems.filter(item => item.product_id)))
+      formData.append(
+        'contract_items',
+        JSON.stringify(contractItems.filter((item) => item.product_id))
+      )
 
       if (contract) {
         formData.append('id', contract.id)
@@ -173,7 +181,9 @@ function ContractDialogInner({
       setOpen(false)
       router.refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save contract')
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to save contract'
+      )
     } finally {
       setLoading(false)
     }
@@ -204,7 +214,7 @@ function ContractDialogInner({
             {/* Contract Details */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Contract Details</h3>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -230,7 +240,10 @@ function ContractDialogInner({
                     <FormItem>
                       <FormLabel>Contract Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Annual Pricing Agreement" {...field} />
+                        <Input
+                          placeholder="Annual Pricing Agreement"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -285,9 +298,13 @@ function ContractDialogInner({
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={field.value ? new Date(field.value) : undefined}
+                            selected={
+                              field.value ? new Date(field.value) : undefined
+                            }
                             onSelect={(date) =>
-                              field.onChange(date ? format(date, 'yyyy-MM-dd') : '')
+                              field.onChange(
+                                date ? format(date, 'yyyy-MM-dd') : ''
+                              )
                             }
                             initialFocus
                           />
@@ -326,9 +343,13 @@ function ContractDialogInner({
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={field.value ? new Date(field.value) : undefined}
+                            selected={
+                              field.value ? new Date(field.value) : undefined
+                            }
                             onSelect={(date) =>
-                              field.onChange(date ? format(date, 'yyyy-MM-dd') : '')
+                              field.onChange(
+                                date ? format(date, 'yyyy-MM-dd') : ''
+                              )
                             }
                             initialFocus
                           />
@@ -396,9 +417,13 @@ function ContractDialogInner({
                         <PopoverContent className="w-auto p-0" align="start">
                           <Calendar
                             mode="single"
-                            selected={field.value ? new Date(field.value) : undefined}
+                            selected={
+                              field.value ? new Date(field.value) : undefined
+                            }
                             onSelect={(date) =>
-                              field.onChange(date ? format(date, 'yyyy-MM-dd') : '')
+                              field.onChange(
+                                date ? format(date, 'yyyy-MM-dd') : ''
+                              )
                             }
                             initialFocus
                           />
@@ -448,7 +473,11 @@ function ContractDialogInner({
                             onChange={(e) => {
                               const value = e.target.value
                               const numValue = parseInt(value, 10)
-                              if (!isNaN(numValue) && numValue >= 1 && numValue <= 60) {
+                              if (
+                                !isNaN(numValue) &&
+                                numValue >= 1 &&
+                                numValue <= 60
+                              ) {
                                 field.onChange(numValue)
                               }
                             }}
@@ -509,8 +538,10 @@ function ContractDialogInner({
               ) : (
                 <div className="space-y-4">
                   {contractItems.map((item, index) => {
-                    const selectedProduct = products.find(p => p.id === item.product_id)
-                    
+                    const selectedProduct = products.find(
+                      (p) => p.id === item.product_id
+                    )
+
                     return (
                       <div
                         key={index}
@@ -533,7 +564,10 @@ function ContractDialogInner({
                                 </SelectTrigger>
                                 <SelectContent>
                                   {products.map((product) => (
-                                    <SelectItem key={product.id} value={product.id}>
+                                    <SelectItem
+                                      key={product.id}
+                                      value={product.id}
+                                    >
                                       {product.sku} - {product.name}
                                     </SelectItem>
                                   ))}
@@ -558,29 +592,36 @@ function ContractDialogInner({
                                   value={item.contract_price}
                                   onChange={(e) => {
                                     const value = e.target.value
-                                    
+
                                     // Allow empty string for clearing the field
                                     if (value === '') {
-                                      updateContractItem(index, 'contract_price', 0)
+                                      updateContractItem(
+                                        index,
+                                        'contract_price',
+                                        0
+                                      )
                                       return
                                     }
-                                    
+
                                     // Regex pattern for valid decimal numbers with up to 2 decimal places
                                     // Matches: 0, 0.1, 0.01, 1, 100, 100.99, etc.
                                     // Does not match: .1, 1., 1.234, -1, etc.
-                                    const validPricePattern = /^\d+(\.\d{0,2})?$/
-                                    
+                                    const validPricePattern =
+                                      /^\d+(\.\d{0,2})?$/
+
                                     // Maximum price limit for business rules (e.g., $999,999.99)
                                     const MAX_PRICE = 999999.99
-                                    
+
                                     if (validPricePattern.test(value)) {
                                       const numValue = parseFloat(value)
-                                      
+
                                       // Check for valid number, not Infinity, and within business limits
-                                      if (!isNaN(numValue) && 
-                                          isFinite(numValue) && 
-                                          numValue >= 0 && 
-                                          numValue <= MAX_PRICE) {
+                                      if (
+                                        !isNaN(numValue) &&
+                                        isFinite(numValue) &&
+                                        numValue >= 0 &&
+                                        numValue <= MAX_PRICE
+                                      ) {
                                         updateContractItem(
                                           index,
                                           'contract_price',
@@ -593,7 +634,8 @@ function ContractDialogInner({
                               </div>
                               {selectedProduct && (
                                 <p className="text-sm text-muted-foreground mt-1">
-                                  Base price: ${selectedProduct.base_price.toFixed(2)}
+                                  Base price: $
+                                  {selectedProduct.base_price.toFixed(2)}
                                 </p>
                               )}
                             </div>
@@ -625,8 +667,16 @@ function ContractDialogInner({
                                   return
                                 }
                                 const numValue = parseInt(value, 10)
-                                if (!isNaN(numValue) && numValue >= 0 && numValue <= 999999) {
-                                  updateContractItem(index, 'min_quantity', numValue)
+                                if (
+                                  !isNaN(numValue) &&
+                                  numValue >= 0 &&
+                                  numValue <= 999999
+                                ) {
+                                  updateContractItem(
+                                    index,
+                                    'min_quantity',
+                                    numValue
+                                  )
                                 }
                               }}
                             />
@@ -643,12 +693,24 @@ function ContractDialogInner({
                               onChange={(e) => {
                                 const value = e.target.value
                                 if (value === '') {
-                                  updateContractItem(index, 'max_quantity', undefined)
+                                  updateContractItem(
+                                    index,
+                                    'max_quantity',
+                                    undefined
+                                  )
                                   return
                                 }
                                 const numValue = parseInt(value, 10)
-                                if (!isNaN(numValue) && numValue >= 0 && numValue <= 999999) {
-                                  updateContractItem(index, 'max_quantity', numValue)
+                                if (
+                                  !isNaN(numValue) &&
+                                  numValue >= 0 &&
+                                  numValue <= 999999
+                                ) {
+                                  updateContractItem(
+                                    index,
+                                    'max_quantity',
+                                    numValue
+                                  )
                                 }
                               }}
                             />
@@ -702,7 +764,11 @@ function ContractDialogInner({
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Saving...' : contract ? 'Update Contract' : 'Create Contract'}
+                {loading
+                  ? 'Saving...'
+                  : contract
+                    ? 'Update Contract'
+                    : 'Create Contract'}
               </Button>
             </DialogFooter>
           </form>

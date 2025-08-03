@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient()
-    
+
     // Check if this is a valid cron request
     const authHeader = request.headers.get('authorization')
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       securityEvents: 0,
       accessLogs: 0,
       apiKeyUsage: 0,
-      oldAlerts: 0
+      oldAlerts: 0,
     }
 
     // Clean up old performance metrics (keep 30 days)
@@ -77,9 +77,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       cleanupResults,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
-
   } catch (error) {
     console.error('Performance cleanup cron error:', error)
     return NextResponse.json(
@@ -87,4 +86,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

@@ -1,8 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 // Custom link component that handles internal/external links
@@ -46,12 +46,7 @@ function CustomLink({
   }
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      {...props}
-    >
+    <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
       {children}
       <span className="sr-only">(opens in new tab)</span>
     </a>
@@ -156,10 +151,7 @@ function CodeBlock({
 }
 
 // Inline code styling
-function InlineCode({
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLElement>) {
+function InlineCode({ children, ...props }: React.HTMLAttributes<HTMLElement>) {
   return (
     <code
       className="rounded bg-gray-100 px-1.5 py-0.5 text-sm font-mono text-gray-900 dark:bg-gray-800 dark:text-gray-100"
@@ -180,17 +172,17 @@ function Callout({
 }) {
   const styles = {
     info: 'border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-200',
-    warning: 'border-yellow-500 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-200',
-    error: 'border-red-500 bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-200',
-    success: 'border-green-500 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-200',
+    warning:
+      'border-yellow-500 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-200',
+    error:
+      'border-red-500 bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-200',
+    success:
+      'border-green-500 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-200',
   }
 
   return (
     <div
-      className={cn(
-        'my-6 rounded-lg border-l-4 p-4',
-        styles[type]
-      )}
+      className={cn('my-6 rounded-lg border-l-4 p-4', styles[type])}
       {...props}
     >
       {children}
@@ -201,9 +193,13 @@ function Callout({
 // Table components with responsive wrapper
 function Table({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="my-6 overflow-x-auto" role="region" aria-label="Table content">
-      <table 
-        className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" 
+    <div
+      className="my-6 overflow-x-auto"
+      role="region"
+      aria-label="Table content"
+    >
+      <table
+        className="min-w-full divide-y divide-gray-200 dark:divide-gray-700"
         role="table"
         {...props}
       >
@@ -254,7 +250,10 @@ const components = {
     </p>
   ),
   strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-    <strong className="font-semibold text-gray-900 dark:text-gray-100" {...props}>
+    <strong
+      className="font-semibold text-gray-900 dark:text-gray-100"
+      {...props}
+    >
       {children}
     </strong>
   ),
@@ -282,7 +281,10 @@ const components = {
   ),
 
   // Blockquote
-  blockquote: ({ children, ...props }: React.HTMLAttributes<HTMLQuoteElement>) => (
+  blockquote: ({
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLQuoteElement>) => (
     <blockquote
       className="my-6 border-l-4 border-gray-300 pl-6 italic text-gray-700 dark:border-gray-600 dark:text-gray-300"
       {...props}
@@ -307,13 +309,22 @@ const components = {
 
   // Tables
   table: Table,
-  thead: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+  thead: ({
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLTableSectionElement>) => (
     <thead className="bg-gray-50 dark:bg-gray-800" {...props}>
       {children}
     </thead>
   ),
-  tbody: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
-    <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900" {...props}>
+  tbody: ({
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <tbody
+      className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900"
+      {...props}
+    >
       {children}
     </tbody>
   ),
@@ -330,7 +341,10 @@ const components = {
     </th>
   ),
   td: ({ children, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
-    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100" {...props}>
+    <td
+      className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 dark:text-gray-100"
+      {...props}
+    >
       {children}
     </td>
   ),

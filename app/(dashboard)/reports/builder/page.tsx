@@ -1,8 +1,8 @@
 // app/(dashboard)/reports/builder/page.tsx
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
-import { ReportBuilder } from '@/components/features/reports/report-builder'
 import { redirect } from 'next/navigation'
+import { ReportBuilder } from '@/components/features/reports/report-builder'
+import { createClient } from '@/lib/supabase/server'
 import { saveReport } from '@/app/actions/reports'
 
 interface ReportBuilderPageProps {
@@ -12,11 +12,13 @@ interface ReportBuilderPageProps {
 }
 
 export default async function ReportBuilderPage({
-  searchParams
+  searchParams,
 }: ReportBuilderPageProps) {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }

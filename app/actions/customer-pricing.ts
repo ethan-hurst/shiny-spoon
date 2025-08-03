@@ -1,14 +1,14 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { sendApprovalEmail } from '@/lib/email/price-approval-notification'
 import { createClient } from '@/lib/supabase/server'
+import { escapeCSVField } from '@/lib/utils/csv'
 import {
+  ContractItem,
   contractSchema,
   priceApprovalSchema,
-  ContractItem,
 } from '@/types/customer-pricing.types'
-import { sendApprovalEmail } from '@/lib/email/price-approval-notification'
-import { escapeCSVField } from '@/lib/utils/csv'
 
 /**
  * Creates a new customer contract and associated contract items.
@@ -35,7 +35,9 @@ export async function createContract(formData: FormData) {
     .single()
 
   if (profileError || !userProfile?.organization_id) {
-    throw new Error('User profile not found or not associated with an organization')
+    throw new Error(
+      'User profile not found or not associated with an organization'
+    )
   }
 
   const organizationId = userProfile.organization_id
@@ -77,13 +79,15 @@ export async function createContract(formData: FormData) {
   const contractItems = contractItemsJson ? JSON.parse(contractItemsJson) : []
 
   // Use RPC to create contract and items atomically in a single transaction
-  const { data: contract, error: rpcError } = await supabase
-    .rpc('create_contract_with_items', {
+  const { data: contract, error: rpcError } = await supabase.rpc(
+    'create_contract_with_items',
+    {
       p_contract_data: contractData,
       p_contract_items: contractItems,
       p_user_id: user.id,
       p_organization_id: organizationId,
-    })
+    }
+  )
 
   if (rpcError) {
     throw new Error(`Failed to create contract: ${rpcError.message}`)
@@ -130,12 +134,14 @@ export async function updateContract(formData: FormData) {
   // Verify the contract belongs to the user's organization by checking the customer
   const { data: contract, error: contractError } = await supabase
     .from('customer_contracts')
-    .select(`
+    .select(
+      `
       id,
       customers!inner (
         organization_id
       )
-    `)
+    `
+    )
     .eq('id', contractId)
     .single()
 
@@ -144,7 +150,9 @@ export async function updateContract(formData: FormData) {
   }
 
   if (contract.customers.organization_id !== userProfile.organization_id) {
-    throw new Error('Unauthorized: Contract belongs to a different organization')
+    throw new Error(
+      'Unauthorized: Contract belongs to a different organization'
+    )
   }
 
   // Parse updated contract data
@@ -172,12 +180,15 @@ export async function updateContract(formData: FormData) {
   const contractItems = contractItemsJson ? JSON.parse(contractItemsJson) : []
 
   // Use RPC to update contract and items atomically in a single transaction
-  const { error: updateError } = await supabase.rpc('update_contract_with_items', {
-    p_contract_id: contractId,
-    p_contract_data: contractData,
-    p_contract_items: contractItems,
-    p_user_id: user.id
-  })
+  const { error: updateError } = await supabase.rpc(
+    'update_contract_with_items',
+    {
+      p_contract_id: contractId,
+      p_contract_data: contractData,
+      p_contract_items: contractItems,
+      p_user_id: user.id,
+    }
+  )
 
   if (updateError) {
     throw new Error(`Failed to update contract: ${updateError.message}`)
@@ -336,7 +347,8 @@ export async function createPriceApproval(formData: FormData) {
   // Get the full approval details with related data for the email
   const { data: approvalWithDetails, error: fetchError } = await supabase
     .from('price_approvals')
-    .select(`
+    .select(
+      `
       *,
       customers (
         display_name,
@@ -350,7 +362,8 @@ export async function createPriceApproval(formData: FormData) {
         email,
         full_name
       )
-    `)
+    `
+    )
     .eq('id', data.id)
     .single()
 
@@ -544,7 +557,8 @@ export async function exportCustomerPrices(customerId: string) {
     const basePrice = product.product_pricing?.[0]?.base_price || 0
     const customerPricing = product.customer_pricing?.[0]
     const customerPrice = customerPricing?.override_price || basePrice
-    const discount = basePrice > 0 ? ((basePrice - customerPrice) / basePrice) * 100 : 0
+    const discount =
+      basePrice > 0 ? ((basePrice - customerPrice) / basePrice) * 100 : 0
 
     return [
       product.sku,
@@ -565,7 +579,9 @@ export async function exportCustomerPrices(customerId: string) {
 
   // Generate CSV content
   const csvContent = [
-    escapeCSVField(`Customer Price Sheet - ${customer?.display_name || customer?.company_name}`),
+    escapeCSVField(
+      `Customer Price Sheet - ${customer?.display_name || customer?.company_name}`
+    ),
     escapeCSVField(`Generated on: ${new Date().toLocaleDateString()}`),
     '',
     headers.map(escapeCSVField).join(','),

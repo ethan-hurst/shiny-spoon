@@ -1,6 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createOrder, updateOrder, cancelOrder, getOrderDetails, listOrders } from '@/app/actions/orders'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createClient } from '@/lib/supabase/server'
+import {
+  cancelOrder,
+  createOrder,
+  getOrderDetails,
+  listOrders,
+  updateOrder,
+} from '@/app/actions/orders'
 
 // Mock Supabase client
 vi.mock('@/lib/supabase/server', () => ({
@@ -29,7 +35,7 @@ describe('Orders Actions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     mockSupabase = {
       auth: {
         getUser: vi.fn(),
@@ -45,7 +51,6 @@ describe('Orders Actions', () => {
       order: vi.fn().mockReturnThis(),
       range: vi.fn().mockReturnThis(),
     }
-
     ;(createClient as any).mockReturnValue(mockSupabase)
   })
 
@@ -53,8 +58,20 @@ describe('Orders Actions', () => {
     const mockUser = { id: 'user-123', email: 'test@example.com' }
     const mockProfile = { organization_id: 'org-123' }
     const mockProducts = [
-      { id: 'prod-1', sku: 'SKU001', name: 'Product 1', description: 'Test product', base_price: 10.00 },
-      { id: 'prod-2', sku: 'SKU002', name: 'Product 2', description: 'Test product 2', base_price: 20.00 },
+      {
+        id: 'prod-1',
+        sku: 'SKU001',
+        name: 'Product 1',
+        description: 'Test product',
+        base_price: 10.0,
+      },
+      {
+        id: 'prod-2',
+        sku: 'SKU002',
+        name: 'Product 2',
+        description: 'Test product 2',
+        base_price: 20.0,
+      },
     ]
     const mockOrder = {
       id: 'order-123',
@@ -62,16 +79,16 @@ describe('Orders Actions', () => {
       organization_id: 'org-123',
       customer_id: 'customer-123',
       status: 'pending',
-      subtotal: 30.00,
-      tax: 3.00,
-      total: 33.00,
+      subtotal: 30.0,
+      tax: 3.0,
+      total: 33.0,
     }
 
     const validInput = {
       customer_id: 'customer-123',
       items: [
-        { product_id: 'prod-1', quantity: 1, unit_price: 10.00 },
-        { product_id: 'prod-2', quantity: 1, unit_price: 20.00 },
+        { product_id: 'prod-1', quantity: 1, unit_price: 10.0 },
+        { product_id: 'prod-2', quantity: 1, unit_price: 20.0 },
       ],
       billing_address: {
         line1: '123 Test St',
@@ -86,7 +103,7 @@ describe('Orders Actions', () => {
     it('should create an order successfully', async () => {
       // Mock auth
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser } })
-      
+
       // Mock user profile
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'user_profiles') {
@@ -141,7 +158,9 @@ describe('Orders Actions', () => {
           return {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: null, error: 'Not found' }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: null, error: 'Not found' }),
           }
         }
         return mockSupabase
@@ -167,7 +186,9 @@ describe('Orders Actions', () => {
             select: vi.fn().mockReturnThis(),
             in: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: null, error: 'Not found' }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: null, error: 'Not found' }),
           }
         }
         return mockSupabase
@@ -202,7 +223,7 @@ describe('Orders Actions', () => {
     it('should update an order successfully', async () => {
       // Mock auth
       mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser } })
-      
+
       // Mock user profile
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'user_profiles') {
@@ -217,7 +238,8 @@ describe('Orders Actions', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             update: vi.fn().mockReturnThis(),
-            single: vi.fn()
+            single: vi
+              .fn()
               .mockResolvedValueOnce({ data: mockExistingOrder }) // First call for existing order
               .mockResolvedValueOnce({ data: mockUpdatedOrder }), // Second call for updated order
           }
@@ -244,7 +266,9 @@ describe('Orders Actions', () => {
           return {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: null, error: 'Not found' }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: null, error: 'Not found' }),
           }
         }
         return mockSupabase
@@ -263,7 +287,10 @@ describe('Orders Actions', () => {
         updateOrder: mockUpdateOrder,
       }))
 
-      const result = await cancelOrder('order-123', 'Customer requested cancellation')
+      const result = await cancelOrder(
+        'order-123',
+        'Customer requested cancellation'
+      )
 
       expect(mockUpdateOrder).toHaveBeenCalledWith('order-123', {
         status: 'cancelled',
@@ -305,7 +332,9 @@ describe('Orders Actions', () => {
           return {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: null, error: 'Not found' }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: null, error: 'Not found' }),
           }
         }
         return mockSupabase
@@ -380,7 +409,11 @@ describe('Orders Actions', () => {
         return mockSupabase
       })
 
-      const result = await listOrders({ status: 'pending', limit: 10, offset: 0 })
+      const result = await listOrders({
+        status: 'pending',
+        limit: 10,
+        offset: 0,
+      })
 
       expect(result).toEqual({
         success: true,
@@ -393,4 +426,4 @@ describe('Orders Actions', () => {
       })
     })
   })
-}) 
+})

@@ -35,21 +35,25 @@ A React Native mobile application for the TruthSource B2B e-commerce data accura
 ### Installation
 
 1. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
 2. **Start the development server**:
+
    ```bash
    npm start
    ```
 
 3. **Run on iOS**:
+
    ```bash
    npm run ios
    ```
 
 4. **Run on Android**:
+
    ```bash
    npm run android
    ```
@@ -141,16 +145,19 @@ expo build:web
 ### Expo Application Services (EAS)
 
 1. **Install EAS CLI**:
+
    ```bash
    npm install -g @expo/eas-cli
    ```
 
 2. **Login to Expo**:
+
    ```bash
    eas login
    ```
 
 3. **Configure EAS**:
+
    ```bash
    eas build:configure
    ```
@@ -164,6 +171,7 @@ expo build:web
 ### App Store Deployment
 
 1. **Submit to App Store**:
+
    ```bash
    eas submit --platform ios
    ```
@@ -176,18 +184,21 @@ expo build:web
 ## Features Roadmap
 
 ### Phase 1 (Current)
+
 - ✅ Basic authentication
 - ✅ Dashboard with metrics
 - ✅ Navigation structure
 - ✅ Theme support
 
 ### Phase 2 (Next)
+
 - 🔄 Real-time data synchronization
 - 🔄 Push notifications
 - 🔄 Offline data caching
 - 🔄 Advanced inventory management
 
 ### Phase 3 (Future)
+
 - 📋 Advanced analytics dashboard
 - 📋 Barcode scanning
 - 📋 Photo capture for products
@@ -212,4 +223,4 @@ For support and questions:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -149,5 +149,11 @@ export default async function sitemap(): Promise<SitemapEntry[]> {
     },
   ]
 
-  return [...staticPages, ...contentLandingPages, ...blogPages, ...docPages, ...helpPages]
+  return [
+    ...staticPages,
+    ...contentLandingPages,
+    ...blogPages,
+    ...docPages,
+    ...helpPages,
+  ]
 }

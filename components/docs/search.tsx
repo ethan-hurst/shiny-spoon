@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { allDocs } from 'contentlayer2/generated'
 import Fuse from 'fuse.js'
 import { Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   CommandDialog,
   CommandEmpty,
@@ -12,8 +14,6 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { allDocs } from 'contentlayer2/generated'
-import { Button } from '@/components/ui/button'
 
 export function DocsSearch() {
   const router = useRouter()
@@ -21,11 +21,15 @@ export function DocsSearch() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<typeof allDocs>([])
 
-  const fuse = useMemo(() => new Fuse(allDocs, {
-    keys: ['title', 'description', 'body.raw'],
-    threshold: 0.3,
-    includeScore: true,
-  }), [])
+  const fuse = useMemo(
+    () =>
+      new Fuse(allDocs, {
+        keys: ['title', 'description', 'body.raw'],
+        threshold: 0.3,
+        includeScore: true,
+      }),
+    []
+  )
 
   useEffect(() => {
     if (query) {
@@ -36,11 +40,14 @@ export function DocsSearch() {
     }
   }, [query, fuse])
 
-  const handleSelect = useCallback((url: string) => {
-    setOpen(false)
-    setQuery('')
-    router.push(url)
-  }, [router])
+  const handleSelect = useCallback(
+    (url: string) => {
+      setOpen(false)
+      setQuery('')
+      router.push(url)
+    },
+    [router]
+  )
 
   // Keyboard shortcut
   useEffect(() => {
@@ -68,7 +75,7 @@ export function DocsSearch() {
           <span className="text-xs">⌘</span>K
         </kbd>
       </Button>
-      
+
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
           placeholder="Search documentation..."

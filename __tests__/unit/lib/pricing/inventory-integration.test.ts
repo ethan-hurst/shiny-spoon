@@ -1,11 +1,11 @@
 import {
-  getProductInventory,
-  getCachedInventory,
-  clearInventoryCache,
   calculateInventoryBasedPrice,
-  isQuantityAvailable,
+  clearInventoryCache,
+  getCachedInventory,
   getInventoryConditions,
-  InventoryData
+  getProductInventory,
+  InventoryData,
+  isQuantityAvailable,
 } from '@/lib/pricing/inventory-integration'
 import { createClient } from '@/lib/supabase/client'
 
@@ -14,35 +14,35 @@ jest.mock('@/lib/supabase/client')
 
 describe('Pricing Inventory Integration', () => {
   let mockSupabase: ReturnType<typeof createMockSupabase>
-  
+
   const mockInventoryItems = [
     {
       quantity: 100,
       reserved_quantity: 10,
-      warehouse_id: 'warehouse-1'
+      warehouse_id: 'warehouse-1',
     },
     {
       quantity: 50,
       reserved_quantity: 5,
-      warehouse_id: 'warehouse-2'
-    }
+      warehouse_id: 'warehouse-2',
+    },
   ]
 
   const mockSingleInventoryItem = {
     quantity: 75,
     reserved_quantity: 15,
-    warehouse_id: 'warehouse-1'
+    warehouse_id: 'warehouse-1',
   }
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Clear cache between tests
     clearInventoryCache()
-    
+
     mockSupabase = createMockSupabase()
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
-    
+
     // Mock console.error to avoid noise in test output
     jest.spyOn(console, 'error').mockImplementation(() => {})
   })
@@ -58,10 +58,10 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: mockInventoryItems,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const result = await getProductInventory('product-123', 'org-123')
@@ -70,7 +70,7 @@ describe('Pricing Inventory Integration', () => {
         totalQuantity: 150, // 100 + 50
         availableQuantity: 135, // (100-10) + (50-5)
         reservedQuantity: 15, // 10 + 5
-        warehouseId: undefined // Multiple warehouses
+        warehouseId: undefined, // Multiple warehouses
       })
 
       expect(mockSupabase.from).toHaveBeenCalledWith('inventory')
@@ -79,26 +79,30 @@ describe('Pricing Inventory Integration', () => {
     it('should filter by warehouse when specified', async () => {
       const mockEq = jest.fn().mockResolvedValue({
         data: [mockSingleInventoryItem],
-        error: null
+        error: null,
       })
 
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
-              eq: mockEq
-            })
-          })
-        })
+              eq: mockEq,
+            }),
+          }),
+        }),
       } as any)
 
-      const result = await getProductInventory('product-123', 'org-123', 'warehouse-1')
+      const result = await getProductInventory(
+        'product-123',
+        'org-123',
+        'warehouse-1'
+      )
 
       expect(result).toEqual({
         totalQuantity: 75,
         availableQuantity: 60, // 75 - 15
         reservedQuantity: 15,
-        warehouseId: 'warehouse-1'
+        warehouseId: 'warehouse-1',
       })
 
       expect(mockEq).toHaveBeenCalled()
@@ -109,13 +113,13 @@ describe('Pricing Inventory Integration', () => {
         {
           quantity: null,
           reserved_quantity: 10,
-          warehouse_id: 'warehouse-1'
+          warehouse_id: 'warehouse-1',
         },
         {
           quantity: 50,
           reserved_quantity: null,
-          warehouse_id: 'warehouse-2'
-        }
+          warehouse_id: 'warehouse-2',
+        },
       ]
 
       mockSupabase.from.mockReturnValue({
@@ -123,10 +127,10 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: inventoryWithNulls,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const result = await getProductInventory('product-123', 'org-123')
@@ -135,7 +139,7 @@ describe('Pricing Inventory Integration', () => {
         totalQuantity: 50, // null treated as 0
         availableQuantity: 40, // 50 - 10
         reservedQuantity: 10, // null treated as 0
-        warehouseId: undefined
+        warehouseId: undefined,
       })
     })
 
@@ -145,10 +149,10 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: [],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const result = await getProductInventory('product-123', 'org-123')
@@ -162,16 +166,18 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: null,
-              error: { message: 'Database error' }
-            })
-          })
-        })
+              error: { message: 'Database error' },
+            }),
+          }),
+        }),
       } as any)
 
       const result = await getProductInventory('product-123', 'org-123')
 
       expect(result).toBeNull()
-      expect(console.error).toHaveBeenCalledWith('Failed to fetch inventory:', { message: 'Database error' })
+      expect(console.error).toHaveBeenCalledWith('Failed to fetch inventory:', {
+        message: 'Database error',
+      })
     })
 
     it('should handle exceptions gracefully', async () => {
@@ -182,7 +188,10 @@ describe('Pricing Inventory Integration', () => {
       const result = await getProductInventory('product-123', 'org-123')
 
       expect(result).toBeNull()
-      expect(console.error).toHaveBeenCalledWith('Inventory fetch error:', expect.any(Error))
+      expect(console.error).toHaveBeenCalledWith(
+        'Inventory fetch error:',
+        expect.any(Error)
+      )
     })
 
     it('should set warehouseId for single warehouse inventory', async () => {
@@ -191,10 +200,10 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: [mockSingleInventoryItem],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const result = await getProductInventory('product-123', 'org-123')
@@ -220,14 +229,14 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: [mockSingleInventoryItem],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const firstResult = await getCachedInventory('product-123', 'org-123')
-      
+
       // Second call should use cache (advance time by 30 seconds)
       ;(Date.now as jest.Mock).mockReturnValue(1030000)
       const callCountBeforeSecondCall = mockSupabase.from.mock.calls.length
@@ -245,14 +254,14 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: [mockSingleInventoryItem],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       await getCachedInventory('product-123', 'org-123')
-      
+
       // Advance time beyond cache TTL (1 minute + 1 second)
       ;(Date.now as jest.Mock).mockReturnValue(1061000)
 
@@ -267,10 +276,10 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: [],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const result1 = await getCachedInventory('product-123', 'org-123')
@@ -287,10 +296,10 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: [mockSingleInventoryItem],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       // Call with different parameters
@@ -307,8 +316,14 @@ describe('Pricing Inventory Integration', () => {
       // Populate cache
       const cache = require('@/lib/pricing/inventory-integration')
       const inventoryCache = cache.inventoryCache || new Map()
-      inventoryCache.set('product-123:org-123:all', { data: {}, expires: Date.now() + 60000 })
-      inventoryCache.set('product-456:org-123:all', { data: {}, expires: Date.now() + 60000 })
+      inventoryCache.set('product-123:org-123:all', {
+        data: {},
+        expires: Date.now() + 60000,
+      })
+      inventoryCache.set('product-456:org-123:all', {
+        data: {},
+        expires: Date.now() + 60000,
+      })
 
       clearInventoryCache()
 
@@ -332,7 +347,7 @@ describe('Pricing Inventory Integration', () => {
         totalQuantity: 100,
         availableQuantity: 5, // 5% available
         reservedQuantity: 95,
-        warehouseId: 'warehouse-1'
+        warehouseId: 'warehouse-1',
       }
 
       const result = calculateInventoryBasedPrice(basePrice, inventoryData)
@@ -344,7 +359,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 20, // 20% available
-        reservedQuantity: 80
+        reservedQuantity: 80,
       }
 
       const result = calculateInventoryBasedPrice(basePrice, inventoryData)
@@ -356,7 +371,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 80, // 80% available
-        reservedQuantity: 20
+        reservedQuantity: 20,
       }
 
       const result = calculateInventoryBasedPrice(basePrice, inventoryData)
@@ -368,7 +383,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 50, // 50% available
-        reservedQuantity: 50
+        reservedQuantity: 50,
       }
 
       const result = calculateInventoryBasedPrice(basePrice, inventoryData)
@@ -380,16 +395,20 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 5, // 5% available - critical level
-        reservedQuantity: 95
+        reservedQuantity: 95,
       }
 
       const customRules = {
         criticalLevelMultiplier: 1.5, // 50% increase
         lowLevelMultiplier: 1.25, // 25% increase
-        excessLevelDiscount: 15 // 15% discount
+        excessLevelDiscount: 15, // 15% discount
       }
 
-      const result = calculateInventoryBasedPrice(basePrice, inventoryData, customRules)
+      const result = calculateInventoryBasedPrice(
+        basePrice,
+        inventoryData,
+        customRules
+      )
 
       expect(result).toBe(150) // 100 * 1.5
     })
@@ -398,7 +417,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 0,
         availableQuantity: 0,
-        reservedQuantity: 0
+        reservedQuantity: 0,
       }
 
       const result = calculateInventoryBasedPrice(basePrice, inventoryData)
@@ -411,7 +430,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData10: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 10,
-        reservedQuantity: 90
+        reservedQuantity: 90,
       }
 
       const result10 = calculateInventoryBasedPrice(basePrice, inventoryData10)
@@ -421,7 +440,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData25: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 25,
-        reservedQuantity: 75
+        reservedQuantity: 75,
       }
 
       const result25 = calculateInventoryBasedPrice(basePrice, inventoryData25)
@@ -431,7 +450,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData75: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 75,
-        reservedQuantity: 25
+        reservedQuantity: 25,
       }
 
       const result75 = calculateInventoryBasedPrice(basePrice, inventoryData75)
@@ -444,7 +463,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 50,
-        reservedQuantity: 50
+        reservedQuantity: 50,
       }
 
       const result = isQuantityAvailable(30, inventoryData)
@@ -456,7 +475,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 20,
-        reservedQuantity: 80
+        reservedQuantity: 80,
       }
 
       const result = isQuantityAvailable(30, inventoryData)
@@ -468,7 +487,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 50,
-        reservedQuantity: 50
+        reservedQuantity: 50,
       }
 
       const result = isQuantityAvailable(50, inventoryData)
@@ -486,7 +505,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 0,
         availableQuantity: 0,
-        reservedQuantity: 0
+        reservedQuantity: 0,
       }
 
       expect(isQuantityAvailable(0, inventoryData)).toBe(true)
@@ -499,7 +518,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 5,
-        reservedQuantity: 95
+        reservedQuantity: 95,
       }
 
       const result = getInventoryConditions(inventoryData)
@@ -508,7 +527,7 @@ describe('Pricing Inventory Integration', () => {
         inventory_level: 'critical',
         available_quantity: 5,
         total_quantity: 100,
-        inventory_percent: 5
+        inventory_percent: 5,
       })
     })
 
@@ -516,7 +535,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 20,
-        reservedQuantity: 80
+        reservedQuantity: 80,
       }
 
       const result = getInventoryConditions(inventoryData)
@@ -525,7 +544,7 @@ describe('Pricing Inventory Integration', () => {
         inventory_level: 'low',
         available_quantity: 20,
         total_quantity: 100,
-        inventory_percent: 20
+        inventory_percent: 20,
       })
     })
 
@@ -533,7 +552,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 40,
-        reservedQuantity: 60
+        reservedQuantity: 60,
       }
 
       const result = getInventoryConditions(inventoryData)
@@ -542,7 +561,7 @@ describe('Pricing Inventory Integration', () => {
         inventory_level: 'medium',
         available_quantity: 40,
         total_quantity: 100,
-        inventory_percent: 40
+        inventory_percent: 40,
       })
     })
 
@@ -550,7 +569,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 60,
-        reservedQuantity: 40
+        reservedQuantity: 40,
       }
 
       const result = getInventoryConditions(inventoryData)
@@ -559,7 +578,7 @@ describe('Pricing Inventory Integration', () => {
         inventory_level: 'high',
         available_quantity: 60,
         total_quantity: 100,
-        inventory_percent: 60
+        inventory_percent: 60,
       })
     })
 
@@ -567,7 +586,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 100,
         availableQuantity: 85,
-        reservedQuantity: 15
+        reservedQuantity: 15,
       }
 
       const result = getInventoryConditions(inventoryData)
@@ -576,7 +595,7 @@ describe('Pricing Inventory Integration', () => {
         inventory_level: 'excess',
         available_quantity: 85,
         total_quantity: 100,
-        inventory_percent: 85
+        inventory_percent: 85,
       })
     })
 
@@ -584,14 +603,14 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 0,
         availableQuantity: 0,
-        reservedQuantity: 0
+        reservedQuantity: 0,
       }
 
       const result = getInventoryConditions(inventoryData)
 
       expect(result).toEqual({
         inventory_level: 'unknown',
-        inventory_percent: 0
+        inventory_percent: 0,
       })
     })
 
@@ -608,7 +627,7 @@ describe('Pricing Inventory Integration', () => {
         const inventoryData: InventoryData = {
           totalQuantity: total,
           availableQuantity: available,
-          reservedQuantity: total - available
+          reservedQuantity: total - available,
         }
 
         const result = getInventoryConditions(inventoryData)
@@ -620,7 +639,7 @@ describe('Pricing Inventory Integration', () => {
       const inventoryData: InventoryData = {
         totalQuantity: 33,
         availableQuantity: 11, // 33.33% available
-        reservedQuantity: 22
+        reservedQuantity: 22,
       }
 
       const result = getInventoryConditions(inventoryData)
@@ -638,10 +657,10 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: [mockSingleInventoryItem],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       // Get inventory
@@ -669,15 +688,15 @@ describe('Pricing Inventory Integration', () => {
           eq: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue({
               data: [mockSingleInventoryItem],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       // First call - should fetch from database
       const inventory1 = await getCachedInventory('product-123', 'org-123')
-      
+
       // Second call - should use cache
       const inventory2 = await getCachedInventory('product-123', 'org-123')
 
@@ -686,7 +705,7 @@ describe('Pricing Inventory Integration', () => {
 
       // Clear cache and verify fresh fetch
       clearInventoryCache('product-123')
-      
+
       const inventory3 = await getCachedInventory('product-123', 'org-123')
       expect(mockSupabase.from).toHaveBeenCalledTimes(2)
     })
@@ -699,9 +718,9 @@ function createMockSupabase() {
     from: jest.fn().mockReturnValue({
       select: jest.fn().mockReturnValue({
         eq: jest.fn().mockReturnValue({
-          eq: jest.fn()
-        })
-      })
-    })
+          eq: jest.fn(),
+        }),
+      }),
+    }),
   }
 }

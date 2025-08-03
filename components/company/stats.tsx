@@ -14,7 +14,13 @@ interface Stat {
 const stats: Stat[] = [
   { value: 500, suffix: '+', label: 'Companies Trust Us' },
   { value: 99.9, suffix: '%', label: 'Uptime SLA', decimals: 1 },
-  { value: 2.5, prefix: '$', suffix: 'M+', label: 'Errors Prevented', decimals: 1 },
+  {
+    value: 2.5,
+    prefix: '$',
+    suffix: 'M+',
+    label: 'Errors Prevented',
+    decimals: 1,
+  },
   { value: 200, suffix: 'ms', label: 'Avg Sync Time' },
 ]
 

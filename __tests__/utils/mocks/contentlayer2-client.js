@@ -6,4 +6,4 @@ module.exports = {
   getPost: jest.fn(),
   getAuthor: jest.fn(),
   getDocument: jest.fn(),
-} 
+}

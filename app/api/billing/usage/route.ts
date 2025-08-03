@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { getUsageStats } from '@/lib/billing'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -18,7 +20,10 @@ export async function GET(_request: NextRequest) {
       .single()
 
     if (!profile?.organization_id) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'No organization found' },
+        { status: 404 }
+      )
     }
 
     const usage = await getUsageStats(profile.organization_id)

@@ -1,12 +1,26 @@
 import type { Metadata } from 'next'
-import { Calendar, Tag, AlertCircle, CheckCircle, XCircle, Zap } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle,
+  Tag,
+  XCircle,
+  Zap,
+} from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export const metadata: Metadata = {
   title: 'API Changelog | TruthSource Developer Portal',
-  description: 'Stay updated with the latest changes and improvements to TruthSource APIs',
+  description:
+    'Stay updated with the latest changes and improvements to TruthSource APIs',
 }
 
 const changelogEntries = [
@@ -82,7 +96,9 @@ const getTypeBadge = (type: string) => {
     case 'feature':
       return <Badge className="bg-blue-500/10 text-blue-500">New Feature</Badge>
     case 'improvement':
-      return <Badge className="bg-green-500/10 text-green-500">Improvement</Badge>
+      return (
+        <Badge className="bg-green-500/10 text-green-500">Improvement</Badge>
+      )
     case 'bugfix':
       return <Badge className="bg-yellow-500/10 text-yellow-500">Bug Fix</Badge>
     case 'breaking':
@@ -105,7 +121,8 @@ export default function ChangelogPage() {
       <Alert className="mb-6">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Subscribe to our developer newsletter to receive changelog updates directly in your inbox.
+          Subscribe to our developer newsletter to receive changelog updates
+          directly in your inbox.
         </AlertDescription>
       </Alert>
 

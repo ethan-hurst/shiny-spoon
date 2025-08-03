@@ -1,16 +1,18 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { APIKeyManager } from '@/lib/security/api-key-manager'
-import { AccessControl } from '@/lib/security/access-control'
-import { SecurityMonitor } from '@/lib/security/security-monitor'
-import { checkRateLimit, rateLimiters } from '@/lib/rate-limit'
 import { z } from 'zod'
+import { checkRateLimit, rateLimiters } from '@/lib/rate-limit'
+import { AccessControl } from '@/lib/security/access-control'
+import { APIKeyManager } from '@/lib/security/api-key-manager'
+import { SecurityMonitor } from '@/lib/security/security-monitor'
+import { createClient } from '@/lib/supabase/server'
 
 // Schemas for validation
 const createAPIKeySchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  permissions: z.array(z.string()).min(1, 'At least one permission is required'),
+  permissions: z
+    .array(z.string())
+    .min(1, 'At least one permission is required'),
   expiresAt: z.string().optional(),
   rateLimit: z.number().min(1).max(10000).optional(),
   ipWhitelist: z.array(z.string()).optional(),
@@ -35,8 +37,10 @@ const securityPolicySchema = z.object({
 export async function generateAPIKey(formData: FormData) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -63,7 +67,9 @@ export async function generateAPIKey(formData: FormData) {
       name: formData.get('name'),
       permissions: formData.getAll('permissions'),
       expiresAt: formData.get('expiresAt') || undefined,
-      rateLimit: formData.get('rateLimit') ? parseInt(formData.get('rateLimit') as string) : undefined,
+      rateLimit: formData.get('rateLimit')
+        ? parseInt(formData.get('rateLimit') as string)
+        : undefined,
       ipWhitelist: formData.getAll('ipWhitelist'),
     })
 
@@ -73,7 +79,9 @@ export async function generateAPIKey(formData: FormData) {
       validatedData.name,
       validatedData.permissions,
       {
-        expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : undefined,
+        expiresAt: validatedData.expiresAt
+          ? new Date(validatedData.expiresAt)
+          : undefined,
         rateLimit: validatedData.rateLimit,
         ipWhitelist: validatedData.ipWhitelist,
         createdBy: user.id,
@@ -93,8 +101,10 @@ export async function generateAPIKey(formData: FormData) {
 export async function rotateAPIKey(keyId: string) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -117,7 +127,10 @@ export async function rotateAPIKey(keyId: string) {
     }
 
     const apiKeyManager = new APIKeyManager(supabase)
-    const result = await apiKeyManager.rotateAPIKey(keyId, profile.organization_id)
+    const result = await apiKeyManager.rotateAPIKey(
+      keyId,
+      profile.organization_id
+    )
 
     return { success: true, data: result }
   } catch (error) {
@@ -132,8 +145,10 @@ export async function rotateAPIKey(keyId: string) {
 export async function revokeAPIKey(keyId: string) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -165,8 +180,10 @@ export async function revokeAPIKey(keyId: string) {
 export async function listAPIKeys() {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -198,8 +215,10 @@ export async function listAPIKeys() {
 export async function getAPIKeyUsage(keyId: string, days: number = 30) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -220,8 +239,10 @@ export async function getAPIKeyUsage(keyId: string, days: number = 30) {
 export async function addIPToWhitelist(formData: FormData) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -272,8 +293,10 @@ export async function addIPToWhitelist(formData: FormData) {
 export async function removeIPFromWhitelist(ruleId: string) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -305,8 +328,10 @@ export async function removeIPFromWhitelist(ruleId: string) {
 export async function getIPWhitelist() {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -338,8 +363,10 @@ export async function getIPWhitelist() {
 export async function getSecurityMetrics() {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -356,7 +383,9 @@ export async function getSecurityMetrics() {
     }
 
     const securityMonitor = new SecurityMonitor(supabase)
-    const metrics = await securityMonitor.getSecurityMetrics(profile.organization_id)
+    const metrics = await securityMonitor.getSecurityMetrics(
+      profile.organization_id
+    )
 
     return { success: true, data: metrics }
   } catch (error) {
@@ -371,8 +400,10 @@ export async function getSecurityMetrics() {
 export async function getActiveSecurityAlerts() {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -389,7 +420,9 @@ export async function getActiveSecurityAlerts() {
     }
 
     const securityMonitor = new SecurityMonitor(supabase)
-    const alerts = await securityMonitor.getActiveAlerts(profile.organization_id)
+    const alerts = await securityMonitor.getActiveAlerts(
+      profile.organization_id
+    )
 
     return { success: true, data: alerts }
   } catch (error) {
@@ -404,8 +437,10 @@ export async function getActiveSecurityAlerts() {
 export async function acknowledgeSecurityAlert(alertId: string) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -437,8 +472,10 @@ export async function acknowledgeSecurityAlert(alertId: string) {
 export async function resolveSecurityAlert(alertId: string) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -470,8 +507,10 @@ export async function resolveSecurityAlert(alertId: string) {
 export async function createSecurityPolicy(formData: FormData) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -502,7 +541,10 @@ export async function createSecurityPolicy(formData: FormData) {
     })
 
     const accessControl = new AccessControl(supabase)
-    const policy = await accessControl.createSecurityPolicy(profile.organization_id, validatedData)
+    const policy = await accessControl.createSecurityPolicy(
+      profile.organization_id,
+      validatedData
+    )
 
     return { success: true, data: policy }
   } catch (error) {
@@ -517,8 +559,10 @@ export async function createSecurityPolicy(formData: FormData) {
 export async function getSecurityPolicies() {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -535,11 +579,13 @@ export async function getSecurityPolicies() {
     }
 
     const accessControl = new AccessControl(supabase)
-    const policies = await accessControl.getSecurityPolicies(profile.organization_id)
+    const policies = await accessControl.getSecurityPolicies(
+      profile.organization_id
+    )
 
     return { success: true, data: policies }
   } catch (error) {
     console.error('Failed to get security policies:', error)
     return { error: 'Failed to get security policies' }
   }
-} 
+}

@@ -17,10 +17,14 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  ANNUAL_DISCOUNT_PERCENTAGE,
+  BILLING_INTERVALS,
+  SUBSCRIPTION_PLANS,
+} from '@/lib/constants/billing'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { TITLE_TAILWIND_CLASS } from '@/utils/constants'
-import { SUBSCRIPTION_PLANS, BILLING_INTERVALS, ANNUAL_DISCOUNT_PERCENTAGE } from '@/lib/constants/billing'
 
 type PricingSwitchProps = {
   // eslint-disable-next-line no-unused-vars

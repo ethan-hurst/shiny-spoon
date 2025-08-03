@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AlertCircle, Download, FileText, Upload } from 'lucide-react'
-import { toast } from 'sonner'
 import Papa from 'papaparse'
+import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -104,7 +105,9 @@ export function BulkImportDialog({ children }: BulkImportDialogProps) {
         // Check required headers
         const headers = results.meta.fields || []
         const requiredHeaders = ['sku', 'name', 'base_price']
-        const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
+        const missingHeaders = requiredHeaders.filter(
+          (h) => !headers.includes(h)
+        )
 
         if (missingHeaders.length > 0) {
           setValidationErrors([
@@ -167,10 +170,8 @@ export function BulkImportDialog({ children }: BulkImportDialogProps) {
         }
       },
       error: (error) => {
-        setValidationErrors([
-          `Failed to parse CSV file: ${error.message}`,
-        ])
-      }
+        setValidationErrors([`Failed to parse CSV file: ${error.message}`])
+      },
     })
   }
 

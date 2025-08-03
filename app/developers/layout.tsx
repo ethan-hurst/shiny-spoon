@@ -1,17 +1,17 @@
 import { type Metadata } from 'next'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   BookOpen,
   Code2,
   FileCode2,
   GitBranch,
-  Webhook,
-  TestTube2,
   History,
   Home,
+  TestTube2,
+  Webhook,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 export const metadata: Metadata = {
   title: {
@@ -168,7 +168,9 @@ export default function DevelopersLayout({
             {/* API Version */}
             <div className="mt-8 px-6">
               <div className="rounded-lg bg-muted p-3">
-                <p className="text-xs font-medium text-muted-foreground">API Version</p>
+                <p className="text-xs font-medium text-muted-foreground">
+                  API Version
+                </p>
                 <p className="text-sm font-semibold">v1.0.0</p>
               </div>
             </div>
@@ -201,7 +203,10 @@ export default function DevelopersLayout({
             <Link href="/privacy" className="hover:underline">
               Privacy
             </Link>
-            <Link href="/developers/docs#rate-limiting" className="hover:underline">
+            <Link
+              href="/developers/docs#rate-limiting"
+              className="hover:underline"
+            >
               Rate Limits
             </Link>
           </div>

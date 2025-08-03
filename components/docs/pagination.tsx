@@ -23,7 +23,7 @@ export function DocsPagination({ prev, next }: DocsPaginationProps) {
       ) : (
         <div />
       )}
-      
+
       {next ? (
         <Link
           href={next.href}

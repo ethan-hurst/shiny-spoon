@@ -3,12 +3,16 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
-import { AlertManager } from '@/lib/monitoring/alert-manager'
 import { AccuracyChecker } from '@/lib/monitoring/accuracy-checker'
 import { AccuracyScorer } from '@/lib/monitoring/accuracy-scorer'
+import { AlertManager } from '@/lib/monitoring/alert-manager'
 import { AutoRemediationService } from '@/lib/monitoring/auto-remediation'
-import type { AlertRule, Discrepancy, AccuracyCheckConfig } from '@/lib/monitoring/types'
+import type {
+  AccuracyCheckConfig,
+  AlertRule,
+  Discrepancy,
+} from '@/lib/monitoring/types'
+import { createClient } from '@/lib/supabase/server'
 
 // Schema for accuracy check input
 const accuracyCheckSchema = z.object({
@@ -29,12 +33,16 @@ const alertRuleSchema = z.object({
 })
 
 // Trigger accuracy check
-export async function triggerAccuracyCheck(input: z.infer<typeof accuracyCheckSchema>) {
+export async function triggerAccuracyCheck(
+  input: z.infer<typeof accuracyCheckSchema>
+) {
   try {
     const supabase = createClient()
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -57,7 +65,7 @@ export async function triggerAccuracyCheck(input: z.infer<typeof accuracyCheckSc
       sampleSize: input.sampleSize,
       checkDepth: 'deep',
     }
-    
+
     const checkId = await checker.runCheck(config)
 
     revalidatePath('/monitoring/accuracy')
@@ -67,7 +75,10 @@ export async function triggerAccuracyCheck(input: z.infer<typeof accuracyCheckSc
     console.error('Failed to trigger accuracy check:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to trigger accuracy check',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to trigger accuracy check',
     }
   }
 }
@@ -81,7 +92,9 @@ export async function upsertAlertRule(
     const supabase = createClient()
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -117,9 +130,7 @@ export async function upsertAlertRule(
       if (error) throw error
     } else {
       // Create new rule
-      const { error } = await supabase
-        .from('alert_rules')
-        .insert(ruleData)
+      const { error } = await supabase.from('alert_rules').insert(ruleData)
 
       if (error) throw error
     }
@@ -131,7 +142,8 @@ export async function upsertAlertRule(
     console.error('Failed to upsert alert rule:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to upsert alert rule',
+      error:
+        error instanceof Error ? error.message : 'Failed to upsert alert rule',
     }
   }
 }
@@ -142,17 +154,19 @@ export async function deleteAlertRule(ruleId: string) {
     // Validate ruleId is a valid UUID
     const uuidSchema = z.string().uuid()
     const validationResult = uuidSchema.safeParse(ruleId)
-    
+
     if (!validationResult.success) {
       return { success: false, error: 'Invalid rule ID format' }
     }
-    
+
     const validatedRuleId = validationResult.data
-    
+
     const supabase = createClient()
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -184,7 +198,8 @@ export async function deleteAlertRule(ruleId: string) {
     console.error('Failed to delete alert rule:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete alert rule',
+      error:
+        error instanceof Error ? error.message : 'Failed to delete alert rule',
     }
   }
 }
@@ -195,17 +210,19 @@ export async function acknowledgeAlert(alertId: string) {
     // Validate alertId is a valid UUID
     const uuidSchema = z.string().uuid()
     const validationResult = uuidSchema.safeParse(alertId)
-    
+
     if (!validationResult.success) {
       return { success: false, error: 'Invalid alert ID format' }
     }
-    
+
     const validatedAlertId = validationResult.data
-    
+
     const supabase = createClient()
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -238,7 +255,10 @@ export async function acknowledgeAlert(alertId: string) {
     }
 
     const alertManager = new AlertManager()
-    const success = await alertManager.acknowledgeAlert(validatedAlertId, user.id)
+    const success = await alertManager.acknowledgeAlert(
+      validatedAlertId,
+      user.id
+    )
 
     if (!success) {
       return { success: false, error: 'Failed to acknowledge alert' }
@@ -251,7 +271,8 @@ export async function acknowledgeAlert(alertId: string) {
     console.error('Failed to acknowledge alert:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to acknowledge alert',
+      error:
+        error instanceof Error ? error.message : 'Failed to acknowledge alert',
     }
   }
 }
@@ -262,17 +283,19 @@ export async function resolveAlert(alertId: string) {
     // Validate alertId is a valid UUID
     const uuidSchema = z.string().uuid()
     const validationResult = uuidSchema.safeParse(alertId)
-    
+
     if (!validationResult.success) {
       return { success: false, error: 'Invalid alert ID format' }
     }
-    
+
     const validatedAlertId = validationResult.data
-    
+
     const supabase = createClient()
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -332,25 +355,31 @@ export async function resolveDiscrepancy(
     // Validate discrepancyId is a valid UUID
     const uuidSchema = z.string().uuid()
     const validationResult = uuidSchema.safeParse(discrepancyId)
-    
+
     if (!validationResult.success) {
       return { success: false, error: 'Invalid discrepancy ID format' }
     }
-    
+
     const validatedDiscrepancyId = validationResult.data
-    
+
     // Validate resolution type
-    const resolutionTypeSchema = z.enum(['manual_fixed', 'false_positive', 'ignored'])
+    const resolutionTypeSchema = z.enum([
+      'manual_fixed',
+      'false_positive',
+      'ignored',
+    ])
     const resolutionValidation = resolutionTypeSchema.safeParse(resolutionType)
-    
+
     if (!resolutionValidation.success) {
       return { success: false, error: 'Invalid resolution type' }
     }
-    
+
     const supabase = createClient()
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -403,7 +432,10 @@ export async function resolveDiscrepancy(
     console.error('Failed to resolve discrepancy:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to resolve discrepancy',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to resolve discrepancy',
     }
   }
 }
@@ -413,27 +445,31 @@ export async function triggerAutoRemediation(discrepancyIds: string[]) {
   try {
     // Validate all discrepancy IDs are valid UUIDs
     const uuidSchema = z.string().uuid()
-    const validationResults = discrepancyIds.map(id => uuidSchema.safeParse(id))
-    
+    const validationResults = discrepancyIds.map((id) =>
+      uuidSchema.safeParse(id)
+    )
+
     const invalidIds = validationResults
-      .map((result, index) => !result.success ? discrepancyIds[index] : null)
+      .map((result, index) => (!result.success ? discrepancyIds[index] : null))
       .filter((id): id is string => id !== null)
-    
+
     if (invalidIds.length > 0) {
-      return { 
-        success: false, 
-        error: `Invalid discrepancy ID format: ${invalidIds.join(', ')}` 
+      return {
+        success: false,
+        error: `Invalid discrepancy ID format: ${invalidIds.join(', ')}`,
       }
     }
-    
+
     const validatedIds = validationResults
-      .map(result => result.success ? result.data : null)
+      .map((result) => (result.success ? result.data : null))
       .filter((id): id is string => id !== null)
-    
+
     const supabase = createClient()
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -460,9 +496,10 @@ export async function triggerAutoRemediation(discrepancyIds: string[]) {
     }
 
     // Filter out discrepancies that don't belong to the user's organization
-    const foundIds = discrepancies
-      ?.filter((d: any) => d.organization_id === orgUser.organization_id)
-      .map((d: any) => d.id) || []
+    const foundIds =
+      discrepancies
+        ?.filter((d: any) => d.organization_id === orgUser.organization_id)
+        .map((d: any) => d.id) || []
 
     if (foundIds.length === 0) {
       return { success: false, error: 'No valid discrepancies found' }
@@ -474,43 +511,54 @@ export async function triggerAutoRemediation(discrepancyIds: string[]) {
 
     revalidatePath('/monitoring/discrepancies')
 
-    return { 
-      success: true, 
-      data: { 
+    return {
+      success: true,
+      data: {
         processed: foundIds.length,
         successful: result.success,
-        failed: result.failed
-      }
+        failed: result.failed,
+      },
     }
   } catch (error) {
     console.error('Failed to trigger auto-remediation:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to trigger auto-remediation',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to trigger auto-remediation',
     }
   }
 }
 
 // Schema for accuracy report parameters
-const accuracyReportSchema = z.object({
-  startDate: z.date().optional().refine((date) => {
-    if (!date) return true
-    // Ensure date is not in the future
-    return date <= new Date()
-  }, 'Start date cannot be in the future'),
-  endDate: z.date().optional().refine((date) => {
-    if (!date) return true
-    // Ensure date is not in the future
-    return date <= new Date()
-  }, 'End date cannot be in the future'),
-  integrationId: z.string().uuid().optional(),
-}).refine((data) => {
-  // If both dates are provided, ensure startDate is before endDate
-  if (data.startDate && data.endDate) {
-    return data.startDate <= data.endDate
-  }
-  return true
-}, 'Start date must be before or equal to end date')
+const accuracyReportSchema = z
+  .object({
+    startDate: z
+      .date()
+      .optional()
+      .refine((date) => {
+        if (!date) return true
+        // Ensure date is not in the future
+        return date <= new Date()
+      }, 'Start date cannot be in the future'),
+    endDate: z
+      .date()
+      .optional()
+      .refine((date) => {
+        if (!date) return true
+        // Ensure date is not in the future
+        return date <= new Date()
+      }, 'End date cannot be in the future'),
+    integrationId: z.string().uuid().optional(),
+  })
+  .refine((data) => {
+    // If both dates are provided, ensure startDate is before endDate
+    if (data.startDate && data.endDate) {
+      return data.startDate <= data.endDate
+    }
+    return true
+  }, 'Start date must be before or equal to end date')
 
 // Get accuracy report
 export async function getAccuracyReport(
@@ -522,7 +570,9 @@ export async function getAccuracyReport(
     const supabase = createClient()
 
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -551,7 +601,10 @@ export async function getAccuracyReport(
     console.error('Failed to get accuracy report:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get accuracy report',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to get accuracy report',
     }
   }
 }

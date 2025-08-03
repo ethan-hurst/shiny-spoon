@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { warehouseSchema, addressSchema, contactSchema } from '@/lib/validations/warehouse'
+import {
+  addressSchema,
+  contactSchema,
+  warehouseSchema,
+} from '@/lib/validations/warehouse'
 
 describe('Warehouse Validations', () => {
   describe('addressSchema', () => {
@@ -9,7 +13,7 @@ describe('Warehouse Validations', () => {
         city: 'New York',
         state: 'NY',
         postalCode: '10001',
-        country: 'USA'
+        country: 'USA',
       }
 
       const result = addressSchema.safeParse(validAddress)
@@ -21,7 +25,7 @@ describe('Warehouse Validations', () => {
         street: '123 Main Street',
         city: 'New York',
         state: 'NY',
-        postalCode: '10001'
+        postalCode: '10001',
       }
 
       const result = addressSchema.safeParse(addressWithoutCountry)
@@ -33,10 +37,22 @@ describe('Warehouse Validations', () => {
 
     it('should reject missing required fields', () => {
       const invalidAddresses = [
-        { missing: 'street', data: { city: 'NY', state: 'NY', postalCode: '10001' } },
-        { missing: 'city', data: { street: '123 Main', state: 'NY', postalCode: '10001' } },
-        { missing: 'state', data: { street: '123 Main', city: 'NY', postalCode: '10001' } },
-        { missing: 'postalCode', data: { street: '123 Main', city: 'NY', state: 'NY' } }
+        {
+          missing: 'street',
+          data: { city: 'NY', state: 'NY', postalCode: '10001' },
+        },
+        {
+          missing: 'city',
+          data: { street: '123 Main', state: 'NY', postalCode: '10001' },
+        },
+        {
+          missing: 'state',
+          data: { street: '123 Main', city: 'NY', postalCode: '10001' },
+        },
+        {
+          missing: 'postalCode',
+          data: { street: '123 Main', city: 'NY', state: 'NY' },
+        },
       ]
 
       invalidAddresses.forEach(({ missing, data }) => {
@@ -55,7 +71,7 @@ describe('Warehouse Validations', () => {
         city: 'London',
         state: 'England',
         postalCode: 'SW1A 2AA',
-        country: 'United Kingdom'
+        country: 'United Kingdom',
       }
 
       const result = addressSchema.safeParse(internationalAddress)
@@ -70,7 +86,7 @@ describe('Warehouse Validations', () => {
         role: 'Warehouse Manager',
         email: 'john.doe@example.com',
         phone: '+1-555-123-4567',
-        isPrimary: true
+        isPrimary: true,
       }
 
       const result = contactSchema.safeParse(validContact)
@@ -80,7 +96,7 @@ describe('Warehouse Validations', () => {
     it('should validate minimal contact', () => {
       const minimalContact = {
         name: 'Jane Smith',
-        role: 'Staff'
+        role: 'Staff',
         // Optional fields omitted
       }
 
@@ -98,14 +114,14 @@ describe('Warehouse Validations', () => {
         'test@example.com',
         'user.name@company.co.uk',
         'contact+tag@warehouse.org',
-        '' // Empty string is allowed
+        '', // Empty string is allowed
       ]
 
-      validEmails.forEach(email => {
+      validEmails.forEach((email) => {
         const result = contactSchema.safeParse({
           name: 'Test User',
           role: 'Manager',
-          email
+          email,
         })
         expect(result.success).toBe(true)
       })
@@ -117,14 +133,14 @@ describe('Warehouse Validations', () => {
         '@example.com',
         'user@',
         'user@.com',
-        'user space@example.com'
+        'user space@example.com',
       ]
 
-      invalidEmails.forEach(email => {
+      invalidEmails.forEach((email) => {
         const result = contactSchema.safeParse({
           name: 'Test User',
           role: 'Manager',
-          email
+          email,
         })
         expect(result.success).toBe(false)
         if (!result.success) {
@@ -140,14 +156,14 @@ describe('Warehouse Validations', () => {
         '(555) 123-4567',
         '5551234567',
         '+44 20 7946 0958',
-        ''
+        '',
       ]
 
-      validPhones.forEach(phone => {
+      validPhones.forEach((phone) => {
         const result = contactSchema.safeParse({
           name: 'Test User',
           role: 'Manager',
-          phone
+          phone,
         })
         expect(result.success).toBe(true)
       })
@@ -163,16 +179,16 @@ describe('Warehouse Validations', () => {
         city: 'Dallas',
         state: 'TX',
         postalCode: '75001',
-        country: 'USA'
+        country: 'USA',
       },
       contacts: [
         {
           name: 'John Manager',
           role: 'Warehouse Manager',
           email: 'john@warehouse.com',
-          isPrimary: true
-        }
-      ]
+          isPrimary: true,
+        },
+      ],
     }
 
     it('should validate complete warehouse', () => {
@@ -187,13 +203,13 @@ describe('Warehouse Validations', () => {
           'Main Warehouse',
           'Distribution Center #1',
           'North-East Fulfillment Hub',
-          'a'.repeat(100) // Maximum length
+          'a'.repeat(100), // Maximum length
         ]
 
-        validNames.forEach(name => {
+        validNames.forEach((name) => {
           const result = warehouseSchema.safeParse({
             ...validWarehouse,
-            name
+            name,
           })
           expect(result.success).toBe(true)
         })
@@ -202,13 +218,16 @@ describe('Warehouse Validations', () => {
       it('should reject invalid names', () => {
         const invalidNames = [
           { value: '', error: 'Warehouse name is required' },
-          { value: 'a'.repeat(101), error: 'Name must be less than 100 characters' }
+          {
+            value: 'a'.repeat(101),
+            error: 'Name must be less than 100 characters',
+          },
         ]
 
         invalidNames.forEach(({ value, error }) => {
           const result = warehouseSchema.safeParse({
             ...validWarehouse,
-            name: value
+            name: value,
           })
           expect(result.success).toBe(false)
           if (!result.success) {
@@ -225,19 +244,22 @@ describe('Warehouse Validations', () => {
           { input: 'main-dc', expected: 'MAIN-DC' }, // Lowercase transformed
           { input: 'WH001', expected: 'WH001' },
           { input: 'NORTH-EAST-DC-01', expected: 'NORTH-EAST-DC-01' },
-          { input: 'a'.repeat(20), expected: 'A'.repeat(20) } // Maximum length
+          { input: 'a'.repeat(20), expected: 'A'.repeat(20) }, // Maximum length
         ]
 
         validCodes.forEach(({ input, expected }) => {
           const result = warehouseSchema.safeParse({
             ...validWarehouse,
-            code: input
+            code: input,
           })
-          
+
           if (!result.success) {
-            console.log(`Validation failed for input "${input}":`, result.error.issues)
+            console.log(
+              `Validation failed for input "${input}":`,
+              result.error.issues
+            )
           }
-          
+
           expect(result.success).toBe(true)
           if (result.success) {
             expect(result.data.code).toBe(expected)
@@ -248,15 +270,24 @@ describe('Warehouse Validations', () => {
       it('should reject invalid codes', () => {
         const invalidCodes = [
           { value: 'W', error: 'Code must be at least 2 characters' },
-          { value: 'a'.repeat(21), error: 'Code must be less than 20 characters' },
-          { value: 'WH_001', error: 'Code must be letters, numbers, hyphens, and spaces only' },
-          { value: 'WH@001', error: 'Code must be letters, numbers, hyphens, and spaces only' }
+          {
+            value: 'a'.repeat(21),
+            error: 'Code must be less than 20 characters',
+          },
+          {
+            value: 'WH_001',
+            error: 'Code must be letters, numbers, hyphens, and spaces only',
+          },
+          {
+            value: 'WH@001',
+            error: 'Code must be letters, numbers, hyphens, and spaces only',
+          },
         ]
 
         invalidCodes.forEach(({ value, error }) => {
           const result = warehouseSchema.safeParse({
             ...validWarehouse,
-            code: value
+            code: value,
           })
           expect(result.success).toBe(false)
           if (!result.success) {
@@ -270,11 +301,13 @@ describe('Warehouse Validations', () => {
       it('should require at least one contact', () => {
         const result = warehouseSchema.safeParse({
           ...validWarehouse,
-          contacts: []
+          contacts: [],
         })
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('At least one contact is required')
+          expect(result.error.issues[0].message).toBe(
+            'At least one contact is required'
+          )
         }
       })
 
@@ -285,20 +318,22 @@ describe('Warehouse Validations', () => {
             {
               name: 'Contact 1',
               role: 'Staff',
-              isPrimary: false
+              isPrimary: false,
             },
             {
               name: 'Contact 2',
               role: 'Staff',
-              isPrimary: false
-            }
-          ]
+              isPrimary: false,
+            },
+          ],
         }
 
         const result = warehouseSchema.safeParse(noPrimaryContacts)
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Exactly one contact must be marked as primary')
+          expect(result.error.issues[0].message).toBe(
+            'Exactly one contact must be marked as primary'
+          )
         }
       })
 
@@ -309,20 +344,22 @@ describe('Warehouse Validations', () => {
             {
               name: 'Contact 1',
               role: 'Manager',
-              isPrimary: true
+              isPrimary: true,
             },
             {
               name: 'Contact 2',
               role: 'Assistant Manager',
-              isPrimary: true
-            }
-          ]
+              isPrimary: true,
+            },
+          ],
         }
 
         const result = warehouseSchema.safeParse(multiplePrimaryContacts)
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Exactly one contact must be marked as primary')
+          expect(result.error.issues[0].message).toBe(
+            'Exactly one contact must be marked as primary'
+          )
         }
       })
 
@@ -333,20 +370,20 @@ describe('Warehouse Validations', () => {
             {
               name: 'Manager',
               role: 'Warehouse Manager',
-              isPrimary: true
+              isPrimary: true,
             },
             {
               name: 'Assistant',
               role: 'Assistant Manager',
-              isPrimary: false
+              isPrimary: false,
             },
             {
               name: 'Supervisor',
               role: 'Shift Supervisor',
               email: 'supervisor@warehouse.com',
-              isPrimary: false
-            }
-          ]
+              isPrimary: false,
+            },
+          ],
         }
 
         const result = warehouseSchema.safeParse(multipleContacts)
@@ -363,7 +400,7 @@ describe('Warehouse Validations', () => {
           name: 'Test Warehouse',
           code: 'TEST',
           address: validWarehouse.address,
-          contacts: validWarehouse.contacts
+          contacts: validWarehouse.contacts,
           // is_default and active not specified
         }
 
@@ -379,7 +416,7 @@ describe('Warehouse Validations', () => {
         const warehouseWithBooleans = {
           ...validWarehouse,
           is_default: true,
-          active: false
+          active: false,
         }
 
         const result = warehouseSchema.safeParse(warehouseWithBooleans)
@@ -400,16 +437,16 @@ describe('Warehouse Validations', () => {
             street: '', // Invalid - required
             city: 'Dallas',
             state: 'TX',
-            postalCode: '75001'
+            postalCode: '75001',
           },
           contacts: [
             {
               name: '', // Invalid - required
               role: 'Manager',
               email: 'invalid-email', // Invalid format
-              isPrimary: true
-            }
-          ]
+              isPrimary: true,
+            },
+          ],
         }
 
         const result = warehouseSchema.safeParse(invalidNestedData)
@@ -417,9 +454,11 @@ describe('Warehouse Validations', () => {
         if (!result.success) {
           // Should have multiple errors
           expect(result.error.issues.length).toBeGreaterThan(1)
-          
+
           // Check specific errors exist
-          const errorPaths = result.error.issues.map(issue => issue.path.join('.'))
+          const errorPaths = result.error.issues.map((issue) =>
+            issue.path.join('.')
+          )
           expect(errorPaths).toContain('address.street')
           expect(errorPaths).toContain('contacts.0.name')
           expect(errorPaths).toContain('contacts.0.email')
@@ -438,15 +477,15 @@ describe('Warehouse Validations', () => {
           city: '  Dallas  ',
           state: '  TX  ',
           postalCode: '  75001  ',
-          country: '  USA  '
+          country: '  USA  ',
         },
         contacts: [
           {
             name: '  John Doe  ',
             role: '  Manager  ',
-            isPrimary: true
-          }
-        ]
+            isPrimary: true,
+          },
+        ],
       }
 
       const result = warehouseSchema.safeParse(warehouseWithWhitespace)
@@ -466,24 +505,24 @@ describe('Warehouse Validations', () => {
           city: 'Ciudad de México',
           state: 'CDMX',
           postalCode: '01000',
-          country: 'México'
+          country: 'México',
         },
         contacts: [
           {
             name: 'José García',
             role: 'Gerente de Almacén',
             email: '', // Remove unicode email that fails validation
-            isPrimary: true
-          }
-        ]
+            isPrimary: true,
+          },
+        ],
       }
 
       const result = warehouseSchema.safeParse(warehouseWithUnicode)
-      
+
       if (!result.success) {
         console.log('Unicode test validation failed:', result.error.issues)
       }
-      
+
       expect(result.success).toBe(true)
     })
   })

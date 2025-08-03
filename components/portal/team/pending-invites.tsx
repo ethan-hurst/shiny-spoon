@@ -2,9 +2,17 @@
 
 import { useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Clock, Eye, Mail, RefreshCw, Shield, User, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -13,10 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { resendInvitation, cancelInvitation } from '@/app/actions/team'
-import { Mail, RefreshCw, X, Clock, Shield, User, Eye } from 'lucide-react'
-import { toast } from 'sonner'
 import { TEAM_ROLES } from '@/lib/constants/team'
+import { cancelInvitation, resendInvitation } from '@/app/actions/team'
 
 interface TeamInvite {
   id: string
@@ -61,12 +67,25 @@ export function PendingInvites({ invites }: PendingInvitesProps) {
 
   const getRoleBadge = (role: string) => {
     const config = {
-      [TEAM_ROLES.ADMIN.value]: { icon: Shield, label: TEAM_ROLES.ADMIN.label, variant: 'default' as const },
-      [TEAM_ROLES.MEMBER.value]: { icon: User, label: TEAM_ROLES.MEMBER.label, variant: 'secondary' as const },
-      [TEAM_ROLES.VIEWER.value]: { icon: Eye, label: TEAM_ROLES.VIEWER.label, variant: 'outline' as const },
+      [TEAM_ROLES.ADMIN.value]: {
+        icon: Shield,
+        label: TEAM_ROLES.ADMIN.label,
+        variant: 'default' as const,
+      },
+      [TEAM_ROLES.MEMBER.value]: {
+        icon: User,
+        label: TEAM_ROLES.MEMBER.label,
+        variant: 'secondary' as const,
+      },
+      [TEAM_ROLES.VIEWER.value]: {
+        icon: Eye,
+        label: TEAM_ROLES.VIEWER.label,
+        variant: 'outline' as const,
+      },
     }
 
-    const roleConfig = config[role as keyof typeof config] || config[TEAM_ROLES.MEMBER.value]
+    const roleConfig =
+      config[role as keyof typeof config] || config[TEAM_ROLES.MEMBER.value]
     const Icon = roleConfig.icon
 
     return (
@@ -79,7 +98,8 @@ export function PendingInvites({ invites }: PendingInvitesProps) {
 
   const isExpiringSoon = (expiresAt: string) => {
     const expiryDate = new Date(expiresAt)
-    const daysUntilExpiry = (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    const daysUntilExpiry =
+      (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
     return daysUntilExpiry <= 2
   }
 
@@ -118,13 +138,19 @@ export function PendingInvites({ invites }: PendingInvitesProps) {
                     <TableCell>{getRoleBadge(invite.role)}</TableCell>
                     <TableCell>
                       <span className="text-sm">
-                        {formatDistanceToNow(new Date(invite.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(invite.created_at), {
+                          addSuffix: true,
+                        })}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {expiringSoon && <Clock className="h-3 w-3 text-amber-500" />}
-                        <span className={`text-sm ${expiringSoon ? 'text-amber-600 dark:text-amber-500' : ''}`}>
+                        {expiringSoon && (
+                          <Clock className="h-3 w-3 text-amber-500" />
+                        )}
+                        <span
+                          className={`text-sm ${expiringSoon ? 'text-amber-600 dark:text-amber-500' : ''}`}
+                        >
                           {format(new Date(invite.expires_at), 'MMM d')}
                         </span>
                       </div>

@@ -2,8 +2,12 @@
 
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -22,18 +26,16 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { updateApiKey } from '@/app/actions/api-keys'
-import { Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().max(500).optional(),
-  permissions: z.array(z.enum(['read', 'write', 'delete'])).min(1, 'Select at least one permission'),
+  permissions: z
+    .array(z.enum(['read', 'write', 'delete']))
+    .min(1, 'Select at least one permission'),
   isActive: z.boolean(),
 })
 
@@ -49,7 +51,11 @@ interface EditApiKeyDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function EditApiKeyDialog({ apiKey, open, onOpenChange }: EditApiKeyDialogProps) {
+export function EditApiKeyDialog({
+  apiKey,
+  open,
+  onOpenChange,
+}: EditApiKeyDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -82,12 +88,12 @@ export function EditApiKeyDialog({ apiKey, open, onOpenChange }: EditApiKeyDialo
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    
+
     const formData = new FormData()
     formData.append('id', apiKey.id)
     formData.append('name', values.name)
     formData.append('description', values.description || '')
-    values.permissions.forEach(perm => formData.append('permissions', perm))
+    values.permissions.forEach((perm) => formData.append('permissions', perm))
     formData.append('isActive', values.isActive.toString())
 
     try {
@@ -110,7 +116,7 @@ export function EditApiKeyDialog({ apiKey, open, onOpenChange }: EditApiKeyDialo
             Update the settings for this API key
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -134,10 +140,7 @@ export function EditApiKeyDialog({ apiKey, open, onOpenChange }: EditApiKeyDialo
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      className="resize-none"
-                      {...field}
-                    />
+                    <Textarea className="resize-none" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -171,7 +174,10 @@ export function EditApiKeyDialog({ apiKey, open, onOpenChange }: EditApiKeyDialo
                                 checked={field.value?.includes(permission.id)}
                                 onCheckedChange={(checked) => {
                                   return checked
-                                    ? field.onChange([...field.value, permission.id])
+                                    ? field.onChange([
+                                        ...field.value,
+                                        permission.id,
+                                      ])
                                     : field.onChange(
                                         field.value?.filter(
                                           (value) => value !== permission.id

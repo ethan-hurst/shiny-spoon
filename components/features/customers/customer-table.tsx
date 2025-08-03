@@ -117,7 +117,11 @@ export function CustomerTable({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border" role="region" aria-label="Customer table">
+      <div
+        className="rounded-md border"
+        role="region"
+        aria-label="Customer table"
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -191,33 +195,57 @@ export function CustomerTable({
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}`} aria-label={`View details for ${formatCustomerName(customer)}`}>
+                          <Link
+                            href={`/customers/${customer.id}`}
+                            aria-label={`View details for ${formatCustomerName(customer)}`}
+                          >
                             <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
                             View Details
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}/edit`} aria-label={`Edit ${formatCustomerName(customer)}`}>
+                          <Link
+                            href={`/customers/${customer.id}/edit`}
+                            aria-label={`Edit ${formatCustomerName(customer)}`}
+                          >
                             <Edit className="mr-2 h-4 w-4" aria-hidden="true" />
                             Edit
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}/contacts`} aria-label={`Manage contacts for ${formatCustomerName(customer)}`}>
-                            <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+                          <Link
+                            href={`/customers/${customer.id}/contacts`}
+                            aria-label={`Manage contacts for ${formatCustomerName(customer)}`}
+                          >
+                            <UserPlus
+                              className="mr-2 h-4 w-4"
+                              aria-hidden="true"
+                            />
                             Manage Contacts
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/customers/${customer.id}/pricing`} aria-label={`Manage custom pricing for ${formatCustomerName(customer)}`}>
-                            <CreditCard className="mr-2 h-4 w-4" aria-hidden="true" />
+                          <Link
+                            href={`/customers/${customer.id}/pricing`}
+                            aria-label={`Manage custom pricing for ${formatCustomerName(customer)}`}
+                          >
+                            <CreditCard
+                              className="mr-2 h-4 w-4"
+                              aria-hidden="true"
+                            />
                             Custom Pricing
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/orders?customer_id=${customer.id}`} aria-label={`View orders for ${formatCustomerName(customer)}`}>
-                            <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
+                          <Link
+                            href={`/orders?customer_id=${customer.id}`}
+                            aria-label={`View orders for ${formatCustomerName(customer)}`}
+                          >
+                            <FileText
+                              className="mr-2 h-4 w-4"
+                              aria-hidden="true"
+                            />
                             View Orders
                           </Link>
                         </DropdownMenuItem>

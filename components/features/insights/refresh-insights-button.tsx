@@ -2,17 +2,19 @@
 'use client'
 
 import { useState } from 'react'
-import { RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { generateInsights } from '@/app/actions/ai-insights'
 
 interface RefreshInsightsButtonProps {
   organizationId: string
 }
 
-export function RefreshInsightsButton({ organizationId }: RefreshInsightsButtonProps) {
+export function RefreshInsightsButton({
+  organizationId,
+}: RefreshInsightsButtonProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
@@ -20,7 +22,7 @@ export function RefreshInsightsButton({ organizationId }: RefreshInsightsButtonP
     setIsLoading(true)
     try {
       const result = await generateInsights(organizationId)
-      
+
       if (result.success) {
         toast.success(`Generated ${result.data?.insights || 0} new insights`)
         router.refresh()
@@ -35,12 +37,10 @@ export function RefreshInsightsButton({ organizationId }: RefreshInsightsButtonP
   }
 
   return (
-    <Button 
-      variant="outline" 
-      onClick={handleRefresh}
-      disabled={isLoading}
-    >
-      <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+    <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+      <RefreshCw
+        className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+      />
       {isLoading ? 'Generating...' : 'Refresh Insights'}
     </Button>
   )

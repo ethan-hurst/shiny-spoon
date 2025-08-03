@@ -1,24 +1,31 @@
 import { Metadata } from 'next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  AlertTriangle,
+  BookOpen,
+  CheckCircle,
+  Clock,
+  Code,
+  ExternalLink,
+  Key,
+  Shield,
+  Zap,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { CodeBlock } from '@/components/ui/code-block'
-import { 
-  BookOpen, 
-  Code, 
-  Key, 
-  Shield, 
-  Zap, 
-  Clock, 
-  AlertTriangle,
-  CheckCircle,
-  ExternalLink
-} from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export const metadata: Metadata = {
   title: 'API Documentation - TruthSource',
-  description: 'Complete API documentation for integrating with TruthSource B2B e-commerce platform',
+  description:
+    'Complete API documentation for integrating with TruthSource B2B e-commerce platform',
 }
 
 const codeExamples = {
@@ -55,7 +62,7 @@ const codeExamples = {
     "url": "https://your-app.com/webhooks/inventory",
     "events": ["inventory.updated", "product.created"],
     "secret": "your-webhook-secret"
-  }'`
+  }'`,
 }
 
 const sdkExamples = {
@@ -121,7 +128,7 @@ $product = $api->products->create([
     'name' => 'Sample Product',
     'base_price' => 29.99
 ]);
-?>`
+?>`,
 }
 
 export default function APIDocumentationPage() {
@@ -134,7 +141,7 @@ export default function APIDocumentationPage() {
           <p className="text-xl text-muted-foreground mb-6">
             Integrate with TruthSource using our comprehensive REST API
           </p>
-          
+
           <div className="flex flex-wrap gap-4">
             <Button asChild>
               <a href="/api/docs" target="_blank" rel="noopener noreferrer">
@@ -168,15 +175,17 @@ export default function APIDocumentationPage() {
                 <h4 className="font-semibold mb-2">1. Create an API Key</h4>
                 <CodeBlock code={codeExamples.authentication} language="bash" />
               </div>
-              
+
               <div>
-                <h4 className="font-semibold mb-2">2. Make Your First Request</h4>
+                <h4 className="font-semibold mb-2">
+                  2. Make Your First Request
+                </h4>
                 <CodeBlock code={codeExamples.inventory} language="bash" />
               </div>
-              
+
               <div>
                 <h4 className="font-semibold mb-2">3. Response Format</h4>
-                <CodeBlock 
+                <CodeBlock
                   code={`{
   "data": [
     {
@@ -199,8 +208,8 @@ export default function APIDocumentationPage() {
     "total": 150,
     "totalPages": 3
   }
-}`} 
-                  language="json" 
+}`}
+                  language="json"
                 />
               </div>
             </div>
@@ -234,11 +243,22 @@ export default function APIDocumentationPage() {
                     <div>
                       <h5 className="font-semibold mb-2">Parameters</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        <div><code>warehouse_id</code> - Filter by warehouse</div>
-                        <div><code>product_id</code> - Filter by product</div>
-                        <div><code>low_stock</code> - Show items below reorder point</div>
-                        <div><code>page</code> - Page number (default: 1)</div>
-                        <div><code>limit</code> - Items per page (max: 100)</div>
+                        <div>
+                          <code>warehouse_id</code> - Filter by warehouse
+                        </div>
+                        <div>
+                          <code>product_id</code> - Filter by product
+                        </div>
+                        <div>
+                          <code>low_stock</code> - Show items below reorder
+                          point
+                        </div>
+                        <div>
+                          <code>page</code> - Page number (default: 1)
+                        </div>
+                        <div>
+                          <code>limit</code> - Items per page (max: 100)
+                        </div>
                       </div>
                     </div>
                     <CodeBlock code={codeExamples.inventory} language="bash" />
@@ -262,11 +282,21 @@ export default function APIDocumentationPage() {
                     <div>
                       <h5 className="font-semibold mb-2">Parameters</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        <div><code>category</code> - Filter by category</div>
-                        <div><code>active</code> - Filter by active status</div>
-                        <div><code>search</code> - Search in name, SKU, description</div>
-                        <div><code>page</code> - Page number (default: 1)</div>
-                        <div><code>limit</code> - Items per page (max: 100)</div>
+                        <div>
+                          <code>category</code> - Filter by category
+                        </div>
+                        <div>
+                          <code>active</code> - Filter by active status
+                        </div>
+                        <div>
+                          <code>search</code> - Search in name, SKU, description
+                        </div>
+                        <div>
+                          <code>page</code> - Page number (default: 1)
+                        </div>
+                        <div>
+                          <code>limit</code> - Items per page (max: 100)
+                        </div>
                       </div>
                     </div>
                     <CodeBlock code={codeExamples.products} language="bash" />
@@ -290,12 +320,24 @@ export default function APIDocumentationPage() {
                     <div>
                       <h5 className="font-semibold mb-2">Parameters</h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        <div><code>status</code> - Filter by order status</div>
-                        <div><code>customer_id</code> - Filter by customer</div>
-                        <div><code>start_date</code> - Filter by date range</div>
-                        <div><code>end_date</code> - Filter by date range</div>
-                        <div><code>page</code> - Page number (default: 1)</div>
-                        <div><code>limit</code> - Items per page (max: 100)</div>
+                        <div>
+                          <code>status</code> - Filter by order status
+                        </div>
+                        <div>
+                          <code>customer_id</code> - Filter by customer
+                        </div>
+                        <div>
+                          <code>start_date</code> - Filter by date range
+                        </div>
+                        <div>
+                          <code>end_date</code> - Filter by date range
+                        </div>
+                        <div>
+                          <code>page</code> - Page number (default: 1)
+                        </div>
+                        <div>
+                          <code>limit</code> - Items per page (max: 100)
+                        </div>
                       </div>
                     </div>
                     <CodeBlock code={codeExamples.orders} language="bash" />
@@ -319,30 +361,51 @@ export default function APIDocumentationPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h5 className="font-semibold mb-2">Include API Key in Header</h5>
-                    <CodeBlock 
+                    <h5 className="font-semibold mb-2">
+                      Include API Key in Header
+                    </h5>
+                    <CodeBlock
                       code={`curl -H "X-API-Key: your_api_key_here" \\
-  https://api.truthsource.io/v1/inventory`} 
-                      language="bash" 
+  https://api.truthsource.io/v1/inventory`}
+                      language="bash"
                     />
                   </div>
-                  
+
                   <div>
                     <h5 className="font-semibold mb-2">Create API Key</h5>
-                    <CodeBlock code={codeExamples.authentication} language="bash" />
+                    <CodeBlock
+                      code={codeExamples.authentication}
+                      language="bash"
+                    />
                   </div>
-                  
+
                   <div>
                     <h5 className="font-semibold mb-2">Permissions</h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div><code>inventory:read</code> - Read inventory data</div>
-                      <div><code>inventory:write</code> - Update inventory</div>
-                      <div><code>products:read</code> - Read product data</div>
-                      <div><code>products:write</code> - Create/update products</div>
-                      <div><code>orders:read</code> - Read order data</div>
-                      <div><code>orders:write</code> - Create/update orders</div>
-                      <div><code>webhooks:read</code> - Read webhook configs</div>
-                      <div><code>webhooks:write</code> - Manage webhooks</div>
+                      <div>
+                        <code>inventory:read</code> - Read inventory data
+                      </div>
+                      <div>
+                        <code>inventory:write</code> - Update inventory
+                      </div>
+                      <div>
+                        <code>products:read</code> - Read product data
+                      </div>
+                      <div>
+                        <code>products:write</code> - Create/update products
+                      </div>
+                      <div>
+                        <code>orders:read</code> - Read order data
+                      </div>
+                      <div>
+                        <code>orders:write</code> - Create/update orders
+                      </div>
+                      <div>
+                        <code>webhooks:read</code> - Read webhook configs
+                      </div>
+                      <div>
+                        <code>webhooks:write</code> - Manage webhooks
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -363,11 +426,17 @@ export default function APIDocumentationPage() {
                   <div className="space-y-4">
                     <div>
                       <h5 className="font-semibold mb-2">Installation</h5>
-                      <CodeBlock code="npm install @truthsource/sdk" language="bash" />
+                      <CodeBlock
+                        code="npm install @truthsource/sdk"
+                        language="bash"
+                      />
                     </div>
                     <div>
                       <h5 className="font-semibold mb-2">Usage</h5>
-                      <CodeBlock code={sdkExamples.javascript} language="javascript" />
+                      <CodeBlock
+                        code={sdkExamples.javascript}
+                        language="javascript"
+                      />
                     </div>
                   </div>
                 </CardContent>
@@ -384,7 +453,10 @@ export default function APIDocumentationPage() {
                   <div className="space-y-4">
                     <div>
                       <h5 className="font-semibold mb-2">Installation</h5>
-                      <CodeBlock code="pip install truthsource" language="bash" />
+                      <CodeBlock
+                        code="pip install truthsource"
+                        language="bash"
+                      />
                     </div>
                     <div>
                       <h5 className="font-semibold mb-2">Usage</h5>
@@ -405,7 +477,10 @@ export default function APIDocumentationPage() {
                   <div className="space-y-4">
                     <div>
                       <h5 className="font-semibold mb-2">Installation</h5>
-                      <CodeBlock code="composer require truthsource/php-sdk" language="bash" />
+                      <CodeBlock
+                        code="composer require truthsource/php-sdk"
+                        language="bash"
+                      />
                     </div>
                     <div>
                       <h5 className="font-semibold mb-2">Usage</h5>
@@ -434,22 +509,37 @@ export default function APIDocumentationPage() {
                     <h5 className="font-semibold mb-2">Create Webhook</h5>
                     <CodeBlock code={codeExamples.webhooks} language="bash" />
                   </div>
-                  
+
                   <div>
                     <h5 className="font-semibold mb-2">Available Events</h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div><code>inventory.updated</code> - Inventory level changes</div>
-                      <div><code>product.created</code> - New product added</div>
-                      <div><code>product.updated</code> - Product information updated</div>
-                      <div><code>order.created</code> - New order placed</div>
-                      <div><code>order.updated</code> - Order status changed</div>
-                      <div><code>customer.created</code> - New customer added</div>
+                      <div>
+                        <code>inventory.updated</code> - Inventory level changes
+                      </div>
+                      <div>
+                        <code>product.created</code> - New product added
+                      </div>
+                      <div>
+                        <code>product.updated</code> - Product information
+                        updated
+                      </div>
+                      <div>
+                        <code>order.created</code> - New order placed
+                      </div>
+                      <div>
+                        <code>order.updated</code> - Order status changed
+                      </div>
+                      <div>
+                        <code>customer.created</code> - New customer added
+                      </div>
                     </div>
                   </div>
-                  
+
                   <div>
-                    <h5 className="font-semibold mb-2">Webhook Payload Example</h5>
-                    <CodeBlock 
+                    <h5 className="font-semibold mb-2">
+                      Webhook Payload Example
+                    </h5>
+                    <CodeBlock
                       code={`{
   "event": "inventory.updated",
   "timestamp": "2024-01-15T10:30:00Z",
@@ -460,8 +550,8 @@ export default function APIDocumentationPage() {
     "quantity": 95,
     "previousQuantity": 100
   }
-}`} 
-                      language="json" 
+}`}
+                      language="json"
                     />
                   </div>
                 </div>
@@ -481,9 +571,15 @@ export default function APIDocumentationPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
-                <div><strong>Standard:</strong> 1,000 requests/hour</div>
-                <div><strong>Professional:</strong> 10,000 requests/hour</div>
-                <div><strong>Enterprise:</strong> Unlimited (fair use)</div>
+                <div>
+                  <strong>Standard:</strong> 1,000 requests/hour
+                </div>
+                <div>
+                  <strong>Professional:</strong> 10,000 requests/hour
+                </div>
+                <div>
+                  <strong>Enterprise:</strong> Unlimited (fair use)
+                </div>
                 <div className="mt-4">
                   <AlertTriangle className="h-4 w-4 inline mr-1 text-yellow-500" />
                   <span>Rate limit headers included in all responses</span>
@@ -514,4 +610,4 @@ export default function APIDocumentationPage() {
       </div>
     </div>
   )
-} 
+}

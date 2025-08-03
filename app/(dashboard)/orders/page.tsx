@@ -1,10 +1,10 @@
 import { Suspense } from 'react'
 import { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import { OrdersTable } from '@/components/features/orders/orders-table'
 import { OrdersHeader } from '@/components/features/orders/orders-header'
 import { OrdersStats } from '@/components/features/orders/orders-stats'
+import { OrdersTable } from '@/components/features/orders/orders-table'
 import { Skeleton } from '@/components/ui/skeleton'
+import { createClient } from '@/lib/supabase/server'
 import { listOrders } from '@/app/actions/orders'
 
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: { 
+  searchParams: {
     status?: string
     search?: string
     from?: string
@@ -26,7 +26,9 @@ export default async function OrdersPage({
   const supabase = await createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
@@ -69,22 +71,23 @@ export default async function OrdersPage({
 
   const orderStats = {
     total: stats?.length || 0,
-    pending: stats?.filter(o => o.status === 'pending').length || 0,
-    processing: stats?.filter(o => o.status === 'processing').length || 0,
-    shipped: stats?.filter(o => o.status === 'shipped').length || 0,
-    totalRevenue: stats?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0,
+    pending: stats?.filter((o) => o.status === 'pending').length || 0,
+    processing: stats?.filter((o) => o.status === 'processing').length || 0,
+    shipped: stats?.filter((o) => o.status === 'shipped').length || 0,
+    totalRevenue:
+      stats?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0,
   }
 
   return (
     <div className="container mx-auto py-8 space-y-8">
       <OrdersHeader />
-      
+
       <Suspense fallback={<Skeleton className="h-32 w-full" />}>
         <OrdersStats stats={orderStats} />
       </Suspense>
 
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
-        <OrdersTable 
+        <OrdersTable
           orders={ordersResult.data.orders}
           total={ordersResult.data.total}
           page={page}

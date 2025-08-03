@@ -2,26 +2,17 @@
 
 import { useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Clock,
+  Eye,
+  Mail,
+  MoreHorizontal,
+  Plus,
+  Shield,
+  User,
+  UserMinus,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,21 +23,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { InviteTeamMemberDialog } from './invite-team-member-dialog'
-import { EditMemberRoleDialog } from './edit-member-role-dialog'
-import { updateTeamMember, removeTeamMember } from '@/app/actions/team'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { TEAM_ROLES } from '@/lib/constants/team'
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Shield, 
-  User, 
-  Eye, 
-  UserMinus,
-  Mail,
-  Clock
-} from 'lucide-react'
-import { toast } from 'sonner'
+import { removeTeamMember, updateTeamMember } from '@/app/actions/team'
+import { EditMemberRoleDialog } from './edit-member-role-dialog'
+import { InviteTeamMemberDialog } from './invite-team-member-dialog'
 
 interface TeamMember {
   user_id: string
@@ -69,12 +75,12 @@ interface TeamMembersListProps {
   teamLimit: number
 }
 
-export function TeamMembersList({ 
-  members, 
-  currentUserId, 
-  isAdmin, 
+export function TeamMembersList({
+  members,
+  currentUserId,
+  isAdmin,
   canInviteMore,
-  teamLimit 
+  teamLimit,
 }: TeamMembersListProps) {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null)
@@ -91,7 +97,9 @@ export function TeamMembersList({
       await removeTeamMember(formData)
       toast.success('Team member removed successfully')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove team member')
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to remove team member'
+      )
     } finally {
       setRemovingMemberId(null)
       setRemoveDialogOpen(false)
@@ -105,12 +113,25 @@ export function TeamMembersList({
 
   const getRoleBadge = (role: string) => {
     const config = {
-      [TEAM_ROLES.ADMIN.value]: { icon: Shield, label: TEAM_ROLES.ADMIN.label, variant: 'default' as const },
-      [TEAM_ROLES.MEMBER.value]: { icon: User, label: TEAM_ROLES.MEMBER.label, variant: 'secondary' as const },
-      [TEAM_ROLES.VIEWER.value]: { icon: Eye, label: TEAM_ROLES.VIEWER.label, variant: 'outline' as const },
+      [TEAM_ROLES.ADMIN.value]: {
+        icon: Shield,
+        label: TEAM_ROLES.ADMIN.label,
+        variant: 'default' as const,
+      },
+      [TEAM_ROLES.MEMBER.value]: {
+        icon: User,
+        label: TEAM_ROLES.MEMBER.label,
+        variant: 'secondary' as const,
+      },
+      [TEAM_ROLES.VIEWER.value]: {
+        icon: Eye,
+        label: TEAM_ROLES.VIEWER.label,
+        variant: 'outline' as const,
+      },
     }
 
-    const roleConfig = config[role as keyof typeof config] || config[TEAM_ROLES.MEMBER.value]
+    const roleConfig =
+      config[role as keyof typeof config] || config[TEAM_ROLES.MEMBER.value]
     const Icon = roleConfig.icon
 
     return (
@@ -138,7 +159,7 @@ export function TeamMembersList({
               </CardDescription>
             </div>
             {isAdmin && (
-              <Button 
+              <Button
                 onClick={() => setInviteDialogOpen(true)}
                 disabled={!canInviteMore}
               >
@@ -157,7 +178,9 @@ export function TeamMembersList({
                   <TableHead>Role</TableHead>
                   <TableHead>Joined</TableHead>
                   <TableHead>Last Active</TableHead>
-                  {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                  {isAdmin && (
+                    <TableHead className="text-right">Actions</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -170,14 +193,20 @@ export function TeamMembersList({
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://avatar.vercel.sh/${email}`} />
-                            <AvatarFallback>{getInitials(email)}</AvatarFallback>
+                            <AvatarImage
+                              src={`https://avatar.vercel.sh/${email}`}
+                            />
+                            <AvatarFallback>
+                              {getInitials(email)}
+                            </AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium flex items-center gap-2">
                               {email}
                               {isCurrentUser && (
-                                <Badge variant="outline" className="text-xs">You</Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  You
+                                </Badge>
                               )}
                             </p>
                           </div>
@@ -187,19 +216,29 @@ export function TeamMembersList({
                       <TableCell>
                         {member.auth?.users?.created_at ? (
                           <span className="text-sm">
-                            {format(new Date(member.auth.users.created_at), 'MMM d, yyyy')}
+                            {format(
+                              new Date(member.auth.users.created_at),
+                              'MMM d, yyyy'
+                            )}
                           </span>
                         ) : (
-                          <span className="text-sm text-muted-foreground">Unknown</span>
+                          <span className="text-sm text-muted-foreground">
+                            Unknown
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
                         {member.auth?.users?.last_sign_in_at ? (
                           <span className="text-sm">
-                            {formatDistanceToNow(new Date(member.auth.users.last_sign_in_at), { addSuffix: true })}
+                            {formatDistanceToNow(
+                              new Date(member.auth.users.last_sign_in_at),
+                              { addSuffix: true }
+                            )}
                           </span>
                         ) : (
-                          <span className="text-sm text-muted-foreground">Never</span>
+                          <span className="text-sm text-muted-foreground">
+                            Never
+                          </span>
                         )}
                       </TableCell>
                       {isAdmin && (
@@ -207,7 +246,11 @@ export function TeamMembersList({
                           {!isCurrentUser && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -222,7 +265,9 @@ export function TeamMembersList({
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => openRemoveDialog(member.user_id)}
+                                  onClick={() =>
+                                    openRemoveDialog(member.user_id)
+                                  }
                                   className="text-destructive"
                                 >
                                   <UserMinus className="h-4 w-4 mr-2" />
@@ -243,8 +288,10 @@ export function TeamMembersList({
           {!canInviteMore && isAdmin && (
             <div className="mt-4 text-center">
               <p className="text-sm text-muted-foreground">
-                You've reached the team member limit for your plan. 
-                <a href="/portal/subscription" className="underline ml-1">Upgrade to invite more</a>
+                You've reached the team member limit for your plan.
+                <a href="/portal/subscription" className="underline ml-1">
+                  Upgrade to invite more
+                </a>
               </p>
             </div>
           )}
@@ -253,8 +300,8 @@ export function TeamMembersList({
 
       {isAdmin && (
         <>
-          <InviteTeamMemberDialog 
-            open={inviteDialogOpen} 
+          <InviteTeamMemberDialog
+            open={inviteDialogOpen}
             onOpenChange={setInviteDialogOpen}
           />
 
@@ -266,17 +313,23 @@ export function TeamMembersList({
             />
           )}
 
-          <AlertDialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+          <AlertDialog
+            open={removeDialogOpen}
+            onOpenChange={setRemoveDialogOpen}
+          >
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to remove this member from your team? They will immediately lose access to your organization's data.
+                  Are you sure you want to remove this member from your team?
+                  They will immediately lose access to your organization's data.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRemove}>Remove</AlertDialogAction>
+                <AlertDialogAction onClick={handleRemove}>
+                  Remove
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

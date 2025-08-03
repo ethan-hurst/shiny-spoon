@@ -74,7 +74,7 @@ export interface OrderItemSummary {
   total_price: number
 }
 
-export type OrderStatus = 
+export type OrderStatus =
   | 'pending'
   | 'confirmed'
   | 'processing'

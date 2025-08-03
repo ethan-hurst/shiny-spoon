@@ -111,7 +111,12 @@ export interface RemediationLog {
   id: string
   discrepancyId: string
   organizationId: string
-  actionType: 'sync_retry' | 'value_update' | 'cache_clear' | 'force_refresh' | 'rollback'
+  actionType:
+    | 'sync_retry'
+    | 'value_update'
+    | 'cache_clear'
+    | 'force_refresh'
+    | 'rollback'
   actionConfig: Record<string, unknown>
   status: 'pending' | 'running' | 'completed' | 'failed'
   startedAt?: Date
@@ -201,7 +206,12 @@ export interface AlertConfig {
 // Remediation action
 export interface RemediationAction {
   discrepancyId: string
-  actionType: 'sync_retry' | 'value_update' | 'cache_clear' | 'force_refresh' | 'rollback'
+  actionType:
+    | 'sync_retry'
+    | 'value_update'
+    | 'cache_clear'
+    | 'force_refresh'
+    | 'rollback'
   actionConfig: Record<string, unknown>
   priority: 'low' | 'medium' | 'high'
   estimatedImpact: string

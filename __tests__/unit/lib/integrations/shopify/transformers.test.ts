@@ -1,39 +1,50 @@
+import crypto from 'crypto'
+import { ShopifyTransformers } from '@/lib/integrations/shopify/transformers'
+import type {
+  ShopifyAddress,
+  ShopifyCustomer,
+  ShopifyInventoryLevel,
+  ShopifyLineItem,
+  ShopifyMetafield,
+  ShopifyOrder,
+  ShopifyProduct,
+  ShopifyVariant,
+} from '@/types/shopify.types'
+
 // Mock crypto.subtle for test environment
 if (typeof crypto === 'undefined') {
-  (global as any).crypto = {
+  ;(global as any).crypto = {
     subtle: {
       digest: jest.fn().mockImplementation(async (algorithm, data) => {
         // Simple mock implementation that returns a deterministic hash
-        const input = Array.from(new Uint8Array(data)).map(b => String.fromCharCode(b)).join('')
-        const hash = input.split('').reduce((acc, char) => {
-          return acc + char.charCodeAt(0)
-        }, 0).toString(16)
-        return new Uint8Array(hash.padEnd(32, '0').slice(0, 32).split('').map(c => parseInt(c, 16)))
-      })
-    }
+        const input = Array.from(new Uint8Array(data))
+          .map((b) => String.fromCharCode(b))
+          .join('')
+        const hash = input
+          .split('')
+          .reduce((acc, char) => {
+            return acc + char.charCodeAt(0)
+          }, 0)
+          .toString(16)
+        return new Uint8Array(
+          hash
+            .padEnd(32, '0')
+            .slice(0, 32)
+            .split('')
+            .map((c) => parseInt(c, 16))
+        )
+      }),
+    },
   }
 }
-
-import { ShopifyTransformers } from '@/lib/integrations/shopify/transformers'
-import crypto from 'crypto'
-import type {
-  ShopifyProduct,
-  ShopifyVariant,
-  ShopifyInventoryLevel,
-  ShopifyOrder,
-  ShopifyCustomer,
-  ShopifyMetafield,
-  ShopifyLineItem,
-  ShopifyAddress
-} from '@/types/shopify.types'
 
 // Mock crypto module
 jest.mock('crypto', () => ({
   createHash: jest.fn(() => ({
     update: jest.fn(() => ({
-      digest: jest.fn(() => 'abcdef1234567890abcdef1234567890')
-    }))
-  }))
+      digest: jest.fn(() => 'abcdef1234567890abcdef1234567890'),
+    })),
+  })),
 }))
 
 describe('ShopifyTransformers', () => {
@@ -55,21 +66,23 @@ describe('ShopifyTransformers', () => {
       status: 'ACTIVE',
       tags: ['tag1', 'tag2'],
       variants: {
-        edges: [{
-          node: {
-            id: 'gid://shopify/ProductVariant/456',
-            title: 'Default',
-            sku: 'TEST-SKU-001',
-            price: '99.99',
-            barcode: '123456789',
-            weight: 1.5,
-            weightUnit: 'KILOGRAMS'
-          }
-        }]
+        edges: [
+          {
+            node: {
+              id: 'gid://shopify/ProductVariant/456',
+              title: 'Default',
+              sku: 'TEST-SKU-001',
+              price: '99.99',
+              barcode: '123456789',
+              weight: 1.5,
+              weightUnit: 'KILOGRAMS',
+            },
+          },
+        ],
       },
       metafields: {
-        edges: []
-      }
+        edges: [],
+      },
     }
 
     it('should transform Shopify product successfully', () => {
@@ -89,41 +102,46 @@ describe('ShopifyTransformers', () => {
           shopify_handle: 'test-product',
           vendor: 'Test Vendor',
           tags: ['tag1', 'tag2'],
-          variants: [{
-            id: 'gid://shopify/ProductVariant/456',
-            title: 'Default',
-            sku: 'TEST-SKU-001',
-            price: '99.99',
-            barcode: '123456789',
-            weight: 1.5,
-            weight_unit: 'KILOGRAMS'
-          }],
-          metafields: {}
-        }
+          variants: [
+            {
+              id: 'gid://shopify/ProductVariant/456',
+              title: 'Default',
+              sku: 'TEST-SKU-001',
+              price: '99.99',
+              barcode: '123456789',
+              weight: 1.5,
+              weight_unit: 'KILOGRAMS',
+            },
+          ],
+          metafields: {},
+        },
       })
     })
 
     it('should throw error if product has no variants', () => {
       const productWithoutVariants = {
         ...mockProduct,
-        variants: { edges: [] }
+        variants: { edges: [] },
       }
 
-      expect(() => transformers.transformProduct(productWithoutVariants))
-        .toThrow('Product gid://shopify/Product/123 has no variants')
+      expect(() =>
+        transformers.transformProduct(productWithoutVariants)
+      ).toThrow('Product gid://shopify/Product/123 has no variants')
     })
 
     it('should handle product without SKU', () => {
       const productNoSku = {
         ...mockProduct,
         variants: {
-          edges: [{
-            node: {
-              ...mockProduct.variants.edges[0].node,
-              sku: null
-            }
-          }]
-        }
+          edges: [
+            {
+              node: {
+                ...mockProduct.variants.edges[0].node,
+                sku: null,
+              },
+            },
+          ],
+        },
       }
 
       const result = transformers.transformProduct(productNoSku)
@@ -135,7 +153,7 @@ describe('ShopifyTransformers', () => {
     it('should handle missing description', () => {
       const productNoDescription = {
         ...mockProduct,
-        descriptionHtml: null
+        descriptionHtml: null,
       }
 
       const result = transformers.transformProduct(productNoDescription)
@@ -143,10 +161,13 @@ describe('ShopifyTransformers', () => {
     })
 
     it('should map product status correctly', () => {
-      const statuses: Array<{ shopify: 'ACTIVE' | 'ARCHIVED' | 'DRAFT', expected: string }> = [
+      const statuses: Array<{
+        shopify: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'
+        expected: string
+      }> = [
         { shopify: 'ACTIVE', expected: 'active' },
         { shopify: 'ARCHIVED', expected: 'inactive' },
-        { shopify: 'DRAFT', expected: 'inactive' }
+        { shopify: 'DRAFT', expected: 'inactive' },
       ]
 
       statuses.forEach(({ shopify, expected }) => {
@@ -166,19 +187,19 @@ describe('ShopifyTransformers', () => {
                 namespace: 'truthsource',
                 key: 'custom_field',
                 value: '123',
-                type: 'number_integer'
-              }
+                type: 'number_integer',
+              },
             },
             {
               node: {
                 namespace: 'other',
                 key: 'ignored',
                 value: 'value',
-                type: 'string'
-              }
-            }
-          ]
-        }
+                type: 'string',
+              },
+            },
+          ],
+        },
       }
 
       const result = transformers.transformProduct(productWithMetafields)
@@ -198,8 +219,8 @@ describe('ShopifyTransformers', () => {
                 price: '89.99',
                 barcode: null,
                 weight: 1.0,
-                weightUnit: 'KILOGRAMS'
-              }
+                weightUnit: 'KILOGRAMS',
+              },
             },
             {
               node: {
@@ -209,19 +230,19 @@ describe('ShopifyTransformers', () => {
                 price: '109.99',
                 barcode: '987654321',
                 weight: 2.0,
-                weightUnit: 'KILOGRAMS'
-              }
-            }
-          ]
-        }
+                weightUnit: 'KILOGRAMS',
+              },
+            },
+          ],
+        },
       }
 
       const result = transformers.transformProduct(multiVariantProduct)
-      
+
       // Should use first variant as primary
       expect(result.sku).toBe('SKU-SMALL')
       expect(result.price).toBe(89.99)
-      
+
       // Should include all variants in metadata
       expect(result.metadata.variants).toHaveLength(2)
       expect(result.metadata.variants[1].sku).toBe('SKU-LARGE')
@@ -235,16 +256,19 @@ describe('ShopifyTransformers', () => {
       updatedAt: '2024-01-15T10:30:00Z',
       item: {
         id: 'gid://shopify/InventoryItem/456',
-        sku: 'TEST-SKU-001'
+        sku: 'TEST-SKU-001',
       },
       location: {
-        id: 'gid://shopify/Location/789'
-      }
+        id: 'gid://shopify/Location/789',
+      },
     }
 
     it('should transform inventory level successfully', () => {
       const warehouseId = 'warehouse-123'
-      const result = transformers.transformInventory(mockInventoryLevel, warehouseId)
+      const result = transformers.transformInventory(
+        mockInventoryLevel,
+        warehouseId
+      )
 
       expect(result).toEqual({
         product_id: 'shopify_abcdef1234567890',
@@ -254,8 +278,8 @@ describe('ShopifyTransformers', () => {
         metadata: {
           shopify_inventory_item_id: 'gid://shopify/InventoryItem/456',
           shopify_location_id: 'gid://shopify/Location/789',
-          last_updated: '2024-01-15T10:30:00Z'
-        }
+          last_updated: '2024-01-15T10:30:00Z',
+        },
       })
     })
 
@@ -264,20 +288,24 @@ describe('ShopifyTransformers', () => {
         ...mockInventoryLevel,
         item: {
           id: 'gid://shopify/InventoryItem/456',
-          sku: null
-        }
+          sku: null,
+        },
       }
 
-      expect(() => transformers.transformInventory(inventoryNoSku, 'warehouse-123'))
-        .toThrow('Inventory item gid://shopify/InventoryItem/456 has no SKU')
+      expect(() =>
+        transformers.transformInventory(inventoryNoSku, 'warehouse-123')
+      ).toThrow('Inventory item gid://shopify/InventoryItem/456 has no SKU')
     })
 
     it('should generate consistent product ID from SKU', () => {
-      const result = transformers.transformInventory(mockInventoryLevel, 'warehouse-123')
-      
+      const result = transformers.transformInventory(
+        mockInventoryLevel,
+        'warehouse-123'
+      )
+
       // Should call hash with same SKU to generate matching product ID
       expect(crypto.createHash).toHaveBeenCalledWith('sha256')
-      
+
       // Verify that the hash was called with the correct SKU
       // Since we can't easily track the specific instance, we'll just verify the hash was called
       expect(crypto.createHash).toHaveBeenCalled()
@@ -289,11 +317,14 @@ describe('ShopifyTransformers', () => {
       inventory_item_id: 456,
       location_id: 789,
       available: 50,
-      updated_at: '2024-01-15T10:30:00Z'
+      updated_at: '2024-01-15T10:30:00Z',
     }
 
     it('should transform webhook inventory data', () => {
-      const result = transformers.transformInventoryFromWebhook(mockWebhookData, 'warehouse-123')
+      const result = transformers.transformInventoryFromWebhook(
+        mockWebhookData,
+        'warehouse-123'
+      )
 
       expect(result).toEqual({
         warehouse_id: 'warehouse-123',
@@ -303,8 +334,8 @@ describe('ShopifyTransformers', () => {
         metadata: {
           shopify_inventory_item_id: '456',
           shopify_location_id: '789',
-          last_updated: '2024-01-15T10:30:00Z'
-        }
+          last_updated: '2024-01-15T10:30:00Z',
+        },
       })
     })
   })
@@ -323,16 +354,21 @@ describe('ShopifyTransformers', () => {
       createdAt: '2024-01-15T10:00:00Z',
       updatedAt: '2024-01-15T10:30:00Z',
       lineItems: {
-        edges: [{
-          node: {
-            id: 'gid://shopify/LineItem/456',
-            title: 'Test Product',
-            quantity: 2,
-            price: '69.99',
-            product: { id: 'gid://shopify/Product/789' },
-            variant: { id: 'gid://shopify/ProductVariant/012', sku: 'SKU-001' }
-          }
-        }]
+        edges: [
+          {
+            node: {
+              id: 'gid://shopify/LineItem/456',
+              title: 'Test Product',
+              quantity: 2,
+              price: '69.99',
+              product: { id: 'gid://shopify/Product/789' },
+              variant: {
+                id: 'gid://shopify/ProductVariant/012',
+                sku: 'SKU-001',
+              },
+            },
+          },
+        ],
       },
       shippingAddress: {
         address1: '123 Main St',
@@ -344,7 +380,7 @@ describe('ShopifyTransformers', () => {
         country: 'United States',
         countryCode: 'US',
         phone: '555-1234',
-        company: 'Acme Corp'
+        company: 'Acme Corp',
       },
       billingAddress: {
         address1: '456 Billing Ave',
@@ -356,14 +392,14 @@ describe('ShopifyTransformers', () => {
         country: 'United States',
         countryCode: 'US',
         phone: '555-5678',
-        company: null
+        company: null,
       },
       customer: {
         id: 'gid://shopify/Customer/999',
         email: 'customer@example.com',
         firstName: 'John',
-        lastName: 'Doe'
-      }
+        lastName: 'Doe',
+      },
     }
 
     it('should transform order successfully', () => {
@@ -378,15 +414,17 @@ describe('ShopifyTransformers', () => {
         tax_amount: 10,
         currency: 'USD',
         status: 'processing',
-        line_items: [{
-          external_id: 'gid://shopify/LineItem/456',
-          product_id: 'gid://shopify/Product/789',
-          variant_id: 'gid://shopify/ProductVariant/012',
-          sku: 'SKU-001',
-          title: 'Test Product',
-          quantity: 2,
-          price: 69.99
-        }],
+        line_items: [
+          {
+            external_id: 'gid://shopify/LineItem/456',
+            product_id: 'gid://shopify/Product/789',
+            variant_id: 'gid://shopify/ProductVariant/012',
+            sku: 'SKU-001',
+            title: 'Test Product',
+            quantity: 2,
+            price: 69.99,
+          },
+        ],
         shipping_address: {
           line1: '123 Main St',
           line2: 'Apt 4',
@@ -395,7 +433,7 @@ describe('ShopifyTransformers', () => {
           postal_code: '10001',
           country: 'US',
           phone: '555-1234',
-          company: 'Acme Corp'
+          company: 'Acme Corp',
         },
         billing_address: {
           line1: '456 Billing Ave',
@@ -405,15 +443,15 @@ describe('ShopifyTransformers', () => {
           postal_code: '11201',
           country: 'US',
           phone: '555-5678',
-          company: null
+          company: null,
         },
         customer: {
           external_id: 'gid://shopify/Customer/999',
           email: 'customer@example.com',
-          name: 'John Doe'
+          name: 'John Doe',
         },
         created_at: '2024-01-15T10:00:00Z',
-        updated_at: '2024-01-15T10:30:00Z'
+        updated_at: '2024-01-15T10:30:00Z',
       })
     })
 
@@ -422,16 +460,20 @@ describe('ShopifyTransformers', () => {
         { financial: 'REFUNDED', fulfillment: null, expected: 'cancelled' },
         { financial: 'VOIDED', fulfillment: null, expected: 'cancelled' },
         { financial: 'PAID', fulfillment: 'FULFILLED', expected: 'completed' },
-        { financial: 'PAID', fulfillment: 'UNFULFILLED', expected: 'processing' },
+        {
+          financial: 'PAID',
+          fulfillment: 'UNFULFILLED',
+          expected: 'processing',
+        },
         { financial: 'PENDING', fulfillment: null, expected: 'pending' },
-        { financial: 'AUTHORIZED', fulfillment: null, expected: 'pending' }
+        { financial: 'AUTHORIZED', fulfillment: null, expected: 'pending' },
       ]
 
       statusTests.forEach(({ financial, fulfillment, expected }) => {
-        const order = { 
-          ...mockOrder, 
+        const order = {
+          ...mockOrder,
           financialStatus: financial,
-          fulfillmentStatus: fulfillment
+          fulfillmentStatus: fulfillment,
         }
         const result = transformers.transformOrder(order)
         expect(result.status).toBe(expected)
@@ -442,7 +484,7 @@ describe('ShopifyTransformers', () => {
       const orderNoAddresses = {
         ...mockOrder,
         shippingAddress: undefined,
-        billingAddress: undefined
+        billingAddress: undefined,
       }
 
       const result = transformers.transformOrder(orderNoAddresses)
@@ -453,7 +495,7 @@ describe('ShopifyTransformers', () => {
     it('should handle order without customer', () => {
       const orderNoCustomer = {
         ...mockOrder,
-        customer: null
+        customer: null,
       }
 
       const result = transformers.transformOrder(orderNoCustomer)
@@ -470,7 +512,7 @@ describe('ShopifyTransformers', () => {
       phone: '555-1234',
       company: {
         name: 'Acme Corp',
-        taxId: '123456789'
+        taxId: '123456789',
       },
       taxExempt: false,
       tags: ['wholesale', 'vip'],
@@ -485,9 +527,9 @@ describe('ShopifyTransformers', () => {
           country: 'United States',
           countryCode: 'US',
           phone: '555-1234',
-          company: 'Acme Corp'
-        }
-      ]
+          company: 'Acme Corp',
+        },
+      ],
     }
 
     it('should transform customer successfully', () => {
@@ -507,9 +549,9 @@ describe('ShopifyTransformers', () => {
           tax_exempt: false,
           company: {
             name: 'Acme Corp',
-            taxId: '123456789'
-          }
-        }
+            taxId: '123456789',
+          },
+        },
       })
 
       expect(result.contacts).toHaveLength(1)
@@ -524,14 +566,14 @@ describe('ShopifyTransformers', () => {
         city: 'New York',
         state: 'NY',
         postal_code: '10001',
-        country: 'US'
+        country: 'US',
       })
     })
 
     it('should handle tax exempt customers', () => {
       const taxExemptCustomer = {
         ...mockCustomer,
-        taxExempt: true
+        taxExempt: true,
       }
 
       const result = transformers.transformCustomer(taxExemptCustomer)
@@ -541,7 +583,7 @@ describe('ShopifyTransformers', () => {
     it('should use personal name when no company', () => {
       const personalCustomer = {
         ...mockCustomer,
-        company: null
+        company: null,
       }
 
       const result = transformers.transformCustomer(personalCustomer)
@@ -553,7 +595,7 @@ describe('ShopifyTransformers', () => {
         ...mockCustomer,
         firstName: null,
         lastName: null,
-        company: null
+        company: null,
       }
 
       const result = transformers.transformCustomer(minimalCustomer)
@@ -574,7 +616,7 @@ describe('ShopifyTransformers', () => {
             country: 'US',
             countryCode: 'US',
             phone: '555-1111',
-            company: null
+            company: null,
           },
           {
             address1: '456 Second Ave',
@@ -586,9 +628,9 @@ describe('ShopifyTransformers', () => {
             country: 'US',
             countryCode: 'US',
             phone: '555-2222',
-            company: 'Branch Office'
-          }
-        ]
+            company: 'Branch Office',
+          },
+        ],
       }
 
       const result = transformers.transformCustomer(multiAddressCustomer)
@@ -617,13 +659,14 @@ describe('ShopifyTransformers', () => {
           price: '79.99',
           barcode: '123456',
           weight: 1.2,
-          weight_unit: 'kg'
-        }
-      ]
+          weight_unit: 'kg',
+        },
+      ],
     }
 
     it('should transform webhook product successfully', () => {
-      const result = transformers.transformProductFromWebhook(mockWebhookProduct)
+      const result =
+        transformers.transformProductFromWebhook(mockWebhookProduct)
 
       expect(result).toEqual({
         id: 'shopify_abcdef1234567890',
@@ -639,33 +682,36 @@ describe('ShopifyTransformers', () => {
           shopify_handle: 'webhook-product',
           vendor: 'Test Vendor',
           tags: ['tag1', 'tag2', 'tag3'],
-          variants: [{
-            id: '456',
-            title: 'Default',
-            sku: 'WEBHOOK-SKU',
-            price: '79.99',
-            barcode: '123456',
-            weight: 1.2,
-            weight_unit: 'kg'
-          }]
-        }
+          variants: [
+            {
+              id: '456',
+              title: 'Default',
+              sku: 'WEBHOOK-SKU',
+              price: '79.99',
+              barcode: '123456',
+              weight: 1.2,
+              weight_unit: 'kg',
+            },
+          ],
+        },
       })
     })
 
     it('should handle webhook product without variants', () => {
       const noVariantProduct = {
         ...mockWebhookProduct,
-        variants: null
+        variants: null,
       }
 
-      expect(() => transformers.transformProductFromWebhook(noVariantProduct))
-        .toThrow('Product 123 has no variants')
+      expect(() =>
+        transformers.transformProductFromWebhook(noVariantProduct)
+      ).toThrow('Product 123 has no variants')
     })
 
     it('should handle inactive status', () => {
       const inactiveProduct = {
         ...mockWebhookProduct,
-        status: 'archived'
+        status: 'archived',
       }
 
       const result = transformers.transformProductFromWebhook(inactiveProduct)
@@ -675,17 +721,18 @@ describe('ShopifyTransformers', () => {
     it('should handle missing admin_graphql_api_id', () => {
       const productNoGraphqlId = {
         ...mockWebhookProduct,
-        admin_graphql_api_id: null
+        admin_graphql_api_id: null,
       }
 
-      const result = transformers.transformProductFromWebhook(productNoGraphqlId)
+      const result =
+        transformers.transformProductFromWebhook(productNoGraphqlId)
       expect(result.external_id).toBe('gid://shopify/Product/123')
     })
 
     it('should handle empty tags', () => {
       const noTagsProduct = {
         ...mockWebhookProduct,
-        tags: ''
+        tags: '',
       }
 
       const result = transformers.transformProductFromWebhook(noTagsProduct)
@@ -702,7 +749,8 @@ describe('ShopifyTransformers', () => {
       })
 
       it('should handle nested tags', () => {
-        const html = '<div><p>Nested <span><strong>content</strong></span></p></div>'
+        const html =
+          '<div><p>Nested <span><strong>content</strong></span></p></div>'
         const result = (transformers as any).stripHtml(html)
         expect(result).toBe('Nested content')
       })
@@ -716,18 +764,28 @@ describe('ShopifyTransformers', () => {
 
     describe('parseMetafieldValue', () => {
       it('should parse integer values', () => {
-        const result = (transformers as any).parseMetafieldValue('123', 'number_integer')
+        const result = (transformers as any).parseMetafieldValue(
+          '123',
+          'number_integer'
+        )
         expect(result).toBe(123)
       })
 
       it('should parse decimal values', () => {
-        const result = (transformers as any).parseMetafieldValue('123.45', 'number_decimal')
+        const result = (transformers as any).parseMetafieldValue(
+          '123.45',
+          'number_decimal'
+        )
         expect(result).toBe(123.45)
       })
 
       it('should parse boolean values', () => {
-        expect((transformers as any).parseMetafieldValue('true', 'boolean')).toBe(true)
-        expect((transformers as any).parseMetafieldValue('false', 'boolean')).toBe(false)
+        expect(
+          (transformers as any).parseMetafieldValue('true', 'boolean')
+        ).toBe(true)
+        expect(
+          (transformers as any).parseMetafieldValue('false', 'boolean')
+        ).toBe(false)
       })
 
       it('should parse JSON values', () => {
@@ -738,12 +796,18 @@ describe('ShopifyTransformers', () => {
 
       it('should return original value for invalid JSON', () => {
         const invalidJson = '{invalid json}'
-        const result = (transformers as any).parseMetafieldValue(invalidJson, 'json')
+        const result = (transformers as any).parseMetafieldValue(
+          invalidJson,
+          'json'
+        )
         expect(result).toBe(invalidJson)
       })
 
       it('should return string for unknown types', () => {
-        const result = (transformers as any).parseMetafieldValue('value', 'custom_type')
+        const result = (transformers as any).parseMetafieldValue(
+          'value',
+          'custom_type'
+        )
         expect(result).toBe('value')
       })
     })
@@ -757,10 +821,10 @@ describe('ShopifyTransformers', () => {
 
       it('should generate different IDs for different inputs', () => {
         jest.clearAllMocks()
-        
+
         const id1 = (transformers as any).generateInternalId('input1')
         const id2 = (transformers as any).generateInternalId('input2')
-        
+
         expect(id1).not.toBe(id2)
       })
 
@@ -771,12 +835,15 @@ describe('ShopifyTransformers', () => {
       })
 
       it('should throw error for invalid input', () => {
-        expect(() => (transformers as any).generateInternalId(''))
-          .toThrow('generateInternalId: input must be a non-empty string')
-        expect(() => (transformers as any).generateInternalId(null))
-          .toThrow('generateInternalId: input must be a non-empty string')
-        expect(() => (transformers as any).generateInternalId('   '))
-          .toThrow('generateInternalId: input must be a non-empty string')
+        expect(() => (transformers as any).generateInternalId('')).toThrow(
+          'generateInternalId: input must be a non-empty string'
+        )
+        expect(() => (transformers as any).generateInternalId(null)).toThrow(
+          'generateInternalId: input must be a non-empty string'
+        )
+        expect(() => (transformers as any).generateInternalId('   ')).toThrow(
+          'generateInternalId: input must be a non-empty string'
+        )
       })
     })
   })
@@ -786,7 +853,7 @@ describe('ShopifyTransformers', () => {
       const price = {
         variant: { id: 'gid://shopify/ProductVariant/123' },
         price: { amount: '99.99', currencyCode: 'USD' },
-        compareAtPrice: { amount: '129.99', currencyCode: 'USD' }
+        compareAtPrice: { amount: '129.99', currencyCode: 'USD' },
       }
 
       const result = transformers.transformPrice(price)
@@ -795,14 +862,14 @@ describe('ShopifyTransformers', () => {
         variant_id: 'gid://shopify/ProductVariant/123',
         price: 99.99,
         currency: 'USD',
-        compare_at_price: 129.99
+        compare_at_price: 129.99,
       })
     })
 
     it('should handle missing compare at price', () => {
       const price = {
         variant: { id: 'gid://shopify/ProductVariant/123' },
-        price: { amount: '99.99', currencyCode: 'USD' }
+        price: { amount: '99.99', currencyCode: 'USD' },
       }
 
       const result = transformers.transformPrice(price)

@@ -1,12 +1,22 @@
 // PRP-013: NetSuite Configuration Form Component
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Info, Key, Loader2, Shield } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -17,24 +27,27 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { toast } from '@/components/ui/use-toast'
-import { Loader2, Info, Key, Shield } from 'lucide-react'
-import { createIntegration, updateIntegration } from '@/app/actions/integrations'
+import {
+  createIntegration,
+  updateIntegration,
+} from '@/app/actions/integrations'
 
 const netsuiteConfigSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
   description: z.string().optional(),
-  account_id: z.string()
+  account_id: z
+    .string()
     .min(1, 'Account ID is required')
     .regex(/^[0-9]+(_SB[0-9]+)?$/, 'Invalid NetSuite Account ID format'),
-  datacenter_url: z.string()
+  datacenter_url: z
+    .string()
     .url('Must be a valid URL')
-    .regex(/^https:\/\/[0-9]+-sb[0-9]+\.suitetalk\.api\.netsuite\.com$|^https:\/\/[0-9]+\.suitetalk\.api\.netsuite\.com$/, 
-      'Invalid NetSuite data center URL format'),
+    .regex(
+      /^https:\/\/[0-9]+-sb[0-9]+\.suitetalk\.api\.netsuite\.com$|^https:\/\/[0-9]+\.suitetalk\.api\.netsuite\.com$/,
+      'Invalid NetSuite data center URL format'
+    ),
   client_id: z.string().optional(),
   client_secret: z.string().optional(),
 })
@@ -67,15 +80,17 @@ async function storeOAuthCredentials(
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to store OAuth credentials' }))
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to store OAuth credentials' }))
     throw new Error(error.error || 'Failed to store OAuth credentials')
   }
 }
 
-export function NetSuiteConfigForm({ 
-  organizationId, 
+export function NetSuiteConfigForm({
+  organizationId,
   integration,
-  config 
+  config,
 }: NetSuiteConfigFormProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -86,20 +101,24 @@ export function NetSuiteConfigForm({
     if (typeof window !== 'undefined') {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL
       let baseUrl: string
-      
+
       if (appUrl) {
         // Validate NEXT_PUBLIC_APP_URL is a valid URL
         try {
           new URL(appUrl)
           baseUrl = appUrl
         } catch (error) {
-          console.warn('Invalid NEXT_PUBLIC_APP_URL:', appUrl, 'Falling back to window.location.origin')
+          console.warn(
+            'Invalid NEXT_PUBLIC_APP_URL:',
+            appUrl,
+            'Falling back to window.location.origin'
+          )
           baseUrl = window.location.origin
         }
       } else {
         baseUrl = window.location.origin
       }
-      
+
       setRedirectUri(`${baseUrl}/integrations/netsuite/callback`)
     }
   }, [])
@@ -124,7 +143,7 @@ export function NetSuiteConfigForm({
       formData.append('name', values.name)
       formData.append('description', values.description || '')
       formData.append('organization_id', organizationId)
-      
+
       const config = {
         account_id: values.account_id,
         datacenter_url: values.datacenter_url,
@@ -132,12 +151,16 @@ export function NetSuiteConfigForm({
       formData.append('config', JSON.stringify(config))
 
       const result = await createIntegration(formData)
-      
+
       // Store OAuth credentials if provided
       if (values.client_id && values.client_secret && result.data?.id) {
-        await storeOAuthCredentials(result.data.id, values.client_id, values.client_secret)
+        await storeOAuthCredentials(
+          result.data.id,
+          values.client_id,
+          values.client_secret
+        )
       }
-      
+
       return result
     },
     onSuccess: (result) => {
@@ -145,11 +168,13 @@ export function NetSuiteConfigForm({
         title: 'Integration created',
         description: 'NetSuite integration has been created successfully.',
       })
-      
+
       // Invalidate integrations cache
       queryClient.invalidateQueries({ queryKey: ['integrations'] })
-      queryClient.invalidateQueries({ queryKey: ['integration', result.data?.id] })
-      
+      queryClient.invalidateQueries({
+        queryKey: ['integration', result.data?.id],
+      })
+
       // Navigate to integration page
       router.push(`/integrations/netsuite?id=${result.data?.id}`)
     },
@@ -157,7 +182,10 @@ export function NetSuiteConfigForm({
       console.error('NetSuite integration creation error:', error)
       toast({
         title: 'Integration creation failed',
-        description: error instanceof Error ? error.message : 'Failed to create integration',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to create integration',
         variant: 'destructive',
       })
     },
@@ -167,12 +195,12 @@ export function NetSuiteConfigForm({
   const updateIntegrationMutation = useMutation({
     mutationFn: async (values: NetSuiteConfigFormValues) => {
       if (!integration) throw new Error('No integration to update')
-      
+
       const formData = new FormData()
       formData.append('id', integration.id)
       formData.append('name', values.name)
       formData.append('description', values.description || '')
-      
+
       const config = {
         account_id: values.account_id,
         datacenter_url: values.datacenter_url,
@@ -181,7 +209,11 @@ export function NetSuiteConfigForm({
 
       // Store OAuth credentials if provided
       if (values.client_id && values.client_secret) {
-        await storeOAuthCredentials(integration.id, values.client_id, values.client_secret)
+        await storeOAuthCredentials(
+          integration.id,
+          values.client_id,
+          values.client_secret
+        )
       }
 
       return await updateIntegration(formData)
@@ -191,11 +223,13 @@ export function NetSuiteConfigForm({
         title: 'Configuration updated',
         description: 'NetSuite configuration has been updated successfully.',
       })
-      
+
       // Invalidate integrations cache
       queryClient.invalidateQueries({ queryKey: ['integrations'] })
-      queryClient.invalidateQueries({ queryKey: ['integration', integration?.id] })
-      
+      queryClient.invalidateQueries({
+        queryKey: ['integration', integration?.id],
+      })
+
       // Refresh the page to show updated data
       router.refresh()
     },
@@ -203,7 +237,10 @@ export function NetSuiteConfigForm({
       console.error('NetSuite configuration update error:', error)
       toast({
         title: 'Configuration update failed',
-        description: error instanceof Error ? error.message : 'Failed to update configuration',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update configuration',
         variant: 'destructive',
       })
     },
@@ -211,7 +248,11 @@ export function NetSuiteConfigForm({
 
   // React Query mutation for storing OAuth credentials separately
   const storeCredentialsMutation = useMutation({
-    mutationFn: async ({ integrationId, clientId, clientSecret }: {
+    mutationFn: async ({
+      integrationId,
+      clientId,
+      clientSecret,
+    }: {
       integrationId: string
       clientId: string
       clientSecret: string
@@ -222,7 +263,10 @@ export function NetSuiteConfigForm({
       console.error('OAuth credentials storage error:', error)
       toast({
         title: 'Credential storage failed',
-        description: error instanceof Error ? error.message : 'Failed to store OAuth credentials',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to store OAuth credentials',
         variant: 'destructive',
       })
     },
@@ -239,7 +283,8 @@ export function NetSuiteConfigForm({
   }
 
   // Get loading state from mutations
-  const isSubmitting = createIntegrationMutation.isPending || updateIntegrationMutation.isPending
+  const isSubmitting =
+    createIntegrationMutation.isPending || updateIntegrationMutation.isPending
 
   return (
     <Form {...form}>
@@ -276,9 +321,9 @@ export function NetSuiteConfigForm({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Main NetSuite account for inventory and pricing sync" 
-                      {...field} 
+                    <Input
+                      placeholder="Main NetSuite account for inventory and pricing sync"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -295,13 +340,11 @@ export function NetSuiteConfigForm({
                 <FormItem>
                   <FormLabel>NetSuite Account ID</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="123456 or 123456_SB1" 
-                      {...field} 
-                    />
+                    <Input placeholder="123456 or 123456_SB1" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Your NetSuite account ID (found in Setup → Company → Company Information)
+                    Your NetSuite account ID (found in Setup → Company → Company
+                    Information)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -315,13 +358,14 @@ export function NetSuiteConfigForm({
                 <FormItem>
                   <FormLabel>Data Center URL</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="https://123456.suitetalk.api.netsuite.com" 
-                      {...field} 
+                    <Input
+                      placeholder="https://123456.suitetalk.api.netsuite.com"
+                      {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    Your NetSuite REST API base URL (found in Setup → Company → Company URLs)
+                    Your NetSuite REST API base URL (found in Setup → Company →
+                    Company URLs)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -343,11 +387,17 @@ export function NetSuiteConfigForm({
                 <Info className="h-4 w-4" />
                 <AlertTitle>OAuth Setup Required</AlertTitle>
                 <AlertDescription>
-                  You&apos;ll need to create an OAuth 2.0 Integration Record in NetSuite:
+                  You&apos;ll need to create an OAuth 2.0 Integration Record in
+                  NetSuite:
                   <ol className="list-decimal list-inside mt-2 space-y-1">
                     <li>Go to Setup → Integration → Manage Integrations</li>
                     <li>Create a new integration with OAuth 2.0 enabled</li>
-                    <li>Set the redirect URI to: <code className="text-xs">{redirectUri || 'Loading...'}</code></li>
+                    <li>
+                      Set the redirect URI to:{' '}
+                      <code className="text-xs">
+                        {redirectUri || 'Loading...'}
+                      </code>
+                    </li>
                     <li>Copy the Client ID and Client Secret</li>
                   </ol>
                 </AlertDescription>
@@ -360,9 +410,9 @@ export function NetSuiteConfigForm({
                   <FormItem>
                     <FormLabel>Client ID</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="OAuth 2.0 Client ID from NetSuite" 
-                        {...field} 
+                      <Input
+                        placeholder="OAuth 2.0 Client ID from NetSuite"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -377,10 +427,10 @@ export function NetSuiteConfigForm({
                   <FormItem>
                     <FormLabel>Client Secret</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         type="password"
-                        placeholder="OAuth 2.0 Client Secret from NetSuite" 
-                        {...field} 
+                        placeholder="OAuth 2.0 Client Secret from NetSuite"
+                        {...field}
                       />
                     </FormControl>
                     <FormDescription>

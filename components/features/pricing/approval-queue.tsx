@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { formatDistanceToNow } from 'date-fns'
 import {
   AlertCircle,
   CheckCircle,
@@ -11,7 +13,6 @@ import {
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,13 +33,12 @@ import {
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { formatDistanceToNow } from 'date-fns'
 import { formatCurrency, formatPercent } from '@/lib/utils'
-import { PriceApprovalWithDetails } from '@/types/customer-pricing.types'
 import {
   approvePriceChange,
   rejectPriceChange,
 } from '@/app/actions/customer-pricing'
+import { PriceApprovalWithDetails } from '@/types/customer-pricing.types'
 
 interface ApprovalQueueProps {
   approvals: PriceApprovalWithDetails[]
@@ -66,14 +66,23 @@ export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
       queryClient.invalidateQueries({ queryKey: ['approvals'] })
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to approve price change')
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to approve price change'
+      )
     },
   })
 
   // Reject mutation
   const rejectMutation = useMutation({
-    mutationFn: ({ approvalId, reason }: { approvalId: string; reason: string }) =>
-      rejectPriceChange(approvalId, reason),
+    mutationFn: ({
+      approvalId,
+      reason,
+    }: {
+      approvalId: string
+      reason: string
+    }) => rejectPriceChange(approvalId, reason),
     onSuccess: () => {
       toast.success('Price change rejected')
       queryClient.invalidateQueries({ queryKey: ['approvals'] })
@@ -82,7 +91,9 @@ export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
       setSelectedApproval(null)
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to reject price change')
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to reject price change'
+      )
     },
   })
 
@@ -201,7 +212,10 @@ export function ApprovalQueue({ approvals, customerId }: ApprovalQueueProps) {
               <Button
                 size="sm"
                 onClick={() => handleApprove(approval)}
-                disabled={approveMutation.isPending && approveMutation.variables === approval.id}
+                disabled={
+                  approveMutation.isPending &&
+                  approveMutation.variables === approval.id
+                }
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Approve

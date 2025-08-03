@@ -83,7 +83,10 @@ export function PresenceAvatars({
         </Avatar>
 
         {/* Activity indicator */}
-        <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background" aria-label="User is active" />
+        <div
+          className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"
+          aria-label="User is active"
+        />
       </motion.div>
     )
 
@@ -112,7 +115,11 @@ export function PresenceAvatars({
 
   return (
     <TooltipProvider>
-      <div className={cn('flex items-center', className)} role="group" aria-label="Active users">
+      <div
+        className={cn('flex items-center', className)}
+        role="group"
+        aria-label="Active users"
+      >
         <AnimatePresence mode="popLayout">
           {displayUsers.map((user, index) => renderAvatar(user, index))}
         </AnimatePresence>
@@ -131,7 +138,11 @@ export function PresenceAvatars({
                 )}
                 style={{ zIndex: 0 }}
               >
-                <span aria-label={`${remainingCount} more ${remainingCount === 1 ? 'user' : 'users'}`}>+{remainingCount}</span>
+                <span
+                  aria-label={`${remainingCount} more ${remainingCount === 1 ? 'user' : 'users'}`}
+                >
+                  +{remainingCount}
+                </span>
               </motion.div>
             </TooltipTrigger>
             <TooltipContent>

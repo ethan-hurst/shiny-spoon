@@ -1,14 +1,20 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import { useEffect, useState, useMemo } from 'react'
-import Fuse from 'fuse.js'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { allHelpArticles } from 'contentlayer2/generated'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { HelpSearch } from '@/components/help/search'
+import Fuse from 'fuse.js'
 import { ArrowLeft, Search } from 'lucide-react'
+import { HelpSearch } from '@/components/help/search'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export default function HelpSearchPage() {
   const searchParams = useSearchParams()
@@ -16,11 +22,15 @@ export default function HelpSearchPage() {
   const [results, setResults] = useState<typeof allHelpArticles>([])
 
   // Memoize Fuse instance to avoid recreation on each render
-  const fuse = useMemo(() => new Fuse(allHelpArticles, {
-    keys: ['title', 'description', 'body.raw', 'keywords'],
-    threshold: 0.3,
-    includeScore: true,
-  }), [])
+  const fuse = useMemo(
+    () =>
+      new Fuse(allHelpArticles, {
+        keys: ['title', 'description', 'body.raw', 'keywords'],
+        threshold: 0.3,
+        includeScore: true,
+      }),
+    []
+  )
 
   useEffect(() => {
     if (query) {
@@ -49,7 +59,8 @@ export default function HelpSearchPage() {
         {query && (
           <div className="mb-8">
             <p className="text-muted-foreground">
-              {results.length} {results.length === 1 ? 'result' : 'results'} for "{query}"
+              {results.length} {results.length === 1 ? 'result' : 'results'} for
+              "{query}"
             </p>
           </div>
         )}

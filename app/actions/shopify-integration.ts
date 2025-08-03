@@ -2,11 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { validateCsrfToken } from '@/lib/security/csrf'
+import { createClient } from '@/lib/supabase/server'
 
 const shopifyConfigSchema = z.object({
-  shop_domain: z.string()
+  shop_domain: z
+    .string()
     .min(1, 'Shop domain is required')
     .regex(
       /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/,
@@ -20,7 +21,7 @@ const shopifyConfigSchema = z.object({
   sync_customers: z.boolean().default(true),
   b2b_catalog_enabled: z.boolean().default(false),
   sync_frequency: z.number().min(5).max(1440).default(15),
-  storefront_access_token: z.string().optional()
+  storefront_access_token: z.string().optional(),
 })
 
 /**
@@ -35,11 +36,14 @@ const shopifyConfigSchema = z.object({
 export async function createShopifyIntegration(formData: FormData) {
   // Validate CSRF token
   await validateCsrfToken()
-  
+
   const supabase = await createClient()
-  
+
   // Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) {
     throw new Error('Unauthorized')
   }
@@ -65,8 +69,11 @@ export async function createShopifyIntegration(formData: FormData) {
     sync_orders: formData.get('sync_orders') === 'true',
     sync_customers: formData.get('sync_customers') === 'true',
     b2b_catalog_enabled: formData.get('b2b_catalog_enabled') === 'true',
-    sync_frequency: parseInt(formData.get('sync_frequency') as string || '15'),
-    storefront_access_token: formData.get('storefront_access_token') as string || undefined
+    sync_frequency: parseInt(
+      (formData.get('sync_frequency') as string) || '15'
+    ),
+    storefront_access_token:
+      (formData.get('storefront_access_token') as string) || undefined,
   }
 
   const validatedData = shopifyConfigSchema.parse(rawData)
@@ -80,8 +87,9 @@ export async function createShopifyIntegration(formData: FormData) {
   }
 
   // Use RPC for atomic creation with encryption
-  const { data: integrationId, error: rpcError } = await supabase
-    .rpc('create_shopify_integration_encrypted', {
+  const { data: integrationId, error: rpcError } = await supabase.rpc(
+    'create_shopify_integration_encrypted',
+    {
       p_organization_id: profile.organization_id,
       p_shop_domain: validatedData.shop_domain,
       p_sync_frequency: getSyncFrequency(validatedData.sync_frequency),
@@ -91,8 +99,9 @@ export async function createShopifyIntegration(formData: FormData) {
       p_sync_customers: validatedData.sync_customers,
       p_b2b_catalog_enabled: validatedData.b2b_catalog_enabled,
       p_access_token: validatedData.access_token,
-      p_storefront_access_token: validatedData.storefront_access_token || null
-    })
+      p_storefront_access_token: validatedData.storefront_access_token || null,
+    }
+  )
 
   if (rpcError) {
     throw new Error(`Failed to create integration: ${rpcError.message}`)
@@ -100,18 +109,24 @@ export async function createShopifyIntegration(formData: FormData) {
 
   revalidatePath('/integrations')
   revalidatePath('/integrations/shopify')
-  
+
   return { integrationId }
 }
 
-export async function updateShopifyIntegration(integrationId: string, formData: FormData) {
+export async function updateShopifyIntegration(
+  integrationId: string,
+  formData: FormData
+) {
   // Validate CSRF token
   await validateCsrfToken()
-  
+
   const supabase = await createClient()
-  
+
   // Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) {
     throw new Error('Unauthorized')
   }
@@ -149,26 +164,27 @@ export async function updateShopifyIntegration(integrationId: string, formData: 
     sync_orders: formData.get('sync_orders') === 'true',
     sync_customers: formData.get('sync_customers') === 'true',
     b2b_catalog_enabled: formData.get('b2b_catalog_enabled') === 'true',
-    sync_frequency: parseInt(formData.get('sync_frequency') as string || '15')
+    sync_frequency: parseInt(
+      (formData.get('sync_frequency') as string) || '15'
+    ),
   }
 
   const validatedData = shopifyConfigSchema.parse(rawData)
 
   // Use RPC for atomic update
-  const { error: rpcError } = await supabase
-    .rpc('update_shopify_integration', {
-      p_integration_id: integrationId,
-      p_organization_id: integration.organization_id,
-      p_shop_domain: validatedData.shop_domain,
-      p_sync_frequency: validatedData.sync_frequency,
-      p_sync_products: validatedData.sync_products,
-      p_sync_inventory: validatedData.sync_inventory,
-      p_sync_orders: validatedData.sync_orders,
-      p_sync_customers: validatedData.sync_customers,
-      p_b2b_catalog_enabled: validatedData.b2b_catalog_enabled,
-      p_access_token: validatedData.access_token || null,
-      p_webhook_secret: validatedData.webhook_secret || null
-    })
+  const { error: rpcError } = await supabase.rpc('update_shopify_integration', {
+    p_integration_id: integrationId,
+    p_organization_id: integration.organization_id,
+    p_shop_domain: validatedData.shop_domain,
+    p_sync_frequency: validatedData.sync_frequency,
+    p_sync_products: validatedData.sync_products,
+    p_sync_inventory: validatedData.sync_inventory,
+    p_sync_orders: validatedData.sync_orders,
+    p_sync_customers: validatedData.sync_customers,
+    p_b2b_catalog_enabled: validatedData.b2b_catalog_enabled,
+    p_access_token: validatedData.access_token || null,
+    p_webhook_secret: validatedData.webhook_secret || null,
+  })
 
   if (rpcError) {
     throw new Error(`Failed to update integration: ${rpcError.message}`)
@@ -176,12 +192,12 @@ export async function updateShopifyIntegration(integrationId: string, formData: 
 
   revalidatePath('/integrations')
   revalidatePath('/integrations/shopify')
-  
+
   return { integrationId }
 }
 
 export async function updateShopifySyncSettings(
-  integrationId: string, 
+  integrationId: string,
   settings: {
     sync_products: boolean
     sync_inventory: boolean
@@ -195,9 +211,12 @@ export async function updateShopifySyncSettings(
   // Validate CSRF token
   await validateCsrfToken()
   const supabase = await createClient()
-  
+
   // Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) {
     throw new Error('Unauthorized')
   }
@@ -226,8 +245,9 @@ export async function updateShopifySyncSettings(
   }
 
   // Use RPC for atomic update
-  const { error: rpcError } = await supabase
-    .rpc('update_shopify_sync_settings', {
+  const { error: rpcError } = await supabase.rpc(
+    'update_shopify_sync_settings',
+    {
       p_integration_id: integrationId,
       p_organization_id: integration.organization_id,
       p_sync_products: settings.sync_products,
@@ -236,8 +256,9 @@ export async function updateShopifySyncSettings(
       p_sync_customers: settings.sync_customers,
       p_b2b_catalog_enabled: settings.b2b_catalog_enabled,
       p_sync_frequency: settings.sync_frequency,
-      p_batch_size: settings.batch_size
-    })
+      p_batch_size: settings.batch_size,
+    }
+  )
 
   if (rpcError) {
     throw new Error(`Failed to update sync settings: ${rpcError.message}`)
@@ -245,6 +266,6 @@ export async function updateShopifySyncSettings(
 
   revalidatePath('/integrations')
   revalidatePath('/integrations/shopify')
-  
+
   return { success: true }
 }

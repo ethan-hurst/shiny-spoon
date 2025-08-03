@@ -2,9 +2,14 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
 import { AuditLogger } from '@/lib/audit/audit-logger'
-import type { ReportConfig, ExportFormat, ReportSchedule, AccessLevel } from '@/types/reports.types'
+import { createClient } from '@/lib/supabase/server'
+import type {
+  AccessLevel,
+  ExportFormat,
+  ReportConfig,
+  ReportSchedule,
+} from '@/types/reports.types'
 
 export async function saveReport(config: ReportConfig, reportId?: string) {
   const supabase = createClient()
@@ -158,10 +163,11 @@ export async function duplicateReport(reportId: string) {
     }
 
     // Check access - can duplicate if user can view the report
-    const canAccess = 
+    const canAccess =
       originalReport.created_by === user.id ||
       originalReport.access_level === 'organization' ||
-      (originalReport.access_level === 'team' && originalReport.organization_id === profile.organization_id)
+      (originalReport.access_level === 'team' &&
+        originalReport.organization_id === profile.organization_id)
 
     if (!canAccess) {
       return { success: false, error: 'Access denied' }
@@ -224,10 +230,11 @@ export async function runReport(
       .eq('user_id', user.id)
       .single()
 
-    const canAccess = 
+    const canAccess =
       report.created_by === user.id ||
       report.access_level === 'organization' ||
-      (report.access_level === 'team' && report.organization_id === profile?.organization_id)
+      (report.access_level === 'team' &&
+        report.organization_id === profile?.organization_id)
 
     if (!canAccess) {
       return { success: false, error: 'Access denied' }
@@ -245,8 +252,12 @@ export async function runReport(
       .single()
 
     // Generate report (simplified for now)
-    const reportData = await generateReportData(report.config, parameters || {}, profile?.organization_id)
-    
+    const reportData = await generateReportData(
+      report.config,
+      parameters || {},
+      profile?.organization_id
+    )
+
     // For now, return the data directly
     // In production, this would generate actual files and store them
     const filename = `${report.name}_${new Date().toISOString().split('T')[0]}.${format}`
@@ -300,11 +311,11 @@ async function generateReportData(
 
   // This is a simplified implementation
   // In production, this would process the report config and generate actual data
-  
+
   // Find table components and generate their data
-  const tableComponents = config.components.filter(c => c.type === 'table')
-  const chartComponents = config.components.filter(c => c.type === 'chart')
-  
+  const tableComponents = config.components.filter((c) => c.type === 'table')
+  const chartComponents = config.components.filter((c) => c.type === 'chart')
+
   let allData: any = {}
   let totalRecords = 0
 
@@ -314,7 +325,7 @@ async function generateReportData(
       try {
         const { data, error } = await supabase.rpc('execute_report_query', {
           query: dataSource.query,
-          parameters: { ...parameters, orgId: organizationId }
+          parameters: { ...parameters, orgId: organizationId },
         })
 
         if (!error && data) {
@@ -322,7 +333,10 @@ async function generateReportData(
           totalRecords += data.length
         }
       } catch (err) {
-        console.error(`Error executing query for data source ${dataSource.id}:`, err)
+        console.error(
+          `Error executing query for data source ${dataSource.id}:`,
+          err
+        )
         allData[dataSource.id] = []
       }
     }
@@ -330,7 +344,7 @@ async function generateReportData(
 
   return {
     data: allData,
-    recordCount: totalRecords
+    recordCount: totalRecords,
   }
 }
 
@@ -369,10 +383,10 @@ export async function scheduleReport(
       entityType: 'report',
       entityId: reportId,
       entityName: data.name,
-      metadata: { 
+      metadata: {
         action: 'schedule_updated',
         schedule_enabled: schedule.enabled,
-        cron: schedule.cron
+        cron: schedule.cron,
       },
     })
 
@@ -435,10 +449,10 @@ export async function shareReport(
       entityType: 'report',
       entityId: reportId,
       entityName: data.name,
-      metadata: { 
+      metadata: {
         action: 'sharing_updated',
         is_shared: options.enabled,
-        access_level: options.accessLevel
+        access_level: options.accessLevel,
       },
     })
 

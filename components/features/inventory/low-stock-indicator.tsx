@@ -2,9 +2,17 @@
 
 import { AlertCircle, TrendingDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  calculateAvailableQuantity,
+  getStockStatus,
+} from '@/lib/inventory/calculations'
 import { cn } from '@/lib/utils'
-import { calculateAvailableQuantity, getStockStatus } from '@/lib/inventory/calculations'
 
 // Shared configuration for stock status display
 const stockStatusConfig = {
@@ -35,7 +43,10 @@ const stockStatusConfig = {
 }
 
 // Helper function to get stock status label with optional quantity
-function getStockStatusLabel(status: keyof typeof stockStatusConfig, quantity?: number): string {
+function getStockStatusLabel(
+  status: keyof typeof stockStatusConfig,
+  quantity?: number
+): string {
   const config = stockStatusConfig[status]
   if (config.showQuantity && quantity !== undefined) {
     return `${config.label} (${quantity})`
@@ -63,14 +74,14 @@ export function LowStockIndicator({
   // Use utility function to calculate available quantity
   const availableQuantity = calculateAvailableQuantity({
     quantity,
-    reserved_quantity: reserved
+    reserved_quantity: reserved,
   })
-  
+
   // Use utility function to get stock status
   const stockStatus = getStockStatus({
     quantity,
     reserved_quantity: reserved,
-    reorder_point: reorderPoint
+    reorder_point: reorderPoint,
   })
 
   // Only show indicator for non-normal stock levels
@@ -85,7 +96,7 @@ export function LowStockIndicator({
   }
 
   const baseConfig = stockStatusConfig[stockStatus] || stockStatusConfig.normal
-  
+
   // Add specific tooltip based on status
   const getTooltip = () => {
     switch (stockStatus) {
@@ -102,7 +113,7 @@ export function LowStockIndicator({
 
   const status = {
     ...baseConfig,
-    tooltip: getTooltip()
+    tooltip: getTooltip(),
   }
   const Icon = status.icon
 
@@ -124,9 +135,7 @@ export function LowStockIndicator({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
-          {content}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{content}</TooltipTrigger>
         <TooltipContent>
           <p>{status.tooltip}</p>
         </TooltipContent>
@@ -151,13 +160,13 @@ export function StockStatusBadge({
   // Use utility functions for consistency
   const availableQuantity = calculateAvailableQuantity({
     quantity,
-    reserved_quantity: reserved
+    reserved_quantity: reserved,
   })
-  
+
   const stockStatus = getStockStatus({
     quantity,
     reserved_quantity: reserved,
-    reorder_point: reorderPoint
+    reorder_point: reorderPoint,
   })
 
   // Use shared configuration
@@ -191,18 +200,18 @@ export function StockLevelBar({
   // Use utility function for available quantity
   const availableQuantity = calculateAvailableQuantity({
     quantity,
-    reserved_quantity: reserved
+    reserved_quantity: reserved,
   })
-  
+
   // Use utility function for stock status
   const stockStatus = getStockStatus({
     quantity,
     reserved_quantity: reserved,
-    reorder_point: reorderPoint
+    reorder_point: reorderPoint,
   })
-  
+
   const max = maxQuantity || Math.max(quantity * 1.5, reorderPoint * 2)
-  
+
   const availablePercentage = Math.min((availableQuantity / max) * 100, 100)
   const reservedPercentage = Math.min((reserved / max) * 100, 100)
   const reorderPercentage = (reorderPoint / max) * 100
@@ -212,9 +221,9 @@ export function StockLevelBar({
     out_of_stock: 'bg-red-500',
     critical: 'bg-red-500',
     low: 'bg-yellow-500',
-    normal: 'bg-green-500'
+    normal: 'bg-green-500',
   }
-  
+
   const getBarColor = () => barColorMap[stockStatus] || barColorMap.normal
 
   return (
@@ -226,27 +235,30 @@ export function StockLevelBar({
           style={{ left: `${reorderPercentage}%` }}
           title={`Reorder point: ${reorderPoint}`}
         />
-        
+
         {/* Reserved quantity */}
         {reserved > 0 && (
           <div
             className="absolute top-0 bottom-0 bg-orange-300"
-            style={{ 
+            style={{
               left: `${availablePercentage}%`,
-              width: `${reservedPercentage}%` 
+              width: `${reservedPercentage}%`,
             }}
             title={`Reserved: ${reserved}`}
           />
         )}
-        
+
         {/* Available quantity */}
         <div
-          className={cn('absolute top-0 bottom-0 transition-all duration-300', getBarColor())}
+          className={cn(
+            'absolute top-0 bottom-0 transition-all duration-300',
+            getBarColor()
+          )}
           style={{ width: `${availablePercentage}%` }}
           title={`Available: ${availableQuantity}`}
         />
       </div>
-      
+
       {showLabels && (
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>0</span>

@@ -2,16 +2,22 @@
 
 // Internal modules
 import { createClient } from '@/lib/supabase/server'
+import {
+  IntegrationError,
+  type IntegrationPlatformType,
+} from '@/types/integration.types'
+import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
 import { BaseConnector } from '../base-connector'
-import { NetSuiteAuth } from './auth'
+// Types
+import type {
+  ConnectorConfig,
+  SyncOptions,
+  SyncResult,
+} from '../base-connector'
 import { NetSuiteApiClient } from './api-client'
+import { NetSuiteAuth } from './auth'
 import { NetSuiteQueries } from './queries'
 import { NetSuiteTransformers } from './transformers'
-
-// Types
-import type { ConnectorConfig, SyncOptions, SyncResult } from '../base-connector'
-import { IntegrationError, type IntegrationPlatformType } from '@/types/integration.types'
-import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
 
 export class NetSuiteConnector extends BaseConnector {
   private auth: NetSuiteAuth
@@ -27,38 +33,40 @@ export class NetSuiteConnector extends BaseConnector {
 
   constructor(config: ConnectorConfig) {
     super(config)
-    
+
     // Parse NetSuite-specific config
     this.netsuiteConfig = config.settings as NetSuiteIntegrationConfig
-    
+
     // Initialize components
     this.auth = new NetSuiteAuth(
       config.integrationId,
       config.organizationId,
       this.netsuiteConfig
     )
-    
+
     this.client = new NetSuiteApiClient(
       this.auth,
       this.netsuiteConfig.account_id,
       this.netsuiteConfig.datacenter_url,
       this.rateLimiter
     )
-    
+
     this.queries = new NetSuiteQueries()
-    this.transformers = new NetSuiteTransformers(this.netsuiteConfig.field_mappings)
+    this.transformers = new NetSuiteTransformers(
+      this.netsuiteConfig.field_mappings
+    )
   }
 
   async authenticate(): Promise<void> {
     try {
       this.logger.info('Authenticating with NetSuite')
-      
+
       // Initialize auth with stored credentials
       await this.auth.initialize()
-      
+
       // Test authentication by getting a valid token
       await this.auth.getValidAccessToken()
-      
+
       this.emit('authenticated', { integrationId: this.config.integrationId })
       this.logger.info('NetSuite authentication successful')
     } catch (error) {
@@ -70,12 +78,12 @@ export class NetSuiteConnector extends BaseConnector {
   async testConnection(): Promise<boolean> {
     try {
       this.logger.debug('Testing NetSuite connection')
-      
+
       // Execute a simple SuiteQL query to test connectivity
       const result = await this.client.executeSuiteQL(
         'SELECT id FROM item WHERE ROWNUM <= 1'
       )
-      
+
       this.logger.info('NetSuite connection test successful')
       return result.items.length >= 0
     } catch (error) {
@@ -89,15 +97,16 @@ export class NetSuiteConnector extends BaseConnector {
       const startTime = Date.now()
       let totalProcessed = 0
       let totalFailed = 0
-      const errors: Array<{ item_id?: string; error: string; details?: any }> = []
+      const errors: Array<{ item_id?: string; error: string; details?: any }> =
+        []
 
       try {
         this.logger.info('Starting NetSuite product sync', options)
-        
+
         // Get sync state
         const syncState = await this.getSyncState('product')
         const lastSyncDate = syncState?.last_sync_date || new Date(0)
-        
+
         // Build query with pagination
         let hasMore = true
         let offset = options?.cursor ? parseInt(options.cursor) : 0
@@ -112,7 +121,7 @@ export class NetSuiteConnector extends BaseConnector {
           })
 
           this.logger.debug('Executing product query', { offset, limit })
-          
+
           // Execute query with rate limiting
           const result = await this.withRateLimit(
             () => this.client.executeSuiteQL(query),
@@ -129,7 +138,7 @@ export class NetSuiteConnector extends BaseConnector {
             try {
               // Transform NetSuite item to TruthSource product
               const product = await this.transformers.transformProduct(item)
-              
+
               // Save to database
               await this.saveProduct(product)
               totalProcessed++
@@ -140,7 +149,7 @@ export class NetSuiteConnector extends BaseConnector {
                   current: totalProcessed,
                   total: -1, // Unknown total
                 })
-                
+
                 this.logger.debug('Product sync progress', {
                   processed: totalProcessed,
                   failed: totalFailed,
@@ -153,7 +162,7 @@ export class NetSuiteConnector extends BaseConnector {
                 error: error instanceof Error ? error.message : String(error),
                 details: item,
               })
-              
+
               this.logger.error('Failed to sync product', {
                 itemId: item.itemid,
                 error,
@@ -208,11 +217,12 @@ export class NetSuiteConnector extends BaseConnector {
       const startTime = Date.now()
       let totalProcessed = 0
       let totalFailed = 0
-      const errors: Array<{ item_id?: string; error: string; details?: any }> = []
+      const errors: Array<{ item_id?: string; error: string; details?: any }> =
+        []
 
       try {
         this.logger.info('Starting NetSuite inventory sync', options)
-        
+
         // Get all locations first
         const locations = await this.getLocations()
         this.logger.debug(`Found ${locations.length} locations`)
@@ -220,7 +230,9 @@ export class NetSuiteConnector extends BaseConnector {
         // Sync inventory for each location
         for (const location of locations) {
           if (!location.makeinventoryavailable) {
-            this.logger.debug(`Skipping location ${location.name} - inventory not available`)
+            this.logger.debug(
+              `Skipping location ${location.name} - inventory not available`
+            )
             continue
           }
 
@@ -229,14 +241,17 @@ export class NetSuiteConnector extends BaseConnector {
             modifiedAfter: options?.filters?.modifiedAfter,
           })
 
-          const result = await this.withRateLimit(
-            () => this.client.executeSuiteQL(query)
+          const result = await this.withRateLimit(() =>
+            this.client.executeSuiteQL(query)
           )
 
           for (const item of result.items) {
             try {
               // Transform and save inventory
-              const inventory = await this.transformers.transformInventory(item, location)
+              const inventory = await this.transformers.transformInventory(
+                item,
+                location
+              )
               await this.updateInventory(inventory)
               totalProcessed++
 
@@ -292,22 +307,23 @@ export class NetSuiteConnector extends BaseConnector {
       const startTime = Date.now()
       let totalProcessed = 0
       let totalFailed = 0
-      const errors: Array<{ item_id?: string; error: string; details?: any }> = []
+      const errors: Array<{ item_id?: string; error: string; details?: any }> =
+        []
 
       try {
         this.logger.info('Starting NetSuite pricing sync', options)
-        
+
         const query = this.queries.getPricingQuery({
           modifiedAfter: options?.filters?.modifiedAfter,
         })
 
-        const result = await this.withRateLimit(
-          () => this.client.executeSuiteQL(query)
+        const result = await this.withRateLimit(() =>
+          this.client.executeSuiteQL(query)
         )
 
         // Group pricing by item
         const pricingByItem = new Map<string, any[]>()
-        
+
         for (const priceRecord of result.items) {
           const itemId = priceRecord.itemid
           if (!pricingByItem.has(itemId)) {
@@ -319,7 +335,10 @@ export class NetSuiteConnector extends BaseConnector {
         // Process each item's pricing
         for (const [itemId, prices] of pricingByItem.entries()) {
           try {
-            const pricing = await this.transformers.transformPricing(itemId, prices)
+            const pricing = await this.transformers.transformPricing(
+              itemId,
+              prices
+            )
             await this.updatePricing(pricing)
             totalProcessed++
           } catch (error) {
@@ -375,13 +394,11 @@ export class NetSuiteConnector extends BaseConnector {
   }
 
   private async updateSyncState(entityType: string, updates: any) {
-    await this.supabase
-      .from('netsuite_sync_state')
-      .upsert({
-        integration_id: this.config.integrationId,
-        entity_type: entityType,
-        ...updates,
-      })
+    await this.supabase.from('netsuite_sync_state').upsert({
+      integration_id: this.config.integrationId,
+      entity_type: entityType,
+      ...updates,
+    })
   }
 
   private async getLocations() {
@@ -396,7 +413,7 @@ export class NetSuiteConnector extends BaseConnector {
         AND makeinventoryavailable = 'T'
       ORDER BY name
     `
-    
+
     const result = await this.client.executeSuiteQL(query)
     return result.items
   }
@@ -468,7 +485,9 @@ export class NetSuiteConnector extends BaseConnector {
       .eq('warehouse_id', warehouse.id)
 
     if (error) {
-      throw new Error(`Failed to update inventory for product ${inventory.product_sku} at warehouse ${inventory.warehouse_code}: ${error.message}`)
+      throw new Error(
+        `Failed to update inventory for product ${inventory.product_sku} at warehouse ${inventory.warehouse_code}: ${error.message}`
+      )
     }
   }
 
@@ -511,7 +530,6 @@ export class NetSuiteConnector extends BaseConnector {
     }
   }
 
-
   private async withRateLimit<T>(
     fn: () => Promise<T>,
     weight: number = 1
@@ -525,16 +543,17 @@ export class NetSuiteConnector extends BaseConnector {
   }
 
   private handleError(error: unknown, context: string): void {
-    const integrationError = error instanceof IntegrationError
-      ? error
-      : new IntegrationError(
-          context,
-          'NETSUITE_ERROR',
-          error instanceof Error ? error.message : String(error)
-        )
-    
+    const integrationError =
+      error instanceof IntegrationError
+        ? error
+        : new IntegrationError(
+            context,
+            'NETSUITE_ERROR',
+            error instanceof Error ? error.message : String(error)
+          )
+
     this.emit('error', integrationError)
-    this.logger.error(context, { 
+    this.logger.error(context, {
       error: integrationError.message,
       code: integrationError.code,
       details: integrationError.details,

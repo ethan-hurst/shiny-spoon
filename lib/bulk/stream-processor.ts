@@ -1,4 +1,4 @@
-import { Transform, Writable, Readable } from 'stream'
+import { Readable, Transform, Writable } from 'stream'
 import { pipeline } from 'stream/promises'
 import Papa from 'papaparse'
 
@@ -51,7 +51,12 @@ export class CSVStreamProcessor {
           // Check for parsing errors
           if (parsed.errors && parsed.errors.length > 0) {
             // Emit error event with details
-            this.emit('error', new Error(`CSV parsing error at line ${rowCount + 1}: ${parsed.errors[0].message}`))
+            this.emit(
+              'error',
+              new Error(
+                `CSV parsing error at line ${rowCount + 1}: ${parsed.errors[0].message}`
+              )
+            )
             // Skip this line and continue processing
             continue
           }
@@ -66,7 +71,12 @@ export class CSVStreamProcessor {
             continue
           }
 
-          if (parsed.data && parsed.data.length > 0 && parsed.data[0] && parsed.data[0].length > 0) {
+          if (
+            parsed.data &&
+            parsed.data.length > 0 &&
+            parsed.data[0] &&
+            parsed.data[0].length > 0
+          ) {
             const row = Object.fromEntries(
               headers.map((h, i) => [h, parsed.data[0][i] || ''])
             )
@@ -84,14 +94,19 @@ export class CSVStreamProcessor {
       flush(callback: Function) {
         if (buffer.trim() && headers) {
           const parsed = Papa.parse(buffer, { skipEmptyLines: true })
-          
+
           // Check for parsing errors in final buffer
           if (parsed.errors && parsed.errors.length > 0) {
-            this.emit('error', new Error(`CSV parsing error in final line: ${parsed.errors[0].message}`))
+            this.emit(
+              'error',
+              new Error(
+                `CSV parsing error in final line: ${parsed.errors[0].message}`
+              )
+            )
             callback()
             return
           }
-          
+
           if (parsed.data && parsed.data.length > 0 && parsed.data[0]) {
             const row = Object.fromEntries(
               headers.map((h, i) => [h, parsed.data[0][i]])
@@ -131,7 +146,7 @@ export class CSVStreamProcessor {
         callback()
       },
     })
-    
+
     return transform
   }
 
@@ -144,7 +159,12 @@ export class CSVStreamProcessor {
 
     return new Transform({
       objectMode: true,
-      async transform(this: Transform, batch: any[], encoding: string, callback: Function) {
+      async transform(
+        this: Transform,
+        batch: any[],
+        encoding: string,
+        callback: Function
+      ) {
         // Wait if too many concurrent operations
         while (processing.size >= concurrency) {
           await Promise.race(processing)
@@ -247,7 +267,7 @@ export async function processLargeCSV(
           // Log the error but let individual results determine the count
           console.error('Batch processing error:', result.error)
         }
-        
+
         if (result.results && Array.isArray(result.results)) {
           // Count individual record results
           stats.successful += result.results.filter((r) => r.success).length

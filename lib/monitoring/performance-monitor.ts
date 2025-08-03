@@ -73,15 +73,13 @@ export class PerformanceMonitor {
     this.metrics.push(metric)
 
     // Store in database for historical analysis
-    await this.supabase
-      .from('performance_metrics')
-      .insert({
-        name,
-        value,
-        unit,
-        tags,
-        timestamp: metric.timestamp.toISOString(),
-      })
+    await this.supabase.from('performance_metrics').insert({
+      name,
+      value,
+      unit,
+      tags,
+      timestamp: metric.timestamp.toISOString(),
+    })
 
     // Check for alerts
     await this.checkAlerts(metric)
@@ -156,17 +154,15 @@ export class PerformanceMonitor {
       this.alerts.push(alert)
 
       // Store alert in database
-      await this.supabase
-        .from('performance_alerts')
-        .insert({
-          metric: alert.metric,
-          threshold: alert.threshold,
-          current_value: alert.currentValue,
-          severity: alert.severity,
-          message: alert.message,
-          timestamp: alert.timestamp.toISOString(),
-          resolved: alert.resolved,
-        })
+      await this.supabase.from('performance_alerts').insert({
+        metric: alert.metric,
+        threshold: alert.threshold,
+        current_value: alert.currentValue,
+        severity: alert.severity,
+        message: alert.message,
+        timestamp: alert.timestamp.toISOString(),
+        resolved: alert.resolved,
+      })
 
       // Send notification for critical alerts
       if (severity === 'critical') {
@@ -183,22 +179,20 @@ export class PerformanceMonitor {
     console.error('🚨 CRITICAL PERFORMANCE ALERT:', alert.message)
 
     // Send email notification to admins
-    await this.supabase
-      .from('email_queue')
-      .insert({
-        to: process.env.ADMIN_EMAIL || 'admin@truthsource.com',
-        subject: `🚨 Critical Performance Alert: ${alert.metric}`,
-        template: 'performance_alert',
-        data: {
-          metric: alert.metric,
-          current_value: alert.currentValue,
-          threshold: alert.threshold,
-          severity: alert.severity,
-          message: alert.message,
-          timestamp: alert.timestamp.toISOString(),
-        },
-        status: 'pending',
-      })
+    await this.supabase.from('email_queue').insert({
+      to: process.env.ADMIN_EMAIL || 'admin@truthsource.com',
+      subject: `🚨 Critical Performance Alert: ${alert.metric}`,
+      template: 'performance_alert',
+      data: {
+        metric: alert.metric,
+        current_value: alert.currentValue,
+        threshold: alert.threshold,
+        severity: alert.severity,
+        message: alert.message,
+        timestamp: alert.timestamp.toISOString(),
+      },
+      status: 'pending',
+    })
   }
 
   /**
@@ -217,13 +211,15 @@ export class PerformanceMonitor {
       .lte('timestamp', endTime.toISOString())
       .order('timestamp', { ascending: true })
 
-    return data?.map((row: any) => ({
-      name: row.name,
-      value: row.value,
-      unit: row.unit,
-      timestamp: new Date(row.timestamp),
-      tags: row.tags,
-    })) || []
+    return (
+      data?.map((row: any) => ({
+        name: row.name,
+        value: row.value,
+        unit: row.unit,
+        timestamp: new Date(row.timestamp),
+        tags: row.tags,
+      })) || []
+    )
   }
 
   /**
@@ -236,16 +232,18 @@ export class PerformanceMonitor {
       .eq('resolved', false)
       .order('timestamp', { ascending: false })
 
-    return data?.map((row: any) => ({
-      id: row.id,
-      metric: row.metric,
-      threshold: row.threshold,
-      currentValue: row.current_value,
-      severity: row.severity,
-      message: row.message,
-      timestamp: new Date(row.timestamp),
-      resolved: row.resolved,
-    })) || []
+    return (
+      data?.map((row: any) => ({
+        id: row.id,
+        metric: row.metric,
+        threshold: row.threshold,
+        currentValue: row.current_value,
+        severity: row.severity,
+        message: row.message,
+        timestamp: new Date(row.timestamp),
+        resolved: row.resolved,
+      })) || []
+    )
   }
 
   /**
@@ -258,7 +256,7 @@ export class PerformanceMonitor {
       .eq('id', alertId)
 
     // Remove from local alerts
-    this.alerts = this.alerts.filter(alert => alert.id !== alertId)
+    this.alerts = this.alerts.filter((alert) => alert.id !== alertId)
   }
 
   /**
@@ -279,16 +277,27 @@ export class PerformanceMonitor {
       oneHourAgo,
       now
     )
-    const avgResponseTime = responseTimeMetrics.length > 0
-      ? responseTimeMetrics.reduce((sum, m) => sum + m.value, 0) / responseTimeMetrics.length
-      : 0
+    const avgResponseTime =
+      responseTimeMetrics.length > 0
+        ? responseTimeMetrics.reduce((sum, m) => sum + m.value, 0) /
+          responseTimeMetrics.length
+        : 0
 
     // Get error rate
-    const errorMetrics = await this.getMetrics('api.error_rate', oneHourAgo, now)
-    const totalRequests = await this.getMetrics('api.request_count', oneHourAgo, now)
-    const errorRate = totalRequests.length > 0
-      ? (errorMetrics.length / totalRequests.length) * 100
-      : 0
+    const errorMetrics = await this.getMetrics(
+      'api.error_rate',
+      oneHourAgo,
+      now
+    )
+    const totalRequests = await this.getMetrics(
+      'api.request_count',
+      oneHourAgo,
+      now
+    )
+    const errorRate =
+      totalRequests.length > 0
+        ? (errorMetrics.length / totalRequests.length) * 100
+        : 0
 
     // Get active alerts
     const activeAlerts = await this.getActiveAlerts()
@@ -332,7 +341,7 @@ export function withPerformanceMonitoring<T extends (...args: any[]) => any>(
       throw err
     } finally {
       const duration = Date.now() - startTime
-      
+
       // Record performance metric
       if (performanceMonitor) {
         await performanceMonitor.recordMetric(metricName, duration, 'ms', {
@@ -341,4 +350,4 @@ export function withPerformanceMonitoring<T extends (...args: any[]) => any>(
       }
     }
   }) as T
-} 
+}

@@ -1,8 +1,8 @@
 // PRP-016: Data Accuracy Monitor - Alert Detail Page
 import { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { AlertDetailView } from '@/components/features/monitoring/alert-detail-view'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: 'Alert Details | TruthSource',
@@ -15,11 +15,15 @@ interface AlertDetailPageProps {
   }
 }
 
-export default async function AlertDetailPage({ params }: AlertDetailPageProps) {
+export default async function AlertDetailPage({
+  params,
+}: AlertDetailPageProps) {
   const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) {
     redirect('/login')
   }
@@ -28,7 +32,8 @@ export default async function AlertDetailPage({ params }: AlertDetailPageProps) 
   try {
     const { data: alert, error: alertError } = await supabase
       .from('alerts')
-      .select(`
+      .select(
+        `
         *,
         alert_rules!inner(
           id,
@@ -45,7 +50,8 @@ export default async function AlertDetailPage({ params }: AlertDetailPageProps) 
           discrepancies_found,
           completed_at
         )
-      `)
+      `
+      )
       .eq('id', params.alertId)
       .single()
 
@@ -74,7 +80,7 @@ export default async function AlertDetailPage({ params }: AlertDetailPageProps) 
         .eq('accuracy_check_id', alert.accuracy_check_id)
         .order('severity', { ascending: false })
         .limit(20)
-      
+
       if (discrepError) {
         console.error('Error fetching discrepancies:', discrepError)
       }

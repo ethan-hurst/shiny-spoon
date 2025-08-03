@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import type { Row } from '@tanstack/react-table'
 import { formatDistanceToNow } from 'date-fns'
 import {
   AlertCircle,
@@ -23,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { DataTable } from '@/components/ui/data-table'
 import {
   Dialog,
   DialogContent,
@@ -30,14 +32,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { DataTable } from '@/components/ui/data-table'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { createBrowserClient } from '@/lib/supabase/client'
+import type { BulkOperation } from '@/types/bulk-operations.types'
 import { BulkProgressTracker } from './bulk-progress-tracker'
 import { BulkUploadDialog } from './bulk-upload-dialog'
-import type { BulkOperation } from '@/types/bulk-operations.types'
-import type { Row } from '@tanstack/react-table'
 
 interface ErrorLogEntry {
   message: string
@@ -324,8 +324,8 @@ export function BulkOperationsDashboard() {
         </CardHeader>
         <CardContent>
           {operations && operations.length > 0 ? (
-            <DataTable 
-              columns={columns} 
+            <DataTable
+              columns={columns}
               data={operations || []}
               searchKey="file_name"
             />
@@ -336,8 +336,8 @@ export function BulkOperationsDashboard() {
               <p className="text-muted-foreground">
                 Start your first bulk operation to see it here.
               </p>
-              <Button 
-                onClick={() => setUploadDialogOpen(true)} 
+              <Button
+                onClick={() => setUploadDialogOpen(true)}
                 className="mt-4"
               >
                 <FileUp className="mr-2 h-4 w-4" />
@@ -392,17 +392,16 @@ export function BulkOperationsDashboard() {
             </div>
           </ScrollArea>
           <div className="flex justify-end space-x-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setErrorDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setErrorDialogOpen(false)}>
               Close
             </Button>
             <Button
               onClick={() => {
                 // Download error log as JSON
                 const dataStr = JSON.stringify(selectedErrorLog, null, 2)
-                const dataBlob = new Blob([dataStr], { type: 'application/json' })
+                const dataBlob = new Blob([dataStr], {
+                  type: 'application/json',
+                })
                 const url = URL.createObjectURL(dataBlob)
                 const link = document.createElement('a')
                 link.href = url

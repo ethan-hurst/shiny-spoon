@@ -1,7 +1,7 @@
 // PRP-014: Shopify Bulk Operations Handler
-import { ShopifyApiClient } from './api-client'
-import { ShopifyBulkOperation, type SyncResult } from '@/types/shopify.types'
 import { createClient } from '@/lib/supabase/server'
+import { ShopifyBulkOperation, type SyncResult } from '@/types/shopify.types'
+import { ShopifyApiClient } from './api-client'
 
 export class BulkOperationManager {
   constructor(
@@ -14,10 +14,10 @@ export class BulkOperationManager {
    */
   async createBulkQuery(query: string): Promise<ShopifyBulkOperation> {
     const operation = await this.client.bulkOperation(query)
-    
+
     // Store bulk operation ID for tracking
     await this.saveBulkOperationState(operation.id, operation.status)
-    
+
     return operation
   }
 
@@ -32,10 +32,10 @@ export class BulkOperationManager {
       onProgress?: (status: string) => void
     } = {}
   ): Promise<ShopifyBulkOperation> {
-    const { 
+    const {
       checkInterval = 5000, // 5 seconds
       maxWaitTime = 3600000, // 1 hour
-      onProgress 
+      onProgress,
     } = options
 
     const startTime = Date.now()
@@ -43,7 +43,7 @@ export class BulkOperationManager {
 
     while (true) {
       const operation = await this.client.getBulkOperationStatus(operationId)
-      
+
       // Update status if changed
       if (operation.status !== lastStatus) {
         lastStatus = operation.status
@@ -52,7 +52,11 @@ export class BulkOperationManager {
       }
 
       // Check if completed
-      if (['COMPLETED', 'FAILED', 'CANCELLED', 'EXPIRED'].includes(operation.status)) {
+      if (
+        ['COMPLETED', 'FAILED', 'CANCELLED', 'EXPIRED'].includes(
+          operation.status
+        )
+      ) {
         return operation
       }
 
@@ -62,7 +66,7 @@ export class BulkOperationManager {
       }
 
       // Wait before next check
-      await new Promise(resolve => setTimeout(resolve, checkInterval))
+      await new Promise((resolve) => setTimeout(resolve, checkInterval))
     }
   }
 
@@ -82,15 +86,17 @@ export class BulkOperationManager {
       // Fetch JSONL file with streaming
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout for bulk downloads
-      
+
       const response = await fetch(url, {
-        signal: controller.signal
+        signal: controller.signal,
       })
-      
+
       clearTimeout(timeoutId)
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch bulk operation results: ${response.statusText}`)
+        throw new Error(
+          `Failed to fetch bulk operation results: ${response.statusText}`
+        )
       }
 
       // Stream processing implementation
@@ -101,10 +107,10 @@ export class BulkOperationManager {
 
       const decoder = new TextDecoder()
       let buffer = ''
-      
+
       while (true) {
         const { done, value } = await reader.read()
-        
+
         if (done) {
           // Process any remaining data in buffer
           if (buffer.trim()) {
@@ -122,15 +128,15 @@ export class BulkOperationManager {
 
         // Decode chunk and add to buffer
         buffer += decoder.decode(value, { stream: true })
-        
+
         // Process complete lines
         const lines = buffer.split('\n')
         buffer = lines.pop() || '' // Keep incomplete line in buffer
-        
+
         // Process each complete line
         for (const line of lines) {
           if (!line.trim()) continue
-          
+
           try {
             const item = JSON.parse(line) as T
             await processor(item)
@@ -154,10 +160,10 @@ export class BulkOperationManager {
         items_processed: totalProcessed,
         items_failed: totalFailed,
         duration_ms: duration,
-        errors: errors.map(e => ({ 
-          message: e.message, 
-          code: 'BULK_PROCESS_ERROR' 
-        }))
+        errors: errors.map((e) => ({
+          message: e.message,
+          code: 'BULK_PROCESS_ERROR',
+        })),
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -186,10 +192,10 @@ export class BulkOperationManager {
     completed_at?: string
   }): Promise<void> {
     const operationId = payload.admin_graphql_api_id
-    
+
     // Update operation state
     await this.updateBulkOperationState(
-      operationId, 
+      operationId,
       payload.status,
       payload.url,
       payload.error_code
@@ -205,24 +211,28 @@ export class BulkOperationManager {
         operation_id: operationId,
         status: payload.status,
         error_code: payload.error_code,
-        completed_at: payload.completed_at
-      }
+        completed_at: payload.completed_at,
+      },
     })
   }
 
   /**
    * Create bulk mutation for updating products
    */
-  createBulkProductUpdate(products: Array<{
-    id: string
-    title?: string
-    descriptionHtml?: string
-    vendor?: string
-    productType?: string
-    tags?: string[]
-    status?: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'
-  }>): { mutation: string; variables: Record<string, any> } {
-    const mutations = products.map((product, index) => `
+  createBulkProductUpdate(
+    products: Array<{
+      id: string
+      title?: string
+      descriptionHtml?: string
+      vendor?: string
+      productType?: string
+      tags?: string[]
+      status?: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'
+    }>
+  ): { mutation: string; variables: Record<string, any> } {
+    const mutations = products
+      .map(
+        (product, index) => `
       product${index}: productUpdate(
         input: $input${index}
       ) {
@@ -234,42 +244,50 @@ export class BulkOperationManager {
           message
         }
       }
-    `).join('\n')
+    `
+      )
+      .join('\n')
 
     const variables: Record<string, any> = {}
-    
+
     products.forEach((product, index) => {
       const input: Record<string, unknown> = { id: product.id }
-      
+
       if (product.title !== undefined) input.title = product.title
-      if (product.descriptionHtml !== undefined) input.descriptionHtml = product.descriptionHtml
+      if (product.descriptionHtml !== undefined)
+        input.descriptionHtml = product.descriptionHtml
       if (product.vendor !== undefined) input.vendor = product.vendor
-      if (product.productType !== undefined) input.productType = product.productType
+      if (product.productType !== undefined)
+        input.productType = product.productType
       if (product.tags !== undefined) input.tags = product.tags
       if (product.status !== undefined) input.status = product.status
-      
+
       variables[`input${index}`] = input
     })
 
-    const variableDeclarations = products.map((_, index) => 
-      `$input${index}: ProductInput!`
-    ).join(', ')
+    const variableDeclarations = products
+      .map((_, index) => `$input${index}: ProductInput!`)
+      .join(', ')
 
     return {
       mutation: `mutation BulkProductUpdate(${variableDeclarations}) { ${mutations} }`,
-      variables
+      variables,
     }
   }
 
   /**
    * Create bulk mutation for inventory adjustments
    */
-  createBulkInventoryAdjust(adjustments: Array<{
-    inventoryItemId: string
-    locationId: string
-    available: number
-  }>): string {
-    const mutations = adjustments.map((adj, index) => `
+  createBulkInventoryAdjust(
+    adjustments: Array<{
+      inventoryItemId: string
+      locationId: string
+      available: number
+    }>
+  ): string {
+    const mutations = adjustments
+      .map(
+        (adj, index) => `
       adjust${index}: inventoryAdjustQuantities(
         input: {
           reason: "correction"
@@ -296,7 +314,9 @@ export class BulkOperationManager {
           message
         }
       }
-    `).join('\n')
+    `
+      )
+      .join('\n')
 
     return `mutation { ${mutations} }`
   }
@@ -307,12 +327,12 @@ export class BulkOperationManager {
   async resumeOperation(operationId: string): Promise<ShopifyBulkOperation> {
     // Check current status
     const operation = await this.client.getBulkOperationStatus(operationId)
-    
+
     if (operation.status === 'RUNNING') {
       // Already running, just wait for completion
       return await this.waitForCompletion(operationId)
     }
-    
+
     if (operation.status === 'COMPLETED' && operation.url) {
       // Already completed, return as is
       return operation
@@ -337,19 +357,17 @@ export class BulkOperationManager {
     errorCode?: string
   ): Promise<void> {
     const supabase = await createClient()
-    
-    await supabase
-      .from('shopify_sync_state')
-      .upsert({
-        integration_id: this.integrationId,
-        entity_type: 'bulk_operation',
-        bulk_operation_id: operationId,
-        last_sync_at: new Date().toISOString(),
-        total_synced: 0,
-        total_failed: 0,
-        last_error: errorCode,
-        metadata: { status, url }
-      })
+
+    await supabase.from('shopify_sync_state').upsert({
+      integration_id: this.integrationId,
+      entity_type: 'bulk_operation',
+      bulk_operation_id: operationId,
+      last_sync_at: new Date().toISOString(),
+      total_synced: 0,
+      total_failed: 0,
+      last_error: errorCode,
+      metadata: { status, url },
+    })
   }
 
   private async updateBulkOperationState(
@@ -359,9 +377,9 @@ export class BulkOperationManager {
     errorCode?: string
   ): Promise<void> {
     const supabase = await createClient()
-    
+
     const updates: any = {
-      metadata: { status }
+      metadata: { status },
     }
 
     if (url) {
@@ -385,7 +403,7 @@ export class BulkOperationManager {
 
   private async emitProgress(current: number, total: number): Promise<void> {
     const supabase = await createClient()
-    
+
     // Log progress
     await supabase.rpc('log_shopify_sync_activity', {
       p_integration_id: this.integrationId,
@@ -394,8 +412,8 @@ export class BulkOperationManager {
       p_details: {
         current,
         total,
-        percentage: Math.round((current / total) * 100)
-      }
+        percentage: Math.round((current / total) * 100),
+      },
     })
   }
 
@@ -406,7 +424,7 @@ export class BulkOperationManager {
     // Basic estimation based on query complexity
     const connectionCount = (query.match(/first:\s*\d+/g) || []).length
     const fieldCount = (query.match(/{[^}]+}/g) || []).length
-    
+
     // Bulk operations have a base cost of 10
     return 10 + connectionCount * 2 + Math.ceil(fieldCount / 10)
   }
@@ -414,12 +432,15 @@ export class BulkOperationManager {
   /**
    * Check if bulk operation is needed based on data size
    */
-  async shouldUseBulkOperation(entityType: string, estimatedCount: number): Promise<boolean> {
+  async shouldUseBulkOperation(
+    entityType: string,
+    estimatedCount: number
+  ): Promise<boolean> {
     // Use bulk operations for:
     // - Initial sync (no last sync date)
     // - Large datasets (> 10,000 items)
     // - Full sync requests
-    
+
     if (estimatedCount > 10000) {
       return true
     }

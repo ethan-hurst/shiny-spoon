@@ -1,11 +1,11 @@
+import type { RateLimiter } from '@/lib/integrations/base-connector'
 import { NetSuiteApiClient } from '@/lib/integrations/netsuite/api-client'
 import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
 import {
+  AuthenticationError,
   IntegrationError,
   RateLimitError,
-  AuthenticationError
 } from '@/types/integration.types'
-import type { RateLimiter } from '@/lib/integrations/base-connector'
 
 // Mock dependencies
 jest.mock('@/lib/integrations/netsuite/auth')
@@ -19,7 +19,7 @@ describe('NetSuiteApiClient', () => {
   let apiClient: NetSuiteApiClient
   let mockAuth: jest.Mocked<NetSuiteAuth>
   let mockRateLimiter: jest.Mocked<RateLimiter>
-  
+
   const datacenterUrl = 'https://1234567.suitetalk.api.netsuite.com'
   const validToken = 'valid-access-token'
 
@@ -32,7 +32,7 @@ describe('NetSuiteApiClient', () => {
       refreshToken: jest.fn(),
       isTokenValid: jest.fn(),
       revokeToken: jest.fn(),
-      testConnection: jest.fn()
+      testConnection: jest.fn(),
     } as any
 
     // Mock Rate Limiter
@@ -40,7 +40,7 @@ describe('NetSuiteApiClient', () => {
       acquire: jest.fn().mockResolvedValue(undefined),
       release: jest.fn(),
       waitForAvailability: jest.fn().mockResolvedValue(undefined),
-      getQueueLength: jest.fn().mockReturnValue(0)
+      getQueueLength: jest.fn().mockReturnValue(0),
     }
 
     // Create API client instance
@@ -50,11 +50,16 @@ describe('NetSuiteApiClient', () => {
   describe('constructor', () => {
     it('should initialize with correct URLs', () => {
       expect(apiClient['baseUrl']).toBe(`${datacenterUrl}/services/rest`)
-      expect(apiClient['suiteQLUrl']).toBe(`${datacenterUrl}/services/rest/query/v1/suiteql`)
+      expect(apiClient['suiteQLUrl']).toBe(
+        `${datacenterUrl}/services/rest/query/v1/suiteql`
+      )
     })
 
     it('should work without rate limiter', () => {
-      const clientWithoutRateLimit = new NetSuiteApiClient(mockAuth, datacenterUrl)
+      const clientWithoutRateLimit = new NetSuiteApiClient(
+        mockAuth,
+        datacenterUrl
+      )
       expect(clientWithoutRateLimit).toBeInstanceOf(NetSuiteApiClient)
     })
   })
@@ -63,10 +68,10 @@ describe('NetSuiteApiClient', () => {
     const mockSuiteQLResponse = {
       items: [
         { id: '1', name: 'Product 1' },
-        { id: '2', name: 'Product 2' }
+        { id: '2', name: 'Product 2' },
       ],
       hasMore: false,
-      totalResults: 2
+      totalResults: 2,
     }
 
     beforeEach(() => {
@@ -74,30 +79,30 @@ describe('NetSuiteApiClient', () => {
         ok: true,
         json: jest.fn().mockResolvedValue(mockSuiteQLResponse),
         status: 200,
-        headers: new Map()
+        headers: new Map(),
       })
     })
 
     it('should execute SuiteQL query successfully', async () => {
-      const query = 'SELECT id, name FROM item WHERE itemtype = \'InvtPart\''
-      
+      const query = "SELECT id, name FROM item WHERE itemtype = 'InvtPart'"
+
       const result = await apiClient.executeSuiteQL(query)
 
       expect(mockAuth.getValidAccessToken).toHaveBeenCalled()
       expect(mockRateLimiter.acquire).toHaveBeenCalledWith(2)
       expect(mockRateLimiter.release).toHaveBeenCalledWith(2)
-      
+
       expect(mockFetch).toHaveBeenCalledWith(
         `${datacenterUrl}/services/rest/query/v1/suiteql`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${validToken}`,
+            Authorization: `Bearer ${validToken}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Prefer': 'respond-async,wait=10'
+            Accept: 'application/json',
+            Prefer: 'respond-async,wait=10',
           },
-          body: JSON.stringify({ q: query })
+          body: JSON.stringify({ q: query }),
         }
       )
 
@@ -105,71 +110,71 @@ describe('NetSuiteApiClient', () => {
         items: mockSuiteQLResponse.items,
         hasMore: false,
         totalResults: 2,
-        links: undefined
+        links: undefined,
       })
     })
 
     it('should add LIMIT clause when specified', async () => {
       const query = 'SELECT id, name FROM item'
-      
+
       await apiClient.executeSuiteQL(query, { limit: 500 })
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: `${query} LIMIT 500` })
+          body: JSON.stringify({ q: `${query} LIMIT 500` }),
         })
       )
     })
 
     it('should add OFFSET clause when specified', async () => {
       const query = 'SELECT id, name FROM item'
-      
+
       await apiClient.executeSuiteQL(query, { offset: 100 })
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: `${query} LIMIT 1000 OFFSET 100` })
+          body: JSON.stringify({ q: `${query} LIMIT 1000 OFFSET 100` }),
         })
       )
     })
 
     it('should add both LIMIT and OFFSET clauses', async () => {
       const query = 'SELECT id, name FROM item'
-      
+
       await apiClient.executeSuiteQL(query, { limit: 500, offset: 100 })
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: `${query} LIMIT 500 OFFSET 100` })
+          body: JSON.stringify({ q: `${query} LIMIT 500 OFFSET 100` }),
         })
       )
     })
 
     it('should not add LIMIT/OFFSET if already present in query', async () => {
       const query = 'SELECT id, name FROM item LIMIT 100 OFFSET 50'
-      
+
       await apiClient.executeSuiteQL(query, { limit: 500, offset: 100 })
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: query })
+          body: JSON.stringify({ q: query }),
         })
       )
     })
 
     it('should validate and clamp limit values', async () => {
       const query = 'SELECT id, name FROM item'
-      
+
       // Test minimum limit
       await apiClient.executeSuiteQL(query, { limit: 0 })
       expect(mockFetch).toHaveBeenLastCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: `${query} LIMIT 1` })
+          body: JSON.stringify({ q: `${query} LIMIT 1` }),
         })
       )
 
@@ -178,34 +183,34 @@ describe('NetSuiteApiClient', () => {
       expect(mockFetch).toHaveBeenLastCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: `${query} LIMIT 10000` })
+          body: JSON.stringify({ q: `${query} LIMIT 10000` }),
         })
       )
     })
 
     it('should validate and clamp offset values', async () => {
       const query = 'SELECT id, name FROM item'
-      
+
       await apiClient.executeSuiteQL(query, { offset: -100 })
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: `${query} LIMIT 1000 OFFSET 0` })
+          body: JSON.stringify({ q: `${query} LIMIT 1000 OFFSET 0` }),
         })
       )
     })
 
     it('should use stream mode when specified', async () => {
       const query = 'SELECT id, name FROM item'
-      
+
       await apiClient.executeSuiteQL(query, { preferQueryMode: 'stream' })
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            'Prefer': 'transient'
-          })
+            Prefer: 'transient',
+          }),
         })
       )
     })
@@ -213,15 +218,17 @@ describe('NetSuiteApiClient', () => {
     it('should detect hasMore from result count', async () => {
       const mockResponseWithLimit = {
         items: new Array(100).fill({ id: '1', name: 'Product' }),
-        hasMore: false
+        hasMore: false,
       }
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockResponseWithLimit)
+        json: jest.fn().mockResolvedValue(mockResponseWithLimit),
       })
 
-      const result = await apiClient.executeSuiteQL('SELECT * FROM item', { limit: 100 })
+      const result = await apiClient.executeSuiteQL('SELECT * FROM item', {
+        limit: 100,
+      })
 
       expect(result.hasMore).toBe(true) // Should be true because items.length === limit
     })
@@ -229,20 +236,28 @@ describe('NetSuiteApiClient', () => {
     it('should release rate limiter token on error', async () => {
       mockFetch.mockRejectedValue(new Error('Network error'))
 
-      await expect(apiClient.executeSuiteQL('SELECT * FROM item')).rejects.toThrow()
+      await expect(
+        apiClient.executeSuiteQL('SELECT * FROM item')
+      ).rejects.toThrow()
 
       expect(mockRateLimiter.acquire).toHaveBeenCalledWith(2)
       expect(mockRateLimiter.release).toHaveBeenCalledWith(2)
     })
 
     it('should work without rate limiter', async () => {
-      const clientWithoutRateLimit = new NetSuiteApiClient(mockAuth, datacenterUrl)
-      
-      const result = await clientWithoutRateLimit.executeSuiteQL('SELECT * FROM item')
+      const clientWithoutRateLimit = new NetSuiteApiClient(
+        mockAuth,
+        datacenterUrl
+      )
 
-      expect(result).toEqual(expect.objectContaining({
-        items: mockSuiteQLResponse.items
-      }))
+      const result =
+        await clientWithoutRateLimit.executeSuiteQL('SELECT * FROM item')
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          items: mockSuiteQLResponse.items,
+        })
+      )
     })
   })
 
@@ -252,7 +267,7 @@ describe('NetSuiteApiClient', () => {
     beforeEach(() => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockRecord)
+        json: jest.fn().mockResolvedValue(mockRecord),
       })
     })
 
@@ -267,9 +282,9 @@ describe('NetSuiteApiClient', () => {
         `${datacenterUrl}/services/rest/record/v1/item/123`,
         {
           headers: {
-            'Authorization': `Bearer ${validToken}`,
-            'Accept': 'application/json'
-          }
+            Authorization: `Bearer ${validToken}`,
+            Accept: 'application/json',
+          },
         }
       )
 
@@ -293,7 +308,7 @@ describe('NetSuiteApiClient', () => {
     beforeEach(() => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockCreatedRecord)
+        json: jest.fn().mockResolvedValue(mockCreatedRecord),
       })
     })
 
@@ -305,11 +320,11 @@ describe('NetSuiteApiClient', () => {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${validToken}`,
+            Authorization: `Bearer ${validToken}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            Accept: 'application/json',
           },
-          body: JSON.stringify(mockCreateData)
+          body: JSON.stringify(mockCreateData),
         }
       )
 
@@ -324,7 +339,7 @@ describe('NetSuiteApiClient', () => {
     beforeEach(() => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockUpdatedRecord)
+        json: jest.fn().mockResolvedValue(mockUpdatedRecord),
       })
     })
 
@@ -336,11 +351,11 @@ describe('NetSuiteApiClient', () => {
         {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${validToken}`,
+            Authorization: `Bearer ${validToken}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            Accept: 'application/json',
           },
-          body: JSON.stringify(mockUpdateData)
+          body: JSON.stringify(mockUpdateData),
         }
       )
 
@@ -352,7 +367,7 @@ describe('NetSuiteApiClient', () => {
     beforeEach(() => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       })
     })
 
@@ -364,9 +379,9 @@ describe('NetSuiteApiClient', () => {
         {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${validToken}`,
-            'Accept': 'application/json'
-          }
+            Authorization: `Bearer ${validToken}`,
+            Accept: 'application/json',
+          },
         }
       )
     })
@@ -378,15 +393,15 @@ describe('NetSuiteApiClient', () => {
         ok: true,
         json: jest.fn().mockResolvedValue({
           items: [{ id: '1' }],
-          hasMore: false
-        })
+          hasMore: false,
+        }),
       })
     })
 
     it('should execute batch queries sequentially', async () => {
       const queries = [
         'SELECT id FROM item WHERE id = 1',
-        'SELECT id FROM item WHERE id = 2'
+        'SELECT id FROM item WHERE id = 2',
       ]
 
       const results = await apiClient.executeBatchSuiteQL(queries)
@@ -402,7 +417,7 @@ describe('NetSuiteApiClient', () => {
     beforeEach(() => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockMetadata)
+        json: jest.fn().mockResolvedValue(mockMetadata),
       })
     })
 
@@ -413,9 +428,9 @@ describe('NetSuiteApiClient', () => {
         `${datacenterUrl}/services/rest/metadata-catalog/record/item`,
         {
           headers: {
-            'Authorization': `Bearer ${validToken}`,
-            'Accept': 'application/json'
-          }
+            Authorization: `Bearer ${validToken}`,
+            Accept: 'application/json',
+          },
         }
       )
 
@@ -426,13 +441,13 @@ describe('NetSuiteApiClient', () => {
   describe('searchRecords', () => {
     const mockSearchResponse = {
       items: [{ id: '1', name: 'Item 1' }],
-      hasMore: false
+      hasMore: false,
     }
 
     beforeEach(() => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockSearchResponse)
+        json: jest.fn().mockResolvedValue(mockSearchResponse),
       })
     })
 
@@ -440,22 +455,23 @@ describe('NetSuiteApiClient', () => {
       const conditions = {
         itemtype: 'InvtPart',
         inactive: false,
-        id: 123
+        id: 123,
       }
 
       const result = await apiClient.searchRecords('item', conditions, {
         select: ['id', 'itemid', 'displayname'],
         orderBy: 'itemid',
         limit: 100,
-        offset: 50
+        offset: 50,
       })
 
-      const expectedQuery = "SELECT id, itemid, displayname FROM item WHERE itemtype = 'InvtPart' AND inactive = 'F' AND id = 123 ORDER BY itemid LIMIT 100 OFFSET 50"
-      
+      const expectedQuery =
+        "SELECT id, itemid, displayname FROM item WHERE itemtype = 'InvtPart' AND inactive = 'F' AND id = 123 ORDER BY itemid LIMIT 100 OFFSET 50"
+
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: expectedQuery })
+          body: JSON.stringify({ q: expectedQuery }),
         })
       )
 
@@ -468,51 +484,53 @@ describe('NetSuiteApiClient', () => {
         price: 99.99,
         active: true,
         category: null,
-        ids: [1, 2, 3]
+        ids: [1, 2, 3],
       }
 
       await apiClient.searchRecords('item', conditions)
 
-      const expectedQuery = "SELECT * FROM item WHERE name = 'Test Item' AND price = 99.99 AND active = 'T' AND category IS NULL AND ids IN (1, 2, 3)"
-      
+      const expectedQuery =
+        "SELECT * FROM item WHERE name = 'Test Item' AND price = 99.99 AND active = 'T' AND category IS NULL AND ids IN (1, 2, 3)"
+
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: expectedQuery })
+          body: JSON.stringify({ q: expectedQuery }),
         })
       )
     })
 
     it('should handle string array conditions', async () => {
       const conditions = {
-        types: ['A', 'B', 'C']
+        types: ['A', 'B', 'C'],
       }
 
       await apiClient.searchRecords('item', conditions)
 
       const expectedQuery = "SELECT * FROM item WHERE types IN ('A', 'B', 'C')"
-      
+
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: expectedQuery })
+          body: JSON.stringify({ q: expectedQuery }),
         })
       )
     })
 
     it('should escape single quotes in string values', async () => {
       const conditions = {
-        name: "O'Reilly's Item"
+        name: "O'Reilly's Item",
       }
 
       await apiClient.searchRecords('item', conditions)
 
-      const expectedQuery = "SELECT * FROM item WHERE name = 'O''Reilly''s Item'"
-      
+      const expectedQuery =
+        "SELECT * FROM item WHERE name = 'O''Reilly''s Item'"
+
       expect(mockFetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: JSON.stringify({ q: expectedQuery })
+          body: JSON.stringify({ q: expectedQuery }),
         })
       )
     })
@@ -529,42 +547,42 @@ describe('NetSuiteApiClient', () => {
 
     it('should reject empty arrays in conditions', async () => {
       const conditions = {
-        ids: []
+        ids: [],
       }
 
-      await expect(
-        apiClient.searchRecords('item', conditions)
-      ).rejects.toThrow(IntegrationError)
+      await expect(apiClient.searchRecords('item', conditions)).rejects.toThrow(
+        IntegrationError
+      )
     })
 
     it('should reject undefined values in conditions', async () => {
       const conditions = {
-        name: undefined
+        name: undefined,
       }
 
-      await expect(
-        apiClient.searchRecords('item', conditions)
-      ).rejects.toThrow(IntegrationError)
+      await expect(apiClient.searchRecords('item', conditions)).rejects.toThrow(
+        IntegrationError
+      )
     })
 
     it('should reject unsupported data types in conditions', async () => {
       const conditions = {
-        data: { nested: 'object' }
+        data: { nested: 'object' },
       }
 
-      await expect(
-        apiClient.searchRecords('item', conditions)
-      ).rejects.toThrow(IntegrationError)
+      await expect(apiClient.searchRecords('item', conditions)).rejects.toThrow(
+        IntegrationError
+      )
     })
 
     it('should reject unsupported array element types', async () => {
       const conditions = {
-        data: [{ id: 1 }, { id: 2 }]
+        data: [{ id: 1 }, { id: 2 }],
       }
 
-      await expect(
-        apiClient.searchRecords('item', conditions)
-      ).rejects.toThrow(IntegrationError)
+      await expect(apiClient.searchRecords('item', conditions)).rejects.toThrow(
+        IntegrationError
+      )
     })
   })
 
@@ -577,13 +595,15 @@ describe('NetSuiteApiClient', () => {
         headers: new Map([['Retry-After', '120']]),
         json: jest.fn().mockResolvedValue({
           title: 'Rate limit exceeded',
-          detail: 'Too many requests'
-        })
+          detail: 'Too many requests',
+        }),
       }
 
       mockFetch.mockResolvedValue(errorResponse)
 
-      await expect(apiClient.getRecord('item', '123')).rejects.toThrow(RateLimitError)
+      await expect(apiClient.getRecord('item', '123')).rejects.toThrow(
+        RateLimitError
+      )
     })
 
     it('should handle authentication errors', async () => {
@@ -594,13 +614,15 @@ describe('NetSuiteApiClient', () => {
         headers: new Map(),
         json: jest.fn().mockResolvedValue({
           title: 'Authentication failed',
-          detail: 'Invalid access token'
-        })
+          detail: 'Invalid access token',
+        }),
       }
 
       mockFetch.mockResolvedValue(errorResponse)
 
-      await expect(apiClient.getRecord('item', '123')).rejects.toThrow(AuthenticationError)
+      await expect(apiClient.getRecord('item', '123')).rejects.toThrow(
+        AuthenticationError
+      )
     })
 
     it('should handle generic API errors', async () => {
@@ -612,13 +634,15 @@ describe('NetSuiteApiClient', () => {
         json: jest.fn().mockResolvedValue({
           title: 'Invalid request',
           detail: 'Missing required field',
-          'o:errorCode': 'INVALID_REQUEST'
-        })
+          'o:errorCode': 'INVALID_REQUEST',
+        }),
       }
 
       mockFetch.mockResolvedValue(errorResponse)
 
-      await expect(apiClient.getRecord('item', '123')).rejects.toThrow(IntegrationError)
+      await expect(apiClient.getRecord('item', '123')).rejects.toThrow(
+        IntegrationError
+      )
     })
 
     it('should handle errors with malformed JSON', async () => {
@@ -627,12 +651,14 @@ describe('NetSuiteApiClient', () => {
         status: 500,
         statusText: 'Internal Server Error',
         headers: new Map(),
-        json: jest.fn().mockRejectedValue(new Error('Invalid JSON'))
+        json: jest.fn().mockRejectedValue(new Error('Invalid JSON')),
       }
 
       mockFetch.mockResolvedValue(errorResponse)
 
-      await expect(apiClient.getRecord('item', '123')).rejects.toThrow(IntegrationError)
+      await expect(apiClient.getRecord('item', '123')).rejects.toThrow(
+        IntegrationError
+      )
     })
 
     it('should mark server errors as retryable', async () => {
@@ -641,7 +667,7 @@ describe('NetSuiteApiClient', () => {
         status: 500,
         statusText: 'Internal Server Error',
         headers: new Map(),
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       }
 
       mockFetch.mockResolvedValue(errorResponse)
@@ -660,26 +686,29 @@ describe('NetSuiteApiClient', () => {
       const mockResponses = [
         {
           items: [{ id: '1' }, { id: '2' }],
-          hasMore: true
+          hasMore: true,
         },
         {
           items: [{ id: '3' }, { id: '4' }],
-          hasMore: false
-        }
+          hasMore: false,
+        },
       ]
 
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
-          json: jest.fn().mockResolvedValue(mockResponses[0])
+          json: jest.fn().mockResolvedValue(mockResponses[0]),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: jest.fn().mockResolvedValue(mockResponses[1])
+          json: jest.fn().mockResolvedValue(mockResponses[1]),
         })
 
       const batches: any[][] = []
-      for await (const batch of apiClient.iterateSuiteQLResults('SELECT * FROM item', { pageSize: 2 })) {
+      for await (const batch of apiClient.iterateSuiteQLResults(
+        'SELECT * FROM item',
+        { pageSize: 2 }
+      )) {
         batches.push(batch)
       }
 
@@ -693,12 +722,14 @@ describe('NetSuiteApiClient', () => {
         ok: true,
         json: jest.fn().mockResolvedValue({
           items: [],
-          hasMore: false
-        })
+          hasMore: false,
+        }),
       })
 
       const batches: any[][] = []
-      for await (const batch of apiClient.iterateSuiteQLResults('SELECT * FROM item')) {
+      for await (const batch of apiClient.iterateSuiteQLResults(
+        'SELECT * FROM item'
+      )) {
         batches.push(batch)
       }
 
@@ -711,45 +742,44 @@ describe('NetSuiteApiClient', () => {
       const mockResponses = [
         {
           items: [{ id: '1' }, { id: '2' }],
-          hasMore: true
+          hasMore: true,
         },
         {
           items: [{ id: '3' }],
-          hasMore: false
-        }
+          hasMore: false,
+        },
       ]
 
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
-          json: jest.fn().mockResolvedValue(mockResponses[0])
+          json: jest.fn().mockResolvedValue(mockResponses[0]),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: jest.fn().mockResolvedValue(mockResponses[1])
+          json: jest.fn().mockResolvedValue(mockResponses[1]),
         })
 
       const results = await apiClient.getAllSuiteQLResults('SELECT * FROM item')
 
-      expect(results).toEqual([
-        { id: '1' },
-        { id: '2' },
-        { id: '3' }
-      ])
+      expect(results).toEqual([{ id: '1' }, { id: '2' }, { id: '3' }])
     })
 
     it('should respect maxResults limit', async () => {
       const mockResponse = {
         items: [{ id: '1' }, { id: '2' }, { id: '3' }],
-        hasMore: false
+        hasMore: false,
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockResponse)
+        json: jest.fn().mockResolvedValue(mockResponse),
       })
 
-      const results = await apiClient.getAllSuiteQLResults('SELECT * FROM item', { maxResults: 2 })
+      const results = await apiClient.getAllSuiteQLResults(
+        'SELECT * FROM item',
+        { maxResults: 2 }
+      )
 
       expect(results).toHaveLength(2)
       expect(results).toEqual([{ id: '1' }, { id: '2' }])
@@ -764,10 +794,10 @@ describe('NetSuiteApiClient', () => {
         'Item123',
         '_private',
         'table.column',
-        'schema.table'
+        'schema.table',
       ]
 
-      validIdentifiers.forEach(identifier => {
+      validIdentifiers.forEach((identifier) => {
         expect(() => apiClient['validateIdentifier'](identifier)).not.toThrow()
       })
     })
@@ -780,11 +810,13 @@ describe('NetSuiteApiClient', () => {
         'item table', // Spaces not allowed
         'item..column', // Double dots not allowed
         '.item', // Cannot start with dot
-        '' // Empty string
+        '', // Empty string
       ]
 
-      invalidIdentifiers.forEach(identifier => {
-        expect(() => apiClient['validateIdentifier'](identifier)).toThrow(IntegrationError)
+      invalidIdentifiers.forEach((identifier) => {
+        expect(() => apiClient['validateIdentifier'](identifier)).toThrow(
+          IntegrationError
+        )
       })
     })
   })
@@ -795,28 +827,34 @@ describe('NetSuiteApiClient', () => {
       // Mock successful responses for each operation
       const mockCreateResponse = { id: '123', name: 'Test Item' }
       const mockGetResponse = { id: '123', name: 'Test Item', status: 'active' }
-      const mockUpdateResponse = { id: '123', name: 'Updated Item', status: 'active' }
+      const mockUpdateResponse = {
+        id: '123',
+        name: 'Updated Item',
+        status: 'active',
+      }
 
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
-          json: jest.fn().mockResolvedValue(mockCreateResponse)
+          json: jest.fn().mockResolvedValue(mockCreateResponse),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: jest.fn().mockResolvedValue(mockGetResponse)
+          json: jest.fn().mockResolvedValue(mockGetResponse),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: jest.fn().mockResolvedValue(mockUpdateResponse)
+          json: jest.fn().mockResolvedValue(mockUpdateResponse),
         })
         .mockResolvedValueOnce({
           ok: true,
-          json: jest.fn().mockResolvedValue({})
+          json: jest.fn().mockResolvedValue({}),
         })
 
       // Create
-      const created = await apiClient.createRecord('item', { name: 'Test Item' })
+      const created = await apiClient.createRecord('item', {
+        name: 'Test Item',
+      })
       expect(created.id).toBe('123')
 
       // Read
@@ -824,7 +862,9 @@ describe('NetSuiteApiClient', () => {
       expect(fetched.status).toBe('active')
 
       // Update
-      const updated = await apiClient.updateRecord('item', '123', { name: 'Updated Item' })
+      const updated = await apiClient.updateRecord('item', '123', {
+        name: 'Updated Item',
+      })
       expect(updated.name).toBe('Updated Item')
 
       // Delete
@@ -836,7 +876,7 @@ describe('NetSuiteApiClient', () => {
     it('should handle rate limiting throughout workflow', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue({ items: [], hasMore: false })
+        json: jest.fn().mockResolvedValue({ items: [], hasMore: false }),
       })
 
       await apiClient.executeSuiteQL('SELECT * FROM item')

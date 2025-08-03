@@ -118,8 +118,19 @@ export interface ShopifyOrder {
   subtotalPrice: string
   totalTax: string
   currencyCode: string
-  financialStatus: 'PENDING' | 'AUTHORIZED' | 'PARTIALLY_PAID' | 'PAID' | 'PARTIALLY_REFUNDED' | 'REFUNDED' | 'VOIDED'
-  fulfillmentStatus: 'UNFULFILLED' | 'PARTIALLY_FULFILLED' | 'FULFILLED' | 'RESTOCKED'
+  financialStatus:
+    | 'PENDING'
+    | 'AUTHORIZED'
+    | 'PARTIALLY_PAID'
+    | 'PAID'
+    | 'PARTIALLY_REFUNDED'
+    | 'REFUNDED'
+    | 'VOIDED'
+  fulfillmentStatus:
+    | 'UNFULFILLED'
+    | 'PARTIALLY_FULFILLED'
+    | 'FULFILLED'
+    | 'RESTOCKED'
   lineItems: ShopifyConnection<ShopifyLineItem>
   customer?: ShopifyCustomer
   shippingAddress?: ShopifyAddress
@@ -229,7 +240,13 @@ export interface ShopifyCatalogGroup {
 
 export interface ShopifyBulkOperation {
   id: string
-  status: 'CREATED' | 'RUNNING' | 'COMPLETED' | 'CANCELED' | 'FAILED' | 'EXPIRED'
+  status:
+    | 'CREATED'
+    | 'RUNNING'
+    | 'COMPLETED'
+    | 'CANCELED'
+    | 'FAILED'
+    | 'EXPIRED'
   errorCode?: string
   createdAt: string
   completedAt?: string
@@ -288,10 +305,10 @@ export const ShopifyWebhookTopics = [
   'orders/cancelled',
   'customers/create',
   'customers/update',
-  'bulk_operations/finish'
+  'bulk_operations/finish',
 ] as const
 
-export type ShopifyWebhookTopic = typeof ShopifyWebhookTopics[number]
+export type ShopifyWebhookTopic = (typeof ShopifyWebhookTopics)[number]
 
 // ===============================
 // Configuration Types
@@ -317,12 +334,14 @@ export interface ShopifyIntegrationSettings {
 // Validation Schemas
 // ===============================
 
-export const shopifyWebhookPayloadSchema = z.object({
-  id: z.union([z.string(), z.number()]),
-  admin_graphql_api_id: z.string().optional(),
-  created_at: z.string().optional(),
-  updated_at: z.string().optional()
-}).passthrough()
+export const shopifyWebhookPayloadSchema = z
+  .object({
+    id: z.union([z.string(), z.number()]),
+    admin_graphql_api_id: z.string().optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+  })
+  .passthrough()
 
 export const shopifyProductWebhookSchema = shopifyWebhookPayloadSchema.extend({
   title: z.string(),
@@ -331,24 +350,26 @@ export const shopifyProductWebhookSchema = shopifyWebhookPayloadSchema.extend({
   product_type: z.string().optional(),
   status: z.enum(['active', 'archived', 'draft']),
   tags: z.string(),
-  variants: z.array(z.object({
-    id: z.number(),
-    product_id: z.number(),
-    title: z.string(),
-    sku: z.string(),
-    price: z.string(),
-    inventory_policy: z.enum(['deny', 'continue']),
-    inventory_management: z.enum(['shopify', 'not_managed']).nullable(),
-    weight: z.number().optional(),
-    weight_unit: z.string().optional()
-  }))
+  variants: z.array(
+    z.object({
+      id: z.number(),
+      product_id: z.number(),
+      title: z.string(),
+      sku: z.string(),
+      price: z.string(),
+      inventory_policy: z.enum(['deny', 'continue']),
+      inventory_management: z.enum(['shopify', 'not_managed']).nullable(),
+      weight: z.number().optional(),
+      weight_unit: z.string().optional(),
+    })
+  ),
 })
 
 export const shopifyInventoryWebhookSchema = z.object({
   inventory_item_id: z.number(),
   location_id: z.number(),
   available: z.number(),
-  updated_at: z.string()
+  updated_at: z.string(),
 })
 
 export const shopifyOrderWebhookSchema = shopifyWebhookPayloadSchema.extend({
@@ -360,20 +381,24 @@ export const shopifyOrderWebhookSchema = shopifyWebhookPayloadSchema.extend({
   currency: z.string(),
   financial_status: z.string(),
   fulfillment_status: z.string().nullable(),
-  line_items: z.array(z.object({
-    id: z.number(),
-    variant_id: z.number().nullable(),
-    title: z.string(),
-    quantity: z.number(),
-    price: z.string(),
-    sku: z.string().optional()
-  })),
-  customer: z.object({
-    id: z.number(),
-    email: z.string(),
-    first_name: z.string().optional(),
-    last_name: z.string().optional()
-  }).optional()
+  line_items: z.array(
+    z.object({
+      id: z.number(),
+      variant_id: z.number().nullable(),
+      title: z.string(),
+      quantity: z.number(),
+      price: z.string(),
+      sku: z.string().optional(),
+    })
+  ),
+  customer: z
+    .object({
+      id: z.number(),
+      email: z.string(),
+      first_name: z.string().optional(),
+      last_name: z.string().optional(),
+    })
+    .optional(),
 })
 
 // ===============================
@@ -415,33 +440,49 @@ export class ShopifyRateLimitError extends ShopifyAPIError {
 
 export function isShopifyProduct(obj: unknown): obj is ShopifyProduct {
   if (!obj || typeof obj !== 'object') return false
-  
+
   const product = obj as Record<string, unknown>
-  
+
   // Required fields
   if (typeof product.id !== 'string' || !product.id) return false
   if (typeof product.title !== 'string' || !product.title) return false
-  if (typeof product.status !== 'string' || !['ACTIVE', 'ARCHIVED', 'DRAFT'].includes(product.status as string)) return false
-  
+  if (
+    typeof product.status !== 'string' ||
+    !['ACTIVE', 'ARCHIVED', 'DRAFT'].includes(product.status as string)
+  )
+    return false
+
   // Optional fields with type checking
-  if (product.handle !== undefined && typeof product.handle !== 'string') return false
-  if (product.descriptionHtml !== undefined && typeof product.descriptionHtml !== 'string') return false
-  if (product.vendor !== undefined && typeof product.vendor !== 'string') return false
-  if (product.productType !== undefined && typeof product.productType !== 'string') return false
+  if (product.handle !== undefined && typeof product.handle !== 'string')
+    return false
+  if (
+    product.descriptionHtml !== undefined &&
+    typeof product.descriptionHtml !== 'string'
+  )
+    return false
+  if (product.vendor !== undefined && typeof product.vendor !== 'string')
+    return false
+  if (
+    product.productType !== undefined &&
+    typeof product.productType !== 'string'
+  )
+    return false
   // fix-60: proper type guard for tags array
   if (product.tags !== undefined) {
     if (!Array.isArray(product.tags)) return false
-    if (!product.tags.every(tag => typeof tag === 'string')) return false
+    if (!product.tags.every((tag) => typeof tag === 'string')) return false
   }
-  if (product.updatedAt !== undefined && typeof product.updatedAt !== 'string') return false
-  if (product.createdAt !== undefined && typeof product.createdAt !== 'string') return false
-  
+  if (product.updatedAt !== undefined && typeof product.updatedAt !== 'string')
+    return false
+  if (product.createdAt !== undefined && typeof product.createdAt !== 'string')
+    return false
+
   // Validate variants structure
   if (product.variants && typeof product.variants === 'object') {
     const variants = product.variants as Record<string, unknown>
     if (!variants.edges || !Array.isArray(variants.edges)) return false
   }
-  
+
   return true
 }
 
@@ -455,9 +496,9 @@ export function isShopifyProduct(obj: unknown): obj is ShopifyProduct {
  */
 export function isShopifyOrder(obj: unknown): obj is ShopifyOrder {
   if (!obj || typeof obj !== 'object') return false
-  
+
   const order = obj as Record<string, unknown>
-  
+
   // Required fields
   if (typeof order.id !== 'string' || !order.id) return false
   if (typeof order.name !== 'string' || !order.name) return false
@@ -466,24 +507,44 @@ export function isShopifyOrder(obj: unknown): obj is ShopifyOrder {
   if (typeof order.totalPrice !== 'string') return false
   if (typeof order.subtotalPrice !== 'string') return false
   if (typeof order.totalTax !== 'string') return false
-  if (typeof order.currencyCode !== 'string' || !order.currencyCode) return false
-  
+  if (typeof order.currencyCode !== 'string' || !order.currencyCode)
+    return false
+
   // Validate enums
-  const validFinancialStatuses = ['PENDING', 'AUTHORIZED', 'PARTIALLY_PAID', 'PAID', 'PARTIALLY_REFUNDED', 'REFUNDED', 'VOIDED']
-  const validFulfillmentStatuses = ['UNFULFILLED', 'PARTIALLY_FULFILLED', 'FULFILLED', 'RESTOCKED']
-  
-  if (typeof order.financialStatus !== 'string' || !validFinancialStatuses.includes(order.financialStatus as string)) {
+  const validFinancialStatuses = [
+    'PENDING',
+    'AUTHORIZED',
+    'PARTIALLY_PAID',
+    'PAID',
+    'PARTIALLY_REFUNDED',
+    'REFUNDED',
+    'VOIDED',
+  ]
+  const validFulfillmentStatuses = [
+    'UNFULFILLED',
+    'PARTIALLY_FULFILLED',
+    'FULFILLED',
+    'RESTOCKED',
+  ]
+
+  if (
+    typeof order.financialStatus !== 'string' ||
+    !validFinancialStatuses.includes(order.financialStatus as string)
+  ) {
     return false
   }
-  
-  if (order.fulfillmentStatus !== null && 
-      (typeof order.fulfillmentStatus !== 'string' || !validFulfillmentStatuses.includes(order.fulfillmentStatus as string))) {
+
+  if (
+    order.fulfillmentStatus !== null &&
+    (typeof order.fulfillmentStatus !== 'string' ||
+      !validFulfillmentStatuses.includes(order.fulfillmentStatus as string))
+  ) {
     return false
   }
-  
+
   // Optional fields with type checking
   if (order.email !== undefined && typeof order.email !== 'string') return false
-  
+
   // Validate lineItems structure
   if (order.lineItems && typeof order.lineItems === 'object') {
     const lineItems = order.lineItems as Record<string, unknown>
@@ -491,15 +552,17 @@ export function isShopifyOrder(obj: unknown): obj is ShopifyOrder {
   } else {
     return false // lineItems is required
   }
-  
+
   // Validate optional customer object
   if (order.customer !== undefined && order.customer !== null) {
     if (typeof order.customer !== 'object') return false
     const customer = order.customer as Record<string, unknown>
-    if (customer.id !== undefined && typeof customer.id !== 'string') return false
-    if (customer.email !== undefined && typeof customer.email !== 'string') return false
+    if (customer.id !== undefined && typeof customer.id !== 'string')
+      return false
+    if (customer.email !== undefined && typeof customer.email !== 'string')
+      return false
   }
-  
+
   return true
 }
 
@@ -513,62 +576,88 @@ export function isShopifyOrder(obj: unknown): obj is ShopifyOrder {
  */
 export function isShopifyCustomer(obj: unknown): obj is ShopifyCustomer {
   if (!obj || typeof obj !== 'object') return false
-  
+
   const customer = obj as Record<string, unknown>
-  
+
   // Required fields
   if (typeof customer.id !== 'string' || !customer.id) return false
   if (typeof customer.email !== 'string' || !customer.email) return false
   if (typeof customer.taxExempt !== 'boolean') return false
   // fix-60: proper type guard for tags array
   if (!Array.isArray(customer.tags)) return false
-  if (!customer.tags.every(tag => typeof tag === 'string')) return false
-  if (typeof customer.createdAt !== 'string' || !customer.createdAt) return false
-  if (typeof customer.updatedAt !== 'string' || !customer.updatedAt) return false
+  if (!customer.tags.every((tag) => typeof tag === 'string')) return false
+  if (typeof customer.createdAt !== 'string' || !customer.createdAt)
+    return false
+  if (typeof customer.updatedAt !== 'string' || !customer.updatedAt)
+    return false
   if (!Array.isArray(customer.addresses)) return false
-  
+
   // Optional fields with type checking
-  if (customer.firstName !== undefined && typeof customer.firstName !== 'string') return false
-  if (customer.lastName !== undefined && typeof customer.lastName !== 'string') return false
-  if (customer.phone !== undefined && typeof customer.phone !== 'string') return false
-  
+  if (
+    customer.firstName !== undefined &&
+    typeof customer.firstName !== 'string'
+  )
+    return false
+  if (customer.lastName !== undefined && typeof customer.lastName !== 'string')
+    return false
+  if (customer.phone !== undefined && typeof customer.phone !== 'string')
+    return false
+
   // Validate addresses array
   for (const address of customer.addresses as unknown[]) {
     if (!address || typeof address !== 'object') return false
     const addr = address as Record<string, unknown>
-    
+
     // All address fields are optional, but if present must be strings
-    if (addr.address1 !== undefined && typeof addr.address1 !== 'string') return false
-    if (addr.address2 !== undefined && typeof addr.address2 !== 'string') return false
+    if (addr.address1 !== undefined && typeof addr.address1 !== 'string')
+      return false
+    if (addr.address2 !== undefined && typeof addr.address2 !== 'string')
+      return false
     if (addr.city !== undefined && typeof addr.city !== 'string') return false
-    if (addr.province !== undefined && typeof addr.province !== 'string') return false
-    if (addr.provinceCode !== undefined && typeof addr.provinceCode !== 'string') return false
-    if (addr.country !== undefined && typeof addr.country !== 'string') return false
-    if (addr.countryCode !== undefined && typeof addr.countryCode !== 'string') return false
+    if (addr.province !== undefined && typeof addr.province !== 'string')
+      return false
+    if (
+      addr.provinceCode !== undefined &&
+      typeof addr.provinceCode !== 'string'
+    )
+      return false
+    if (addr.country !== undefined && typeof addr.country !== 'string')
+      return false
+    if (addr.countryCode !== undefined && typeof addr.countryCode !== 'string')
+      return false
     if (addr.zip !== undefined && typeof addr.zip !== 'string') return false
     if (addr.phone !== undefined && typeof addr.phone !== 'string') return false
-    if (addr.company !== undefined && typeof addr.company !== 'string') return false
+    if (addr.company !== undefined && typeof addr.company !== 'string')
+      return false
   }
-  
+
   // Validate optional company object
   if (customer.company !== undefined && customer.company !== null) {
     if (typeof customer.company !== 'object') return false
     const company = customer.company as Record<string, unknown>
     if (typeof company.id !== 'string' || !company.id) return false
     if (typeof company.name !== 'string' || !company.name) return false
-    if (company.externalId !== undefined && typeof company.externalId !== 'string') return false
-    if (company.note !== undefined && typeof company.note !== 'string') return false
-    if (typeof company.createdAt !== 'string' || !company.createdAt) return false
-    if (typeof company.updatedAt !== 'string' || !company.updatedAt) return false
+    if (
+      company.externalId !== undefined &&
+      typeof company.externalId !== 'string'
+    )
+      return false
+    if (company.note !== undefined && typeof company.note !== 'string')
+      return false
+    if (typeof company.createdAt !== 'string' || !company.createdAt)
+      return false
+    if (typeof company.updatedAt !== 'string' || !company.updatedAt)
+      return false
   }
-  
+
   // Validate optional catalogGroups structure
   if (customer.catalogGroups !== undefined && customer.catalogGroups !== null) {
     if (typeof customer.catalogGroups !== 'object') return false
     const catalogGroups = customer.catalogGroups as Record<string, unknown>
-    if (!catalogGroups.edges || !Array.isArray(catalogGroups.edges)) return false
+    if (!catalogGroups.edges || !Array.isArray(catalogGroups.edges))
+      return false
   }
-  
+
   return true
 }
 

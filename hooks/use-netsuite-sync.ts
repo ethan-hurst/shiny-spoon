@@ -1,5 +1,5 @@
 // Custom React Query hooks for NetSuite sync data
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createBrowserClient } from '@/lib/supabase/client'
 
 export interface SyncState {
@@ -30,7 +30,7 @@ export interface IntegrationLog {
  */
 export function useNetSuiteSyncStatus(integrationId: string) {
   const supabase = createBrowserClient()
-  
+
   return useQuery({
     queryKey: ['netsuite-sync-status', integrationId],
     queryFn: async () => {
@@ -39,7 +39,7 @@ export function useNetSuiteSyncStatus(integrationId: string) {
         .select('*')
         .eq('integration_id', integrationId)
         .order('entity_type')
-      
+
       if (error) throw error
       return data as SyncState[]
     },
@@ -57,7 +57,7 @@ export function useNetSuiteSyncStatus(integrationId: string) {
  */
 export function useNetSuiteLogs(integrationId: string, limit = 50) {
   const supabase = createBrowserClient()
-  
+
   return useQuery({
     queryKey: ['netsuite-logs', integrationId, limit],
     queryFn: async () => {
@@ -67,7 +67,7 @@ export function useNetSuiteLogs(integrationId: string, limit = 50) {
         .eq('integration_id', integrationId)
         .order('created_at', { ascending: false })
         .limit(limit)
-      
+
       if (error) throw error
       return data as IntegrationLog[]
     },
@@ -84,7 +84,7 @@ export function useNetSuiteLogs(integrationId: string, limit = 50) {
  */
 export function useRefreshSyncData(integrationId: string) {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async () => {
       // This is just a trigger to invalidate queries
@@ -92,8 +92,12 @@ export function useRefreshSyncData(integrationId: string) {
     },
     onSuccess: () => {
       // Invalidate both queries to force refresh
-      queryClient.invalidateQueries({ queryKey: ['netsuite-sync-status', integrationId] })
-      queryClient.invalidateQueries({ queryKey: ['netsuite-logs', integrationId] })
+      queryClient.invalidateQueries({
+        queryKey: ['netsuite-sync-status', integrationId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['netsuite-logs', integrationId],
+      })
     },
   })
 }
@@ -103,23 +107,26 @@ export function useRefreshSyncData(integrationId: string) {
  */
 export function useNetSuiteSyncStats(integrationId: string) {
   const { data: syncStates } = useNetSuiteSyncStatus(integrationId)
-  
-  const stats = syncStates?.reduce((acc, state) => {
-    acc.total++
-    if (state.sync_status === 'in_progress') acc.inProgress++
-    if (state.sync_status === 'failed') acc.failed++
-    if (state.sync_status === 'completed') acc.completed++
-    if (state.error_count) acc.totalErrors += state.error_count
-    if (state.records_processed) acc.totalRecords += state.records_processed
-    return acc
-  }, {
-    total: 0,
-    inProgress: 0,
-    failed: 0,
-    completed: 0,
-    totalErrors: 0,
-    totalRecords: 0,
-  })
-  
+
+  const stats = syncStates?.reduce(
+    (acc, state) => {
+      acc.total++
+      if (state.sync_status === 'in_progress') acc.inProgress++
+      if (state.sync_status === 'failed') acc.failed++
+      if (state.sync_status === 'completed') acc.completed++
+      if (state.error_count) acc.totalErrors += state.error_count
+      if (state.records_processed) acc.totalRecords += state.records_processed
+      return acc
+    },
+    {
+      total: 0,
+      inProgress: 0,
+      failed: 0,
+      completed: 0,
+      totalErrors: 0,
+      totalRecords: 0,
+    }
+  )
+
   return stats
 }

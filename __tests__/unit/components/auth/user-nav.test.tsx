@@ -1,9 +1,9 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { UserNav } from '@/components/auth/user-nav'
 import { signOut } from '@/app/actions/auth'
-import { toast } from 'sonner'
 
 // Mock dependencies
 jest.mock('@/app/actions/auth', () => ({
@@ -25,7 +25,9 @@ jest.mock('next/navigation', () => ({
 
 describe('UserNav', () => {
   const mockSignOut = signOut as jest.MockedFunction<typeof signOut>
-  const mockToastSuccess = toast.success as jest.MockedFunction<typeof toast.success>
+  const mockToastSuccess = toast.success as jest.MockedFunction<
+    typeof toast.success
+  >
   const mockToastError = toast.error as jest.MockedFunction<typeof toast.error>
 
   const defaultUser = {
@@ -47,7 +49,9 @@ describe('UserNav', () => {
     it('should render user avatar with initials', () => {
       render(<UserNav user={defaultUser} />)
 
-      expect(screen.getByRole('button', { name: 'User account menu' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'User account menu' })
+      ).toBeInTheDocument()
       expect(screen.getByText('JD')).toBeInTheDocument() // John Doe initials
     })
 
@@ -66,7 +70,10 @@ describe('UserNav', () => {
     })
 
     it('should render user avatar with email initials for very long name', () => {
-      const userWithLongName = { ...defaultUser, name: 'John Michael Smith Johnson' }
+      const userWithLongName = {
+        ...defaultUser,
+        name: 'John Michael Smith Johnson',
+      }
       render(<UserNav user={userWithLongName} />)
 
       expect(screen.getByText('JM')).toBeInTheDocument() // First two initials
@@ -76,7 +83,9 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} organization={defaultOrganization} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
       expect(screen.getByText('Acme Corporation')).toBeInTheDocument()
@@ -86,7 +95,9 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
       expect(screen.queryByText('Acme Corporation')).not.toBeInTheDocument()
@@ -98,7 +109,9 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
       expect(screen.getByText('John Doe')).toBeInTheDocument()
@@ -112,7 +125,9 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
       expect(screen.getByText('John Doe')).toBeInTheDocument()
@@ -124,7 +139,9 @@ describe('UserNav', () => {
       const userWithoutName = { ...defaultUser, name: undefined }
       render(<UserNav user={userWithoutName} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
       expect(screen.getByText('User')).toBeInTheDocument()
@@ -136,11 +153,17 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
-      expect(screen.getByRole('menuitem', { name: 'Go to settings' })).toBeInTheDocument()
-      expect(screen.getByRole('menuitem', { name: 'Go to profile' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('menuitem', { name: 'Go to settings' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('menuitem', { name: 'Go to profile' })
+      ).toBeInTheDocument()
     })
   })
 
@@ -151,10 +174,14 @@ describe('UserNav', () => {
 
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
-      const signOutButton = screen.getByRole('menuitem', { name: 'Sign out of your account' })
+      const signOutButton = screen.getByRole('menuitem', {
+        name: 'Sign out of your account',
+      })
       await user.click(signOutButton)
 
       await waitFor(() => {
@@ -169,10 +196,14 @@ describe('UserNav', () => {
 
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
-      const signOutButton = screen.getByRole('menuitem', { name: 'Sign out of your account' })
+      const signOutButton = screen.getByRole('menuitem', {
+        name: 'Sign out of your account',
+      })
       await user.click(signOutButton)
 
       await waitFor(() => {
@@ -183,14 +214,20 @@ describe('UserNav', () => {
 
     it('should show loading state during sign out', async () => {
       const user = userEvent.setup()
-      mockSignOut.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockSignOut.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
 
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
-      const signOutButton = screen.getByRole('menuitem', { name: 'Sign out of your account' })
+      const signOutButton = screen.getByRole('menuitem', {
+        name: 'Sign out of your account',
+      })
       await user.click(signOutButton)
 
       // Check that the button is disabled during loading
@@ -199,14 +236,20 @@ describe('UserNav', () => {
 
     it('should disable sign out button during loading', async () => {
       const user = userEvent.setup()
-      mockSignOut.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockSignOut.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
 
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
-      const signOutButton = screen.getByRole('menuitem', { name: 'Sign out of your account' })
+      const signOutButton = screen.getByRole('menuitem', {
+        name: 'Sign out of your account',
+      })
       await user.click(signOutButton)
 
       expect(signOutButton).toHaveAttribute('aria-disabled', 'true')
@@ -218,15 +261,17 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
-      
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
+
       // Tab to the trigger button
       await user.tab()
       expect(triggerButton).toHaveFocus()
 
       // Open the dropdown
       await user.keyboard('{Enter}')
-      
+
       // Should show dropdown content
       expect(screen.getByText('John Doe')).toBeInTheDocument()
     })
@@ -235,7 +280,9 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
       expect(screen.getByText('John Doe')).toBeInTheDocument()
@@ -248,14 +295,20 @@ describe('UserNav', () => {
 
     it('should handle multiple rapid sign out attempts', async () => {
       const user = userEvent.setup()
-      mockSignOut.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockSignOut.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
 
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
-      const signOutButton = screen.getByRole('menuitem', { name: 'Sign out of your account' })
+      const signOutButton = screen.getByRole('menuitem', {
+        name: 'Sign out of your account',
+      })
       await user.click(signOutButton)
       await user.click(signOutButton) // Try to click again
 
@@ -268,26 +321,38 @@ describe('UserNav', () => {
     it('should have proper ARIA labels', () => {
       render(<UserNav user={defaultUser} />)
 
-      expect(screen.getByRole('button', { name: 'User account menu' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'User account menu' })
+      ).toBeInTheDocument()
     })
 
     it('should have proper button states', async () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
-      expect(screen.getByRole('menuitem', { name: 'Go to settings' })).toBeInTheDocument()
-      expect(screen.getByRole('menuitem', { name: 'Go to profile' })).toBeInTheDocument()
-      expect(screen.getByRole('menuitem', { name: 'Sign out of your account' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('menuitem', { name: 'Go to settings' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('menuitem', { name: 'Go to profile' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('menuitem', { name: 'Sign out of your account' })
+      ).toBeInTheDocument()
     })
 
     it('should have proper focus management', async () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.tab()
       expect(triggerButton).toHaveFocus()
     })
@@ -322,7 +387,9 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} organization={defaultOrganization} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
       const organizationItem = screen.getByText('Acme Corporation')
@@ -337,7 +404,9 @@ describe('UserNav', () => {
       const user = userEvent.setup()
       render(<UserNav user={defaultUser} />)
 
-      const triggerButton = screen.getByRole('button', { name: 'User account menu' })
+      const triggerButton = screen.getByRole('button', {
+        name: 'User account menu',
+      })
       await user.click(triggerButton)
 
       expect(screen.queryByText('Acme Corporation')).not.toBeInTheDocument()
@@ -349,14 +418,18 @@ describe('UserNav', () => {
       // This should compile without TypeScript errors
       render(<UserNav user={defaultUser} />)
 
-      expect(screen.getByRole('button', { name: 'User account menu' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'User account menu' })
+      ).toBeInTheDocument()
     })
 
     it('should handle optional props correctly', () => {
       const userWithoutOptionalProps = { email: 'test@example.com' }
       render(<UserNav user={userWithoutOptionalProps} />)
 
-      expect(screen.getByRole('button', { name: 'User account menu' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'User account menu' })
+      ).toBeInTheDocument()
     })
   })
 })

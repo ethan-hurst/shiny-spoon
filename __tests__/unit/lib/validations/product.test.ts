@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { productSchema, bulkProductSchema } from '@/lib/validations/product'
+import { bulkProductSchema, productSchema } from '@/lib/validations/product'
 
 describe('Product Validations', () => {
   describe('productSchema', () => {
@@ -10,14 +10,14 @@ describe('Product Validations', () => {
           'PROD-123',
           'item_456',
           'A1B2C3',
-          'TEST-SKU_001'
+          'TEST-SKU_001',
         ]
 
-        validSkus.forEach(sku => {
+        validSkus.forEach((sku) => {
           const result = productSchema.safeParse({
             sku,
             name: 'Test Product',
-            base_price: '99.99'
+            base_price: '99.99',
           })
           expect(result.success).toBe(true)
         })
@@ -26,16 +26,27 @@ describe('Product Validations', () => {
       it('should reject invalid SKUs', () => {
         const invalidSkus = [
           { value: '', error: 'SKU is required' },
-          { value: 'SKU 001', error: 'SKU can only contain letters, numbers, hyphens, and underscores' },
-          { value: 'SKU@001', error: 'SKU can only contain letters, numbers, hyphens, and underscores' },
-          { value: 'a'.repeat(51), error: 'SKU must be less than 50 characters' }
+          {
+            value: 'SKU 001',
+            error:
+              'SKU can only contain letters, numbers, hyphens, and underscores',
+          },
+          {
+            value: 'SKU@001',
+            error:
+              'SKU can only contain letters, numbers, hyphens, and underscores',
+          },
+          {
+            value: 'a'.repeat(51),
+            error: 'SKU must be less than 50 characters',
+          },
         ]
 
         invalidSkus.forEach(({ value, error }) => {
           const result = productSchema.safeParse({
             sku: value,
             name: 'Test Product',
-            base_price: '99.99'
+            base_price: '99.99',
           })
           expect(result.success).toBe(false)
           if (!result.success) {
@@ -52,14 +63,14 @@ describe('Product Validations', () => {
           'Product with Special Characters: ™ ® ©',
           'Product (Version 2.0)',
           'Product #1 - Special Edition',
-          'a'.repeat(200) // Max length
+          'a'.repeat(200), // Max length
         ]
 
-        validNames.forEach(name => {
+        validNames.forEach((name) => {
           const result = productSchema.safeParse({
             sku: 'SKU001',
             name,
-            base_price: '99.99'
+            base_price: '99.99',
           })
           expect(result.success).toBe(true)
         })
@@ -68,14 +79,17 @@ describe('Product Validations', () => {
       it('should reject invalid names', () => {
         const invalidNames = [
           { value: '', error: 'Product name is required' },
-          { value: 'a'.repeat(201), error: 'Name must be less than 200 characters' }
+          {
+            value: 'a'.repeat(201),
+            error: 'Name must be less than 200 characters',
+          },
         ]
 
         invalidNames.forEach(({ value, error }) => {
           const result = productSchema.safeParse({
             sku: 'SKU001',
             name: value,
-            base_price: '99.99'
+            base_price: '99.99',
           })
           expect(result.success).toBe(false)
           if (!result.success) {
@@ -93,14 +107,14 @@ describe('Product Validations', () => {
           { input: '1000', expected: 1000 },
           { input: '0.01', expected: 0.01 },
           { input: '9999.99', expected: 9999.99 },
-          { input: '', expected: 0 } // Empty string transforms to 0
+          { input: '', expected: 0 }, // Empty string transforms to 0
         ]
 
         validPrices.forEach(({ input, expected }) => {
           const result = productSchema.safeParse({
             sku: 'SKU001',
             name: 'Test Product',
-            base_price: input
+            base_price: input,
           })
           expect(result.success).toBe(true)
           if (result.success) {
@@ -113,16 +127,16 @@ describe('Product Validations', () => {
         const invalidPrices = [
           '99.999', // More than 2 decimal places
           '-10.00', // Negative
-          'abc',    // Non-numeric
+          'abc', // Non-numeric
           '10.1.1', // Invalid format
-          '$99.99'  // Currency symbol
+          '$99.99', // Currency symbol
         ]
 
-        invalidPrices.forEach(price => {
+        invalidPrices.forEach((price) => {
           const result = productSchema.safeParse({
             sku: 'SKU001',
             name: 'Test Product',
-            base_price: price
+            base_price: price,
           })
           expect(result.success).toBe(false)
           if (!result.success) {
@@ -138,7 +152,7 @@ describe('Product Validations', () => {
           { input: '49.99', expected: 49.99 },
           { input: '0', expected: 0 },
           { input: '', expected: 0 },
-          { input: undefined, expected: undefined }
+          { input: undefined, expected: undefined },
         ]
 
         validCosts.forEach(({ input, expected }) => {
@@ -146,7 +160,7 @@ describe('Product Validations', () => {
             sku: 'SKU001',
             name: 'Test Product',
             base_price: '99.99',
-            cost: input
+            cost: input,
           })
           expect(result.success).toBe(true)
           if (result.success) {
@@ -163,7 +177,7 @@ describe('Product Validations', () => {
           { input: '0.001', expected: 0.001 },
           { input: '1000', expected: 1000 },
           { input: '', expected: undefined },
-          { input: undefined, expected: undefined }
+          { input: undefined, expected: undefined },
         ]
 
         validWeights.forEach(({ input, expected }) => {
@@ -171,7 +185,7 @@ describe('Product Validations', () => {
             sku: 'SKU001',
             name: 'Test Product',
             base_price: '99.99',
-            weight: input
+            weight: input,
           })
           expect(result.success).toBe(true)
           if (result.success) {
@@ -183,16 +197,16 @@ describe('Product Validations', () => {
       it('should reject invalid weights', () => {
         const invalidWeights = [
           '1.5555', // More than 3 decimal places
-          '-5',     // Negative
-          'heavy',  // Non-numeric
+          '-5', // Negative
+          'heavy', // Non-numeric
         ]
 
-        invalidWeights.forEach(weight => {
+        invalidWeights.forEach((weight) => {
           const result = productSchema.safeParse({
             sku: 'SKU001',
             name: 'Test Product',
             base_price: '99.99',
-            weight
+            weight,
           })
           expect(result.success).toBe(false)
           if (!result.success) {
@@ -207,15 +221,15 @@ describe('Product Validations', () => {
         const validImages = [
           new File([''], 'test.jpg', { type: 'image/jpeg' }),
           new File([''], 'test.png', { type: 'image/png' }),
-          new File([''], 'test.webp', { type: 'image/webp' })
+          new File([''], 'test.webp', { type: 'image/webp' }),
         ]
 
-        validImages.forEach(image => {
+        validImages.forEach((image) => {
           const result = productSchema.safeParse({
             sku: 'SKU001',
             name: 'Test Product',
             base_price: '99.99',
-            image
+            image,
           })
           expect(result.success).toBe(true)
         })
@@ -226,7 +240,7 @@ describe('Product Validations', () => {
           sku: 'SKU001',
           name: 'Test Product',
           base_price: '99.99',
-          image: 'https://example.com/image.jpg'
+          image: 'https://example.com/image.jpg',
         })
         expect(result.success).toBe(true)
       })
@@ -236,15 +250,15 @@ describe('Product Validations', () => {
           new File([''], 'test.gif', { type: 'image/gif' }),
           new File([''], 'test.bmp', { type: 'image/bmp' }),
           new File([''], 'test.svg', { type: 'image/svg+xml' }),
-          new File([''], 'test.pdf', { type: 'application/pdf' })
+          new File([''], 'test.pdf', { type: 'application/pdf' }),
         ]
 
-        invalidImages.forEach(image => {
+        invalidImages.forEach((image) => {
           const result = productSchema.safeParse({
             sku: 'SKU001',
             name: 'Test Product',
             base_price: '99.99',
-            image
+            image,
           })
           expect(result.success).toBe(false)
           if (!result.success) {
@@ -261,7 +275,7 @@ describe('Product Validations', () => {
         const result = productSchema.safeParse({
           sku: 'SKU001',
           name: 'Minimal Product',
-          base_price: '99.99'
+          base_price: '99.99',
         })
         expect(result.success).toBe(true)
         if (result.success) {
@@ -282,7 +296,7 @@ describe('Product Validations', () => {
           base_price: '99.99',
           cost: '49.99',
           weight: '1.5',
-          image: 'https://example.com/product.jpg'
+          image: 'https://example.com/product.jpg',
         })
         expect(result.success).toBe(true)
       })
@@ -297,7 +311,7 @@ describe('Product Validations', () => {
             sku: 'SKU001',
             name: 'Product 1',
             base_price: 99.99,
-            cost: 49.99
+            cost: 49.99,
           },
           {
             sku: 'SKU002',
@@ -305,9 +319,9 @@ describe('Product Validations', () => {
             description: 'Description',
             category: 'Electronics',
             base_price: 149.99,
-            weight: 2.5
-          }
-        ]
+            weight: 2.5,
+          },
+        ],
       }
 
       const result = bulkProductSchema.safeParse(validBulkData)
@@ -319,17 +333,21 @@ describe('Product Validations', () => {
 
     it('should reject more than 5000 products', () => {
       const tooManyProducts = {
-        products: Array(5001).fill(null).map((_, i) => ({
-          sku: `SKU${i}`,
-          name: `Product ${i}`,
-          base_price: 99.99
-        }))
+        products: Array(5001)
+          .fill(null)
+          .map((_, i) => ({
+            sku: `SKU${i}`,
+            name: `Product ${i}`,
+            base_price: 99.99,
+          })),
       }
 
       const result = bulkProductSchema.safeParse(tooManyProducts)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Maximum 5000 products per import')
+        expect(result.error.issues[0].message).toBe(
+          'Maximum 5000 products per import'
+        )
       }
     })
 
@@ -341,9 +359,9 @@ describe('Product Validations', () => {
             name: 'Product 1',
             base_price: 99.99,
             cost: 49.99,
-            weight: 1.5
-          }
-        ]
+            weight: 1.5,
+          },
+        ],
       }
 
       const result = bulkProductSchema.safeParse(bulkData)
@@ -362,10 +380,10 @@ describe('Product Validations', () => {
           {
             sku: 'SKU001',
             name: 'Minimal Product',
-            base_price: 99.99
+            base_price: 99.99,
             // No optional fields
-          }
-        ]
+          },
+        ],
       }
 
       const result = bulkProductSchema.safeParse(bulkData)
@@ -378,7 +396,7 @@ describe('Product Validations', () => {
       const result = productSchema.safeParse({
         sku: '  SKU001  ',
         name: '  Product Name  ',
-        base_price: '99.99'
+        base_price: '99.99',
       })
       expect(result.success).toBe(true)
       // Note: Zod doesn't trim by default, you might want to add .trim() to schemas
@@ -389,7 +407,7 @@ describe('Product Validations', () => {
         sku: 'A'.repeat(50), // Max length
         name: 'B'.repeat(200), // Max length
         description: 'C'.repeat(1000), // Max length
-        base_price: '99.99'
+        base_price: '99.99',
       })
       expect(result.success).toBe(true)
     })
@@ -400,7 +418,7 @@ describe('Product Validations', () => {
         name: 'Product™ with émojis 🎉',
         description: 'Descripción en español: ñáéíóú',
         category: '电子产品', // Chinese characters
-        base_price: '99.99'
+        base_price: '99.99',
       })
       expect(result.success).toBe(true)
     })

@@ -1,7 +1,14 @@
 import { format } from 'date-fns'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Download, ExternalLink, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -11,16 +18,24 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { Invoice } from '@/types/billing.types'
-import { Download, FileText, ExternalLink } from 'lucide-react'
 
 interface InvoiceHistoryProps {
   invoices: Invoice[]
   hasActiveSubscription: boolean
 }
 
-export function InvoiceHistory({ invoices, hasActiveSubscription }: InvoiceHistoryProps) {
+export function InvoiceHistory({
+  invoices,
+  hasActiveSubscription,
+}: InvoiceHistoryProps) {
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+    const variants: Record<
+      string,
+      {
+        variant: 'default' | 'secondary' | 'destructive' | 'outline'
+        label: string
+      }
+    > = {
       paid: { variant: 'default', label: 'Paid' },
       open: { variant: 'secondary', label: 'Open' },
       past_due: { variant: 'destructive', label: 'Past Due' },
@@ -29,12 +44,8 @@ export function InvoiceHistory({ invoices, hasActiveSubscription }: InvoiceHisto
     }
 
     const config = variants[status] || { variant: 'outline', label: status }
-    
-    return (
-      <Badge variant={config.variant}>
-        {config.label}
-      </Badge>
-    )
+
+    return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
   const formatAmount = (amount: number) => {
@@ -57,10 +68,9 @@ export function InvoiceHistory({ invoices, hasActiveSubscription }: InvoiceHisto
           <div className="text-center py-8">
             <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
-              {hasActiveSubscription 
+              {hasActiveSubscription
                 ? 'No invoices yet. Your first invoice will appear after your first billing cycle.'
-                : 'No invoices to display. Upgrade to a paid plan to see invoices here.'
-              }
+                : 'No invoices to display. Upgrade to a paid plan to see invoices here.'}
             </p>
           </div>
         ) : (
@@ -84,20 +94,12 @@ export function InvoiceHistory({ invoices, hasActiveSubscription }: InvoiceHisto
                     <TableCell>
                       {format(new Date(invoice.created * 1000), 'MMM d, yyyy')}
                     </TableCell>
-                    <TableCell>
-                      {formatAmount(invoice.amount_paid)}
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(invoice.status)}
-                    </TableCell>
+                    <TableCell>{formatAmount(invoice.amount_paid)}</TableCell>
+                    <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         {invoice.hosted_invoice_url && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            asChild
-                          >
+                          <Button variant="ghost" size="sm" asChild>
                             <a
                               href={invoice.hosted_invoice_url}
                               target="_blank"
@@ -110,11 +112,7 @@ export function InvoiceHistory({ invoices, hasActiveSubscription }: InvoiceHisto
                           </Button>
                         )}
                         {invoice.invoice_pdf && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            asChild
-                          >
+                          <Button variant="ghost" size="sm" asChild>
                             <a
                               href={invoice.invoice_pdf}
                               download
@@ -136,7 +134,8 @@ export function InvoiceHistory({ invoices, hasActiveSubscription }: InvoiceHisto
 
         {invoices.length > 0 && (
           <div className="mt-4 text-xs text-muted-foreground">
-            Showing {invoices.length} most recent invoice{invoices.length !== 1 ? 's' : ''}
+            Showing {invoices.length} most recent invoice
+            {invoices.length !== 1 ? 's' : ''}
           </div>
         )}
       </CardContent>

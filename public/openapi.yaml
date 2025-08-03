@@ -4,18 +4,18 @@ info:
   description: |
     The TruthSource API enables seamless integration with your B2B e-commerce data accuracy platform.
     Synchronize inventory, pricing, and delivery data between ERPs and e-commerce platforms in real-time.
-    
+
     ## Authentication
     All API requests require authentication using an API key. Include your API key in the `X-API-Key` header:
     ```
     X-API-Key: your_api_key_here
     ```
-    
+
     ## Rate Limiting
     - Standard tier: 1,000 requests per hour
     - Professional tier: 10,000 requests per hour
     - Enterprise tier: Unlimited (fair use policy applies)
-    
+
     ## Base URL
     All API endpoints are relative to: `https://api.truthsource.io/v1`
   version: 1.0.0
@@ -99,13 +99,21 @@ paths:
                 name:
                   type: string
                   description: Descriptive name for the API key
-                  example: "Production Integration"
+                  example: 'Production Integration'
                 permissions:
                   type: array
                   items:
                     type: string
-                    enum: [read:inventory, write:inventory, read:pricing, write:pricing, read:orders, write:orders]
-                  example: ["read:inventory", "write:inventory"]
+                    enum:
+                      [
+                        read:inventory,
+                        write:inventory,
+                        read:pricing,
+                        write:pricing,
+                        read:orders,
+                        write:orders,
+                      ]
+                  example: ['read:inventory', 'write:inventory']
                 expiresAt:
                   type: string
                   format: date-time
@@ -789,7 +797,8 @@ components:
           type: array
           items:
             type: string
-            enum: [inventory.updated, order.created, price.changed, product.updated]
+            enum:
+              [inventory.updated, order.created, price.changed, product.updated]
         secret:
           type: string
           description: Used for webhook signature verification
@@ -984,7 +993,8 @@ components:
           minItems: 1
           items:
             type: string
-            enum: [inventory.updated, order.created, price.changed, product.updated]
+            enum:
+              [inventory.updated, order.created, price.changed, product.updated]
 
   responses:
     BadRequest:

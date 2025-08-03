@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from '../contexts/ThemeContext';
+import React from 'react'
+import { StyleSheet, Text, View } from 'react-native'
+import { useTheme } from '../contexts/ThemeContext'
 
 export default function OrdersScreen() {
-  const { theme } = useTheme();
+  const { theme } = useTheme()
 
   const styles = StyleSheet.create({
     container: {
@@ -24,14 +24,12 @@ export default function OrdersScreen() {
       color: theme.colors.textSecondary,
       textAlign: 'center',
     },
-  });
+  })
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Order Management</Text>
-      <Text style={styles.subtitle}>
-        Create and manage customer orders
-      </Text>
+      <Text style={styles.subtitle}>Create and manage customer orders</Text>
     </View>
-  );
-} 
+  )
+}

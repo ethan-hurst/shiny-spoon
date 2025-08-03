@@ -1,3 +1,5 @@
+import { Package } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -7,8 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Package } from 'lucide-react'
 import type { OrderItemSummary } from '@/types/order.types'
 
 interface OrderItemsTableProps {
@@ -35,8 +35,12 @@ export function OrderItemsTable({ items }: OrderItemsTableProps) {
             Order Items
           </CardTitle>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>{items.length} product{items.length !== 1 ? 's' : ''}</span>
-            <span>{totalItems} unit{totalItems !== 1 ? 's' : ''}</span>
+            <span>
+              {items.length} product{items.length !== 1 ? 's' : ''}
+            </span>
+            <span>
+              {totalItems} unit{totalItems !== 1 ? 's' : ''}
+            </span>
           </div>
         </div>
       </CardHeader>

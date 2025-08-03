@@ -1,9 +1,15 @@
 'use client'
 
 import React, { Component, ErrorInfo, ReactNode } from 'react'
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import { AlertTriangle, Home, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 interface Props {
   children: ReactNode
@@ -29,10 +35,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
-    
+
     // Call the onError callback if provided
     this.props.onError?.(error, errorInfo)
-    
+
     // Log to error tracking service (e.g., Sentry)
     // Sentry.captureException(error, { extra: errorInfo })
   }
@@ -62,7 +68,8 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
               <CardTitle className="text-xl">Something went wrong</CardTitle>
               <CardDescription>
-                We encountered an unexpected error. Please try again or contact support if the problem persists.
+                We encountered an unexpected error. Please try again or contact
+                support if the problem persists.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -101,10 +108,10 @@ export class ErrorBoundary extends Component<Props, State> {
 export function useErrorHandler() {
   return React.useCallback((error: Error, errorInfo?: ErrorInfo) => {
     console.error('Error caught by useErrorHandler:', error, errorInfo)
-    
+
     // Log to error tracking service
     // Sentry.captureException(error, { extra: errorInfo })
-    
+
     // You can also show a toast notification here
     // toast.error('An error occurred. Please try again.')
   }, [])
@@ -123,6 +130,6 @@ export function withErrorBoundary<P extends object>(
   )
 
   WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`
-  
+
   return WrappedComponent
-} 
+}

@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createServerClient } from '@/lib/supabase/server'
 
 // Test database setup
-const testSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
+const testSupabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
 const testSupabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key'
 
 describe('Orders API Integration Tests', () => {
@@ -54,14 +55,12 @@ describe('Orders API Integration Tests', () => {
     testUser = user.user
 
     // Create user profile
-    await supabase
-      .from('user_profiles')
-      .insert({
-        user_id: testUser.id,
-        organization_id: testOrganization.id,
-        role: 'admin',
-        full_name: 'Test User',
-      })
+    await supabase.from('user_profiles').insert({
+      user_id: testUser.id,
+      organization_id: testOrganization.id,
+      role: 'admin',
+      full_name: 'Test User',
+    })
 
     // Create test customer
     const { data: customer } = await supabase
@@ -86,7 +85,7 @@ describe('Orders API Integration Tests', () => {
           sku: 'TEST-001',
           name: 'Test Product 1',
           description: 'Test product description',
-          base_price: 10.00,
+          base_price: 10.0,
           category: 'test',
         },
         {
@@ -94,7 +93,7 @@ describe('Orders API Integration Tests', () => {
           sku: 'TEST-002',
           name: 'Test Product 2',
           description: 'Test product description 2',
-          base_price: 20.00,
+          base_price: 20.0,
           category: 'test',
         },
       ])
@@ -109,14 +108,14 @@ describe('Orders API Integration Tests', () => {
       await supabase
         .from('products')
         .delete()
-        .in('id', testProducts.map(p => p.id))
+        .in(
+          'id',
+          testProducts.map((p) => p.id)
+        )
     }
 
     if (testCustomer) {
-      await supabase
-        .from('customers')
-        .delete()
-        .eq('id', testCustomer.id)
+      await supabase.from('customers').delete().eq('id', testCustomer.id)
     }
 
     if (testUser) {
@@ -152,12 +151,12 @@ describe('Orders API Integration Tests', () => {
           {
             product_id: testProducts[0].id,
             quantity: 2,
-            unit_price: 10.00,
+            unit_price: 10.0,
           },
           {
             product_id: testProducts[1].id,
             quantity: 1,
-            unit_price: 20.00,
+            unit_price: 20.0,
           },
         ],
         billing_address: {
@@ -172,7 +171,7 @@ describe('Orders API Integration Tests', () => {
 
       // Mock the server action
       const { createOrder } = await import('@/app/actions/orders')
-      
+
       // Sign in as test user
       await supabase.auth.signInWithPassword({
         email: 'test@example.com',
@@ -185,9 +184,9 @@ describe('Orders API Integration Tests', () => {
       expect(result.data).toMatchObject({
         customer_id: testCustomer.id,
         status: 'pending',
-        subtotal: 40.00, // 2 * 10 + 1 * 20
-        tax: 4.00, // 10% of subtotal
-        total: 44.00,
+        subtotal: 40.0, // 2 * 10 + 1 * 20
+        tax: 4.0, // 10% of subtotal
+        total: 44.0,
       })
 
       // Verify order items were created
@@ -200,8 +199,8 @@ describe('Orders API Integration Tests', () => {
       expect(orderItems[0]).toMatchObject({
         product_id: testProducts[0].id,
         quantity: 2,
-        unit_price: 10.00,
-        total_price: 20.00,
+        unit_price: 10.0,
+        total_price: 20.0,
       })
     })
 
@@ -212,7 +211,7 @@ describe('Orders API Integration Tests', () => {
           {
             product_id: 'invalid-product-id',
             quantity: 1,
-            unit_price: 10.00,
+            unit_price: 10.0,
           },
         ],
       }
@@ -236,7 +235,7 @@ describe('Orders API Integration Tests', () => {
           {
             product_id: testProducts[0].id,
             quantity: 1,
-            unit_price: 10.00,
+            unit_price: 10.0,
           },
         ],
       }
@@ -262,9 +261,9 @@ describe('Orders API Integration Tests', () => {
           order_number: 'TEST-001',
           customer_id: testCustomer.id,
           status: 'pending',
-          subtotal: 30.00,
-          tax: 3.00,
-          total: 33.00,
+          subtotal: 30.0,
+          tax: 3.0,
+          total: 33.0,
           created_by: testUser.id,
         })
         .select()
@@ -316,30 +315,28 @@ describe('Orders API Integration Tests', () => {
   describe('GET /api/orders', () => {
     beforeEach(async () => {
       // Create test orders
-      await supabase
-        .from('orders')
-        .insert([
-          {
-            organization_id: testOrganization.id,
-            order_number: 'TEST-001',
-            customer_id: testCustomer.id,
-            status: 'pending',
-            subtotal: 30.00,
-            tax: 3.00,
-            total: 33.00,
-            created_by: testUser.id,
-          },
-          {
-            organization_id: testOrganization.id,
-            order_number: 'TEST-002',
-            customer_id: testCustomer.id,
-            status: 'confirmed',
-            subtotal: 50.00,
-            tax: 5.00,
-            total: 55.00,
-            created_by: testUser.id,
-          },
-        ])
+      await supabase.from('orders').insert([
+        {
+          organization_id: testOrganization.id,
+          order_number: 'TEST-001',
+          customer_id: testCustomer.id,
+          status: 'pending',
+          subtotal: 30.0,
+          tax: 3.0,
+          total: 33.0,
+          created_by: testUser.id,
+        },
+        {
+          organization_id: testOrganization.id,
+          order_number: 'TEST-002',
+          customer_id: testCustomer.id,
+          status: 'confirmed',
+          subtotal: 50.0,
+          tax: 5.0,
+          total: 55.0,
+          created_by: testUser.id,
+        },
+      ])
     })
 
     it('should list orders successfully', async () => {
@@ -370,4 +367,4 @@ describe('Orders API Integration Tests', () => {
       expect(result.data.orders[0].status).toBe('pending')
     })
   })
-}) 
+})

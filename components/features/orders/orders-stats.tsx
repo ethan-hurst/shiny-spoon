@@ -1,5 +1,5 @@
+import { Clock, DollarSign, Package, Truck } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Package, Clock, Truck, DollarSign } from 'lucide-react'
 
 interface OrdersStatsProps {
   stats: {

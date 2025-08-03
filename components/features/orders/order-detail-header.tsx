@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, X, Truck, Package, CheckCircle } from 'lucide-react'
 import { format } from 'date-fns'
-import { Button } from '@/components/ui/button'
+import { ArrowLeft, CheckCircle, Edit, Package, Truck, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -14,8 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { updateOrder } from '@/app/actions/orders'
-import { toast } from 'sonner'
-import type { OrderSummary, OrderStatus } from '@/types/order.types'
+import type { OrderStatus, OrderSummary } from '@/types/order.types'
 
 interface OrderDetailHeaderProps {
   order: OrderSummary
@@ -25,7 +25,9 @@ export function OrderDetailHeader({ order }: OrderDetailHeaderProps) {
   const router = useRouter()
   const [isUpdating, setIsUpdating] = useState(false)
   const [editingStatus, setEditingStatus] = useState(false)
-  const [selectedStatus, setSelectedStatus] = useState<OrderStatus>(order.status)
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus>(
+    order.status
+  )
 
   const handleStatusUpdate = async () => {
     if (selectedStatus === order.status) {
@@ -90,11 +92,7 @@ export function OrderDetailHeader({ order }: OrderDetailHeaderProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.back()}
-        >
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -104,7 +102,9 @@ export function OrderDetailHeader({ order }: OrderDetailHeaderProps) {
               <div className="flex items-center gap-2">
                 <Select
                   value={selectedStatus}
-                  onValueChange={(value: OrderStatus) => setSelectedStatus(value)}
+                  onValueChange={(value: OrderStatus) =>
+                    setSelectedStatus(value)
+                  }
                   disabled={isUpdating}
                 >
                   <SelectTrigger className="w-[180px]">
@@ -140,27 +140,32 @@ export function OrderDetailHeader({ order }: OrderDetailHeaderProps) {
                 </Button>
               </div>
             ) : (
-              <Badge className={`${getStatusColor(order.status)} flex items-center gap-1`}>
+              <Badge
+                className={`${getStatusColor(order.status)} flex items-center gap-1`}
+              >
                 <StatusIcon className="h-3 w-3" />
                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
               </Badge>
             )}
           </div>
           <p className="text-muted-foreground">
-            Placed on {format(new Date(order.order_date), 'MMMM d, yyyy at h:mm a')}
+            Placed on{' '}
+            {format(new Date(order.order_date), 'MMMM d, yyyy at h:mm a')}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {!editingStatus && order.status !== 'delivered' && order.status !== 'cancelled' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditingStatus(true)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Update Status
-            </Button>
-          )}
+          {!editingStatus &&
+            order.status !== 'delivered' &&
+            order.status !== 'cancelled' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditingStatus(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Update Status
+              </Button>
+            )}
         </div>
       </div>
     </div>

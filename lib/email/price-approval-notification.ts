@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { PriceApprovalWithDetails } from '@/types/customer-pricing.types'
 import { queueEmail } from '@/lib/email/email-queue'
+import { PriceApprovalWithDetails } from '@/types/customer-pricing.types'
 
 interface ApprovalEmailParams {
   to: string
@@ -11,7 +11,7 @@ interface ApprovalEmailParams {
 // HTML escape function to prevent XSS
 function escapeHtml(text: string | undefined | null): string {
   if (!text) return ''
-  
+
   const map: Record<string, string> = {
     '&': '&amp;',
     '<': '&lt;',
@@ -20,14 +20,14 @@ function escapeHtml(text: string | undefined | null): string {
     "'": '&#39;',
     '/': '&#x2F;',
   }
-  
+
   return text.replace(/[&<>"'\/]/g, (char) => map[char] || char)
 }
 
 // Configuration for thresholds
 const APPROVAL_THRESHOLDS = {
   DISCOUNT_HIGH: 20, // Discount percentage considered high
-  MARGIN_LOW: 15,    // Margin percentage considered low
+  MARGIN_LOW: 15, // Margin percentage considered low
 }
 
 /**
@@ -43,8 +43,14 @@ export function generateApprovalEmailHtml({
   approval,
   actionUrl,
 }: Omit<ApprovalEmailParams, 'to'>): string {
-  const discountClass = (approval.discount_percent || 0) > APPROVAL_THRESHOLDS.DISCOUNT_HIGH ? 'high' : 'normal'
-  const marginClass = (approval.margin_percent || 0) < APPROVAL_THRESHOLDS.MARGIN_LOW ? 'low' : 'normal'
+  const discountClass =
+    (approval.discount_percent || 0) > APPROVAL_THRESHOLDS.DISCOUNT_HIGH
+      ? 'high'
+      : 'normal'
+  const marginClass =
+    (approval.margin_percent || 0) < APPROVAL_THRESHOLDS.MARGIN_LOW
+      ? 'low'
+      : 'normal'
 
   return `
 <!DOCTYPE html>
@@ -327,16 +333,16 @@ ${approval.change_reason}
 
 Requested by: ${approval.requested_by_user?.email || 'Unknown User'}
 Date: ${(() => {
-  try {
-    const date = new Date(approval.requested_at)
-    if (isNaN(date.getTime())) {
+    try {
+      const date = new Date(approval.requested_at)
+      if (isNaN(date.getTime())) {
+        return 'Date unavailable'
+      }
+      return date.toLocaleString()
+    } catch {
       return 'Date unavailable'
     }
-    return date.toLocaleString()
-  } catch {
-    return 'Date unavailable'
-  }
-})()}
+  })()}
 
 Review and approve this request:
 ${actionUrl}
@@ -371,9 +377,9 @@ export async function sendApprovalEmail({
 
   const htmlContent = generateApprovalEmailHtml({ approval, actionUrl })
   const textContent = generateApprovalEmailText({ approval, actionUrl })
-  
+
   const subject = `Price Approval Required - ${escapeHtml(approval.customers?.company_name || 'Customer')}`
-  
+
   try {
     // Queue the email for sending
     const result = await queueEmail({
@@ -383,11 +389,11 @@ export async function sendApprovalEmail({
       html: htmlContent,
       text: textContent,
     })
-    
+
     if (!result.success) {
       throw new Error(result.error || 'Failed to queue email')
     }
-    
+
     return {
       success: true,
       message: 'Email queued for sending',
@@ -396,6 +402,8 @@ export async function sendApprovalEmail({
     }
   } catch (error) {
     console.error('Error sending approval email:', error)
-    throw new Error(`Failed to send approval email: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    throw new Error(
+      `Failed to send approval email: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
   }
 }

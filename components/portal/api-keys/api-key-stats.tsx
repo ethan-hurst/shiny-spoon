@@ -1,5 +1,5 @@
+import { Activity, CheckCircle, Key, Lock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Key, Activity, CheckCircle, Lock } from 'lucide-react'
 
 interface ApiKeyStatsProps {
   stats: {
@@ -52,7 +52,9 @@ export function ApiKeyStats({ stats }: ApiKeyStatsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{item.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {item.description}
+            </p>
           </CardContent>
         </Card>
       ))}

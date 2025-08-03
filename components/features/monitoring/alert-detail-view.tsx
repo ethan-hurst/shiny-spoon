@@ -20,9 +20,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/components/ui/use-toast'
+import type {
+  Alert,
+  Discrepancy,
+  NotificationLog,
+} from '@/lib/monitoring/types'
 import { acknowledgeAlert, resolveAlert } from '@/app/actions/monitoring'
 import { DiscrepancyTable } from './discrepancy-table'
-import type { Alert, NotificationLog, Discrepancy } from '@/lib/monitoring/types'
 
 interface AlertDetailViewProps {
   alert: Alert
@@ -42,7 +46,7 @@ export function AlertDetailView({
   const handleAcknowledge = async () => {
     setIsProcessing(true)
     const result = await acknowledgeAlert(alert.id)
-    
+
     if (result.success) {
       toast({
         title: 'Alert acknowledged',
@@ -62,7 +66,7 @@ export function AlertDetailView({
   const handleResolve = async () => {
     setIsProcessing(true)
     const result = await resolveAlert(alert.id)
-    
+
     if (result.success) {
       toast({
         title: 'Alert resolved',
@@ -79,7 +83,9 @@ export function AlertDetailView({
     setIsProcessing(false)
   }
 
-  const getSeverityColor = (severity: string): "destructive" | "secondary" | "outline" | "default" => {
+  const getSeverityColor = (
+    severity: string
+  ): 'destructive' | 'secondary' | 'outline' | 'default' => {
     switch (severity) {
       case 'critical':
         return 'destructive'
@@ -197,7 +203,7 @@ export function AlertDetailView({
         <CardContent>
           <div className="space-y-4">
             <div className="whitespace-pre-wrap text-sm">{alert.message}</div>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Created</p>
@@ -232,10 +238,15 @@ export function AlertDetailView({
                 <p className="text-sm font-medium mb-2">Trigger Details</p>
                 <div className="text-sm space-y-1">
                   {alert.trigger_value.accuracy_score !== undefined && (
-                    <p>Accuracy Score: {alert.trigger_value.accuracy_score.toFixed(2)}%</p>
+                    <p>
+                      Accuracy Score:{' '}
+                      {alert.trigger_value.accuracy_score.toFixed(2)}%
+                    </p>
                   )}
                   {alert.trigger_value.discrepancy_count !== undefined && (
-                    <p>Discrepancy Count: {alert.trigger_value.discrepancy_count}</p>
+                    <p>
+                      Discrepancy Count: {alert.trigger_value.discrepancy_count}
+                    </p>
                   )}
                   {alert.trigger_value.reason && (
                     <p>Reason: {alert.trigger_value.reason}</p>
@@ -266,7 +277,9 @@ export function AlertDetailView({
             </CardHeader>
             <CardContent>
               {notifications.length === 0 ? (
-                <p className="text-muted-foreground">No notifications sent yet.</p>
+                <p className="text-muted-foreground">
+                  No notifications sent yet.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {notifications.map((notification) => (
@@ -286,7 +299,9 @@ export function AlertDetailView({
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-medium ${getNotificationStatusColor(notification.status)}`}>
+                        <p
+                          className={`text-sm font-medium ${getNotificationStatusColor(notification.status)}`}
+                        >
                           {notification.status}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -345,9 +360,7 @@ export function AlertDetailView({
                   </div>
                   {alert.accuracy_checks.completed_at && (
                     <div>
-                      <p className="text-sm text-muted-foreground">
-                        Completed
-                      </p>
+                      <p className="text-sm text-muted-foreground">Completed</p>
                       <p className="font-medium">
                         {format(
                           new Date(alert.accuracy_checks.completed_at),

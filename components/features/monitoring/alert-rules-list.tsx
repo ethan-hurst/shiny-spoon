@@ -3,23 +3,6 @@
 
 import { useState } from 'react'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
   AlertCircle,
   Bell,
   Edit,
@@ -27,10 +10,27 @@ import {
   Settings,
   Trash,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Switch } from '@/components/ui/switch'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useToast } from '@/components/ui/use-toast'
+import type { AlertRule } from '@/lib/monitoring/types'
 import { deleteAlertRule, upsertAlertRule } from '@/app/actions/monitoring'
 import { AlertConfigDialog } from './alert-config-dialog'
-import type { AlertRule } from '@/lib/monitoring/types'
 
 interface AlertRulesListProps {
   rules: AlertRule[]
@@ -43,12 +43,12 @@ export function AlertRulesList({ rules, organizationId }: AlertRulesListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleToggleActive = async (ruleId: string, isActive: boolean) => {
-    const rule = rules.find(r => r.id === ruleId)
+    const rule = rules.find((r) => r.id === ruleId)
     if (!rule) return
 
     // Optimistic update
     const newActiveState = !isActive
-    
+
     const result = await upsertAlertRule(ruleId, {
       name: rule.name,
       description: rule.description,
@@ -77,17 +77,17 @@ export function AlertRulesList({ rules, organizationId }: AlertRulesListProps) {
   }
 
   const handleDelete = async (ruleId: string) => {
-    const rule = rules.find(r => r.id === ruleId)
+    const rule = rules.find((r) => r.id === ruleId)
     if (!rule) return
-    
+
     const confirmed = window.confirm(
       `Are you sure you want to delete the alert rule "${rule.name}"? This action cannot be undone.`
     )
-    
+
     if (!confirmed) return
-    
+
     setDeletingId(ruleId)
-    
+
     const result = await deleteAlertRule(ruleId)
 
     if (result.success) {
@@ -166,9 +166,7 @@ export function AlertRulesList({ rules, organizationId }: AlertRulesListProps) {
               </TableCell>
               <TableCell>
                 <div className="space-y-1 text-sm">
-                  <div>
-                    Accuracy &lt; {rule.accuracy_threshold}%
-                  </div>
+                  <div>Accuracy &lt; {rule.accuracy_threshold}%</div>
                   <div>
                     Discrepancies &gt; {rule.discrepancy_count_threshold}
                   </div>
@@ -194,14 +192,16 @@ export function AlertRulesList({ rules, organizationId }: AlertRulesListProps) {
               <TableCell>
                 <Switch
                   checked={rule.is_active}
-                  onCheckedChange={() => handleToggleActive(rule.id, rule.is_active)}
+                  onCheckedChange={() =>
+                    handleToggleActive(rule.id, rule.is_active)
+                  }
                 />
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       disabled={deletingId === rule.id}
                     >
@@ -209,9 +209,7 @@ export function AlertRulesList({ rules, organizationId }: AlertRulesListProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => setEditingRule(rule)}
-                    >
+                    <DropdownMenuItem onClick={() => setEditingRule(rule)}>
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Rule
                     </DropdownMenuItem>

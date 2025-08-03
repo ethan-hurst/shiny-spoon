@@ -1,15 +1,22 @@
 import { Metadata } from 'next'
-import { TeamGrid } from '@/components/company/team-grid'
-import { CompanyValues } from '@/components/company/values'
 import { CompanyStats } from '@/components/company/stats'
 import { CompanyStory } from '@/components/company/story'
+import { TeamGrid } from '@/components/company/team-grid'
+import { CompanyValues } from '@/components/company/values'
 import PageWrapper from '@/components/wrapper/page-wrapper'
 import teamMembersData from '@/data/team-members.json'
 
 export const metadata: Metadata = {
   title: 'About TruthSource - Our Mission & Team',
-  description: 'Learn about TruthSource\'s mission to eliminate B2B data errors and meet the team building the future of data synchronization.',
-  keywords: ['about TruthSource', 'B2B software company', 'data synchronization', 'our team', 'our mission'],
+  description:
+    "Learn about TruthSource's mission to eliminate B2B data errors and meet the team building the future of data synchronization.",
+  keywords: [
+    'about TruthSource',
+    'B2B software company',
+    'data synchronization',
+    'our team',
+    'our mission',
+  ],
 }
 
 export default function AboutPage() {
@@ -17,8 +24,10 @@ export default function AboutPage() {
     <PageWrapper>
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8 text-center">About TruthSource</h1>
-          
+          <h1 className="text-4xl font-bold mb-8 text-center">
+            About TruthSource
+          </h1>
+
           <div className="text-center mb-12">
             <p className="text-xl text-gray-600">
               We're on a mission to eliminate data errors in B2B commerce
@@ -33,7 +42,8 @@ export default function AboutPage() {
           <div className="mt-16 text-center">
             <h2 className="text-2xl font-bold mb-4">Join Our Team</h2>
             <p className="text-gray-600 mb-6">
-              We're always looking for talented people who share our passion for accurate data.
+              We're always looking for talented people who share our passion for
+              accurate data.
             </p>
             <a
               href="/careers"

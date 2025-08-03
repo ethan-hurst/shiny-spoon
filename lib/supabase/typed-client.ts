@@ -29,10 +29,7 @@ export const createTypedClient = () => {
 }
 
 // Option 2: Accept parameters with defaults
-export const createTypedClientWithParams = (
-  url?: string,
-  anonKey?: string
-) => {
+export const createTypedClientWithParams = (url?: string, anonKey?: string) => {
   const supabaseUrl = url || process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = anonKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -46,7 +43,9 @@ export const createTypedClientWithParams = (
 }
 
 // Option 3: Return null for graceful handling
-export const createTypedClientSafe = (): ReturnType<typeof createClient<Database>> | null => {
+export const createTypedClientSafe = (): ReturnType<
+  typeof createClient<Database>
+> | null => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 

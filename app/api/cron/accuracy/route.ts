@@ -1,12 +1,12 @@
 // PRP-016: Data Accuracy Monitor - Scheduled Accuracy Checks Cron Job
-import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { NextResponse } from 'next/server'
 import { AccuracyChecker } from '@/lib/monitoring/accuracy-checker'
-import { AlertManager } from '@/lib/monitoring/alert-manager'
 import { AccuracyScorer } from '@/lib/monitoring/accuracy-scorer'
+import { AlertManager } from '@/lib/monitoring/alert-manager'
 import { NotificationService } from '@/lib/monitoring/notification-service'
 import { AccuracyCheckConfig } from '@/lib/monitoring/types'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export const maxDuration = 300 // 5 minutes max
 
@@ -28,7 +28,8 @@ export async function GET(request: Request) {
     // Get all active organizations with integrations
     const { data: organizations } = await supabase
       .from('organizations')
-      .select(`
+      .select(
+        `
         id,
         name,
         integrations!inner(
@@ -36,15 +37,16 @@ export async function GET(request: Request) {
           platform,
           is_active
         )
-      `)
+      `
+      )
       .eq('integrations.is_active', true)
 
     if (!organizations || organizations.length === 0) {
       console.log('No organizations with active integrations found')
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: 'No organizations to check',
-        checks: 0 
+        checks: 0,
       })
     }
 
@@ -55,88 +57,96 @@ export async function GET(request: Request) {
     const BATCH_SIZE = 5
     for (let i = 0; i < organizations.length; i += BATCH_SIZE) {
       const batch = organizations.slice(i, i + BATCH_SIZE)
-      
-      await Promise.all(batch.map(async (org) => {
-      try {
-        // Check if a scheduled check should run based on alert rules
-        const shouldRun = await shouldRunScheduledCheck(supabase, org.id)
-        
-        if (!shouldRun) {
-          console.log(`Skipping check for organization ${org.id} - not due yet`)
-          return // Skip this organization
-        }
 
-        console.log(`Starting accuracy check for organization: ${org.name} (${org.id})`)
+      await Promise.all(
+        batch.map(async (org) => {
+          try {
+            // Check if a scheduled check should run based on alert rules
+            const shouldRun = await shouldRunScheduledCheck(supabase, org.id)
 
-        // Configure check based on organization settings
-        const config: AccuracyCheckConfig = {
-          scope: 'full',
-          checkDepth: 'shallow', // Use shallow for scheduled checks to save resources
-          sampleSize: 1000, // Limit sample size for scheduled checks
-        }
+            if (!shouldRun) {
+              console.log(
+                `Skipping check for organization ${org.id} - not due yet`
+              )
+              return // Skip this organization
+            }
 
-        // Create the accuracy check record
-        const { data: checkRecord } = await supabase
-          .from('accuracy_checks')
-          .insert({
-            organization_id: org.id,
-            check_type: 'scheduled',
-            scope: config.scope,
-            status: 'running',
-          })
-          .select()
-          .single()
-
-        if (!checkRecord) {
-          console.error(`Failed to create check record for org ${org.id}`)
-          return // Skip this organization
-        }
-
-        // Start the check and track the promise
-        const checkPromise = accuracyChecker.runCheck(config).then(async (result) => {
-          console.log(`Accuracy check completed for org ${org.id}`)
-          
-          // Process any triggered alerts
-          const { data: completedCheck } = await supabase
-            .from('accuracy_checks')
-            .select('*')
-            .eq('id', checkRecord.id)
-            .single()
-
-          if (completedCheck && completedCheck.status === 'completed') {
-            // Get discrepancies for alert evaluation
-            const { data: discrepancies } = await supabase
-              .from('discrepancies')
-              .select('*')
-              .eq('accuracy_check_id', checkRecord.id)
-
-            // Evaluate alert rules
-            await alertManager.evaluateAlertRules(
-              checkRecord.id,
-              completedCheck.accuracy_score || 100,
-              discrepancies || []
+            console.log(
+              `Starting accuracy check for organization: ${org.name} (${org.id})`
             )
+
+            // Configure check based on organization settings
+            const config: AccuracyCheckConfig = {
+              scope: 'full',
+              checkDepth: 'shallow', // Use shallow for scheduled checks to save resources
+              sampleSize: 1000, // Limit sample size for scheduled checks
+            }
+
+            // Create the accuracy check record
+            const { data: checkRecord } = await supabase
+              .from('accuracy_checks')
+              .insert({
+                organization_id: org.id,
+                check_type: 'scheduled',
+                scope: config.scope,
+                status: 'running',
+              })
+              .select()
+              .single()
+
+            if (!checkRecord) {
+              console.error(`Failed to create check record for org ${org.id}`)
+              return // Skip this organization
+            }
+
+            // Start the check and track the promise
+            const checkPromise = accuracyChecker
+              .runCheck(config)
+              .then(async (result) => {
+                console.log(`Accuracy check completed for org ${org.id}`)
+
+                // Process any triggered alerts
+                const { data: completedCheck } = await supabase
+                  .from('accuracy_checks')
+                  .select('*')
+                  .eq('id', checkRecord.id)
+                  .single()
+
+                if (completedCheck && completedCheck.status === 'completed') {
+                  // Get discrepancies for alert evaluation
+                  const { data: discrepancies } = await supabase
+                    .from('discrepancies')
+                    .select('*')
+                    .eq('accuracy_check_id', checkRecord.id)
+
+                  // Evaluate alert rules
+                  await alertManager.evaluateAlertRules(
+                    checkRecord.id,
+                    completedCheck.accuracy_score || 100,
+                    discrepancies || []
+                  )
+                }
+              })
+              .catch((error) => {
+                console.error(`Accuracy check failed for org ${org.id}:`, error)
+              })
+
+            checkPromises.push(checkPromise)
+
+            checks.push({
+              organizationId: org.id,
+              checkId: checkRecord.id,
+            })
+          } catch (error) {
+            console.error(`Error processing organization ${org.id}:`, error)
           }
-        }).catch(error => {
-          console.error(`Accuracy check failed for org ${org.id}:`, error)
         })
-        
-        checkPromises.push(checkPromise)
-
-        checks.push({
-          organizationId: org.id,
-          checkId: checkRecord.id,
-        })
-
-      } catch (error) {
-        console.error(`Error processing organization ${org.id}:`, error)
-      }
-      }))
+      )
     }
 
     // Wait for all checks to complete
     await Promise.allSettled(checkPromises)
-    
+
     // Process notification queue
     try {
       await notificationService.processNotificationQueue()
@@ -151,21 +161,22 @@ export async function GET(request: Request) {
       console.error('Error processing snooze expirations:', error)
     }
 
-    console.log(`Scheduled accuracy checks initiated: ${checks.length} checks started`)
+    console.log(
+      `Scheduled accuracy checks initiated: ${checks.length} checks started`
+    )
 
     return NextResponse.json({
       success: true,
       message: `Started ${checks.length} accuracy checks`,
       checks: checks.length,
-      organizations: checks.map(c => c.organizationId),
+      organizations: checks.map((c) => c.organizationId),
     })
-
   } catch (error) {
     console.error('Cron job error:', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -239,16 +250,19 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
     const token = authHeader.replace('Bearer ', '')
-    
+
     // Verify the token
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token)
     if (authError || !user) {
       return NextResponse.json(
         { success: false, error: 'Invalid token' },
         { status: 401 }
       )
     }
-    
+
     const body = await request.json()
     const { organizationId } = body
 
@@ -285,13 +299,12 @@ export async function POST(request: Request) {
       success: true,
       checkId,
     })
-
   } catch (error) {
     console.error('Manual trigger error:', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

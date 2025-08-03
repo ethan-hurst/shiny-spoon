@@ -1,9 +1,9 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Download, Printer } from 'lucide-react'
 import Link from 'next/link'
+import { Download, Printer } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 interface LegalLayoutProps {
   title: string
@@ -12,7 +12,12 @@ interface LegalLayoutProps {
   children: React.ReactNode
 }
 
-export function LegalLayout({ title, lastUpdated, downloadUrl, children }: LegalLayoutProps) {
+export function LegalLayout({
+  title,
+  lastUpdated,
+  downloadUrl,
+  children,
+}: LegalLayoutProps) {
   const handlePrint = () => {
     window.print()
   }
@@ -22,8 +27,15 @@ export function LegalLayout({ title, lastUpdated, downloadUrl, children }: Legal
     try {
       const urlObj = new URL(url, window.location.origin)
       // Allow only same origin or trusted domains
-      const allowedDomains = [window.location.hostname, 'cdn.truthsource.io', 'docs.truthsource.io']
-      return allowedDomains.includes(urlObj.hostname) && urlObj.pathname.endsWith('.pdf')
+      const allowedDomains = [
+        window.location.hostname,
+        'cdn.truthsource.io',
+        'docs.truthsource.io',
+      ]
+      return (
+        allowedDomains.includes(urlObj.hostname) &&
+        urlObj.pathname.endsWith('.pdf')
+      )
     } catch {
       return false
     }
@@ -38,7 +50,7 @@ export function LegalLayout({ title, lastUpdated, downloadUrl, children }: Legal
             <p className="text-sm text-gray-600 mb-4">
               Last updated: {lastUpdated}
             </p>
-            
+
             <div className="flex flex-wrap gap-4">
               <Button variant="outline" size="sm" onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" />
@@ -55,9 +67,7 @@ export function LegalLayout({ title, lastUpdated, downloadUrl, children }: Legal
             </div>
           </div>
 
-          <div className="legal-content">
-            {children}
-          </div>
+          <div className="legal-content">{children}</div>
         </Card>
 
         <div className="mt-8 text-center text-sm text-gray-600">

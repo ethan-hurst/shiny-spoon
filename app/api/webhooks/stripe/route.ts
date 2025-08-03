@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
+import Stripe from 'stripe'
 import { stripe } from '@/lib/billing/stripe'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import Stripe from 'stripe'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
@@ -47,8 +47,10 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        console.log(`Processing checkout.session.completed for session ${session.id}`)
-        
+        console.log(
+          `Processing checkout.session.completed for session ${session.id}`
+        )
+
         if (session.mode === 'subscription' && session.subscription) {
           // Get subscription details
           const subscription = await stripe.subscriptions.retrieve(
@@ -57,7 +59,9 @@ export async function POST(request: NextRequest) {
 
           // Validate required data
           if (!session.client_reference_id) {
-            console.error(`Missing client_reference_id for session ${session.id}`)
+            console.error(
+              `Missing client_reference_id for session ${session.id}`
+            )
             throw new Error('Missing organization reference')
           }
 
@@ -68,13 +72,17 @@ export async function POST(request: NextRequest) {
 
           // Check if subscription has items
           if (!subscription.items.data.length) {
-            console.error(`No subscription items found for subscription ${subscription.id}`)
+            console.error(
+              `No subscription items found for subscription ${subscription.id}`
+            )
             throw new Error('No subscription items found')
           }
 
           const firstItem = subscription.items.data[0]
           if (!firstItem?.price || typeof firstItem.price === 'string') {
-            console.error(`Invalid price object for subscription ${subscription.id}`)
+            console.error(
+              `Invalid price object for subscription ${subscription.id}`
+            )
             throw new Error('Invalid subscription price data')
           }
 
@@ -87,34 +95,49 @@ export async function POST(request: NextRequest) {
               stripe_subscription_id: subscription.id,
               subscription_status: subscription.status,
               subscription_plan: getPlanFromPriceId(firstItem.price.id),
-              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              current_period_start: new Date(
+                subscription.current_period_start * 1000
+              ).toISOString(),
+              current_period_end: new Date(
+                subscription.current_period_end * 1000
+              ).toISOString(),
               updated_at: new Date().toISOString(),
             })
 
           if (error) {
-            console.error(`Failed to update customer billing for subscription ${subscription.id}:`, error)
+            console.error(
+              `Failed to update customer billing for subscription ${subscription.id}:`,
+              error
+            )
             throw error
           }
 
-          console.log(`Successfully processed checkout for subscription ${subscription.id}`)
+          console.log(
+            `Successfully processed checkout for subscription ${subscription.id}`
+          )
         }
         break
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
-        console.log(`Processing customer.subscription.updated for subscription ${subscription.id}`)
-        
+        console.log(
+          `Processing customer.subscription.updated for subscription ${subscription.id}`
+        )
+
         // Check if subscription has items
         if (!subscription.items.data.length) {
-          console.error(`No subscription items found for subscription ${subscription.id}`)
+          console.error(
+            `No subscription items found for subscription ${subscription.id}`
+          )
           throw new Error('No subscription items found')
         }
 
         const firstItem = subscription.items.data[0]
         if (!firstItem?.price || typeof firstItem.price === 'string') {
-          console.error(`Invalid price object for subscription ${subscription.id}`)
+          console.error(
+            `Invalid price object for subscription ${subscription.id}`
+          )
           throw new Error('Invalid subscription price data')
         }
 
@@ -124,25 +147,36 @@ export async function POST(request: NextRequest) {
           .update({
             subscription_status: subscription.status,
             subscription_plan: getPlanFromPriceId(firstItem.price.id),
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            current_period_start: new Date(
+              subscription.current_period_start * 1000
+            ).toISOString(),
+            current_period_end: new Date(
+              subscription.current_period_end * 1000
+            ).toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('stripe_subscription_id', subscription.id)
 
         if (error) {
-          console.error(`Failed to update billing for subscription ${subscription.id}:`, error)
+          console.error(
+            `Failed to update billing for subscription ${subscription.id}:`,
+            error
+          )
           throw error
         }
 
-        console.log(`Successfully updated billing for subscription ${subscription.id}`)
+        console.log(
+          `Successfully updated billing for subscription ${subscription.id}`
+        )
         break
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
-        console.log(`Processing customer.subscription.deleted for subscription ${subscription.id}`)
-        
+        console.log(
+          `Processing customer.subscription.deleted for subscription ${subscription.id}`
+        )
+
         // Mark subscription as canceled
         const { error } = await supabaseAdmin
           .from('customer_billing')
@@ -153,18 +187,25 @@ export async function POST(request: NextRequest) {
           .eq('stripe_subscription_id', subscription.id)
 
         if (error) {
-          console.error(`Failed to mark subscription ${subscription.id} as canceled:`, error)
+          console.error(
+            `Failed to mark subscription ${subscription.id} as canceled:`,
+            error
+          )
           throw error
         }
 
-        console.log(`Successfully marked subscription ${subscription.id} as canceled`)
+        console.log(
+          `Successfully marked subscription ${subscription.id} as canceled`
+        )
         break
       }
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
-        console.log(`Processing invoice.payment_succeeded for invoice ${invoice.id} (customer: ${invoice.customer})`)
-        
+        console.log(
+          `Processing invoice.payment_succeeded for invoice ${invoice.id} (customer: ${invoice.customer})`
+        )
+
         // Update usage metrics reset if needed
         if (invoice.billing_reason === 'subscription_cycle') {
           if (!invoice.customer) {
@@ -179,7 +220,10 @@ export async function POST(request: NextRequest) {
             .single()
 
           if (billingError) {
-            console.error(`Failed to fetch billing info for customer ${invoice.customer}:`, billingError)
+            console.error(
+              `Failed to fetch billing info for customer ${invoice.customer}:`,
+              billingError
+            )
             throw billingError
           }
 
@@ -192,17 +236,26 @@ export async function POST(request: NextRequest) {
                 metric_type: 'api_calls',
                 metric_value: 0,
                 period_start: new Date().toISOString(),
-                period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                period_end: new Date(
+                  Date.now() + 30 * 24 * 60 * 60 * 1000
+                ).toISOString(),
               })
 
             if (metricsError) {
-              console.error(`Failed to reset usage metrics for organization ${billing.organization_id}:`, metricsError)
+              console.error(
+                `Failed to reset usage metrics for organization ${billing.organization_id}:`,
+                metricsError
+              )
               throw metricsError
             }
 
-            console.log(`Reset usage metrics for organization ${billing.organization_id}`)
+            console.log(
+              `Reset usage metrics for organization ${billing.organization_id}`
+            )
           } else {
-            console.warn(`No billing record found for customer ${invoice.customer}`)
+            console.warn(
+              `No billing record found for customer ${invoice.customer}`
+            )
           }
         }
 
@@ -212,8 +265,10 @@ export async function POST(request: NextRequest) {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
-        console.log(`Processing invoice.payment_failed for invoice ${invoice.id} (customer: ${invoice.customer})`)
-        
+        console.log(
+          `Processing invoice.payment_failed for invoice ${invoice.id} (customer: ${invoice.customer})`
+        )
+
         if (!invoice.customer) {
           console.error(`Missing customer ID for failed invoice ${invoice.id}`)
           throw new Error('Missing customer ID in failed invoice')
@@ -229,7 +284,10 @@ export async function POST(request: NextRequest) {
           .eq('stripe_customer_id', invoice.customer)
 
         if (error) {
-          console.error(`Failed to update subscription status for customer ${invoice.customer}:`, error)
+          console.error(
+            `Failed to update subscription status for customer ${invoice.customer}:`,
+            error
+          )
           throw error
         }
 
@@ -243,8 +301,10 @@ export async function POST(request: NextRequest) {
 
         // Send payment failure notification
         try {
-          const notificationService = new (await import('@/lib/monitoring/notification-service')).NotificationService()
-          
+          const notificationService = new (
+            await import('@/lib/monitoring/notification-service')
+          ).NotificationService()
+
           // Get organization ID from subscription metadata
           const { data: subscription } = await supabaseAdmin
             .from('subscriptions')
@@ -264,17 +324,22 @@ export async function POST(request: NextRequest) {
             })
           }
         } catch (notificationError) {
-          console.error('Failed to send payment failure notification:', notificationError)
+          console.error(
+            'Failed to send payment failure notification:',
+            notificationError
+          )
         }
-        
-        console.log(`Subscription marked as past_due for customer ${invoice.customer}`)
+
+        console.log(
+          `Subscription marked as past_due for customer ${invoice.customer}`
+        )
         break
       }
 
       case 'customer.updated': {
         const customer = event.data.object as Stripe.Customer
         console.log(`Processing customer.updated for customer ${customer.id}`)
-        
+
         // Update customer info if needed
         if (customer.metadata?.organization_id) {
           if (!customer.email) {
@@ -290,13 +355,20 @@ export async function POST(request: NextRequest) {
             .eq('id', customer.metadata.organization_id)
 
           if (error) {
-            console.error(`Failed to update organization ${customer.metadata.organization_id}:`, error)
+            console.error(
+              `Failed to update organization ${customer.metadata.organization_id}:`,
+              error
+            )
             throw error
           }
 
-          console.log(`Updated billing email for organization ${customer.metadata.organization_id}`)
+          console.log(
+            `Updated billing email for organization ${customer.metadata.organization_id}`
+          )
         } else {
-          console.log(`No organization_id in metadata for customer ${customer.id}, skipping update`)
+          console.log(
+            `No organization_id in metadata for customer ${customer.id}, skipping update`
+          )
         }
         break
       }
@@ -305,14 +377,20 @@ export async function POST(request: NextRequest) {
         console.log(`Unhandled event type: ${event.type}`)
     }
 
-    console.log(`Successfully processed webhook event ${event.type} [${event.id}]`)
+    console.log(
+      `Successfully processed webhook event ${event.type} [${event.id}]`
+    )
     return NextResponse.json({ received: true })
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    console.error(`Error processing webhook event ${event.type} [${event.id}]:`, {
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
-    })
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    console.error(
+      `Error processing webhook event ${event.type} [${event.id}]:`,
+      {
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      }
+    )
     return NextResponse.json(
       { error: 'Webhook processing failed', details: errorMessage },
       { status: 500 }
@@ -324,7 +402,7 @@ export async function POST(request: NextRequest) {
 function getPlanFromPriceId(priceId: string): string {
   // Build price map only with available environment variables
   const priceIdMap: Record<string, string> = {}
-  
+
   if (process.env.STRIPE_PRICE_STARTER_MONTHLY) {
     priceIdMap[process.env.STRIPE_PRICE_STARTER_MONTHLY] = 'starter'
   }
@@ -348,6 +426,6 @@ function getPlanFromPriceId(priceId: string): string {
   if (!plan) {
     console.warn(`Unknown price ID: ${priceId}. Defaulting to 'starter' plan.`)
   }
-  
+
   return plan || 'starter'
 }

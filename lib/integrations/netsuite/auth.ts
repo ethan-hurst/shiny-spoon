@@ -1,14 +1,14 @@
 // PRP-013: NetSuite OAuth 2.0 Authentication
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { AuthManager } from '@/lib/integrations/auth-manager'
-import { 
+import { createClient } from '@/lib/supabase/server'
+import {
   AuthenticationError,
-  type OAuthCredentials 
+  type OAuthCredentials,
 } from '@/types/integration.types'
-import type { 
+import type {
+  NetSuiteIntegrationConfig,
   NetSuiteTokenResponse,
-  NetSuiteIntegrationConfig 
 } from '@/types/netsuite.types'
 
 const tokenResponseSchema = z.object({
@@ -80,12 +80,12 @@ export class NetSuiteAuth {
   async exchangeCodeForTokens(code: string): Promise<NetSuiteTokenResponse> {
     try {
       const tokenUrl = `https://${this.accountId}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token`
-      
+
       const response = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
+          Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
         },
         body: new URLSearchParams({
           grant_type: 'authorization_code',
@@ -95,7 +95,9 @@ export class NetSuiteAuth {
       })
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: response.statusText }))
+        const error = await response
+          .json()
+          .catch(() => ({ error: response.statusText }))
         throw new AuthenticationError(
           `Token exchange failed: ${response.status}`,
           error
@@ -153,12 +155,12 @@ export class NetSuiteAuth {
       }
 
       const tokenUrl = `https://${this.accountId}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token`
-      
+
       const response = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
+          Authorization: `Basic ${Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64')}`,
         },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
@@ -167,7 +169,9 @@ export class NetSuiteAuth {
       })
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: response.statusText }))
+        const error = await response
+          .json()
+          .catch(() => ({ error: response.statusText }))
         throw new AuthenticationError(
           `Token refresh failed: ${response.status}`,
           error
@@ -209,8 +213,8 @@ export class NetSuiteAuth {
         p_log_type: 'auth',
         p_severity: 'error',
         p_message: 'NetSuite OAuth token refresh failed',
-        p_details: { 
-          error: error instanceof Error ? error.message : String(error) 
+        p_details: {
+          error: error instanceof Error ? error.message : String(error),
         },
       })
 
@@ -229,7 +233,7 @@ export class NetSuiteAuth {
       }
 
       const oauthCreds = credentials as OAuthCredentials
-      
+
       // Check if token needs refresh (5 minutes before expiry)
       if (oauthCreds.expires_at) {
         const expiresAt = new Date(oauthCreds.expires_at)
@@ -239,7 +243,8 @@ export class NetSuiteAuth {
         if (expiresAt <= fiveMinutesFromNow) {
           await this.refreshAccessToken()
           // Get refreshed credentials
-          const refreshedCreds = await this.authManager.getCredentials() as OAuthCredentials
+          const refreshedCreds =
+            (await this.authManager.getCredentials()) as OAuthCredentials
           return refreshedCreds.access_token
         }
       }
@@ -265,7 +270,7 @@ export class NetSuiteAuth {
 
       const oauthCreds = credentials as OAuthCredentials
       const revokeUrl = `https://${this.accountId}.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/revoke`
-      
+
       // Track revocation failures
       const revocationErrors: string[] = []
 
@@ -327,7 +332,9 @@ export class NetSuiteAuth {
 
       // If any revocation failed, throw a combined error
       if (revocationErrors.length > 0) {
-        throw new Error(`Token revocation failed: ${revocationErrors.join('; ')}`)
+        throw new Error(
+          `Token revocation failed: ${revocationErrors.join('; ')}`
+        )
       }
 
       // Delete stored credentials
@@ -356,13 +363,13 @@ export class NetSuiteAuth {
   async testConnection(): Promise<boolean> {
     try {
       const token = await this.getValidAccessToken()
-      
+
       // Make a simple API call to test the connection
       const testUrl = `https://${this.accountId}.suitetalk.api.netsuite.com/services/rest/record/v1/metadata-catalog/`
-      
+
       const response = await fetch(testUrl, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       })
@@ -379,15 +386,20 @@ export class NetSuiteAuth {
   static generateState(): string {
     const array = new Uint8Array(32)
     crypto.getRandomValues(array)
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join(
+      ''
+    )
   }
 
   /**
    * Store OAuth state for verification
    */
-  static async storeOAuthState(state: string, integrationId: string): Promise<void> {
+  static async storeOAuthState(
+    state: string,
+    integrationId: string
+  ): Promise<void> {
     const supabase = createClient()
-    
+
     // Store state with 10 minute expiry
     const expiresAt = new Date()
     expiresAt.setMinutes(expiresAt.getMinutes() + 10)
@@ -413,7 +425,7 @@ export class NetSuiteAuth {
    */
   static async verifyOAuthState(state: string): Promise<string | null> {
     const supabase = createClient()
-    
+
     const { data, error } = await supabase
       .from('oauth_states')
       .select('integration_id')
@@ -426,10 +438,7 @@ export class NetSuiteAuth {
     }
 
     // Delete used state
-    await supabase
-      .from('oauth_states')
-      .delete()
-      .eq('state', state)
+    await supabase.from('oauth_states').delete().eq('state', state)
 
     return data.integration_id
   }

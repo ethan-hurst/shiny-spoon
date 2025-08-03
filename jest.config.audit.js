@@ -9,28 +9,31 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   // Test environment
   testEnvironment: 'node',
-  
+
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
-  
+
   // Test patterns for audit trail tests
   testMatch: [
     '<rootDir>/__tests__/**/*.test.ts',
     '<rootDir>/__tests__/**/*.spec.ts',
   ],
-  
+
   // Module name mapping
   moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/$1',
   },
-  
+
   // Transform patterns
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
-    }],
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.json',
+      },
+    ],
   },
-  
+
   // Coverage configuration
   collectCoverageFrom: [
     'lib/audit/**/*.{ts,tsx}',
@@ -42,7 +45,7 @@ const customJestConfig = {
     '!**/*.test.{ts,tsx}',
     '!**/*.spec.{ts,tsx}',
   ],
-  
+
   // Coverage thresholds
   coverageThreshold: {
     global: {
@@ -58,28 +61,25 @@ const customJestConfig = {
       statements: 90,
     },
   },
-  
+
   // Test timeout for integration tests
   testTimeout: 30000,
-  
+
   // Mock patterns
   moduleNameMapping: {
     '^@/(.*)$': '<rootDir>/$1',
   },
-  
+
   // Ignore patterns
-  testPathIgnorePatterns: [
-    '<rootDir>/.next/',
-    '<rootDir>/node_modules/',
-  ],
-  
+  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
+
   // Environment variables for testing
   setupFiles: ['<rootDir>/__tests__/env.setup.js'],
-  
+
   // Global setup and teardown
   globalSetup: '<rootDir>/__tests__/global-setup.ts',
   globalTeardown: '<rootDir>/__tests__/global-teardown.ts',
-  
+
   // Reporter configuration
   reporters: [
     'default',
@@ -92,17 +92,17 @@ const customJestConfig = {
       },
     ],
   ],
-  
+
   // Verbose output for debugging
   verbose: true,
-  
+
   // Clear mocks between tests
   clearMocks: true,
   restoreMocks: true,
-  
+
   // Handle ESM modules
   extensionsToTreatAsEsm: ['.ts'],
-  
+
   // Projects for different test types
   projects: [
     {

@@ -397,12 +397,14 @@ export function useInventory(warehouseId?: string) {
 8. **NO placeholder UI** - Build actual components
 
 **IMPORTANT EXCEPTION**: Mocking is REQUIRED and EXPECTED in test files for:
+
 - Unit tests that need to test components/functions in isolation
 - Mocking external dependencies (Supabase, APIs, etc.)
 - Testing error conditions and edge cases
 - Ensuring fast, reliable test execution
 
 When writing tests:
+
 - Use proper TypeScript types for mocks (avoid `any`)
 - Create reusable mock utilities in `__tests__/test-utils/`
 - Mock at the appropriate level (unit vs integration tests)
@@ -501,7 +503,7 @@ async function fetchUser(id: string) {
     .select('*')
     .eq('id', id)
     .single()
-  
+
   if (error) throw error
   return data
 }
@@ -513,7 +515,7 @@ async function fetchUser(id: string): Promise<User> {
     .select('*')
     .eq('id', id)
     .single()
-  
+
   if (error) throw error
   return data
 }
@@ -896,6 +898,7 @@ export function middleware(request: NextRequest) {
 ### Testing Philosophy
 
 Write tests that give confidence without sacrificing development speed. Follow the testing pyramid:
+
 1. **Many Unit Tests** - Fast, isolated, test business logic
 2. **Some Integration Tests** - Test component interactions with real data
 3. **Few E2E Tests** - Test critical user journeys
@@ -903,6 +906,7 @@ Write tests that give confidence without sacrificing development speed. Follow t
 ### Mocking in Tests
 
 **Mocking is REQUIRED in test files** to ensure:
+
 - Fast test execution
 - Predictable test results
 - Ability to test error states
@@ -911,6 +915,7 @@ Write tests that give confidence without sacrificing development speed. Follow t
 ### TypeScript in Tests
 
 **Tests should maintain the same type safety as production code.** Well-typed tests:
+
 - Catch type errors before runtime
 - Serve as living documentation
 - Ensure mocks match real implementations
@@ -952,24 +957,24 @@ const mock = {} as any
 describe('ComponentName', () => {
   // Setup shared test data
   const testData = { id: '123', name: 'Test' }
-  
+
   beforeEach(() => {
     // Reset mocks between tests
     jest.clearAllMocks()
   })
-  
+
   describe('feature/method name', () => {
     it('should handle success case', async () => {
       // Arrange
       const expected = 'result'
-      
+
       // Act
       const result = await functionUnderTest()
-      
+
       // Assert
       expect(result).toBe(expected)
     })
-    
+
     it('should handle error case', async () => {
       // Test error scenarios
     })

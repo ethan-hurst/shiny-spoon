@@ -114,12 +114,10 @@ export async function getOrCreateStripeCustomer(
   })
 
   // Save the customer ID to our database
-  await supabase
-    .from('customer_billing')
-    .upsert({
-      organization_id: organizationId,
-      stripe_customer_id: customer.id,
-    })
+  await supabase.from('customer_billing').upsert({
+    organization_id: organizationId,
+    stripe_customer_id: customer.id,
+  })
 
   return customer.id
 }
@@ -143,9 +141,12 @@ export async function createCheckoutSession({
     throw new Error(`Invalid subscription plan selected: ${plan}`)
   }
 
-  const priceId = interval === 'year' ? planConfig.yearlyPriceId : planConfig.monthlyPriceId
+  const priceId =
+    interval === 'year' ? planConfig.yearlyPriceId : planConfig.monthlyPriceId
   if (!priceId) {
-    throw new Error(`Pricing is not configured for the ${plan} plan (${interval}ly billing). Please contact support.`)
+    throw new Error(
+      `Pricing is not configured for the ${plan} plan (${interval}ly billing). Please contact support.`
+    )
   }
 
   try {
@@ -189,7 +190,9 @@ export async function createBillingPortalSession({
     return session
   } catch (error) {
     console.error('Error creating billing portal session:', error)
-    throw new Error('Unable to create billing portal session. Please try again.')
+    throw new Error(
+      'Unable to create billing portal session. Please try again.'
+    )
   }
 }
 
@@ -246,16 +249,19 @@ export async function updateSubscription(
   newPriceId: string
 ) {
   const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-  
-  const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
-    items: [
-      {
-        id: subscription.items.data[0].id,
-        price: newPriceId,
-      },
-    ],
-    proration_behavior: 'create_prorations',
-  })
+
+  const updatedSubscription = await stripe.subscriptions.update(
+    subscriptionId,
+    {
+      items: [
+        {
+          id: subscription.items.data[0].id,
+          price: newPriceId,
+        },
+      ],
+      proration_behavior: 'create_prorations',
+    }
+  )
 
   return updatedSubscription
 }

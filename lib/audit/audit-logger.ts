@@ -48,8 +48,10 @@ export class AuditLogger {
     this.supabase = supabaseClient!
   }
 
-  static async create(supabaseClient?: Awaited<ReturnType<typeof createServerClient>>): Promise<AuditLogger> {
-    const client = supabaseClient || await createServerClient()
+  static async create(
+    supabaseClient?: Awaited<ReturnType<typeof createServerClient>>
+  ): Promise<AuditLogger> {
+    const client = supabaseClient || (await createServerClient())
     return new AuditLogger(client)
   }
 

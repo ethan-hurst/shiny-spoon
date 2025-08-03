@@ -1,25 +1,33 @@
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { 
-  Building2, 
-  CreditCard, 
-  Users, 
-  Shield, 
-  Package, 
-  ExternalLink,
-  Settings2,
+import { redirect } from 'next/navigation'
+import {
+  BarChart3,
   Bell,
+  Building2,
+  CreditCard,
+  ExternalLink,
   Key,
-  BarChart3
+  Package,
+  Settings2,
+  Shield,
+  Users,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -105,7 +113,8 @@ export default async function SettingsPage() {
           <CardHeader>
             <CardTitle>Customer Portal</CardTitle>
             <CardDescription>
-              Access advanced settings, billing, and team management in the customer portal
+              Access advanced settings, billing, and team management in the
+              customer portal
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -123,13 +132,16 @@ export default async function SettingsPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {settingsCards.map((card) => {
           // Hide admin-only cards for non-admins
-          if (!isAdmin && ['Organization', 'Team Management', 'API Keys'].includes(card.title)) {
+          if (
+            !isAdmin &&
+            ['Organization', 'Team Management', 'API Keys'].includes(card.title)
+          ) {
             return null
           }
 
           return (
-            <Link 
-              key={card.title} 
+            <Link
+              key={card.title}
               href={card.href}
               target={card.external ? '_blank' : undefined}
               className="block"
@@ -157,7 +169,8 @@ export default async function SettingsPage() {
             <CardHeader>
               <CardTitle>Need Admin Access?</CardTitle>
               <CardDescription>
-                Some settings require admin permissions. Contact your organization admin to request access.
+                Some settings require admin permissions. Contact your
+                organization admin to request access.
               </CardDescription>
             </CardHeader>
           </Card>

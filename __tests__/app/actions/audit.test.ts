@@ -1,7 +1,7 @@
-import { exportAuditLogs, generateComplianceReport } from '@/app/actions/audit'
-import { createServerClient } from '@/lib/supabase/server'
-import { generateCSV } from '@/lib/csv/parser'
 import { format } from 'date-fns'
+import { generateCSV } from '@/lib/csv/parser'
+import { createServerClient } from '@/lib/supabase/server'
+import { exportAuditLogs, generateComplianceReport } from '@/app/actions/audit'
 
 // Mock dependencies
 jest.mock('@/lib/supabase/server')
@@ -43,7 +43,7 @@ jest.doMock('@/lib/audit/audit-logger', () => ({
 describe('Audit Actions', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Setup default mock returns
     mockSupabase.auth.getUser.mockResolvedValue({
       data: {
@@ -154,7 +154,9 @@ describe('Audit Actions', () => {
 
       expect(result).toEqual({
         data: 'mocked,csv,data\nrow1,row2,row3',
-        filename: expect.stringMatching(/^audit_logs_\d{4}-\d{2}-\d{2}_\d{6}\.csv$/),
+        filename: expect.stringMatching(
+          /^audit_logs_\d{4}-\d{2}-\d{2}_\d{6}\.csv$/
+        ),
       })
     })
 
@@ -167,7 +169,9 @@ describe('Audit Actions', () => {
 
       expect(result).toEqual({
         data: JSON.stringify(mockAuditLogs, null, 2),
-        filename: expect.stringMatching(/^audit_logs_\d{4}-\d{2}-\d{2}_\d{6}\.json$/),
+        filename: expect.stringMatching(
+          /^audit_logs_\d{4}-\d{2}-\d{2}_\d{6}\.json$/
+        ),
       })
 
       expect(generateCSV).not.toHaveBeenCalled()
@@ -199,9 +203,17 @@ describe('Audit Actions', () => {
       expect(mockQuery.eq).toHaveBeenCalledWith('user_id', 'user-123')
       expect(mockQuery.eq).toHaveBeenCalledWith('action', 'create')
       expect(mockQuery.eq).toHaveBeenCalledWith('entity_type', 'product')
-      expect(mockQuery.gte).toHaveBeenCalledWith('created_at', mockFilters.from.toISOString())
-      expect(mockQuery.lte).toHaveBeenCalledWith('created_at', mockFilters.to.toISOString())
-      expect(mockQuery.order).toHaveBeenCalledWith('created_at', { ascending: false })
+      expect(mockQuery.gte).toHaveBeenCalledWith(
+        'created_at',
+        mockFilters.from.toISOString()
+      )
+      expect(mockQuery.lte).toHaveBeenCalledWith(
+        'created_at',
+        mockFilters.to.toISOString()
+      )
+      expect(mockQuery.order).toHaveBeenCalledWith('created_at', {
+        ascending: false,
+      })
       expect(mockQuery.limit).toHaveBeenCalledWith(10000)
     })
 
@@ -286,7 +298,10 @@ describe('Audit Actions', () => {
       })
 
       expect(result).toEqual({ error: 'Failed to export audit logs' })
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Export error:', expect.any(Error))
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Export error:',
+        expect.any(Error)
+      )
 
       consoleErrorSpy.mockRestore()
     })
@@ -299,10 +314,10 @@ describe('Audit Actions', () => {
       })
 
       const csvData = (generateCSV as jest.Mock).mock.calls[0][0]
-      
+
       // First log has no changes (create action)
       expect(csvData[0].changes).toBe('')
-      
+
       // Second log has changes (update action)
       expect(csvData[1].changes).toContain('price')
     })
@@ -412,10 +427,18 @@ describe('Audit Actions', () => {
       })
 
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
-      expect(mockQuery.select).toHaveBeenCalledWith('action, entity_type, user_id')
+      expect(mockQuery.select).toHaveBeenCalledWith(
+        'action, entity_type, user_id'
+      )
       expect(mockQuery.eq).toHaveBeenCalledWith('organization_id', 'org-123')
-      expect(mockQuery.gte).toHaveBeenCalledWith('created_at', mockDateRange.from.toISOString())
-      expect(mockQuery.lte).toHaveBeenCalledWith('created_at', mockDateRange.to.toISOString())
+      expect(mockQuery.gte).toHaveBeenCalledWith(
+        'created_at',
+        mockDateRange.from.toISOString()
+      )
+      expect(mockQuery.lte).toHaveBeenCalledWith(
+        'created_at',
+        mockDateRange.to.toISOString()
+      )
     })
 
     it('should log the report generation action', async () => {
@@ -468,7 +491,10 @@ describe('Audit Actions', () => {
       })
 
       expect(result).toEqual({ error: 'Failed to generate compliance report' })
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Compliance report error:', expect.any(Error))
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Compliance report error:',
+        expect.any(Error)
+      )
 
       consoleErrorSpy.mockRestore()
     })

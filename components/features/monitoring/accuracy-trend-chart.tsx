@@ -2,18 +2,18 @@
 'use client'
 
 import { useMemo } from 'react'
+import { format } from 'date-fns'
 import {
   Area,
   AreaChart,
+  CartesianGrid,
+  Legend,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Legend,
-  ReferenceLine,
 } from 'recharts'
-import { format } from 'date-fns'
 import { AccuracyTrendPoint } from '@/lib/monitoring/types'
 
 interface AccuracyTrendChartProps {
@@ -23,11 +23,11 @@ interface AccuracyTrendChartProps {
   referenceValue?: number
 }
 
-export function AccuracyTrendChart({ 
-  data, 
+export function AccuracyTrendChart({
+  data,
   height = 300,
   showReference = true,
-  referenceValue = 95
+  referenceValue = 95,
 }: AccuracyTrendChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return []
@@ -35,7 +35,7 @@ export function AccuracyTrendChart({
     // Sort by date and format for chart
     return data
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-      .map(point => ({
+      .map((point) => ({
         date: format(point.timestamp, 'MMM dd'),
         time: format(point.timestamp, 'HH:mm'),
         accuracy: point.accuracyScore,
@@ -47,7 +47,8 @@ export function AccuracyTrendChart({
   if (chartData.length === 0) {
     return (
       <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-        No trend data available yet. Data will appear after accuracy checks are run.
+        No trend data available yet. Data will appear after accuracy checks are
+        run.
       </div>
     )
   }
@@ -78,7 +79,8 @@ export function AccuracyTrendChart({
           <p className="text-sm text-muted-foreground">{data.payload.time}</p>
           <div className="mt-2 space-y-1">
             <p className="text-sm">
-              Accuracy: <span className="font-medium">{data.value.toFixed(2)}%</span>
+              Accuracy:{' '}
+              <span className="font-medium">{data.value.toFixed(2)}%</span>
             </p>
             {data.payload.records && (
               <p className="text-sm text-muted-foreground">
@@ -97,28 +99,36 @@ export function AccuracyTrendChart({
     return null
   }
 
-  const minAccuracy = Math.min(...chartData.map(d => d.accuracy))
+  const minAccuracy = Math.min(...chartData.map((d) => d.accuracy))
   const yAxisDomain = [Math.max(0, minAccuracy - 5), 100]
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart 
-        data={chartData} 
+      <AreaChart
+        data={chartData}
         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
       >
         <defs>
           <linearGradient id="colorAccuracy" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
-            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+            <stop
+              offset="5%"
+              stopColor="hsl(var(--primary))"
+              stopOpacity={0.8}
+            />
+            <stop
+              offset="95%"
+              stopColor="hsl(var(--primary))"
+              stopOpacity={0.1}
+            />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis 
-          dataKey="date" 
+        <XAxis
+          dataKey="date"
           className="text-xs"
           tick={{ fill: 'currentColor' }}
         />
-        <YAxis 
+        <YAxis
           domain={yAxisDomain}
           className="text-xs"
           tick={{ fill: 'currentColor' }}
@@ -127,9 +137,9 @@ export function AccuracyTrendChart({
         <Tooltip content={<CustomTooltip />} />
         <Legend />
         {showReference && (
-          <ReferenceLine 
-            y={referenceValue} 
-            stroke="hsl(var(--destructive))" 
+          <ReferenceLine
+            y={referenceValue}
+            stroke="hsl(var(--destructive))"
             strokeDasharray="3 3"
             label={`Target: ${referenceValue}%`}
           />

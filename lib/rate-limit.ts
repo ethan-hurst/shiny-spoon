@@ -2,12 +2,13 @@ import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
 // Create Redis instance
-const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-  : null
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null
 
 // Rate limiters for different operations
 export const rateLimiters = {
@@ -151,32 +152,37 @@ export const rateLimiters = {
       })
     : null,
 
-           // Monitoring operations: 30 per minute per user
-         monitoringOperations: redis
-           ? new Ratelimit({
-               redis,
-               limiter: Ratelimit.slidingWindow(30, '1 m'),
-               analytics: true,
-               prefix: 'rl:monitoring',
-             })
-           : null,
+  // Monitoring operations: 30 per minute per user
+  monitoringOperations: redis
+    ? new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(30, '1 m'),
+        analytics: true,
+        prefix: 'rl:monitoring',
+      })
+    : null,
 
-         // Analytics operations: 20 per minute per user
-         analytics: redis
-           ? new Ratelimit({
-               redis,
-               limiter: Ratelimit.slidingWindow(20, '1 m'),
-               analytics: true,
-               prefix: 'rl:analytics',
-             })
-           : null,
-         }
+  // Analytics operations: 20 per minute per user
+  analytics: redis
+    ? new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(20, '1 m'),
+        analytics: true,
+        prefix: 'rl:analytics',
+      })
+    : null,
+}
 
 // Helper function to check rate limit
 export async function checkRateLimit(
   limiter: Ratelimit | null,
   identifier: string
-): Promise<{ success: boolean; limit?: number; remaining?: number; reset?: number }> {
+): Promise<{
+  success: boolean
+  limit?: number
+  remaining?: number
+  reset?: number
+}> {
   if (!limiter) {
     // If Redis is not configured, allow all requests
     return { success: true }
@@ -200,15 +206,18 @@ export async function withRateLimit<T extends (...args: any[]) => any>(
 ): Promise<T> {
   return (async (...args: Parameters<T>) => {
     const identifier = getIdentifier(...args)
-    const { success, limit, remaining, reset } = await checkRateLimit(limiter, identifier)
+    const { success, limit, remaining, reset } = await checkRateLimit(
+      limiter,
+      identifier
+    )
 
     if (!success) {
       const resetDate = new Date(reset!)
       const waitTime = Math.ceil((reset! - Date.now()) / 1000)
-      
+
       throw new Error(
         `Rate limit exceeded. Please try again in ${waitTime} seconds. ` +
-        `(Limit: ${limit}, Remaining: ${remaining}, Reset: ${resetDate.toLocaleTimeString()})`
+          `(Limit: ${limit}, Remaining: ${remaining}, Reset: ${resetDate.toLocaleTimeString()})`
       )
     }
 
@@ -221,20 +230,27 @@ export function rateLimited<T extends (...args: any[]) => any>(
   limiter: Ratelimit | null,
   getIdentifier: (...args: Parameters<T>) => string
 ) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
     const originalMethod = descriptor.value
 
     descriptor.value = async function (...args: Parameters<T>) {
       const identifier = getIdentifier(...args)
-      const { success, limit, remaining, reset } = await checkRateLimit(limiter, identifier)
+      const { success, limit, remaining, reset } = await checkRateLimit(
+        limiter,
+        identifier
+      )
 
       if (!success) {
         const resetDate = new Date(reset!)
         const waitTime = Math.ceil((reset! - Date.now()) / 1000)
-        
+
         throw new Error(
           `Rate limit exceeded. Please try again in ${waitTime} seconds. ` +
-          `(Limit: ${limit}, Remaining: ${remaining}, Reset: ${resetDate.toLocaleTimeString()})`
+            `(Limit: ${limit}, Remaining: ${remaining}, Reset: ${resetDate.toLocaleTimeString()})`
         )
       }
 
@@ -269,11 +285,12 @@ export async function withAPIRateLimit(
   if (!success) {
     const resetDate = new Date(reset!)
     const waitTime = Math.ceil((reset! - Date.now()) / 1000)
-    
+
     return {
       success: false,
-      error: `Rate limit exceeded. Please try again in ${waitTime} seconds. ` +
-        `(Limit: ${limit}, Remaining: ${remaining}, Reset: ${resetDate.toLocaleTimeString()})`
+      error:
+        `Rate limit exceeded. Please try again in ${waitTime} seconds. ` +
+        `(Limit: ${limit}, Remaining: ${remaining}, Reset: ${resetDate.toLocaleTimeString()})`,
     }
   }
 

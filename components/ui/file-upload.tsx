@@ -16,15 +16,18 @@ interface FileUploadProps {
 }
 
 export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
-  ({ 
-    accept, 
-    maxSize = 10 * 1024 * 1024, // 10MB default
-    onChange, 
-    value, 
-    disabled, 
-    className,
-    placeholder = "Click to upload or drag and drop"
-  }, ref) => {
+  (
+    {
+      accept,
+      maxSize = 10 * 1024 * 1024, // 10MB default
+      onChange,
+      value,
+      disabled,
+      className,
+      placeholder = 'Click to upload or drag and drop',
+    },
+    ref
+  ) => {
     const [isDragOver, setIsDragOver] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -32,7 +35,7 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
 
     const handleFileSelect = async (file: File) => {
       setIsUploading(true)
-      
+
       try {
         // Validate file size
         if (file.size > maxSize) {
@@ -40,20 +43,23 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
         }
 
         // Validate file type if accept is specified
-        if (accept && !accept.split(',').some(type => {
-          const trimmed = type.trim()
-          if (trimmed.startsWith('.')) {
-            return file.name.toLowerCase().endsWith(trimmed.toLowerCase())
-          }
-          // Direct MIME type comparison (no regex for security)
-          if (trimmed.includes('*')) {
-            // Handle wildcard MIME types like "image/*"
-            const [category] = trimmed.split('/')
-            return file.type.startsWith(category + '/')
-          }
-          // Exact MIME type match
-          return file.type === trimmed
-        })) {
+        if (
+          accept &&
+          !accept.split(',').some((type) => {
+            const trimmed = type.trim()
+            if (trimmed.startsWith('.')) {
+              return file.name.toLowerCase().endsWith(trimmed.toLowerCase())
+            }
+            // Direct MIME type comparison (no regex for security)
+            if (trimmed.includes('*')) {
+              // Handle wildcard MIME types like "image/*"
+              const [category] = trimmed.split('/')
+              return file.type.startsWith(category + '/')
+            }
+            // Exact MIME type match
+            return file.type === trimmed
+          })
+        ) {
           throw new Error(`File type not supported. Accepted types: ${accept}`)
         }
 
@@ -61,7 +67,8 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
         onChange?.(file)
       } catch (error) {
         console.error('File upload error:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Failed to upload file'
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to upload file'
         setError(errorMessage)
         onChange?.(null)
       } finally {
@@ -81,9 +88,9 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
     const handleDrop = (e: React.DragEvent) => {
       e.preventDefault()
       setIsDragOver(false)
-      
+
       if (disabled) return
-      
+
       const file = e.dataTransfer.files[0]
       if (file) {
         handleFileSelect(file)
@@ -125,19 +132,19 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
     }
 
     return (
-      <div className={cn("w-full", className)}>
+      <div className={cn('w-full', className)}>
         <div
           onClick={handleClick}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           className={cn(
-            "relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 cursor-pointer",
-            "hover:border-primary/50 hover:bg-primary/5",
-            "focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20",
-            isDragOver && "border-primary bg-primary/10",
-            disabled && "opacity-50 cursor-not-allowed",
-            value && "border-primary bg-primary/5"
+            'relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 cursor-pointer',
+            'hover:border-primary/50 hover:bg-primary/5',
+            'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
+            isDragOver && 'border-primary bg-primary/10',
+            disabled && 'opacity-50 cursor-not-allowed',
+            value && 'border-primary bg-primary/5'
           )}
         >
           <input
@@ -181,14 +188,14 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center space-y-4">
-              <Cloud className={cn(
-                "h-10 w-10 transition-colors",
-                isDragOver ? "text-primary" : "text-muted-foreground"
-              )} />
+              <Cloud
+                className={cn(
+                  'h-10 w-10 transition-colors',
+                  isDragOver ? 'text-primary' : 'text-muted-foreground'
+                )}
+              />
               <div className="text-center">
-                <p className="text-sm font-medium">
-                  {placeholder}
-                </p>
+                <p className="text-sm font-medium">{placeholder}</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {accept && `Accepts: ${accept}`}
                   {maxSize && ` • Max size: ${formatFileSize(maxSize)}`}
@@ -197,7 +204,7 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
             </div>
           )}
         </div>
-        
+
         {error && (
           <div className="mt-2 text-sm text-destructive flex items-center gap-2">
             <X className="h-4 w-4" />
@@ -209,4 +216,4 @@ export const FileUpload = forwardRef<HTMLInputElement, FileUploadProps>(
   }
 )
 
-FileUpload.displayName = "FileUpload"
+FileUpload.displayName = 'FileUpload'

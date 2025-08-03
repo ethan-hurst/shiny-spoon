@@ -2,10 +2,10 @@
 import { createClient } from '@/lib/supabase/server'
 import {
   AuthenticationError,
-  type IntegrationCredential,
-  type CredentialTypeEnum,
-  type OAuthCredentials,
   type CredentialData,
+  type CredentialTypeEnum,
+  type IntegrationCredential,
+  type OAuthCredentials,
 } from '@/types/integration.types'
 
 // OAuth configuration per platform
@@ -62,16 +62,21 @@ export class AuthManager {
     credentials: CredentialData
   ): Promise<IntegrationCredential> {
     const supabase = createClient()
-    
+
     try {
       // Encrypt the credentials
-      const { data: encryptedData, error: encryptError } = await supabase
-        .rpc('encrypt_credential', {
+      const { data: encryptedData, error: encryptError } = await supabase.rpc(
+        'encrypt_credential',
+        {
           p_credential: JSON.stringify(credentials),
-        })
+        }
+      )
 
       if (encryptError) {
-        throw new AuthenticationError('Failed to encrypt credentials', encryptError)
+        throw new AuthenticationError(
+          'Failed to encrypt credentials',
+          encryptError
+        )
       }
 
       // Calculate token expiry if OAuth
@@ -121,7 +126,7 @@ export class AuthManager {
   // Retrieve and decrypt credentials
   async getCredentials(): Promise<CredentialData | null> {
     const supabase = createClient()
-    
+
     try {
       // Get encrypted credentials
       const { data: credential, error } = await supabase
@@ -142,7 +147,8 @@ export class AuthManager {
         const expiresAt = new Date(credential.access_token_expires_at)
         const refreshThreshold = new Date()
         refreshThreshold.setMinutes(
-          refreshThreshold.getMinutes() + DEFAULT_REFRESH_CONFIG.refreshThreshold
+          refreshThreshold.getMinutes() +
+            DEFAULT_REFRESH_CONFIG.refreshThreshold
         )
 
         if (expiresAt <= refreshThreshold) {
@@ -155,13 +161,18 @@ export class AuthManager {
       }
 
       // Decrypt credentials
-      const { data: decryptedData, error: decryptError } = await supabase
-        .rpc('decrypt_credential', {
+      const { data: decryptedData, error: decryptError } = await supabase.rpc(
+        'decrypt_credential',
+        {
           p_encrypted: credential.encrypted_data,
-        })
+        }
+      )
 
       if (decryptError) {
-        throw new AuthenticationError('Failed to decrypt credentials', decryptError)
+        throw new AuthenticationError(
+          'Failed to decrypt credentials',
+          decryptError
+        )
       }
 
       return JSON.parse(decryptedData) as CredentialData
@@ -178,7 +189,7 @@ export class AuthManager {
     newCredentials: CredentialData
   ): Promise<IntegrationCredential> {
     const supabase = createClient()
-    
+
     try {
       // Get existing credential record
       const { data: existing } = await supabase
@@ -224,7 +235,7 @@ export class AuthManager {
   // Delete credentials
   async deleteCredentials(): Promise<void> {
     const supabase = createClient()
-    
+
     try {
       const { error } = await supabase
         .from('integration_credentials')
@@ -258,12 +269,16 @@ export class AuthManager {
     state?: string
   ): Promise<string> {
     if (platform === 'netsuite') {
-      throw new AuthenticationError('NetSuite uses OAuth 1.0a, not OAuth 2.0. Use NetSuite-specific authentication methods.')
+      throw new AuthenticationError(
+        'NetSuite uses OAuth 1.0a, not OAuth 2.0. Use NetSuite-specific authentication methods.'
+      )
     }
-    
+
     const platformConfig = OAUTH_CONFIGS[platform]
     if (!platformConfig?.authorizationUrl) {
-      throw new AuthenticationError(`OAuth not supported for platform: ${platform}`)
+      throw new AuthenticationError(
+        `OAuth not supported for platform: ${platform}`
+      )
     }
 
     const mergedConfig = { ...platformConfig, ...config }
@@ -292,11 +307,13 @@ export class AuthManager {
   ): Promise<OAuthCredentials> {
     const platformConfig = OAUTH_CONFIGS[platform]
     if (!platformConfig?.tokenUrl) {
-      throw new AuthenticationError(`OAuth not supported for platform: ${platform}`)
+      throw new AuthenticationError(
+        `OAuth not supported for platform: ${platform}`
+      )
     }
 
     const mergedConfig = { ...platformConfig, ...config }
-    
+
     try {
       // Build token request
       const tokenData = {
@@ -324,7 +341,9 @@ export class AuthManager {
       })
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: response.statusText }))
+        const error = await response
+          .json()
+          .catch(() => ({ error: response.statusText }))
         throw new AuthenticationError('Token exchange failed', error)
       }
 
@@ -335,13 +354,21 @@ export class AuthManager {
         throw new AuthenticationError('Invalid token response format')
       }
 
-      if (!tokenResponse.access_token || typeof tokenResponse.access_token !== 'string') {
-        throw new AuthenticationError('Missing or invalid access_token in response')
+      if (
+        !tokenResponse.access_token ||
+        typeof tokenResponse.access_token !== 'string'
+      ) {
+        throw new AuthenticationError(
+          'Missing or invalid access_token in response'
+        )
       }
 
       // Calculate token expiry
       let expiresAt: string | undefined
-      if (tokenResponse.expires_in && typeof tokenResponse.expires_in === 'number') {
+      if (
+        tokenResponse.expires_in &&
+        typeof tokenResponse.expires_in === 'number'
+      ) {
         const expiry = new Date()
         expiry.setSeconds(expiry.getSeconds() + tokenResponse.expires_in)
         expiresAt = expiry.toISOString()
@@ -374,13 +401,12 @@ export class AuthManager {
     credential: IntegrationCredential
   ): Promise<OAuthCredentials | null> {
     const supabase = createClient()
-    
+
     try {
       // Decrypt current credentials
-      const { data: decryptedData } = await supabase
-        .rpc('decrypt_credential', {
-          p_encrypted: credential.encrypted_data,
-        })
+      const { data: decryptedData } = await supabase.rpc('decrypt_credential', {
+        p_encrypted: credential.encrypted_data,
+      })
 
       const currentCreds = JSON.parse(decryptedData) as OAuthCredentials
 
@@ -403,7 +429,7 @@ export class AuthManager {
         // NetSuite uses OAuth 1.0a, token refresh is handled differently
         return null
       }
-      
+
       const platformConfig = OAUTH_CONFIGS[integration.platform]
       if (!platformConfig?.tokenUrl) {
         return null
@@ -441,13 +467,19 @@ export class AuthManager {
         throw new Error('Invalid token response format')
       }
 
-      if (!tokenResponse.access_token || typeof tokenResponse.access_token !== 'string') {
+      if (
+        !tokenResponse.access_token ||
+        typeof tokenResponse.access_token !== 'string'
+      ) {
         throw new Error('Missing or invalid access_token in refresh response')
       }
 
       // Calculate new expiry
       let expiresAt: string | undefined
-      if (tokenResponse.expires_in && typeof tokenResponse.expires_in === 'number') {
+      if (
+        tokenResponse.expires_in &&
+        typeof tokenResponse.expires_in === 'number'
+      ) {
         const expiry = new Date()
         expiry.setSeconds(expiry.getSeconds() + tokenResponse.expires_in)
         expiresAt = expiry.toISOString()
@@ -457,7 +489,8 @@ export class AuthManager {
       const refreshedCreds: OAuthCredentials = {
         ...currentCreds,
         access_token: tokenResponse.access_token,
-        refresh_token: tokenResponse.refresh_token || currentCreds.refresh_token,
+        refresh_token:
+          tokenResponse.refresh_token || currentCreds.refresh_token,
         expires_at: expiresAt,
       }
 
@@ -482,7 +515,9 @@ export class AuthManager {
         p_log_type: 'auth',
         p_severity: 'error',
         p_message: 'OAuth token refresh failed',
-        p_details: { error: error instanceof Error ? error.message : String(error) },
+        p_details: {
+          error: error instanceof Error ? error.message : String(error),
+        },
       })
 
       return null
@@ -493,7 +528,9 @@ export class AuthManager {
   private generateState(): string {
     const array = new Uint8Array(32)
     crypto.getRandomValues(array)
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join(
+      ''
+    )
   }
 
   // Validate API key format
@@ -505,11 +542,11 @@ export class AuthManager {
       case 'shopify':
         // Shopify private app API keys are usually 32 characters
         return /^[a-f0-9]{32}$/.test(key)
-      
+
       case 'netsuite':
         // NetSuite uses consumer key/secret pairs
         return key.length > 0
-      
+
       default:
         // Generic validation - at least 16 characters and valid characters
         // Allow alphanumeric, dashes, underscores, and dots (common in API keys)
@@ -519,11 +556,7 @@ export class AuthManager {
 
   // Validate OAuth credentials
   static validateOAuthCredentials(creds: OAuthCredentials): boolean {
-    return !!(
-      creds.client_id &&
-      creds.client_secret &&
-      creds.access_token
-    )
+    return !!(creds.client_id && creds.client_secret && creds.access_token)
   }
 
   // Check if credentials are expired

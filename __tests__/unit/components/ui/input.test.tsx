@@ -30,7 +30,7 @@ describe('Input Component', () => {
     const user = userEvent.setup()
     render(<Input placeholder="Enter text" />)
     const input = screen.getByRole('textbox')
-    
+
     await user.type(input, 'Hello World')
     expect(input).toHaveValue('Hello World')
   })
@@ -45,7 +45,7 @@ describe('Input Component', () => {
     const user = userEvent.setup()
     render(<Input disabled placeholder="Disabled" />)
     const input = screen.getByRole('textbox')
-    
+
     await user.type(input, 'test')
     expect(input).toHaveValue('')
   })
@@ -58,8 +58,8 @@ describe('Input Component', () => {
 
   it('should pass through additional props', () => {
     render(
-      <Input 
-        data-testid="custom-input" 
+      <Input
+        data-testid="custom-input"
         aria-label="Custom input"
         placeholder="Test"
       />
@@ -78,7 +78,7 @@ describe('Input Component', () => {
     const user = userEvent.setup()
     render(<Input placeholder="Focusable" />)
     const input = screen.getByRole('textbox')
-    
+
     await user.tab()
     expect(input).toHaveFocus()
   })
@@ -87,7 +87,7 @@ describe('Input Component', () => {
     const user = userEvent.setup()
     render(<Input placeholder="Keyboard test" />)
     const input = screen.getByRole('textbox')
-    
+
     await user.tab()
     await user.keyboard('Hello')
     expect(input).toHaveValue('Hello')

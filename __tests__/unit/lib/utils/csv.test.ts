@@ -1,4 +1,4 @@
-import { escapeCSVField, arrayToCSV, createCSVBlob } from '@/lib/utils/csv'
+import { arrayToCSV, createCSVBlob, escapeCSVField } from '@/lib/utils/csv'
 
 describe('CSV Utilities', () => {
   describe('escapeCSVField', () => {
@@ -46,7 +46,9 @@ describe('CSV Utilities', () => {
     })
 
     it('should handle complex strings with multiple special characters', () => {
-      expect(escapeCSVField('hello"world\nwith,commas')).toBe('"hello""world\nwith,commas"')
+      expect(escapeCSVField('hello"world\nwith,commas')).toBe(
+        '"hello""world\nwith,commas"'
+      )
     })
 
     it('should handle empty strings', () => {
@@ -63,7 +65,7 @@ describe('CSV Utilities', () => {
     it('should convert simple array to CSV', () => {
       const data = [
         { name: 'John', age: 30 },
-        { name: 'Jane', age: 25 }
+        { name: 'Jane', age: 25 },
       ]
       const result = arrayToCSV(data)
       expect(result).toBe('name,age\nJohn,30\nJane,25')
@@ -82,7 +84,7 @@ describe('CSV Utilities', () => {
     it('should use provided headers', () => {
       const data = [
         { name: 'John', age: 30, city: 'NYC' },
-        { name: 'Jane', age: 25, city: 'LA' }
+        { name: 'Jane', age: 25, city: 'LA' },
       ]
       const headers = ['name', 'city']
       const result = arrayToCSV(data, headers)
@@ -92,7 +94,7 @@ describe('CSV Utilities', () => {
     it('should escape special characters in data', () => {
       const data = [
         { name: 'John "Doe"', age: 30 },
-        { name: 'Jane\nSmith', age: 25 }
+        { name: 'Jane\nSmith', age: 25 },
       ]
       const result = arrayToCSV(data)
       expect(result).toBe('name,age\n"John ""Doe""",30\n"Jane\nSmith",25')
@@ -101,7 +103,7 @@ describe('CSV Utilities', () => {
     it('should handle missing properties gracefully', () => {
       const data = [
         { name: 'John', age: 30 },
-        { name: 'Jane' } // missing age
+        { name: 'Jane' }, // missing age
       ]
       const result = arrayToCSV(data)
       expect(result).toBe('name,age\nJohn,30\nJane,""')
@@ -110,19 +112,23 @@ describe('CSV Utilities', () => {
     it('should handle nested objects and arrays', () => {
       const data = [
         { name: 'John', details: { city: 'NYC' } },
-        { name: 'Jane', details: { city: 'LA' } }
+        { name: 'Jane', details: { city: 'LA' } },
       ]
       const result = arrayToCSV(data)
-      expect(result).toBe('name,details\nJohn,[object Object]\nJane,[object Object]')
+      expect(result).toBe(
+        'name,details\nJohn,[object Object]\nJane,[object Object]'
+      )
     })
 
     it('should handle mixed data types', () => {
       const data = [
         { name: 'John', age: 30, active: true, score: 95.5 },
-        { name: 'Jane', age: 25, active: false, score: 88.0 }
+        { name: 'Jane', age: 25, active: false, score: 88.0 },
       ]
       const result = arrayToCSV(data)
-      expect(result).toBe('name,age,active,score\nJohn,30,true,95.5\nJane,25,false,88')
+      expect(result).toBe(
+        'name,age,active,score\nJohn,30,true,95.5\nJane,25,false,88'
+      )
     })
   })
 
@@ -130,17 +136,17 @@ describe('CSV Utilities', () => {
     it('should create a blob with correct MIME type', () => {
       const csvContent = 'name,age\nJohn,30'
       const blob = createCSVBlob(csvContent)
-      
+
       expect(blob.type).toBe('text/csv;charset=utf-8')
     })
 
     it('should include UTF-8 BOM for Excel compatibility', () => {
       const csvContent = 'name,age\nJohn,30'
       const blob = createCSVBlob(csvContent)
-      
+
       // Verify blob size includes BOM (3 bytes)
       expect(blob.size).toBe(csvContent.length + 3)
-      
+
       // Verify MIME type
       expect(blob.type).toBe('text/csv;charset=utf-8')
     })
@@ -161,12 +167,12 @@ describe('CSV Utilities', () => {
     it('should handle complete CSV workflow', () => {
       const data = [
         { name: 'John "Doe"', age: 30, city: 'NYC' },
-        { name: 'Jane\nSmith', age: 25, city: 'LA' }
+        { name: 'Jane\nSmith', age: 25, city: 'LA' },
       ]
-      
+
       const csvString = arrayToCSV(data)
       const blob = createCSVBlob(csvString)
-      
+
       expect(blob.type).toBe('text/csv;charset=utf-8')
       expect(csvString).toContain('"John ""Doe"""')
       expect(csvString).toContain('"Jane\nSmith"')
@@ -176,11 +182,11 @@ describe('CSV Utilities', () => {
       const maliciousData = [
         { name: '=SUM(A1:A10)', value: 100 },
         { name: '+123', value: 200 },
-        { name: '@email.com', value: 300 }
+        { name: '@email.com', value: 300 },
       ]
-      
+
       const csvString = arrayToCSV(maliciousData)
-      
+
       // All fields should be properly quoted
       expect(csvString).toContain('"=SUM(A1:A10)"')
       expect(csvString).toContain('"+123"')

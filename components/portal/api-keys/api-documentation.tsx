@@ -1,10 +1,17 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Book, Code, ExternalLink, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ExternalLink, Book, Code, Shield } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function ApiDocumentation() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.truthsource.io'
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL || 'https://api.truthsource.io'
 
   const codeExamples = {
     curl: `# Get all products
@@ -121,7 +128,8 @@ update_response = requests.patch(
     const colors: Record<string, string> = {
       GET: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
       POST: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
-      PATCH: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+      PATCH:
+        'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
       PUT: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
       DELETE: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
     }
@@ -156,7 +164,9 @@ update_response = requests.patch(
         <div>
           <h3 className="text-sm font-medium mb-3">Authentication</h3>
           <div className="bg-muted p-3 rounded-md">
-            <p className="text-sm mb-2">Include your API key in the Authorization header:</p>
+            <p className="text-sm mb-2">
+              Include your API key in the Authorization header:
+            </p>
             <code className="text-xs">Authorization: Bearer YOUR_API_KEY</code>
           </div>
         </div>
@@ -169,11 +179,15 @@ update_response = requests.patch(
           <div className="space-y-2">
             {endpoints.map((endpoint, index) => (
               <div key={index} className="flex items-center gap-3 text-sm">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${getMethodBadgeColor(endpoint.method)}`}>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${getMethodBadgeColor(endpoint.method)}`}
+                >
                   {endpoint.method}
                 </span>
                 <code className="font-mono text-xs">{endpoint.path}</code>
-                <span className="text-muted-foreground text-xs">- {endpoint.description}</span>
+                <span className="text-muted-foreground text-xs">
+                  - {endpoint.description}
+                </span>
               </div>
             ))}
           </div>
@@ -211,7 +225,8 @@ update_response = requests.patch(
         <div className="pt-4 border-t">
           <h3 className="text-sm font-medium mb-2">Rate Limits</h3>
           <p className="text-sm text-muted-foreground">
-            API calls are limited based on your subscription plan. Rate limit information is included in response headers:
+            API calls are limited based on your subscription plan. Rate limit
+            information is included in response headers:
           </p>
           <ul className="mt-2 space-y-1 text-xs font-mono">
             <li>X-RateLimit-Limit: Your rate limit</li>

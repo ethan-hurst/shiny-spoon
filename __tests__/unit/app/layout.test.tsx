@@ -1,35 +1,35 @@
-import { render, screen } from '@testing-library/react'
 import { Metadata } from 'next'
+import { render, screen } from '@testing-library/react'
 import RootLayout, { metadata } from '@/app/layout'
 
 // Mock components to focus on layout behavior
 jest.mock('@/components/theme-provider', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="theme-provider">{children}</div>
-  )
+  ),
 }))
 
 jest.mock('@/components/ui/sonner', () => ({
-  Toaster: () => <div data-testid="toaster" />
+  Toaster: () => <div data-testid="toaster" />,
 }))
 
 jest.mock('@/components/wrapper/auth-wrapper', () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="auth-wrapper">{children}</div>
-  )
+  ),
 }))
 
 jest.mock('@/components/seo/json-ld', () => ({
-  JsonLd: () => <div data-testid="json-ld" />
+  JsonLd: () => <div data-testid="json-ld" />,
 }))
 
 jest.mock('@/components/analytics/google-analytics', () => ({
-  GoogleAnalytics: () => <div data-testid="google-analytics" />
+  GoogleAnalytics: () => <div data-testid="google-analytics" />,
 }))
 
 jest.mock('@vercel/analytics/react', () => ({
-  Analytics: () => <div data-testid="vercel-analytics" />
+  Analytics: () => <div data-testid="vercel-analytics" />,
 }))
 
 describe('RootLayout', () => {
@@ -39,7 +39,7 @@ describe('RootLayout', () => {
         <div>Test content</div>
       </RootLayout>
     )
-    
+
     // Check for essential components
     expect(screen.getByTestId('auth-wrapper')).toBeInTheDocument()
     expect(screen.getByTestId('theme-provider')).toBeInTheDocument()
@@ -53,7 +53,7 @@ describe('RootLayout', () => {
         <div data-testid="test-content">Test content</div>
       </RootLayout>
     )
-    
+
     expect(screen.getByTestId('test-content')).toBeInTheDocument()
   })
 
@@ -109,15 +109,15 @@ describe('RootLayout', () => {
     // Test with GA ID
     const originalEnv = process.env.NEXT_PUBLIC_GA_ID
     process.env.NEXT_PUBLIC_GA_ID = 'test-ga-id'
-    
+
     const { rerender } = render(
       <RootLayout>
         <div>Test content</div>
       </RootLayout>
     )
-    
+
     expect(screen.getByTestId('google-analytics')).toBeInTheDocument()
-    
+
     // Test without GA ID
     delete process.env.NEXT_PUBLIC_GA_ID
     rerender(
@@ -125,9 +125,9 @@ describe('RootLayout', () => {
         <div>Test content</div>
       </RootLayout>
     )
-    
+
     expect(screen.queryByTestId('google-analytics')).not.toBeInTheDocument()
-    
+
     // Restore original env
     process.env.NEXT_PUBLIC_GA_ID = originalEnv
   })

@@ -1,8 +1,8 @@
-import { createServerClient } from '@/lib/supabase/server'
-import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import crypto from 'crypto'
+import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
+import { createServerClient } from '@/lib/supabase/server'
 
 // Define the request body schema
 const rollbackRequestSchema = z.object({
@@ -37,20 +37,17 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json(
-          { 
+          {
             error: 'Invalid request data',
-            details: error.errors.map(e => ({
+            details: error.errors.map((e) => ({
               field: e.path.join('.'),
-              message: e.message
-            }))
+              message: e.message,
+            })),
           },
           { status: 400 }
         )
       }
-      return NextResponse.json(
-        { error: 'Invalid JSON input' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid JSON input' }, { status: 400 })
     }
 
     // Verify CSRF token
@@ -69,10 +66,7 @@ export async function POST(request: NextRequest) {
       .digest('hex')
 
     if (validatedData.csrfToken !== expectedCsrfToken) {
-      return NextResponse.json(
-        { error: 'Invalid CSRF token' },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
     }
 
     const { operationId } = validatedData
@@ -120,9 +114,9 @@ export async function POST(request: NextRequest) {
     // Update operation status atomically - only if still completed
     const { data: updatedOperation, error: updateError } = await supabase
       .from('bulk_operations')
-      .update({ 
+      .update({
         status: 'processing',
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', operationId)
       .eq('status', 'completed') // Atomic check - only update if still completed
@@ -132,13 +126,17 @@ export async function POST(request: NextRequest) {
     if (updateError || !updatedOperation) {
       console.error('Failed to update operation status:', updateError)
       return NextResponse.json(
-        { error: 'Failed to initiate rollback - operation status may have changed' },
+        {
+          error:
+            'Failed to initiate rollback - operation status may have changed',
+        },
         { status: 409 } // Conflict status
       )
     }
 
     // Start rollback asynchronously but handle errors properly
-    engine.rollbackOperation(operationId)
+    engine
+      .rollbackOperation(operationId)
       .then(() => {
         console.log(`Rollback operation ${operationId} completed successfully`)
       })
@@ -156,27 +154,31 @@ export async function POST(request: NextRequest) {
           const existingErrorLog = existingOperation?.error_log || []
           const newError = {
             message: err.message || 'Rollback failed',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           }
 
           await supabase
             .from('bulk_operations')
-            .update({ 
+            .update({
               status: 'failed',
               error_log: [...existingErrorLog, newError],
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq('id', operationId)
         } catch (updateErr) {
-          console.error('Failed to update operation status after rollback error:', updateErr)
+          console.error(
+            'Failed to update operation status after rollback error:',
+            updateErr
+          )
         }
       })
 
     return NextResponse.json({
       success: true,
-      message: 'Rollback has been initiated. The operation is being processed asynchronously.',
+      message:
+        'Rollback has been initiated. The operation is being processed asynchronously.',
       operationId,
-      status: 'rollback_initiated'
+      status: 'rollback_initiated',
     })
   } catch (error) {
     console.error('Rollback API error:', error)

@@ -2,8 +2,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Settings, Plus, Trash2, Save } from 'lucide-react'
+import { Plus, Save, Settings, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,14 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -30,7 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface RetentionPolicyDialogProps {
   organizationId: string
@@ -55,10 +55,12 @@ const entityTypes = [
   { value: 'user', label: 'Users' },
 ]
 
-export function RetentionPolicyDialog({ organizationId }: RetentionPolicyDialogProps) {
+export function RetentionPolicyDialog({
+  organizationId,
+}: RetentionPolicyDialogProps) {
   const [open, setOpen] = useState(false)
   const [policies, setPolicies] = useState<RetentionPolicy[]>([
-    { entity_type: '', retention_days: 365, is_active: true }
+    { entity_type: '', retention_days: 365, is_active: true },
   ])
   const [newPolicy, setNewPolicy] = useState<Partial<RetentionPolicy>>({
     entity_type: '',
@@ -72,7 +74,7 @@ export function RetentionPolicyDialog({ organizationId }: RetentionPolicyDialogP
       return
     }
 
-    const exists = policies.some(p => p.entity_type === newPolicy.entity_type)
+    const exists = policies.some((p) => p.entity_type === newPolicy.entity_type)
     if (exists) {
       toast.error('Policy for this entity type already exists')
       return
@@ -136,20 +138,27 @@ export function RetentionPolicyDialog({ organizationId }: RetentionPolicyDialogP
                 {policies.map((policy, index) => (
                   <TableRow key={index}>
                     <TableCell>
-                      {entityTypes.find(t => t.value === policy.entity_type)?.label || 'Unknown'}
+                      {entityTypes.find((t) => t.value === policy.entity_type)
+                        ?.label || 'Unknown'}
                     </TableCell>
                     <TableCell>
                       <Input
                         type="number"
                         value={policy.retention_days}
-                        onChange={(e) => updatePolicy(index, { retention_days: parseInt(e.target.value) })}
+                        onChange={(e) =>
+                          updatePolicy(index, {
+                            retention_days: parseInt(e.target.value),
+                          })
+                        }
                         className="w-24"
                         min={1}
                         max={3650}
                       />
                     </TableCell>
                     <TableCell>
-                      <Badge variant={policy.is_active ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={policy.is_active ? 'default' : 'secondary'}
+                      >
                         {policy.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
@@ -177,7 +186,9 @@ export function RetentionPolicyDialog({ organizationId }: RetentionPolicyDialogP
                 <Label htmlFor="entity-type">Entity Type</Label>
                 <Select
                   value={newPolicy.entity_type}
-                  onValueChange={(value) => setNewPolicy({ ...newPolicy, entity_type: value })}
+                  onValueChange={(value) =>
+                    setNewPolicy({ ...newPolicy, entity_type: value })
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select entity type" />
@@ -197,7 +208,12 @@ export function RetentionPolicyDialog({ organizationId }: RetentionPolicyDialogP
                   id="retention-days"
                   type="number"
                   value={newPolicy.retention_days}
-                  onChange={(e) => setNewPolicy({ ...newPolicy, retention_days: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setNewPolicy({
+                      ...newPolicy,
+                      retention_days: parseInt(e.target.value),
+                    })
+                  }
                   min={1}
                   max={3650}
                 />

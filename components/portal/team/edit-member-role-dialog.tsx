@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Eye, Loader2, Shield, User } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -20,18 +23,15 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { updateTeamMember } from '@/app/actions/team'
-import { Shield, User, Eye, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { TEAM_ROLES } from '@/lib/constants/team'
+import { updateTeamMember } from '@/app/actions/team'
 
 const formSchema = z.object({
   role: z.enum([
     TEAM_ROLES.ADMIN.value,
     TEAM_ROLES.MEMBER.value,
-    TEAM_ROLES.VIEWER.value
+    TEAM_ROLES.VIEWER.value,
   ] as [string, ...string[]]),
 })
 
@@ -49,7 +49,11 @@ interface EditMemberRoleDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function EditMemberRoleDialog({ member, open, onOpenChange }: EditMemberRoleDialogProps) {
+export function EditMemberRoleDialog({
+  member,
+  open,
+  onOpenChange,
+}: EditMemberRoleDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -87,7 +91,7 @@ export function EditMemberRoleDialog({ member, open, onOpenChange }: EditMemberR
     }
 
     setIsLoading(true)
-    
+
     const formData = new FormData()
     formData.append('userId', member.user_id)
     formData.append('role', values.role)
@@ -97,7 +101,9 @@ export function EditMemberRoleDialog({ member, open, onOpenChange }: EditMemberR
       toast.success('Role updated successfully')
       onOpenChange(false)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update role')
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update role'
+      )
     } finally {
       setIsLoading(false)
     }
@@ -109,10 +115,11 @@ export function EditMemberRoleDialog({ member, open, onOpenChange }: EditMemberR
         <DialogHeader>
           <DialogTitle>Change Member Role</DialogTitle>
           <DialogDescription>
-            Update the role for {member.auth?.users?.email || 'this team member'}
+            Update the role for{' '}
+            {member.auth?.users?.email || 'this team member'}
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField

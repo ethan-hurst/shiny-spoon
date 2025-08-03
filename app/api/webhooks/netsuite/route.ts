@@ -1,16 +1,23 @@
 // PRP-013: NetSuite Webhook Handler
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { WebhookHandler } from '@/lib/integrations/webhook-handler'
-import { NetSuiteTransformers } from '@/lib/integrations/netsuite/transformers'
-import { z } from 'zod'
 import crypto from 'crypto'
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { NetSuiteTransformers } from '@/lib/integrations/netsuite/transformers'
+import { WebhookHandler } from '@/lib/integrations/webhook-handler'
+import { createClient } from '@/lib/supabase/server'
 
 // NetSuite webhook event schema
 const netsuiteWebhookSchema = z.object({
-  event_type: z.enum(['item.created', 'item.updated', 'item.deleted', 
-    'inventory.updated', 'customer.created', 'customer.updated', 
-    'salesorder.created', 'salesorder.updated']),
+  event_type: z.enum([
+    'item.created',
+    'item.updated',
+    'item.deleted',
+    'inventory.updated',
+    'customer.created',
+    'customer.updated',
+    'salesorder.created',
+    'salesorder.updated',
+  ]),
   timestamp: z.string(),
   account_id: z.string(),
   record: z.object({
@@ -18,11 +25,15 @@ const netsuiteWebhookSchema = z.object({
     type: z.string(),
     fields: z.record(z.any()),
   }),
-  changes: z.array(z.object({
-    field: z.string(),
-    old_value: z.any(),
-    new_value: z.any(),
-  })).optional(),
+  changes: z
+    .array(
+      z.object({
+        field: z.string(),
+        old_value: z.any(),
+        new_value: z.any(),
+      })
+    )
+    .optional(),
 })
 
 // Webhook signature verification
@@ -35,7 +46,7 @@ function verifyWebhookSignature(
     .createHmac('sha256', secret)
     .update(payload)
     .digest('hex')
-  
+
   return crypto.timingSafeEqual(
     Buffer.from(signature),
     Buffer.from(expectedSignature)
@@ -50,12 +61,12 @@ function verifyWebhookSignature(
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // Get raw body for signature verification
     const rawBody = await request.text()
     const signature = request.headers.get('x-netsuite-signature')
     const webhookId = request.headers.get('x-webhook-id')
-    
+
     if (!signature || !webhookId) {
       return NextResponse.json(
         { error: 'Missing webhook headers' },
@@ -79,11 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify signature
-    const isValid = verifyWebhookSignature(
-      rawBody,
-      signature,
-      webhook.secret
-    )
+    const isValid = verifyWebhookSignature(rawBody, signature, webhook.secret)
 
     if (!isValid) {
       await supabase.rpc('log_integration_activity', {
@@ -95,10 +102,7 @@ export async function POST(request: NextRequest) {
         p_details: { webhook_id: webhookId },
       })
 
-      return NextResponse.json(
-        { error: 'Invalid signature' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     // Parse and validate webhook payload
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     // Create webhook handler
     const handler = new WebhookHandler()
-    
+
     // Create webhook event
     const event = await handler.createWebhookEvent({
       endpoint_id: webhookId,
@@ -117,7 +121,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Process the webhook based on event type
-    
+
     // Get NetSuite config for transformers
     const { data: netsuiteConfig } = await supabase
       .from('netsuite_config')
@@ -139,16 +143,16 @@ export async function POST(request: NextRequest) {
         p_organization_id: webhook.integrations.organization_id,
         p_event_type: validated.event_type,
         p_record_data: validated.record.fields,
-        p_event_id: event.id
+        p_event_id: event.id,
       })
 
       // Enhanced error handling
       if (processingResult.error) {
         console.error('RPC processing error:', processingResult.error)
         throw new Error(
-          processingResult.error.message || 
-          processingResult.error.toString() || 
-          'Failed to process webhook'
+          processingResult.error.message ||
+            processingResult.error.toString() ||
+            'Failed to process webhook'
         )
       }
 
@@ -159,20 +163,26 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if RPC indicated success
-      if (processingResult.data === false || processingResult.data.success === false) {
-        const errorMsg = processingResult.data?.error || 'Webhook processing failed'
+      if (
+        processingResult.data === false ||
+        processingResult.data.success === false
+      ) {
+        const errorMsg =
+          processingResult.data?.error || 'Webhook processing failed'
         console.error('RPC processing failed:', errorMsg)
         throw new Error(errorMsg)
       }
 
       return NextResponse.json({ success: true })
-
     } catch (processingError) {
       console.error('Webhook processing error:', processingError)
-      
+
       // Mark webhook as failed
       await handler.markWebhookFailed(event.id, {
-        error: processingError instanceof Error ? processingError.message : 'Processing failed',
+        error:
+          processingError instanceof Error
+            ? processingError.message
+            : 'Processing failed',
         response_status: 500,
       })
 
@@ -332,14 +342,13 @@ export async function POST(request: NextRequest) {
       throw processingError
     }
     */
-
   } catch (error) {
     console.error('NetSuite webhook error:', error)
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Webhook processing failed',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -350,9 +359,11 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -394,19 +405,22 @@ export async function PUT(request: NextRequest) {
 
     // Create or update webhook endpoint
     const secret = crypto.randomBytes(32).toString('hex')
-    
+
     const { data: webhook, error } = await supabase
       .from('webhook_endpoints')
-      .upsert({
-        integration_id,
-        url: callback_url,
-        events,
-        secret,
-        is_active: true,
-        created_by: user.id,
-      }, {
-        onConflict: 'integration_id,url',
-      })
+      .upsert(
+        {
+          integration_id,
+          url: callback_url,
+          events,
+          secret,
+          is_active: true,
+          created_by: user.id,
+        },
+        {
+          onConflict: 'integration_id,url',
+        }
+      )
       .select()
       .single()
 
@@ -432,7 +446,6 @@ export async function PUT(request: NextRequest) {
       events,
       callback_url,
     })
-
   } catch (error) {
     console.error('Webhook registration error:', error)
     return NextResponse.json(

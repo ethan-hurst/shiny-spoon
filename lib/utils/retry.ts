@@ -70,13 +70,15 @@ export async function withRetry<T>(
       )
 
       // Add jitter if enabled
-      const finalDelay = config.jitter ? delay * (0.5 + Math.random() * 0.5) : delay
+      const finalDelay = config.jitter
+        ? delay * (0.5 + Math.random() * 0.5)
+        : delay
 
       // Call onRetry callback
       config.onRetry(attempt, error, finalDelay)
 
       // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, finalDelay))
+      await new Promise((resolve) => setTimeout(resolve, finalDelay))
     }
   }
 
@@ -93,7 +95,7 @@ export async function withRetry<T>(
  */
 export function isNetworkError(error: any): boolean {
   if (!error) return false
-  
+
   // Check for network-related error codes
   const networkCodes = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED']
   if (error.code && networkCodes.includes(error.code)) {
@@ -169,7 +171,9 @@ export function isRateLimitError(error: any): boolean {
  * Retry condition for temporary service errors
  */
 export function isTemporaryError(error: any): boolean {
-  return isNetworkError(error) || isDatabaseError(error) || isRateLimitError(error)
+  return (
+    isNetworkError(error) || isDatabaseError(error) || isRateLimitError(error)
+  )
 }
 
 /**
@@ -181,11 +185,11 @@ export function retryable<T extends (...args: any[]) => Promise<any>>(
 ): T {
   return (async (...args: Parameters<T>) => {
     const result = await withRetry(() => fn(...args), options)
-    
+
     if (!result.success) {
       throw result.error
     }
-    
+
     return result.data
   }) as T
 }
@@ -240,4 +244,4 @@ export async function withSmartRetry<T>(
   })
 
   return rateLimitResult
-} 
+}

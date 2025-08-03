@@ -1,6 +1,6 @@
-import { test, expect } from '@jest/globals'
-import { createServerClient } from '@/lib/supabase/server'
+import { expect, test } from '@jest/globals'
 import { AuditLogger } from '@/lib/audit/audit-logger'
+import { createServerClient } from '@/lib/supabase/server'
 import { exportAuditLogs, generateComplianceReport } from '@/app/actions/audit'
 
 // Mock Next.js headers
@@ -44,11 +44,12 @@ describe('Audit Trail Integration Tests', () => {
     if (orgError) throw orgError
     testOrgId = org.id
 
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: 'test@audit-integration.com',
-      password: 'test-password-123',
-      email_confirm: true,
-    })
+    const { data: authUser, error: authError } =
+      await supabase.auth.admin.createUser({
+        email: 'test@audit-integration.com',
+        password: 'test-password-123',
+        email_confirm: true,
+      })
 
     if (authError) throw authError
     testUserId = authUser.user.id
@@ -99,7 +100,11 @@ describe('Audit Trail Integration Tests', () => {
 
       // Step 2: Update product with audit logging
       const oldData = { ...createData }
-      const newData = { ...createData, price: 150, name: 'Updated Integration Product' }
+      const newData = {
+        ...createData,
+        price: 150,
+        name: 'Updated Integration Product',
+      }
 
       await auditLogger.logUpdate('product', createData.id, oldData, newData, {
         source: 'integration_test',
@@ -216,8 +221,14 @@ describe('Audit Trail Integration Tests', () => {
     test('should export audit logs with correct filtering and formatting', async () => {
       // Create test data with different filters
       await Promise.all([
-        auditLogger.logCreate('product', { id: 'export-product-1', name: 'Export Product 1' }),
-        auditLogger.logCreate('customer', { id: 'export-customer-1', name: 'Export Customer 1' }),
+        auditLogger.logCreate('product', {
+          id: 'export-product-1',
+          name: 'Export Product 1',
+        }),
+        auditLogger.logCreate('customer', {
+          id: 'export-customer-1',
+          name: 'Export Customer 1',
+        }),
         auditLogger.logView('product', 'export-product-1', 'Export Product 1'),
         auditLogger.logExport('product', { category: 'electronics' }, 100),
       ])
@@ -341,20 +352,23 @@ describe('Audit Trail Integration Tests', () => {
       const entityId = 'concurrent-test-product'
 
       // Create concurrent audit logging operations
-      const promises = Array.from({ length: concurrentOperations }, async (_, i) => {
-        await auditLogger.log({
-          action: 'update',
-          entityType: 'product',
-          entityId,
-          entityName: 'Concurrent Test Product',
-          oldValues: { version: i },
-          newValues: { version: i + 1 },
-          metadata: { 
-            operation_index: i,
-            concurrent_test: true,
-          },
-        })
-      })
+      const promises = Array.from(
+        { length: concurrentOperations },
+        async (_, i) => {
+          await auditLogger.log({
+            action: 'update',
+            entityType: 'product',
+            entityId,
+            entityName: 'Concurrent Test Product',
+            oldValues: { version: i },
+            newValues: { version: i + 1 },
+            metadata: {
+              operation_index: i,
+              concurrent_test: true,
+            },
+          })
+        }
+      )
 
       // Execute all operations concurrently
       await Promise.all(promises)
@@ -381,7 +395,9 @@ describe('Audit Trail Integration Tests', () => {
       })
 
       // Verify operation indices are unique (no lost updates)
-      const operationIndices = concurrentLogs.map(log => log.metadata.operation_index)
+      const operationIndices = concurrentLogs.map(
+        (log) => log.metadata.operation_index
+      )
       const uniqueIndices = new Set(operationIndices)
       expect(uniqueIndices.size).toBe(concurrentOperations)
     })
@@ -390,18 +406,20 @@ describe('Audit Trail Integration Tests', () => {
       // Test with invalid data that should be handled gracefully
       const invalidOperations = [
         // Missing required fields should not crash
-        () => auditLogger.log({
-          action: 'create',
-          entityType: undefined as any,
-        }),
+        () =>
+          auditLogger.log({
+            action: 'create',
+            entityType: undefined as any,
+          }),
         // Extremely large data should be truncated or handled
-        () => auditLogger.log({
-          action: 'create',
-          entityType: 'product',
-          newValues: {
-            large_data: 'x'.repeat(100000), // Very large string
-          },
-        }),
+        () =>
+          auditLogger.log({
+            action: 'create',
+            entityType: 'product',
+            newValues: {
+              large_data: 'x'.repeat(100000), // Very large string
+            },
+          }),
       ]
 
       // All operations should complete without throwing
@@ -432,7 +450,9 @@ describe('Audit Trail Integration Tests', () => {
         entity_type: 'product',
         entity_id: oldLogId,
         entity_name: 'Old Product',
-        created_at: new Date(Date.now() - 95 * 24 * 60 * 60 * 1000).toISOString(), // 95 days old
+        created_at: new Date(
+          Date.now() - 95 * 24 * 60 * 60 * 1000
+        ).toISOString(), // 95 days old
       })
 
       // Insert recent log (within retention policy)
@@ -444,7 +464,9 @@ describe('Audit Trail Integration Tests', () => {
         entity_type: 'product',
         entity_id: recentLogId,
         entity_name: 'Recent Product',
-        created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days old
+        created_at: new Date(
+          Date.now() - 30 * 24 * 60 * 60 * 1000
+        ).toISOString(), // 30 days old
       })
 
       // Set retention policy for products (90 days)
@@ -484,18 +506,26 @@ describe('Audit Trail Integration Tests', () => {
         await supabase.rpc('begin_transaction')
 
         // Step 1: Log product creation
-        await auditLogger.logCreate('product', {
-          id: transactionTestId,
-          name: 'Transaction Test Product',
-          price: 100,
-        }, { transaction_test: true })
+        await auditLogger.logCreate(
+          'product',
+          {
+            id: transactionTestId,
+            name: 'Transaction Test Product',
+            price: 100,
+          },
+          { transaction_test: true }
+        )
 
         // Step 2: Log inventory addition
-        await auditLogger.logCreate('inventory', {
-          id: `${transactionTestId}-inventory`,
-          product_id: transactionTestId,
-          quantity: 50,
-        }, { transaction_test: true })
+        await auditLogger.logCreate(
+          'inventory',
+          {
+            id: `${transactionTestId}-inventory`,
+            product_id: transactionTestId,
+            quantity: 50,
+          },
+          { transaction_test: true }
+        )
 
         // Step 3: Simulate transaction commit
         await supabase.rpc('commit_transaction')
@@ -509,11 +539,10 @@ describe('Audit Trail Integration Tests', () => {
 
         expect(error).toBeNull()
         expect(transactionLogs).toHaveLength(2)
-        
-        transactionLogs.forEach(log => {
+
+        transactionLogs.forEach((log) => {
           expect(log.metadata).toMatchObject({ transaction_test: true })
         })
-
       } catch (error) {
         // Rollback on error
         await supabase.rpc('rollback_transaction')
@@ -531,20 +560,23 @@ describe('Audit Trail Integration Tests', () => {
 
       // Process in batches to avoid overwhelming the system
       for (let i = 0; i < volumeTestCount; i += batchSize) {
-        const batch = Array.from({ length: Math.min(batchSize, volumeTestCount - i) }, (_, j) => {
-          const index = i + j
-          return auditLogger.log({
-            action: 'view',
-            entityType: 'product',
-            entityId: `volume-test-${index}`,
-            entityName: `Volume Test Product ${index}`,
-            metadata: { 
-              volume_test: true,
-              batch_index: Math.floor(i / batchSize),
-              item_index: j,
-            },
-          })
-        })
+        const batch = Array.from(
+          { length: Math.min(batchSize, volumeTestCount - i) },
+          (_, j) => {
+            const index = i + j
+            return auditLogger.log({
+              action: 'view',
+              entityType: 'product',
+              entityId: `volume-test-${index}`,
+              entityName: `Volume Test Product ${index}`,
+              metadata: {
+                volume_test: true,
+                batch_index: Math.floor(i / batchSize),
+                item_index: j,
+              },
+            })
+          }
+        )
 
         await Promise.all(batch)
       }
@@ -556,7 +588,11 @@ describe('Audit Trail Integration Tests', () => {
       expect(duration).toBeLessThan(30000)
 
       // Verify all logs were created
-      const { data: volumeLogs, count, error } = await supabase
+      const {
+        data: volumeLogs,
+        count,
+        error,
+      } = await supabase
         .from('audit_logs')
         .select('*', { count: 'exact' })
         .eq('organization_id', testOrgId)
@@ -569,7 +605,9 @@ describe('Audit Trail Integration Tests', () => {
       const avgTimePerOp = duration / volumeTestCount
       expect(avgTimePerOp).toBeLessThan(100) // Under 100ms per operation
 
-      console.log(`High-volume audit logging: ${volumeTestCount} operations in ${duration}ms (${avgTimePerOp.toFixed(2)}ms avg per operation)`)
+      console.log(
+        `High-volume audit logging: ${volumeTestCount} operations in ${duration}ms (${avgTimePerOp.toFixed(2)}ms avg per operation)`
+      )
     })
 
     test('should optimize query performance with proper indexing', async () => {
@@ -577,47 +615,55 @@ describe('Audit Trail Integration Tests', () => {
       const queryTests = [
         {
           name: 'Organization filter',
-          query: () => supabase
-            .from('audit_logs')
-            .select('*')
-            .eq('organization_id', testOrgId)
-            .limit(100),
+          query: () =>
+            supabase
+              .from('audit_logs')
+              .select('*')
+              .eq('organization_id', testOrgId)
+              .limit(100),
         },
         {
           name: 'Date range filter',
-          query: () => supabase
-            .from('audit_logs')
-            .select('*')
-            .eq('organization_id', testOrgId)
-            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-            .limit(100),
+          query: () =>
+            supabase
+              .from('audit_logs')
+              .select('*')
+              .eq('organization_id', testOrgId)
+              .gte(
+                'created_at',
+                new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+              )
+              .limit(100),
         },
         {
           name: 'User filter',
-          query: () => supabase
-            .from('audit_logs')
-            .select('*')
-            .eq('organization_id', testOrgId)
-            .eq('user_id', testUserId)
-            .limit(100),
+          query: () =>
+            supabase
+              .from('audit_logs')
+              .select('*')
+              .eq('organization_id', testOrgId)
+              .eq('user_id', testUserId)
+              .limit(100),
         },
         {
           name: 'Action filter',
-          query: () => supabase
-            .from('audit_logs')
-            .select('*')
-            .eq('organization_id', testOrgId)
-            .eq('action', 'create')
-            .limit(100),
+          query: () =>
+            supabase
+              .from('audit_logs')
+              .select('*')
+              .eq('organization_id', testOrgId)
+              .eq('action', 'create')
+              .limit(100),
         },
         {
           name: 'Entity type filter',
-          query: () => supabase
-            .from('audit_logs')
-            .select('*')
-            .eq('organization_id', testOrgId)
-            .eq('entity_type', 'product')
-            .limit(100),
+          query: () =>
+            supabase
+              .from('audit_logs')
+              .select('*')
+              .eq('organization_id', testOrgId)
+              .eq('entity_type', 'product')
+              .limit(100),
         },
       ]
 

@@ -7,16 +7,35 @@ export const SyncJobType = z.enum(['manual', 'scheduled', 'webhook', 'retry'])
 export type SyncJobType = z.infer<typeof SyncJobType>
 
 // Sync job status
-export const SyncJobStatus = z.enum(['pending', 'running', 'completed', 'failed', 'cancelled'])
+export const SyncJobStatus = z.enum([
+  'pending',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+])
 export type SyncJobStatus = z.infer<typeof SyncJobStatus>
 
 // Sync entity types
-export const SyncEntityType = z.enum(['products', 'inventory', 'pricing', 'customers', 'orders'])
+export const SyncEntityType = z.enum([
+  'products',
+  'inventory',
+  'pricing',
+  'customers',
+  'orders',
+])
 export type SyncEntityType = z.infer<typeof SyncEntityType>
 
 // Sync conflict resolution strategies
-export const ConflictResolutionStrategy = z.enum(['source_wins', 'target_wins', 'newest_wins', 'manual'])
-export type ConflictResolutionStrategy = z.infer<typeof ConflictResolutionStrategy>
+export const ConflictResolutionStrategy = z.enum([
+  'source_wins',
+  'target_wins',
+  'newest_wins',
+  'manual',
+])
+export type ConflictResolutionStrategy = z.infer<
+  typeof ConflictResolutionStrategy
+>
 
 // Sync job configuration
 export const syncJobConfigSchema = z.object({
@@ -27,18 +46,22 @@ export const syncJobConfigSchema = z.object({
   batch_size: z.number().min(10).max(1000).default(100),
   priority: z.enum(['low', 'normal', 'high']).default('normal'),
   scheduled_at: z.string().datetime().optional(),
-  retry_config: z.object({
-    max_attempts: z.number().default(3),
-    backoff_multiplier: z.number().default(2),
-    initial_delay_ms: z.number().default(1000),
-  }).optional(),
-  conflict_resolution: z.object({
-    strategy: ConflictResolutionStrategy,
-    auto_resolve: z.boolean().default(true),
-  }).default({
-    strategy: 'newest_wins',
-    auto_resolve: true,
-  }),
+  retry_config: z
+    .object({
+      max_attempts: z.number().default(3),
+      backoff_multiplier: z.number().default(2),
+      initial_delay_ms: z.number().default(1000),
+    })
+    .optional(),
+  conflict_resolution: z
+    .object({
+      strategy: ConflictResolutionStrategy,
+      auto_resolve: z.boolean().default(true),
+    })
+    .default({
+      strategy: 'newest_wins',
+      auto_resolve: true,
+    }),
 })
 
 export type SyncJobConfig = z.infer<typeof syncJobConfigSchema>
@@ -64,7 +87,13 @@ export interface SyncJob {
 
 // Sync progress tracking
 export interface SyncProgress {
-  phase: 'queued' | 'initializing' | 'fetching' | 'transforming' | 'upserting' | 'finalizing'
+  phase:
+    | 'queued'
+    | 'initializing'
+    | 'fetching'
+    | 'transforming'
+    | 'upserting'
+    | 'finalizing'
   current_entity?: SyncEntityType
   entities_completed: number
   entities_total: number
@@ -148,16 +177,25 @@ export interface PerformanceMetrics {
 // Sync schedule configuration
 export const syncScheduleSchema = z.object({
   enabled: z.boolean().default(true),
-  frequency: z.enum(['every_5_min', 'every_15_min', 'every_30_min', 'hourly', 'daily', 'weekly']),
+  frequency: z.enum([
+    'every_5_min',
+    'every_15_min',
+    'every_30_min',
+    'hourly',
+    'daily',
+    'weekly',
+  ]),
   timezone: z.string().default('UTC'),
   day_of_week: z.number().min(0).max(6).optional(), // 0 = Sunday, 6 = Saturday
   hour: z.number().min(0).max(23).optional(),
   minute: z.number().min(0).max(59).optional(),
   entity_types: z.array(SyncEntityType),
-  active_hours: z.object({
-    start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  }).optional(),
+  active_hours: z
+    .object({
+      start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+      end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+    })
+    .optional(),
 })
 
 export type SyncSchedule = z.infer<typeof syncScheduleSchema>
@@ -183,7 +221,7 @@ export interface NotificationChannel {
 }
 
 // Notification events
-export type SyncNotificationEvent = 
+export type SyncNotificationEvent =
   | 'sync_started'
   | 'sync_completed'
   | 'sync_failed'
@@ -236,11 +274,14 @@ export interface SyncStatistics {
   total_records_synced: number
   total_conflicts: number
   total_errors: number
-  by_entity_type: Record<SyncEntityType, {
-    count: number
-    records: number
-    errors: number
-  }>
+  by_entity_type: Record<
+    SyncEntityType,
+    {
+      count: number
+      records: number
+      errors: number
+    }
+  >
 }
 
 // Sync health status

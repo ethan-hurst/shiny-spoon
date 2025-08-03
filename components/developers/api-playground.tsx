@@ -1,14 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import { AlertCircle, Loader2, Play } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Play, Loader2, AlertCircle } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 import { resolveRef } from '@/lib/openapi/parser'
 
 interface ApiPlaygroundProps {
@@ -30,7 +36,7 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
 
   const buildUrl = () => {
     let url = endpoint.path
-    
+
     // Replace path parameters
     endpoint.parameters?.forEach((param: any) => {
       if (param.in === 'path' && parameters[param.name]) {
@@ -41,7 +47,10 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
     // Add query parameters
     const queryParams = endpoint.parameters
       ?.filter((param: any) => param.in === 'query' && parameters[param.name])
-      .map((param: any) => `${param.name}=${encodeURIComponent(parameters[param.name])}`)
+      .map(
+        (param: any) =>
+          `${param.name}=${encodeURIComponent(parameters[param.name])}`
+      )
       .join('&')
 
     if (queryParams) {
@@ -95,7 +104,7 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
 
   const getExampleRequestBody = () => {
     if (!endpoint.requestBody?.content?.['application/json']?.schema) return ''
-    
+
     const schema = endpoint.requestBody.content['application/json'].schema
     if (schema.$ref) {
       const resolved = resolveRef(spec, schema.$ref)
@@ -103,7 +112,7 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
         return JSON.stringify(resolved.example, null, 2)
       }
     }
-    
+
     return JSON.stringify(
       {
         example: 'Add your request body here',
@@ -118,7 +127,8 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
       <CardHeader>
         <CardTitle>Try it out</CardTitle>
         <CardDescription>
-          Test this endpoint with your API key. Requests are proxied through our server.
+          Test this endpoint with your API key. Requests are proxied through our
+          server.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -147,10 +157,14 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
                 id={param.name}
                 placeholder={param.description || param.name}
                 value={parameters[param.name] || ''}
-                onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                onChange={(e) =>
+                  handleParameterChange(param.name, e.target.value)
+                }
               />
               {param.description && (
-                <p className="text-sm text-muted-foreground">{param.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {param.description}
+                </p>
               )}
             </div>
           ))}
@@ -168,10 +182,14 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
                 id={param.name}
                 placeholder={param.description || param.name}
                 value={parameters[param.name] || ''}
-                onChange={(e) => handleParameterChange(param.name, e.target.value)}
+                onChange={(e) =>
+                  handleParameterChange(param.name, e.target.value)
+                }
               />
               {param.description && (
-                <p className="text-sm text-muted-foreground">{param.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {param.description}
+                </p>
               )}
             </div>
           ))}
@@ -192,11 +210,7 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
         )}
 
         {/* Execute Button */}
-        <Button
-          onClick={executeRequest}
-          disabled={loading}
-          className="w-full"
-        >
+        <Button onClick={executeRequest} disabled={loading} className="w-full">
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -230,18 +244,14 @@ export function ApiPlayground({ endpoint, spec }: ApiPlaygroundProps) {
               <TabsContent value="body">
                 <div className="rounded-lg bg-muted p-4">
                   <pre className="overflow-x-auto text-sm">
-                    <code>
-                      {JSON.stringify(response.body, null, 2)}
-                    </code>
+                    <code>{JSON.stringify(response.body, null, 2)}</code>
                   </pre>
                 </div>
               </TabsContent>
               <TabsContent value="headers">
                 <div className="rounded-lg bg-muted p-4">
                   <pre className="overflow-x-auto text-sm">
-                    <code>
-                      {JSON.stringify(response.headers, null, 2)}
-                    </code>
+                    <code>{JSON.stringify(response.headers, null, 2)}</code>
                   </pre>
                 </div>
               </TabsContent>

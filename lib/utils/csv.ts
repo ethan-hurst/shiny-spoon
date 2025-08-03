@@ -14,26 +14,26 @@ export function escapeCSVField(value: any): string {
   if (value === null || value === undefined) {
     return '""'
   }
-  
+
   const strValue = String(value)
-  
+
   // Check if value needs escaping (contains quotes, newlines, carriage returns, or commas)
   if (
-    strValue.includes('"') || 
-    strValue.includes('\n') || 
-    strValue.includes('\r') || 
+    strValue.includes('"') ||
+    strValue.includes('\n') ||
+    strValue.includes('\r') ||
     strValue.includes(',')
   ) {
     // Escape quotes by doubling them and wrap in quotes
     return `"${strValue.replace(/"/g, '""')}"`
   }
-  
+
   // Also wrap in quotes if it starts with special characters that could be interpreted as formulas
   // This prevents CSV injection attacks
   if (/^[=+\-@\t\r]/.test(strValue)) {
     return `"${strValue}"`
   }
-  
+
   return strValue
 }
 
@@ -53,14 +53,14 @@ export function arrayToCSV<T extends Record<string, any>>(
   if (data.length === 0) {
     return headers ? headers.map(escapeCSVField).join(',') : ''
   }
-  
+
   const csvHeaders = headers || Object.keys(data[0])
   const headerRow = csvHeaders.map(escapeCSVField).join(',')
-  
-  const dataRows = data.map(row => 
-    csvHeaders.map(header => escapeCSVField(row[header])).join(',')
+
+  const dataRows = data.map((row) =>
+    csvHeaders.map((header) => escapeCSVField(row[header])).join(',')
   )
-  
+
   return [headerRow, ...dataRows].join('\n')
 }
 

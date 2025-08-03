@@ -14,7 +14,7 @@ export default function BulkOperationsPage() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Bulk Operations</h2>
       </div>
-      
+
       <Suspense fallback={<BulkOperationsLoading />}>
         <BulkOperationsDashboard />
       </Suspense>

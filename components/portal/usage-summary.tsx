@@ -1,7 +1,13 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { AlertCircle, Building2, Package, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, Package, Building2, Zap } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import { UsageStats } from '@/lib/billing'
 
 interface UsageSummaryProps {
@@ -45,7 +51,9 @@ export function UsageSummary({ usage, limits }: UsageSummaryProps) {
     <Card>
       <CardHeader>
         <CardTitle>Usage Summary</CardTitle>
-        <CardDescription>Current usage against your plan limits</CardDescription>
+        <CardDescription>
+          Current usage against your plan limits
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {items.map((item) => {
@@ -61,7 +69,7 @@ export function UsageSummary({ usage, limits }: UsageSummaryProps) {
                   <span className="font-medium">{item.name}</span>
                 </div>
                 {isNearLimit && !isUnlimited && (
-                  <Badge 
+                  <Badge
                     variant={isAtLimit ? 'destructive' : 'secondary'}
                     className="flex items-center gap-1"
                   >
@@ -86,8 +94,8 @@ export function UsageSummary({ usage, limits }: UsageSummaryProps) {
                   )}
                 </div>
                 {!isUnlimited && (
-                  <Progress 
-                    value={Math.min(item.percentage, 100)} 
+                  <Progress
+                    value={Math.min(item.percentage, 100)}
                     className={isAtLimit ? 'bg-destructive/20' : ''}
                   />
                 )}
@@ -98,10 +106,11 @@ export function UsageSummary({ usage, limits }: UsageSummaryProps) {
 
         <div className="pt-4 border-t">
           <p className="text-sm text-muted-foreground">
-            Usage resets on the first day of each month. 
+            Usage resets on the first day of each month.
             {usage.apiCalls.percentage > 80 && (
               <span className="text-amber-600 dark:text-amber-500">
-                {' '}Consider upgrading your plan to avoid service interruptions.
+                {' '}
+                Consider upgrading your plan to avoid service interruptions.
               </span>
             )}
           </p>

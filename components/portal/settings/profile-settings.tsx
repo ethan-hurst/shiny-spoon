@@ -2,13 +2,20 @@
 
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { format } from 'date-fns'
+import { Building2, Calendar, Loader2, Mail, User } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -18,10 +25,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { updateProfile } from '@/app/actions/settings'
-import { User, Building2, Mail, Calendar, Loader2 } from 'lucide-react'
-import { format } from 'date-fns'
-import { toast } from 'sonner'
 
 const formSchema = z.object({
   displayName: z.string().min(1, 'Display name is required').max(100),
@@ -34,7 +40,11 @@ interface ProfileSettingsProps {
   organization: any
 }
 
-export function ProfileSettings({ user, profile, organization }: ProfileSettingsProps) {
+export function ProfileSettings({
+  user,
+  profile,
+  organization,
+}: ProfileSettingsProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -47,7 +57,7 @@ export function ProfileSettings({ user, profile, organization }: ProfileSettings
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    
+
     const formData = new FormData()
     formData.append('displayName', values.displayName)
     if (values.bio) {
@@ -118,7 +128,7 @@ export function ProfileSettings({ user, profile, organization }: ProfileSettings
                   <FormItem>
                     <FormLabel>Bio</FormLabel>
                     <FormControl>
-                      <Textarea 
+                      <Textarea
                         {...field}
                         rows={4}
                         className="resize-none"

@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getSubscription } from '@/lib/billing'
-import { SUBSCRIPTION_PLANS } from '@/lib/billing/stripe'
+import { CheckCircle } from 'lucide-react'
 import { CurrentPlan } from '@/components/portal/subscription/current-plan'
 import { PlanSelector } from '@/components/portal/subscription/plan-selector'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CheckCircle } from 'lucide-react'
+import { getSubscription } from '@/lib/billing'
+import { SUBSCRIPTION_PLANS } from '@/lib/billing/stripe'
+import { createClient } from '@/lib/supabase/server'
 
 interface SubscriptionPageProps {
   searchParams: Promise<{
@@ -17,7 +17,9 @@ export default async function SubscriptionPage(props: SubscriptionPageProps) {
   const searchParams = await props.searchParams
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -37,33 +39,35 @@ export default async function SubscriptionPage(props: SubscriptionPageProps) {
     monthlyPrice: value.monthlyPrice,
     yearlyPrice: value.yearlyPrice || Math.floor(value.monthlyPrice * 10), // 2 months free (16.67% discount)
     features: [
-      value.limits.products === -1 
-        ? 'Unlimited products' 
+      value.limits.products === -1
+        ? 'Unlimited products'
         : `Up to ${value.limits.products.toLocaleString()} products`,
-      value.limits.warehouses === -1 
-        ? 'Unlimited warehouses' 
+      value.limits.warehouses === -1
+        ? 'Unlimited warehouses'
         : `Up to ${value.limits.warehouses} warehouses`,
       `${value.limits.apiCalls.toLocaleString()} API calls/month`,
-      ...(key === 'starter' ? [
-        'Email support',
-        'Basic analytics',
-        'Standard integrations',
-      ] : []),
-      ...(key === 'growth' ? [
-        'Priority email support',
-        'Advanced analytics',
-        'Custom integrations',
-        'Bulk operations',
-        'API webhooks',
-      ] : []),
-      ...(key === 'scale' ? [
-        'Phone & email support',
-        'Custom analytics',
-        'All integrations',
-        'Dedicated account manager',
-        'Custom contracts',
-        'SLA guarantee',
-      ] : []),
+      ...(key === 'starter'
+        ? ['Email support', 'Basic analytics', 'Standard integrations']
+        : []),
+      ...(key === 'growth'
+        ? [
+            'Priority email support',
+            'Advanced analytics',
+            'Custom integrations',
+            'Bulk operations',
+            'API webhooks',
+          ]
+        : []),
+      ...(key === 'scale'
+        ? [
+            'Phone & email support',
+            'Custom analytics',
+            'All integrations',
+            'Dedicated account manager',
+            'Custom contracts',
+            'SLA guarantee',
+          ]
+        : []),
     ],
     popular: key === 'growth',
   }))
@@ -87,14 +91,14 @@ export default async function SubscriptionPage(props: SubscriptionPageProps) {
       )}
 
       <div className="grid gap-6">
-        <CurrentPlan 
+        <CurrentPlan
           subscription={subscription}
           organization={profile.organizations}
         />
 
         {subscription?.id !== 'enterprise' && (
           <>
-            <PlanSelector 
+            <PlanSelector
               plans={plans}
               currentPlan={subscription?.plan || 'free'}
               currentInterval={subscription?.interval || 'month'}
@@ -105,7 +109,8 @@ export default async function SubscriptionPage(props: SubscriptionPageProps) {
         {subscription?.id === 'enterprise' && (
           <Alert>
             <AlertDescription>
-              You're on an Enterprise plan. Please contact your account manager for any changes to your subscription.
+              You're on an Enterprise plan. Please contact your account manager
+              for any changes to your subscription.
             </AlertDescription>
           </Alert>
         )}

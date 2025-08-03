@@ -172,7 +172,9 @@ describe('ShopifySyncSettingsForm', () => {
       render(<ShopifySyncSettingsForm {...defaultProps} />)
 
       expect(
-        screen.getByText('Sync product catalog including variants and metafields')
+        screen.getByText(
+          'Sync product catalog including variants and metafields'
+        )
       ).toBeInTheDocument()
       expect(
         screen.getByText('Real-time inventory level updates across locations')
@@ -198,9 +200,7 @@ describe('ShopifySyncSettingsForm', () => {
       expect(
         screen.getByText('How often to check for updates')
       ).toBeInTheDocument()
-      expect(
-        screen.getByText('Items processed per batch')
-      ).toBeInTheDocument()
+      expect(screen.getByText('Items processed per batch')).toBeInTheDocument()
     })
 
     it('renders action buttons with correct labels', () => {

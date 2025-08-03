@@ -39,9 +39,14 @@ const formSchema = z.object({
   file: z
     .instanceof(File)
     .refine((file) => file.name.endsWith('.csv'), 'File must be a CSV')
-    .refine((file) => file.type === 'text/csv' || file.type === '', 
-      'File must be a CSV file (text/csv MIME type)')
-    .refine((file) => file.size <= 50 * 1024 * 1024, 'File size must be less than 50MB'),
+    .refine(
+      (file) => file.type === 'text/csv' || file.type === '',
+      'File must be a CSV file (text/csv MIME type)'
+    )
+    .refine(
+      (file) => file.size <= 50 * 1024 * 1024,
+      'File size must be less than 50MB'
+    ),
   operationType: z.enum(['import', 'update']),
   entityType: z.enum(['products', 'inventory', 'pricing', 'customers']),
   validateOnly: z.boolean().default(false),
@@ -119,17 +124,21 @@ export function BulkUploadDialog({
     } catch (error) {
       // Sanitize error messages
       let errorMessage = 'Failed to start bulk operation'
-      
+
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           errorMessage = 'Request timed out. Please try again.'
         } else if (error.message.toLowerCase().includes('network')) {
           errorMessage = 'Network error. Please check your connection.'
-        } else if (error.message.toLowerCase().includes('unauthorized') || 
-                   error.message.toLowerCase().includes('authentication')) {
+        } else if (
+          error.message.toLowerCase().includes('unauthorized') ||
+          error.message.toLowerCase().includes('authentication')
+        ) {
           errorMessage = 'Authentication error. Please sign in again.'
-        } else if (error.message.toLowerCase().includes('validation') || 
-                   error.message.toLowerCase().includes('invalid')) {
+        } else if (
+          error.message.toLowerCase().includes('validation') ||
+          error.message.toLowerCase().includes('invalid')
+        ) {
           // Validation errors are generally safe to show
           errorMessage = error.message
         } else {
@@ -141,16 +150,20 @@ export function BulkUploadDialog({
             'required',
             'missing',
             'duplicate',
-            'already exists'
+            'already exists',
           ]
-          
+
           const lowerMessage = error.message.toLowerCase()
-          const isSafeMessage = safePatterns.some(pattern => lowerMessage.includes(pattern))
-          
-          errorMessage = isSafeMessage ? error.message : 'Failed to start bulk operation'
+          const isSafeMessage = safePatterns.some((pattern) =>
+            lowerMessage.includes(pattern)
+          )
+
+          errorMessage = isSafeMessage
+            ? error.message
+            : 'Failed to start bulk operation'
         }
       }
-      
+
       toast.error(errorMessage)
     } finally {
       setIsUploading(false)
@@ -180,10 +193,27 @@ export function BulkUploadDialog({
 
   const getFieldRequirements = (entityType: string) => {
     const requirements: Record<string, string[]> = {
-      products: ['sku', 'name', 'description (optional)', 'category (optional)', 'price (optional)'],
-      inventory: ['sku', 'warehouse_code', 'quantity', 'reason (optional)', 'notes (optional)'],
+      products: [
+        'sku',
+        'name',
+        'description (optional)',
+        'category (optional)',
+        'price (optional)',
+      ],
+      inventory: [
+        'sku',
+        'warehouse_code',
+        'quantity',
+        'reason (optional)',
+        'notes (optional)',
+      ],
       pricing: ['sku', 'price_tier', 'price', 'min_quantity (optional)'],
-      customers: ['email', 'name', 'company (optional)', 'price_tier (optional)'],
+      customers: [
+        'email',
+        'name',
+        'company (optional)',
+        'price_tier (optional)',
+      ],
     }
     return requirements[entityType] || []
   }
@@ -342,11 +372,15 @@ export function BulkUploadDialog({
             <Alert>
               <AlertDescription>
                 <div className="space-y-2">
-                  <p className="font-medium">Required fields for {form.watch('entityType')}:</p>
+                  <p className="font-medium">
+                    Required fields for {form.watch('entityType')}:
+                  </p>
                   <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                    {getFieldRequirements(form.watch('entityType')).map((field, index) => (
-                      <li key={index}>{field}</li>
-                    ))}
+                    {getFieldRequirements(form.watch('entityType')).map(
+                      (field, index) => (
+                        <li key={index}>{field}</li>
+                      )
+                    )}
                   </ul>
                 </div>
               </AlertDescription>

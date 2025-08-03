@@ -1,12 +1,12 @@
 ---
-title: "Troubleshooting Sync Errors"
-description: "Common sync errors and how to resolve them quickly."
-category: "Troubleshooting"
-relatedArticles: 
+title: 'Troubleshooting Sync Errors'
+description: 'Common sync errors and how to resolve them quickly.'
+category: 'Troubleshooting'
+relatedArticles:
   - sync-best-practices
   - monitoring-sync-health
   - error-notifications
-keywords: 
+keywords:
   - sync errors
   - troubleshooting
   - failed sync
@@ -24,11 +24,13 @@ If you're experiencing sync errors, this guide will help you identify and resolv
 **Error Message**: `Authentication failed: Invalid credentials`
 
 **Causes**:
+
 - Expired API tokens
 - Changed passwords
 - Revoked permissions
 
 **Solution**:
+
 1. Go to **Integrations** → **[Your Integration]**
 2. Click **Reauthorize**
 3. Enter updated credentials
@@ -39,10 +41,12 @@ If you're experiencing sync errors, this guide will help you identify and resolv
 **Error Message**: `Rate limit exceeded. Retry after X seconds`
 
 **Causes**:
+
 - Too many API calls in a short period
 - Aggressive sync frequency settings
 
 **Solution**:
+
 - Reduce sync frequency in settings
 - Enable rate limit handling (automatic retry)
 - Consider upgrading your API tier
@@ -52,17 +56,19 @@ If you're experiencing sync errors, this guide will help you identify and resolv
 **Error Message**: `Validation failed: [Field] is required`
 
 **Common Fields**:
+
 - Missing SKU
 - Invalid price format
 - Blank product names
 
 **Solution**:
+
 ```javascript
 // Example: Add validation rules
 const validationRules = {
   sku: { required: true, pattern: /^[A-Z0-9-]+$/ },
   price: { required: true, min: 0 },
-  name: { required: true, maxLength: 255 }
+  name: { required: true, maxLength: 255 },
 }
 ```
 
@@ -82,7 +88,7 @@ const validationRules = {
 Ensure fields are correctly mapped:
 
 - **product_id** → **sku**: ✅ Mapped
-- **list_price** → **price**: ✅ Mapped  
+- **list_price** → **price**: ✅ Mapped
 - **qty_available** → **quantity**: ❌ Not mapped
 
 ### Step 3: Test Individual Records
@@ -101,6 +107,7 @@ truthsource sync --type product --id PROD-123 --debug
 **Problem**: Trying to create a record that already exists
 
 **Solutions**:
+
 1. Enable upsert mode (update if exists)
 2. Add unique identifier mapping
 3. Run deduplication check
@@ -110,6 +117,7 @@ truthsource sync --type product --id PROD-123 --debug
 **Problem**: Data type doesn't match expected format
 
 **Example**:
+
 ```json
 // Error: Expected number, got string
 {
@@ -124,6 +132,7 @@ truthsource sync --type product --id PROD-123 --debug
 **Problem**: Trying to sync child record before parent
 
 **Solution**: Enable dependency resolution:
+
 - Sync products before inventory
 - Sync customers before orders
 - Use cascade sync option
@@ -142,7 +151,7 @@ truthsource sync --type product --id PROD-123 --debug
 const retryConfig = {
   maxAttempts: 3,
   backoffMultiplier: 2,
-  initialDelay: 1000 // 1 second
+  initialDelay: 1000, // 1 second
 }
 ```
 
@@ -157,7 +166,7 @@ const retryConfig = {
 If you're still experiencing issues:
 
 1. **Check Status Page**: [status.truthsource.io](https://status.truthsource.io)
-2. **Contact Support**: 
+2. **Contact Support**:
    - In-app chat (bottom right)
    - Email: support@truthsource.io
    - Phone: 1-800-TRUTH-SRC
@@ -166,5 +175,5 @@ If you're still experiencing issues:
 ## Related Articles
 
 - [Best Practices for Data Sync](/help/sync-best-practices)
-- [Monitoring Sync Health](/help/monitoring-sync-health) 
+- [Monitoring Sync Health](/help/monitoring-sync-health)
 - [Setting Up Error Notifications](/help/error-notifications)

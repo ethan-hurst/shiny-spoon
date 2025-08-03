@@ -3,41 +3,77 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
   DialogOverlay,
   DialogPortal,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog'
 
 // Mock Radix UI Dialog components
 jest.mock('@radix-ui/react-dialog', () => ({
-  Root: ({ children, ...props }: any) => <div data-testid="dialog-root" {...props}>{children}</div>,
+  Root: ({ children, ...props }: any) => (
+    <div data-testid="dialog-root" {...props}>
+      {children}
+    </div>
+  ),
   Trigger: React.forwardRef(({ children, ...props }: any, ref) => (
-    <button ref={ref} data-testid="dialog-trigger" {...props}>{children}</button>
+    <button ref={ref} data-testid="dialog-trigger" {...props}>
+      {children}
+    </button>
   )),
-  Portal: ({ children }: any) => <div data-testid="dialog-portal">{children}</div>,
+  Portal: ({ children }: any) => (
+    <div data-testid="dialog-portal">{children}</div>
+  ),
   Overlay: React.forwardRef(({ className, ...props }: any, ref) => (
-    <div ref={ref} data-testid="dialog-overlay" className={className} {...props} />
+    <div
+      ref={ref}
+      data-testid="dialog-overlay"
+      className={className}
+      {...props}
+    />
   )),
   Content: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <div ref={ref} data-testid="dialog-content" className={className} {...props}>
+    <div
+      ref={ref}
+      data-testid="dialog-content"
+      className={className}
+      {...props}
+    >
       {children}
       <button data-testid="dialog-close">×</button>
     </div>
   )),
   Title: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <h2 ref={ref} data-testid="dialog-title" className={className} {...props}>{children}</h2>
+    <h2 ref={ref} data-testid="dialog-title" className={className} {...props}>
+      {children}
+    </h2>
   )),
-  Description: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <p ref={ref} data-testid="dialog-description" className={className} {...props}>{children}</p>
-  )),
+  Description: React.forwardRef(
+    ({ children, className, ...props }: any, ref) => (
+      <p
+        ref={ref}
+        data-testid="dialog-description"
+        className={className}
+        {...props}
+      >
+        {children}
+      </p>
+    )
+  ),
   Close: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <button ref={ref} data-testid="dialog-close-button" className={className} {...props}>{children}</button>
+    <button
+      ref={ref}
+      data-testid="dialog-close-button"
+      className={className}
+      {...props}
+    >
+      {children}
+    </button>
   )),
 }))
 
@@ -193,7 +229,12 @@ describe('Dialog Components', () => {
 
       const title = screen.getByTestId('title')
       expect(title).toBeInTheDocument()
-      expect(title).toHaveClass('text-lg', 'font-semibold', 'leading-none', 'tracking-tight')
+      expect(title).toHaveClass(
+        'text-lg',
+        'font-semibold',
+        'leading-none',
+        'tracking-tight'
+      )
     })
 
     it('should apply custom className', () => {
@@ -245,7 +286,10 @@ describe('Dialog Components', () => {
 
     it('should apply custom className', () => {
       render(
-        <DialogDescription className="custom-description" data-testid="description">
+        <DialogDescription
+          className="custom-description"
+          data-testid="description"
+        >
           Dialog description
         </DialogDescription>
       )
@@ -276,7 +320,13 @@ describe('Dialog Components', () => {
 
       const header = screen.getByTestId('header')
       expect(header).toBeInTheDocument()
-      expect(header).toHaveClass('flex', 'flex-col', 'space-y-1.5', 'text-center', 'sm:text-left')
+      expect(header).toHaveClass(
+        'flex',
+        'flex-col',
+        'space-y-1.5',
+        'text-center',
+        'sm:text-left'
+      )
     })
 
     it('should apply custom className', () => {
@@ -313,7 +363,13 @@ describe('Dialog Components', () => {
 
       const footer = screen.getByTestId('footer')
       expect(footer).toBeInTheDocument()
-      expect(footer).toHaveClass('flex', 'flex-col-reverse', 'sm:flex-row', 'sm:justify-end', 'sm:space-x-2')
+      expect(footer).toHaveClass(
+        'flex',
+        'flex-col-reverse',
+        'sm:flex-row',
+        'sm:justify-end',
+        'sm:space-x-2'
+      )
     })
 
     it('should apply custom className', () => {

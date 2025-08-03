@@ -1,6 +1,11 @@
-import { AuditLogger, withAuditLog, type AuditAction, type EntityType } from '@/lib/audit/audit-logger'
-import { createServerClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
+import {
+  AuditLogger,
+  withAuditLog,
+  type AuditAction,
+  type EntityType,
+} from '@/lib/audit/audit-logger'
+import { createServerClient } from '@/lib/supabase/server'
 
 // Mock dependencies
 jest.mock('@/lib/supabase/server')
@@ -37,7 +42,7 @@ describe('AuditLogger', () => {
   beforeEach(async () => {
     jest.clearAllMocks()
     auditLogger = await AuditLogger.create()
-    
+
     // Setup default mock returns
     mockSupabase.auth.getUser.mockResolvedValue({
       data: {
@@ -49,18 +54,21 @@ describe('AuditLogger', () => {
       error: null,
     })
 
-    mockQueryBuilder.select().eq().single.mockResolvedValue({
-      data: {
-        organization_id: 'org-123',
-        role: 'admin',
-        full_name: 'Test User',
-      },
-      error: null,
-    })
+    mockQueryBuilder
+      .select()
+      .eq()
+      .single.mockResolvedValue({
+        data: {
+          organization_id: 'org-123',
+          role: 'admin',
+          full_name: 'Test User',
+        },
+        error: null,
+      })
 
-    mockQueryBuilder.insert.mockResolvedValue({ 
-      data: null, 
-      error: null 
+    mockQueryBuilder.insert.mockResolvedValue({
+      data: null,
+      error: null,
     })
 
     mockHeaders.get.mockImplementation((header: string) => {
@@ -346,7 +354,9 @@ describe('AuditLogger', () => {
           price: 100,
         }
 
-        await auditLogger.logDelete('product', entity, { reason: 'discontinued' })
+        await auditLogger.logDelete('product', entity, {
+          reason: 'discontinued',
+        })
 
         // Check that from() was called with both tables
         expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
@@ -424,7 +434,9 @@ describe('AuditLogger', () => {
 
   describe('withAuditLog wrapper', () => {
     it('should wrap a function and log successful execution', async () => {
-      const mockAction = jest.fn().mockResolvedValue({ id: 'product-123', name: 'Test Product' })
+      const mockAction = jest
+        .fn()
+        .mockResolvedValue({ id: 'product-123', name: 'Test Product' })
       const getAuditInfo = jest.fn().mockReturnValue({
         action: 'create' as AuditAction,
         entityType: 'product' as EntityType,
@@ -437,7 +449,10 @@ describe('AuditLogger', () => {
       const result = await wrappedAction('arg1', 'arg2')
 
       expect(mockAction).toHaveBeenCalledWith('arg1', 'arg2')
-      expect(getAuditInfo).toHaveBeenCalledWith(['arg1', 'arg2'], { id: 'product-123', name: 'Test Product' })
+      expect(getAuditInfo).toHaveBeenCalledWith(['arg1', 'arg2'], {
+        id: 'product-123',
+        name: 'Test Product',
+      })
       // Check that from() was called with both tables
       expect(mockSupabase.from).toHaveBeenCalledWith('user_profiles')
       expect(mockSupabase.from).toHaveBeenCalledWith('audit_logs')
@@ -480,7 +495,7 @@ describe('AuditLogger', () => {
 
     it('should preserve function signature and arguments', async () => {
       type TestFunction = (a: string, b: number, c: boolean) => Promise<string>
-      
+
       const mockAction: TestFunction = jest.fn().mockResolvedValue('success')
       const getAuditInfo = jest.fn().mockReturnValue({
         action: 'create' as AuditAction,
@@ -508,7 +523,11 @@ describe('AuditLogger', () => {
           select: jest.fn(() => ({
             eq: jest.fn(() => ({
               single: jest.fn().mockResolvedValue({
-                data: { organization_id: 'custom-org', role: 'user', full_name: 'Custom User' },
+                data: {
+                  organization_id: 'custom-org',
+                  role: 'user',
+                  full_name: 'Custom User',
+                },
               }),
             })),
           })),

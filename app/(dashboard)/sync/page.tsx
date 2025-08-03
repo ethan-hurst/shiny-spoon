@@ -1,15 +1,25 @@
 // PRP-015: Sync Dashboard Page
-import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Activity, CheckCircle2, Clock, XCircle } from 'lucide-react'
+import { ManualSyncTrigger } from '@/components/features/sync/manual-sync-trigger'
+import { SyncHealthMonitor } from '@/components/features/sync/sync-health-monitor'
 import { SyncJobsList } from '@/components/features/sync/sync-jobs-list'
 import { SyncSchedulesList } from '@/components/features/sync/sync-schedules-list'
 import { SyncStatisticsPanel } from '@/components/features/sync/sync-statistics'
-import { SyncHealthMonitor } from '@/components/features/sync/sync-health-monitor'
-import { ManualSyncTrigger } from '@/components/features/sync/manual-sync-trigger'
-import type { SyncJob, SyncSchedule, SyncHealthStatus } from '@/types/sync-engine.types'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { createClient } from '@/lib/supabase/server'
+import type {
+  SyncHealthStatus,
+  SyncJob,
+  SyncSchedule,
+} from '@/types/sync-engine.types'
 
 /**
  * Renders the Sync Dashboard page, providing an authenticated user with an overview and management interface for data synchronization across their organization's integrations.
@@ -20,7 +30,9 @@ export default async function SyncDashboardPage() {
   const supabase = await createClient()
 
   // Check authentication
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     notFound()
   }
@@ -47,14 +59,16 @@ export default async function SyncDashboardPage() {
   // Get recent sync jobs
   const { data: recentJobs } = await supabase
     .from('sync_jobs')
-    .select(`
+    .select(
+      `
       *,
       integrations (
         id,
         name,
         platform
       )
-    `)
+    `
+    )
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
     .limit(20)
@@ -62,15 +76,17 @@ export default async function SyncDashboardPage() {
   // Get sync schedules
   const { data: schedules } = await supabase
     .from('sync_schedules')
-    .select(`
+    .select(
+      `
       *,
       integrations (
         id,
         name,
         platform
       )
-    `)
-    .in('integration_id', integrations?.map(i => i.id) || [])
+    `
+    )
+    .in('integration_id', integrations?.map((i) => i.id) || [])
 
   // Get sync statistics
   const { data: stats } = await supabase.rpc('get_sync_statistics', {
@@ -79,16 +95,18 @@ export default async function SyncDashboardPage() {
   })
 
   // Calculate summary metrics
-  const activeJobs = recentJobs?.filter(job => 
-    ['pending', 'running'].includes(job.status)
-  ).length || 0
+  const activeJobs =
+    recentJobs?.filter((job) => ['pending', 'running'].includes(job.status))
+      .length || 0
 
-  const failedJobs = recentJobs?.filter(job => 
-    job.status === 'failed' && 
-    new Date(job.created_at).getTime() > Date.now() - 24 * 60 * 60 * 1000
-  ).length || 0
+  const failedJobs =
+    recentJobs?.filter(
+      (job) =>
+        job.status === 'failed' &&
+        new Date(job.created_at).getTime() > Date.now() - 24 * 60 * 60 * 1000
+    ).length || 0
 
-  const enabledSchedules = schedules?.filter(s => s.enabled).length || 0
+  const enabledSchedules = schedules?.filter((s) => s.enabled).length || 0
 
   return (
     <div className="container py-6 space-y-6">
@@ -116,28 +134,29 @@ export default async function SyncDashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Failed Jobs (24h)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Failed Jobs (24h)
+            </CardTitle>
             <XCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{failedJobs}</div>
-            <p className="text-xs text-muted-foreground">
-              Require attention
-            </p>
+            <p className="text-xs text-muted-foreground">Require attention</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate (24h)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Success Rate (24h)
+            </CardTitle>
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats && stats.total_syncs > 0 
+              {stats && stats.total_syncs > 0
                 ? `${Math.round((stats.successful_syncs / stats.total_syncs) * 100)}%`
-                : 'N/A'
-              }
+                : 'N/A'}
             </div>
             <p className="text-xs text-muted-foreground">
               {stats?.successful_syncs || 0} of {stats?.total_syncs || 0} syncs
@@ -147,14 +166,14 @@ export default async function SyncDashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduled Syncs</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Scheduled Syncs
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{enabledSchedules}</div>
-            <p className="text-xs text-muted-foreground">
-              Active schedules
-            </p>
+            <p className="text-xs text-muted-foreground">Active schedules</p>
           </CardContent>
         </Card>
       </div>
@@ -193,16 +212,21 @@ export default async function SyncDashboardPage() {
             </CardHeader>
             <CardContent>
               {recentJobs && recentJobs.length > 0 ? (
-                <SyncJobsList jobs={recentJobs as (SyncJob & {
-                  integrations: {
-                    id: string
-                    name: string
-                    platform: string
+                <SyncJobsList
+                  jobs={
+                    recentJobs as (SyncJob & {
+                      integrations: {
+                        id: string
+                        name: string
+                        platform: string
+                      }
+                    })[]
                   }
-                })[]} />
+                />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No sync jobs found. Create an integration and trigger a sync to get started.
+                  No sync jobs found. Create an integration and trigger a sync
+                  to get started.
                 </div>
               )}
             </CardContent>
@@ -219,16 +243,21 @@ export default async function SyncDashboardPage() {
             </CardHeader>
             <CardContent>
               {schedules && schedules.length > 0 ? (
-                <SyncSchedulesList schedules={schedules as (SyncSchedule & {
-                  integrations: {
-                    id: string
-                    name: string
-                    platform: string
+                <SyncSchedulesList
+                  schedules={
+                    schedules as (SyncSchedule & {
+                      integrations: {
+                        id: string
+                        name: string
+                        platform: string
+                      }
+                    })[]
                   }
-                })[]} />
+                />
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No schedules configured. Set up automatic syncing for your integrations.
+                  No schedules configured. Set up automatic syncing for your
+                  integrations.
                 </div>
               )}
             </CardContent>

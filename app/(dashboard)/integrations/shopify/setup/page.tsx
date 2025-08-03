@@ -1,8 +1,14 @@
 // PRP-014: Shopify Setup Wizard Page
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ShopifySetupWizard } from '@/components/features/integrations/shopify/shopify-setup-wizard'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/server'
 
 /**
  * Displays the Shopify integration setup page for authenticated users, handling redirects based on authentication, user profile, and existing integration status.
@@ -11,9 +17,11 @@ import { ShopifySetupWizard } from '@/components/features/integrations/shopify/s
  */
 export default async function ShopifySetupPage() {
   const supabase = await createClient()
-  
+
   // Get user and validate
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -73,8 +81,8 @@ export default async function ShopifySetupPage() {
         <CardHeader>
           <CardTitle>Let's Get Started</CardTitle>
           <CardDescription>
-            We'll walk you through the process of setting up your Shopify integration.
-            This typically takes 5-10 minutes.
+            We'll walk you through the process of setting up your Shopify
+            integration. This typically takes 5-10 minutes.
           </CardDescription>
         </CardHeader>
         <CardContent>

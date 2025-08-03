@@ -1,14 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { Card } from '@/components/ui/card'
-import { ContactForm } from '@/components/forms/contact-form'
 import { ContactInfo } from '@/components/company/contact-info'
-import { contactSchema, type ContactFormData } from '@/lib/schemas/contact'
+import { ContactForm } from '@/components/forms/contact-form'
+import { Card } from '@/components/ui/card'
 import PageWrapper from '@/components/wrapper/page-wrapper'
+import { contactSchema, type ContactFormData } from '@/lib/schemas/contact'
 
 export default function ContactPage() {
   const [loading, setLoading] = useState(false)
@@ -42,11 +42,13 @@ export default function ContactPage() {
         throw new Error(errorMessage)
       }
 
-      toast.success('Message sent! We\'ll get back to you within 24 hours.')
+      toast.success("Message sent! We'll get back to you within 24 hours.")
       form.reset()
     } catch (error) {
       console.error('Contact form error:', error)
-      toast.error('Failed to send message. Please try again or email us directly.')
+      toast.error(
+        'Failed to send message. Please try again or email us directly.'
+      )
     } finally {
       setLoading(false)
     }
@@ -59,7 +61,8 @@ export default function ContactPage() {
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
             <p className="text-xl text-gray-600">
-              Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              Have questions? We'd love to hear from you. Send us a message and
+              we'll respond as soon as possible.
             </p>
           </div>
 
@@ -72,7 +75,9 @@ export default function ContactPage() {
           </div>
 
           <div className="mt-16 text-center">
-            <h2 className="text-2xl font-bold mb-4">Frequently Asked Questions</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Frequently Asked Questions
+            </h2>
             <p className="text-gray-600 mb-6">
               Can't find what you're looking for?{' '}
               <a href="/help" className="text-primary hover:underline">

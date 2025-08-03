@@ -1,13 +1,13 @@
 // PRP-016: Data Accuracy Monitor - Alert Configuration Page
 import { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { Plus, AlertTriangle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { AlertRulesList } from '@/components/features/monitoring/alert-rules-list'
+import { redirect } from 'next/navigation'
+import { AlertTriangle, Plus } from 'lucide-react'
 import { AlertConfigDialog } from '@/components/features/monitoring/alert-config-dialog'
+import { AlertRulesList } from '@/components/features/monitoring/alert-rules-list'
 import { RefreshButton } from '@/components/features/monitoring/refresh-button'
+import { Button } from '@/components/ui/button'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: 'Alert Configuration | TruthSource',
@@ -21,9 +21,11 @@ export const metadata: Metadata = {
  */
 export default async function AlertsPage() {
   const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) {
     redirect('/login')
   }
@@ -75,13 +77,14 @@ export default async function AlertsPage() {
             <h3 className="font-semibold">Failed to load alert rules</h3>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            We encountered an error while loading your alert rules. Please try refreshing the page.
+            We encountered an error while loading your alert rules. Please try
+            refreshing the page.
           </p>
           <RefreshButton className="mt-3" />
         </div>
       ) : (
-        <AlertRulesList 
-          rules={alertRules || []} 
+        <AlertRulesList
+          rules={alertRules || []}
           organizationId={orgUser.organization_id}
         />
       )}

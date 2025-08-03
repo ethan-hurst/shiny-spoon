@@ -1,4 +1,4 @@
-import { cn, formatCurrency, formatPercent, formatDate } from '@/lib/utils'
+import { cn, formatCurrency, formatDate, formatPercent } from '@/lib/utils'
 
 describe('Utility Functions', () => {
   describe('cn (className utility)', () => {
@@ -8,7 +8,9 @@ describe('Utility Functions', () => {
 
     it('should handle conditional classes', () => {
       const isActive = true
-      expect(cn('base-class', isActive && 'active-class')).toBe('base-class active-class')
+      expect(cn('base-class', isActive && 'active-class')).toBe(
+        'base-class active-class'
+      )
     })
 
     it('should handle conditional classes with false values', () => {
@@ -17,11 +19,15 @@ describe('Utility Functions', () => {
     })
 
     it('should handle arrays of classes', () => {
-      expect(cn(['text-red-500', 'bg-blue-500'])).toBe('text-red-500 bg-blue-500')
+      expect(cn(['text-red-500', 'bg-blue-500'])).toBe(
+        'text-red-500 bg-blue-500'
+      )
     })
 
     it('should handle mixed input types', () => {
-      expect(cn('base', ['array-class'], { 'conditional': true, 'false': false })).toBe('base array-class conditional')
+      expect(
+        cn('base', ['array-class'], { conditional: true, false: false })
+      ).toBe('base array-class conditional')
     })
 
     it('should handle empty inputs', () => {

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { Check, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Check, Copy } from 'lucide-react'
 import { generateCodeExample } from '@/lib/openapi/parser'
 
 interface CodeExampleProps {

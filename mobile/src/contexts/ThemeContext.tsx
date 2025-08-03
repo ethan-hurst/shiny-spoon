@@ -1,30 +1,30 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react'
 
 interface Theme {
   colors: {
-    primary: string;
-    secondary: string;
-    background: string;
-    surface: string;
-    text: string;
-    textSecondary: string;
-    border: string;
-    error: string;
-    success: string;
-    warning: string;
-  };
+    primary: string
+    secondary: string
+    background: string
+    surface: string
+    text: string
+    textSecondary: string
+    border: string
+    error: string
+    success: string
+    warning: string
+  }
   spacing: {
-    xs: number;
-    sm: number;
-    md: number;
-    lg: number;
-    xl: number;
-  };
+    xs: number
+    sm: number
+    md: number
+    lg: number
+    xl: number
+  }
   borderRadius: {
-    sm: number;
-    md: number;
-    lg: number;
-  };
+    sm: number
+    md: number
+    lg: number
+  }
 }
 
 const lightTheme: Theme = {
@@ -52,7 +52,7 @@ const lightTheme: Theme = {
     md: 8,
     lg: 12,
   },
-};
+}
 
 const darkTheme: Theme = {
   colors: {
@@ -79,42 +79,38 @@ const darkTheme: Theme = {
     md: 8,
     lg: 12,
   },
-};
-
-interface ThemeContextType {
-  theme: Theme;
-  isDark: boolean;
-  toggleTheme: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+interface ThemeContextType {
+  theme: Theme
+  isDark: boolean
+  toggleTheme: () => void
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(false)
 
-  const theme = isDark ? darkTheme : lightTheme;
+  const theme = isDark ? darkTheme : lightTheme
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
+    setIsDark(!isDark)
+  }
 
   const value = {
     theme,
     isDark,
     toggleTheme,
-  };
+  }
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
+  const context = useContext(ThemeContext)
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    throw new Error('useTheme must be used within a ThemeProvider')
   }
-  return context;
-} 
+  return context
+}

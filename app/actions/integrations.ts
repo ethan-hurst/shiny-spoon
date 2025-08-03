@@ -2,14 +2,14 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase/server'
 import { AuthManager } from '@/lib/integrations/auth-manager'
+import { createClient } from '@/lib/supabase/server'
 import { integrationSchema } from '@/types/integration.types'
-import type { 
-  IntegrationInsert, 
-  IntegrationUpdate,
-  CredentialTypeEnum,
+import type {
   CredentialData,
+  CredentialTypeEnum,
+  IntegrationInsert,
+  IntegrationUpdate,
 } from '@/types/integration.types'
 
 // Helper function for safe JSON parsing
@@ -27,20 +27,24 @@ const safeJsonParse = (value: string | null, defaultValue: any = {}) => {
 const updateIntegrationSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   description: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'error', 'configuring', 'suspended']).optional(),
+  status: z
+    .enum(['active', 'inactive', 'error', 'configuring', 'suspended'])
+    .optional(),
   config: z.record(z.any()).optional(),
-  sync_settings: z.object({
-    sync_products: z.boolean().optional(),
-    sync_inventory: z.boolean().optional(),
-    sync_pricing: z.boolean().optional(),
-    sync_customers: z.boolean().optional(),
-    sync_orders: z.boolean().optional(),
-    sync_direction: z.enum(['push', 'pull', 'bidirectional']).optional(),
-    sync_frequency_minutes: z.number().min(5).max(1440).optional(),
-    batch_size: z.number().min(1).max(1000).optional(),
-    field_mappings: z.record(z.string()).optional(),
-    filters: z.record(z.any()).optional(),
-  }).optional(),
+  sync_settings: z
+    .object({
+      sync_products: z.boolean().optional(),
+      sync_inventory: z.boolean().optional(),
+      sync_pricing: z.boolean().optional(),
+      sync_customers: z.boolean().optional(),
+      sync_orders: z.boolean().optional(),
+      sync_direction: z.enum(['push', 'pull', 'bidirectional']).optional(),
+      sync_frequency_minutes: z.number().min(5).max(1440).optional(),
+      batch_size: z.number().min(1).max(1000).optional(),
+      field_mappings: z.record(z.string()).optional(),
+      filters: z.record(z.any()).optional(),
+    })
+    .optional(),
 })
 
 // Create a new integration
@@ -49,7 +53,9 @@ export async function createIntegration(formData: FormData) {
     const supabase = await createClient()
 
     // Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
     // Get user's organization
@@ -95,19 +101,36 @@ export async function createIntegration(formData: FormData) {
     // Store credentials if provided
     const credentialTypeRaw = formData.get('credential_type') as string
     const credentials = formData.get('credentials')
-    
+
     // Validate credential type
-    const validCredentialTypes: CredentialTypeEnum[] = ['oauth2', 'api_key', 'basic_auth', 'custom']
-    
-    if (credentialTypeRaw && credentials && validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)) {
+    const validCredentialTypes: CredentialTypeEnum[] = [
+      'oauth2',
+      'api_key',
+      'basic_auth',
+      'custom',
+    ]
+
+    if (
+      credentialTypeRaw &&
+      credentials &&
+      validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)
+    ) {
       const credentialType = credentialTypeRaw as CredentialTypeEnum
-      const authManager = new AuthManager(integration.id, profile.organization_id)
-      const parsedCredentials = safeJsonParse(credentials as string) as CredentialData
-      
+      const authManager = new AuthManager(
+        integration.id,
+        profile.organization_id
+      )
+      const parsedCredentials = safeJsonParse(
+        credentials as string
+      ) as CredentialData
+
       if (parsedCredentials && Object.keys(parsedCredentials).length > 0) {
         await authManager.storeCredentials(credentialType, parsedCredentials)
       }
-    } else if (credentialTypeRaw && !validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)) {
+    } else if (
+      credentialTypeRaw &&
+      !validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)
+    ) {
       console.warn(`Invalid credential type provided: ${credentialTypeRaw}`)
     }
 
@@ -136,8 +159,10 @@ export async function createIntegration(formData: FormData) {
 export async function updateIntegration(formData: FormData) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
     const id = formData.get('id') as string
@@ -154,24 +179,31 @@ export async function updateIntegration(formData: FormData) {
 
     // Parse and validate update data with Zod schema
     const rawData: Record<string, any> = {}
-    
+
     if (formData.has('name')) rawData.name = formData.get('name')
-    if (formData.has('description')) rawData.description = formData.get('description')
+    if (formData.has('description'))
+      rawData.description = formData.get('description')
     if (formData.has('status')) rawData.status = formData.get('status')
-    if (formData.has('config')) rawData.config = safeJsonParse(formData.get('config') as string)
-    if (formData.has('sync_settings')) rawData.sync_settings = safeJsonParse(formData.get('sync_settings') as string)
-    
+    if (formData.has('config'))
+      rawData.config = safeJsonParse(formData.get('config') as string)
+    if (formData.has('sync_settings'))
+      rawData.sync_settings = safeJsonParse(
+        formData.get('sync_settings') as string
+      )
+
     // Validate with Zod schema
     const validated = updateIntegrationSchema.parse(rawData)
-    
+
     // Use validated data as update data
     const updateData: IntegrationUpdate = {}
-    
+
     if (validated.name !== undefined) updateData.name = validated.name
-    if (validated.description !== undefined) updateData.description = validated.description ?? null
+    if (validated.description !== undefined)
+      updateData.description = validated.description ?? null
     if (validated.status !== undefined) updateData.status = validated.status
     if (validated.config !== undefined) updateData.config = validated.config
-    if (validated.sync_settings !== undefined) updateData.sync_settings = validated.sync_settings
+    if (validated.sync_settings !== undefined)
+      updateData.sync_settings = validated.sync_settings
 
     // Update integration
     const { data: integration, error } = await supabase
@@ -187,19 +219,33 @@ export async function updateIntegration(formData: FormData) {
     // Update credentials if provided
     const credentialTypeRaw = formData.get('credential_type') as string
     const credentials = formData.get('credentials')
-    
+
     // Validate credential type
-    const validCredentialTypes: CredentialTypeEnum[] = ['oauth2', 'api_key', 'basic_auth', 'custom']
-    
-    if (credentialTypeRaw && credentials && validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)) {
+    const validCredentialTypes: CredentialTypeEnum[] = [
+      'oauth2',
+      'api_key',
+      'basic_auth',
+      'custom',
+    ]
+
+    if (
+      credentialTypeRaw &&
+      credentials &&
+      validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)
+    ) {
       const credentialType = credentialTypeRaw as CredentialTypeEnum
       const authManager = new AuthManager(id, profile.organization_id)
-      const parsedCredentials = safeJsonParse(credentials as string) as CredentialData
-      
+      const parsedCredentials = safeJsonParse(
+        credentials as string
+      ) as CredentialData
+
       if (parsedCredentials && Object.keys(parsedCredentials).length > 0) {
         await authManager.storeCredentials(credentialType, parsedCredentials)
       }
-    } else if (credentialTypeRaw && !validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)) {
+    } else if (
+      credentialTypeRaw &&
+      !validCredentialTypes.includes(credentialTypeRaw as CredentialTypeEnum)
+    ) {
       console.warn(`Invalid credential type provided: ${credentialTypeRaw}`)
     }
 
@@ -229,8 +275,10 @@ export async function updateIntegration(formData: FormData) {
 export async function deleteIntegration(id: string) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
     // Get user's organization
@@ -279,22 +327,30 @@ export async function deleteIntegration(id: string) {
 }
 
 // Allowed entity types for sync operations
-const ALLOWED_ENTITY_TYPES = ['products', 'inventory', 'orders', 'customers', 'pricing'] as const
+const ALLOWED_ENTITY_TYPES = [
+  'products',
+  'inventory',
+  'orders',
+  'customers',
+  'pricing',
+] as const
 
 // Trigger manual sync
 export async function triggerSync(formData: FormData) {
   try {
     const supabase = await createClient()
-    
+
     const integrationId = formData.get('integrationId') as string
     const entityType = formData.get('entityType') as string | undefined
-    
+
     // Validate required fields
     if (!integrationId || integrationId.trim() === '') {
       throw new Error('Integration ID is required')
     }
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
     // Get user's organization
@@ -309,7 +365,9 @@ export async function triggerSync(formData: FormData) {
     // Validate entityType if provided
     if (entityType && entityType !== 'all') {
       if (!ALLOWED_ENTITY_TYPES.includes(entityType as any)) {
-        throw new Error(`Invalid entityType: must be one of ${ALLOWED_ENTITY_TYPES.join(', ')} or 'all'`)
+        throw new Error(
+          `Invalid entityType: must be one of ${ALLOWED_ENTITY_TYPES.join(', ')} or 'all'`
+        )
       }
     }
 
@@ -322,7 +380,8 @@ export async function triggerSync(formData: FormData) {
       .single()
 
     if (!integration) throw new Error('Integration not found')
-    if (integration.status !== 'active') throw new Error('Integration is not active')
+    if (integration.status !== 'active')
+      throw new Error('Integration is not active')
 
     // Create sync job
     const jobPayload = {
@@ -366,8 +425,10 @@ export async function triggerSync(formData: FormData) {
 export async function testConnection(integrationId: string) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('Unauthorized')
 
     // Get user's organization
@@ -405,7 +466,7 @@ export async function testConnection(integrationId: string) {
           // Test Shopify connection with a simple API call
           const shopDomain = integration.config?.shop_domain
           const apiVersion = integration.config?.api_version || '2024-01'
-          
+
           if (!shopDomain || !credentials.access_token) {
             throw new Error('Missing Shopify configuration')
           }
@@ -437,7 +498,7 @@ export async function testConnection(integrationId: string) {
           }
           break
         }
-        
+
         case 'netsuite': {
           // NetSuite connection test is handled by a dedicated endpoint
           const response = await fetch('/api/integrations/netsuite/test', {
@@ -445,7 +506,7 @@ export async function testConnection(integrationId: string) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ integration_id: integrationId }),
           })
-          
+
           if (response.ok) {
             const result = await response.json()
             testPassed = result.overall_status === 'success'
@@ -461,12 +522,12 @@ export async function testConnection(integrationId: string) {
           // Test QuickBooks connection
           const companyId = integration.config?.company_id
           const sandbox = integration.config?.sandbox || false
-          
+
           if (!companyId || !credentials.access_token) {
             throw new Error('Missing QuickBooks configuration')
           }
 
-          const qbBaseUrl = sandbox 
+          const qbBaseUrl = sandbox
             ? 'https://sandbox-quickbooks.api.intuit.com'
             : 'https://quickbooks.api.intuit.com'
 
@@ -474,8 +535,8 @@ export async function testConnection(integrationId: string) {
             `${qbBaseUrl}/v3/company/${companyId}/companyinfo/${companyId}`,
             {
               headers: {
-                'Authorization': `Bearer ${credentials.access_token}`,
-                'Accept': 'application/json',
+                Authorization: `Bearer ${credentials.access_token}`,
+                Accept: 'application/json',
                 'Content-Type': 'application/json',
               },
             }
@@ -497,9 +558,9 @@ export async function testConnection(integrationId: string) {
           }
           break
         }
-        
+
         default:
-          testDetails = { 
+          testDetails = {
             message: 'Connection test not implemented for this platform',
             platform: integration.platform,
           }
@@ -508,7 +569,10 @@ export async function testConnection(integrationId: string) {
     } catch (testError) {
       testPassed = false
       testDetails = {
-        error: testError instanceof Error ? testError.message : 'Connection test failed',
+        error:
+          testError instanceof Error
+            ? testError.message
+            : 'Connection test failed',
         platform: integration.platform,
       }
     }
@@ -519,7 +583,9 @@ export async function testConnection(integrationId: string) {
       p_organization_id: profile.organization_id,
       p_log_type: 'auth',
       p_severity: testPassed ? 'info' : 'error',
-      p_message: testPassed ? 'Connection test passed' : 'Connection test failed',
+      p_message: testPassed
+        ? 'Connection test passed'
+        : 'Connection test failed',
       p_details: testDetails,
     })
 

@@ -131,7 +131,7 @@ export function PriceEditDialog({
     const fetchApprovalRules = async () => {
       const { getApprovalRules } = await import('@/app/actions/pricing')
       const result = await getApprovalRules()
-      
+
       if (result.success && result.data) {
         const validation = validatePriceChange(
           currentPrice,

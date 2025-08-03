@@ -1,18 +1,20 @@
 // PRP-013: NetSuite Sync Orchestrator
-import { createClient } from '@/lib/supabase/server'
-import { NetSuiteConnector } from './connector'
 import { z } from 'zod'
-import type { ConnectorConfig } from '../base-connector'
-import type { 
-  NetSuiteIntegrationConfig, 
+import { createClient } from '@/lib/supabase/server'
+import type {
+  NetSuiteIntegrationConfig,
   SyncProgress,
-  SyncResult 
+  SyncResult,
 } from '@/types/netsuite.types'
+import type { ConnectorConfig } from '../base-connector'
+import { NetSuiteConnector } from './connector'
 
 // Sync job configuration schema
 const syncJobSchema = z.object({
   integration_id: z.string().uuid(),
-  entity_types: z.array(z.enum(['products', 'inventory', 'pricing', 'customers', 'orders'])),
+  entity_types: z.array(
+    z.enum(['products', 'inventory', 'pricing', 'customers', 'orders'])
+  ),
   sync_type: z.enum(['full', 'incremental']),
   batch_size: z.number().min(10).max(1000).default(100),
   parallel_workers: z.number().min(1).max(5).default(3),
@@ -38,13 +40,14 @@ export class NetSuiteSyncOrchestrator {
   async executeSyncJob(jobConfig: SyncJobConfig): Promise<SyncResult> {
     const validated = syncJobSchema.parse(jobConfig)
     const supabase = await createClient()
-    
+
     // Create sync job record
     const { data: job, error: jobError } = await supabase
       .from('sync_jobs')
       .insert({
         integration_id: validated.integration_id,
-        job_type: validated.sync_type === 'full' ? 'full_sync' : 'incremental_sync',
+        job_type:
+          validated.sync_type === 'full' ? 'full_sync' : 'incremental_sync',
         entity_type: validated.entity_types.join(','),
         status: 'running',
         started_at: new Date().toISOString(),
@@ -64,7 +67,7 @@ export class NetSuiteSyncOrchestrator {
       credentials: {} as any, // Credentials will be loaded by the connector
       settings: this.config,
     }
-    
+
     this.connector = new NetSuiteConnector(connectorConfig)
 
     // Set up abort controller for cancellation
@@ -106,7 +109,7 @@ export class NetSuiteSyncOrchestrator {
 
         // Execute sync based on type
         let entityResult: SyncResult
-        
+
         if (validated.sync_type === 'full') {
           entityResult = await this.executeFullSync(
             entityType,
@@ -128,7 +131,7 @@ export class NetSuiteSyncOrchestrator {
         results.summary.deleted += entityResult.summary.deleted
         results.summary.failed += entityResult.summary.failed
         results.errors.push(...entityResult.errors)
-        
+
         // Log entity sync completion
         await supabase.rpc('log_integration_activity', {
           p_integration_id: this.integrationId,
@@ -154,7 +157,6 @@ export class NetSuiteSyncOrchestrator {
         .eq('id', job.id)
 
       return results
-
     } catch (error) {
       results.success = false
       results.errors.push({
@@ -171,7 +173,8 @@ export class NetSuiteSyncOrchestrator {
           completed_at: new Date().toISOString(),
           result: results,
           duration_ms: results.duration,
-          error_message: error instanceof Error ? error.message : 'Unknown error',
+          error_message:
+            error instanceof Error ? error.message : 'Unknown error',
         })
         .eq('id', job.id)
 
@@ -203,7 +206,7 @@ export class NetSuiteSyncOrchestrator {
       progress.current = p.current
       progress.total = p.total
       progress.message = p.message
-      
+
       // Update sync state
       await this.updateSyncState(entityType, {
         sync_progress: Math.round((p.current / (p.total || 1)) * 100),
@@ -221,41 +224,53 @@ export class NetSuiteSyncOrchestrator {
           return await this.connector.syncProducts({
             signal: this.abortController?.signal,
             limit: batchSize,
-            dryRun: dryRun
+            dryRun: dryRun,
           })
-        
+
         case 'inventory':
           return await this.connector.syncInventory({
             signal: this.abortController?.signal,
             limit: batchSize,
-            dryRun: dryRun
+            dryRun: dryRun,
           })
-        
+
         case 'pricing':
           return await this.connector.syncPricing({
             signal: this.abortController?.signal,
             limit: batchSize,
-            dryRun: dryRun
+            dryRun: dryRun,
           })
-      
-      case 'customers':
-        // Customer sync (if implemented)
-        return {
-          success: true,
-          errors: [],
-          summary: { total: 0, created: 0, updated: 0, deleted: 0, failed: 0 },
-          duration: 0,
-        }
-      
-      case 'orders':
-        // Order sync (if implemented)
-        return {
-          success: true,
-          errors: [],
-          summary: { total: 0, created: 0, updated: 0, deleted: 0, failed: 0 },
-          duration: 0,
-        }
-      
+
+        case 'customers':
+          // Customer sync (if implemented)
+          return {
+            success: true,
+            errors: [],
+            summary: {
+              total: 0,
+              created: 0,
+              updated: 0,
+              deleted: 0,
+              failed: 0,
+            },
+            duration: 0,
+          }
+
+        case 'orders':
+          // Order sync (if implemented)
+          return {
+            success: true,
+            errors: [],
+            summary: {
+              total: 0,
+              created: 0,
+              updated: 0,
+              deleted: 0,
+              failed: 0,
+            },
+            duration: 0,
+          }
+
         default:
           throw new Error(`Unknown entity type: ${entityType}`)
       }
@@ -274,7 +289,7 @@ export class NetSuiteSyncOrchestrator {
     dryRun: boolean
   ): Promise<SyncResult> {
     const supabase = await createClient()
-    
+
     // Get last sync state
     const { data: syncState } = await supabase
       .from('netsuite_sync_state')
@@ -310,7 +325,7 @@ export class NetSuiteSyncOrchestrator {
     progress: Record<string, any>
   ): Promise<void> {
     const supabase = await createClient()
-    
+
     await supabase
       .from('sync_jobs')
       .update({
@@ -328,17 +343,18 @@ export class NetSuiteSyncOrchestrator {
     updates: Record<string, any>
   ): Promise<void> {
     const supabase = await createClient()
-    
-    await supabase
-      .from('netsuite_sync_state')
-      .upsert({
+
+    await supabase.from('netsuite_sync_state').upsert(
+      {
         integration_id: this.integrationId,
         entity_type: entityType,
         ...updates,
         updated_at: new Date().toISOString(),
-      }, {
+      },
+      {
         onConflict: 'integration_id,entity_type',
-      })
+      }
+    )
   }
 
   /**
@@ -356,24 +372,28 @@ export class NetSuiteSyncOrchestrator {
     frequency: 'hourly' | 'daily' | 'weekly'
   ): Promise<void> {
     const supabase = await createClient()
-    
+
     // Verify user is authenticated
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
-      throw new Error('Unauthorized: User must be authenticated to schedule sync jobs')
+      throw new Error(
+        'Unauthorized: User must be authenticated to schedule sync jobs'
+      )
     }
-    
+
     // Get user's organization
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('organization_id')
       .eq('user_id', user.id)
       .single()
-    
+
     if (!profile) {
       throw new Error('User profile not found')
     }
-    
+
     // Get integration details and verify ownership
     const { data: integration } = await supabase
       .from('integrations')
@@ -389,7 +409,7 @@ export class NetSuiteSyncOrchestrator {
     // Calculate next run time
     const now = new Date()
     let nextRun: Date
-    
+
     switch (frequency) {
       case 'hourly':
         nextRun = new Date(now.getTime() + 60 * 60 * 1000)
@@ -426,7 +446,7 @@ export class NetSuiteSyncOrchestrator {
     data?: any[]
   ): Promise<{ processed: number; failed: number; errors: any[] }> {
     const supabase = await createClient()
-    
+
     // Get integration
     const { data: integration } = await supabase
       .from('integrations')
@@ -460,7 +480,7 @@ export class NetSuiteSyncOrchestrator {
           retry_failed: true,
           dry_run: false,
         })
-        
+
         processed = syncResult.summary.total - syncResult.summary.failed
         failed = syncResult.summary.failed
         errors.push(...syncResult.errors)

@@ -1,10 +1,10 @@
-import Link from 'next/link'
 import Image from 'next/image'
-import { format } from 'date-fns'
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock } from 'lucide-react'
+import Link from 'next/link'
 import type { Post } from 'contentlayer2/generated'
+import { format } from 'date-fns'
+import { Calendar, Clock } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 
 interface BlogCardProps {
   post: Post
@@ -26,7 +26,7 @@ export function BlogCard({ post }: BlogCardProps) {
           />
         </div>
       </Link>
-      
+
       <CardHeader className="space-y-2">
         <div className="flex flex-wrap gap-2">
           {post.categories.map((category) => (
@@ -35,20 +35,18 @@ export function BlogCard({ post }: BlogCardProps) {
             </Badge>
           ))}
         </div>
-        
+
         <Link href={post.url}>
           <h3 className="text-xl font-semibold line-clamp-2 hover:text-primary transition-colors">
             {post.title}
           </h3>
         </Link>
       </CardHeader>
-      
+
       <CardContent className="flex-grow">
-        <p className="text-muted-foreground line-clamp-3">
-          {post.description}
-        </p>
+        <p className="text-muted-foreground line-clamp-3">{post.description}</p>
       </CardContent>
-      
+
       <CardFooter className="text-sm text-muted-foreground">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">

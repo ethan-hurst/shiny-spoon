@@ -243,7 +243,9 @@ export const InventoryTable = React.memo(function InventoryTable({
                     'h-4 w-4',
                     outOfStock ? 'text-red-600' : 'text-yellow-600'
                   )}
-                  aria-label={outOfStock ? 'Out of stock warning' : 'Low stock warning'}
+                  aria-label={
+                    outOfStock ? 'Out of stock warning' : 'Low stock warning'
+                  }
                 />
               )}
             </div>

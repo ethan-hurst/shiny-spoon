@@ -50,14 +50,14 @@ export const userCreate = async ({
         operation: 'userCreate',
         user_email: email, // Only log email for troubleshooting
       }
-      
+
       // In production, this would be sent to a proper logging service
       // For now, we'll use console.error with structured data
       console.error('[User Creation Error]', JSON.stringify(errorInfo, null, 2))
-      
+
       return error
     }
-    
+
     // Log success without exposing user data
     if (data && data.length > 0) {
       console.info('[User Creation Success]', {
@@ -65,7 +65,7 @@ export const userCreate = async ({
         timestamp: new Date().toISOString(),
       })
     }
-    
+
     return data
   } catch (error: any) {
     // Log unexpected errors with context
@@ -74,7 +74,7 @@ export const userCreate = async ({
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       timestamp: new Date().toISOString(),
     })
-    
+
     throw new Error(`Failed to create user: ${error.message}`)
   }
 }

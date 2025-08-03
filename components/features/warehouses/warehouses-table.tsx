@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { WarehouseWithDetails, Address } from '@/types/warehouse.types'
+import { Address, WarehouseWithDetails } from '@/types/warehouse.types'
 import { WarehouseActions } from './warehouse-actions'
 import { WarehouseFilters } from './warehouse-filters'
 

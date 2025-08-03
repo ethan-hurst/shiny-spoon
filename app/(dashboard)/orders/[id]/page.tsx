@@ -1,11 +1,11 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getOrderDetails } from '@/app/actions/orders'
 import { OrderDetailHeader } from '@/components/features/orders/order-detail-header'
 import { OrderDetailInfo } from '@/components/features/orders/order-detail-info'
 import { OrderItemsTable } from '@/components/features/orders/order-items-table'
 import { OrderStatusHistory } from '@/components/features/orders/order-status-history'
+import { createClient } from '@/lib/supabase/server'
+import { getOrderDetails } from '@/app/actions/orders'
 
 export const metadata: Metadata = {
   title: 'Order Details | TruthSource',
@@ -20,14 +20,16 @@ export default async function OrderDetailPage({
   const supabase = await createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     throw new Error('Unauthorized')
   }
 
   // Get order details
   const orderResult = await getOrderDetails(params.id)
-  
+
   if (!orderResult.success || !orderResult.data) {
     notFound()
   }
@@ -44,16 +46,16 @@ export default async function OrderDetailPage({
   return (
     <div className="container mx-auto py-8 space-y-8">
       <OrderDetailHeader order={order} />
-      
+
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-2 space-y-8">
           <OrderItemsTable items={order.items} />
-          
+
           {statusHistory && statusHistory.length > 0 && (
             <OrderStatusHistory history={statusHistory} />
           )}
         </div>
-        
+
         <div>
           <OrderDetailInfo order={order} />
         </div>

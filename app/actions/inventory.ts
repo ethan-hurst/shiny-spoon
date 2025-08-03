@@ -171,7 +171,9 @@ export async function bulkUpdateInventory(csvData: string) {
 
   if (!validationResult.success) {
     return {
-      error: 'Validation failed: ' + (validationResult.error.errors[0]?.message || 'Unknown error'),
+      error:
+        'Validation failed: ' +
+        (validationResult.error.errors[0]?.message || 'Unknown error'),
       successCount: 0,
       errorCount: updates.length,
     }
@@ -372,17 +374,19 @@ export async function exportInventory(filters?: {
   }
 
   // Transform to export format
-  const exportData: InventoryExportRow[] = filteredInventory.map((item: any) => ({
-    sku: item.product.sku,
-    product_name: item.product.name,
-    warehouse: item.warehouse.name,
-    quantity: item.quantity || 0,
-    reserved_quantity: item.reserved_quantity || 0,
-    available_quantity: (item.quantity || 0) - (item.reserved_quantity || 0),
-    reorder_point: item.reorder_point || 0,
-    reorder_quantity: item.reorder_quantity || 0,
-    last_updated: format(new Date(item.updated_at), 'yyyy-MM-dd HH:mm:ss'),
-  }))
+  const exportData: InventoryExportRow[] = filteredInventory.map(
+    (item: any) => ({
+      sku: item.product.sku,
+      product_name: item.product.name,
+      warehouse: item.warehouse.name,
+      quantity: item.quantity || 0,
+      reserved_quantity: item.reserved_quantity || 0,
+      available_quantity: (item.quantity || 0) - (item.reserved_quantity || 0),
+      reorder_point: item.reorder_point || 0,
+      reorder_quantity: item.reorder_quantity || 0,
+      last_updated: format(new Date(item.updated_at), 'yyyy-MM-dd HH:mm:ss'),
+    })
+  )
 
   // Convert to CSV
   const headers = [
@@ -410,7 +414,9 @@ export async function exportInventory(filters?: {
         row.reorder_point,
         row.reorder_quantity,
         row.last_updated,
-      ].map(escapeCSVField).join(',')
+      ]
+        .map(escapeCSVField)
+        .join(',')
     ),
   ]
 

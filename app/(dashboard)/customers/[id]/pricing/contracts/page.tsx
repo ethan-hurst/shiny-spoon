@@ -1,7 +1,8 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { ContractList } from '@/components/features/pricing/contract-list'
+import { Plus } from 'lucide-react'
 import { ContractDialog } from '@/components/features/pricing/contract-dialog'
+import { ContractList } from '@/components/features/pricing/contract-list'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -11,7 +12,6 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/server'
-import { Plus } from 'lucide-react'
 
 interface ContractPageProps {
   params: Promise<{

@@ -1,6 +1,9 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import { X } from 'lucide-react'
+// Import Badge since it's used in the active filters display
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -9,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { X } from 'lucide-react'
 
 interface BlogFiltersProps {
   categories: string[]
@@ -29,16 +31,16 @@ export function BlogFilters({
 
   const updateFilter = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams)
-    
+
     if (value) {
       params.set(key, value)
     } else {
       params.delete(key)
     }
-    
+
     // Reset to page 1 when filters change
     params.delete('page')
-    
+
     const queryString = params.toString()
     router.push(queryString ? `/blog?${queryString}` : '/blog')
   }
@@ -142,6 +144,3 @@ export function BlogFilters({
     </div>
   )
 }
-
-// Import Badge since it's used in the active filters display
-import { Badge } from '@/components/ui/badge'

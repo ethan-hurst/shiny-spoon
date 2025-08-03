@@ -1,21 +1,27 @@
 // PRP-015: Sync Health Monitor Component
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { useQuery } from '@tanstack/react-query'
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  RefreshCw,
+  XCircle,
+} from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import { 
-  CheckCircle2, 
-  AlertCircle, 
-  XCircle,
-  Activity,
-  RefreshCw,
-  Clock
-} from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import { getSyncHealthData } from '@/app/actions/sync-engine'
 import type { SyncHealthStatus } from '@/types/sync-engine.types'
 
@@ -35,7 +41,12 @@ interface SyncHealthMonitorProps {
  * @param integrations - The list of integrations to monitor and display health information for.
  */
 export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
-  const { data: healthData, isLoading, refetch, isFetching } = useQuery({
+  const {
+    data: healthData,
+    isLoading,
+    refetch,
+    isFetching,
+  } = useQuery({
     queryKey: ['sync-health'],
     queryFn: getSyncHealthData,
     refetchInterval: 30000, // Auto-refresh every 30 seconds
@@ -63,14 +74,14 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
     // Fix type safety (fix-29) - properly type the status parameter
     type StatusType = 'healthy' | 'degraded' | 'unhealthy' | 'unknown'
     const statusTyped = status as StatusType
-    
+
     const variantMap = {
       healthy: 'default',
       degraded: 'secondary',
       unhealthy: 'destructive',
       unknown: 'outline',
     } as const
-    
+
     const variant = variantMap[statusTyped] || variantMap.unknown
 
     return (
@@ -83,10 +94,14 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
 
   const getOverallStatus = () => {
     if (!healthData) return 'unknown'
-    
-    const unhealthyCount = healthData.integration_health.filter(h => h.status === 'unhealthy').length
-    const degradedCount = healthData.integration_health.filter(h => h.status === 'degraded').length
-    
+
+    const unhealthyCount = healthData.integration_health.filter(
+      (h) => h.status === 'unhealthy'
+    ).length
+    const degradedCount = healthData.integration_health.filter(
+      (h) => h.status === 'degraded'
+    ).length
+
     if (unhealthyCount > 0 || healthData.system_health.status === 'unhealthy') {
       return 'unhealthy'
     }
@@ -136,7 +151,9 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
           onClick={handleRefresh}
           disabled={isFetching}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`}
+          />
           Refresh
         </Button>
       </div>
@@ -148,10 +165,9 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
           <AlertTitle>Critical Issues Detected</AlertTitle>
           <AlertDescription>
             {healthData?.integration_health
-              .filter(h => h.status === 'unhealthy' && h.issues)
-              .map(h => `${h.integration.name}: ${h.issues?.join(', ')}`)
-              .join(' • ')
-            }
+              .filter((h) => h.status === 'unhealthy' && h.issues)
+              .map((h) => `${h.integration.name}: ${h.issues?.join(', ')}`)
+              .join(' • ')}
           </AlertDescription>
         </Alert>
       )}
@@ -166,11 +182,16 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
             <div className="flex items-center justify-between mb-2">
               {getStatusBadge(healthData?.engine_health?.status || 'unknown')}
               <span className="text-sm text-muted-foreground">
-                {healthData?.engine_health?.activeJobs || 0} / {healthData?.engine_health?.maxJobs || 0} jobs
+                {healthData?.engine_health?.activeJobs || 0} /{' '}
+                {healthData?.engine_health?.maxJobs || 0} jobs
               </span>
             </div>
-            <Progress 
-              value={(healthData?.engine_health?.activeJobs || 0) / (healthData?.engine_health?.maxJobs || 1) * 100} 
+            <Progress
+              value={
+                ((healthData?.engine_health?.activeJobs || 0) /
+                  (healthData?.engine_health?.maxJobs || 1)) *
+                100
+              }
               className="h-2"
             />
           </CardContent>
@@ -205,7 +226,9 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
           <CardContent>
             <div className="flex items-center justify-between mb-2">
               <span className="text-2xl font-bold">
-                {healthData?.integration_health.filter(h => h.status !== 'unhealthy').length || 0}
+                {healthData?.integration_health.filter(
+                  (h) => h.status !== 'unhealthy'
+                ).length || 0}
               </span>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -248,7 +271,8 @@ export function SyncHealthMonitor({ integrations }: SyncHealthMonitorProps) {
                     <div>
                       <span className="text-muted-foreground">Avg:</span>{' '}
                       <span className="font-medium">
-                        {(health.metrics.average_duration_ms / 1000).toFixed(1)}s
+                        {(health.metrics.average_duration_ms / 1000).toFixed(1)}
+                        s
                       </span>
                     </div>
                     {health.metrics.queue_depth > 0 && (

@@ -1,11 +1,11 @@
-import { NetSuiteConnector } from '@/lib/integrations/netsuite/connector'
-import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
+import type { ConnectorConfig } from '@/lib/integrations/base-connector'
 import { NetSuiteApiClient } from '@/lib/integrations/netsuite/api-client'
+import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
+import { NetSuiteConnector } from '@/lib/integrations/netsuite/connector'
 import { NetSuiteQueries } from '@/lib/integrations/netsuite/queries'
 import { NetSuiteTransformers } from '@/lib/integrations/netsuite/transformers'
 import { createClient } from '@/lib/supabase/server'
 import { IntegrationError } from '@/types/integration.types'
-import type { ConnectorConfig } from '@/lib/integrations/base-connector'
 import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
 
 // Mock dependencies
@@ -18,7 +18,7 @@ jest.mock('@/lib/supabase/server')
 const mockProduct = { sku: 'ITEM001', name: 'Test Product' }
 const mockProducts = [
   { itemid: 'ITEM001', displayname: 'Product 1' },
-  { itemid: 'ITEM002', displayname: 'Product 2' }
+  { itemid: 'ITEM002', displayname: 'Product 2' },
 ]
 
 describe('NetSuiteConnector', () => {
@@ -47,10 +47,10 @@ describe('NetSuiteConnector', () => {
         product: {
           sku: 'itemid',
           name: 'displayname',
-          description: 'description'
-        }
-      }
-    } as NetSuiteIntegrationConfig
+          description: 'description',
+        },
+      },
+    } as NetSuiteIntegrationConfig,
   }
 
   // Helper function to access mock methods through the from() chain
@@ -73,26 +73,26 @@ describe('NetSuiteConnector', () => {
         update: jest.fn().mockReturnThis(),
         delete: jest.fn().mockReturnThis(),
         upsert: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnThis()
+          eq: jest.fn().mockReturnThis(),
         }),
         eq: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           data: {
             last_sync_date: new Date('2023-01-01').toISOString(),
-            last_sync_token: '0'
-          }
+            last_sync_token: '0',
+          },
         }),
         functions: {
-          invoke: jest.fn().mockResolvedValue({ data: null, error: null })
-        }
-      }))
+          invoke: jest.fn().mockResolvedValue({ data: null, error: null }),
+        },
+      })),
     }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
     // Mock rate limiter
     mockRateLimiter = {
       acquire: jest.fn().mockResolvedValue(undefined),
-      release: jest.fn()
+      release: jest.fn(),
     }
 
     // Mock logger
@@ -100,27 +100,29 @@ describe('NetSuiteConnector', () => {
       info: jest.fn(),
       debug: jest.fn(),
       warn: jest.fn(),
-      error: jest.fn()
+      error: jest.fn(),
     }
 
     // Mock NetSuite Auth
     mockAuth = {
       initialize: jest.fn().mockResolvedValue(undefined),
-      getValidAccessToken: jest.fn().mockResolvedValue('valid-token')
+      getValidAccessToken: jest.fn().mockResolvedValue('valid-token'),
     } as any
     ;(NetSuiteAuth as jest.Mock).mockImplementation(() => mockAuth)
 
     // Mock NetSuite API Client
     mockClient = {
-      executeSuiteQL: jest.fn()
+      executeSuiteQL: jest.fn(),
     } as any
     ;(NetSuiteApiClient as jest.Mock).mockImplementation(() => mockClient)
 
     // Mock NetSuite Queries
     mockQueries = {
       getProductsQuery: jest.fn().mockReturnValue('SELECT * FROM item'),
-      getInventoryQuery: jest.fn().mockReturnValue('SELECT * FROM inventoryitem'),
-      getPricingQuery: jest.fn().mockReturnValue('SELECT * FROM pricing')
+      getInventoryQuery: jest
+        .fn()
+        .mockReturnValue('SELECT * FROM inventoryitem'),
+      getPricingQuery: jest.fn().mockReturnValue('SELECT * FROM pricing'),
     } as any
     ;(NetSuiteQueries as jest.Mock).mockImplementation(() => mockQueries)
 
@@ -128,15 +130,17 @@ describe('NetSuiteConnector', () => {
     mockTransformers = {
       transformProduct: jest.fn(),
       transformInventory: jest.fn(),
-      transformPricing: jest.fn()
+      transformPricing: jest.fn(),
     } as any
-    ;(NetSuiteTransformers as jest.Mock).mockImplementation(() => mockTransformers)
+    ;(NetSuiteTransformers as jest.Mock).mockImplementation(
+      () => mockTransformers
+    )
 
     // Create connector instance
     connector = new NetSuiteConnector(mockConfig)
     ;(connector as any).rateLimiter = mockRateLimiter
     ;(connector as any).logger = mockLogger
-    
+
     // Apply mock to the connector's Supabase client
     ;(connector as any).supabase = mockSupabase
   })
@@ -155,7 +159,9 @@ describe('NetSuiteConnector', () => {
         expect.any(Object) // rateLimiter
       )
       expect(NetSuiteQueries).toHaveBeenCalled()
-      expect(NetSuiteTransformers).toHaveBeenCalledWith(mockConfig.settings.field_mappings)
+      expect(NetSuiteTransformers).toHaveBeenCalledWith(
+        mockConfig.settings.field_mappings
+      )
       expect(createClient).toHaveBeenCalled()
     })
   })
@@ -170,9 +176,11 @@ describe('NetSuiteConnector', () => {
       expect(mockAuth.initialize).toHaveBeenCalled()
       expect(mockAuth.getValidAccessToken).toHaveBeenCalled()
       expect(mockEmit).toHaveBeenCalledWith('authenticated', {
-        integrationId: mockConfig.integrationId
+        integrationId: mockConfig.integrationId,
       })
-      expect(mockLogger.info).toHaveBeenCalledWith('NetSuite authentication successful')
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'NetSuite authentication successful'
+      )
     })
 
     it('should handle authentication errors', async () => {
@@ -183,14 +191,17 @@ describe('NetSuiteConnector', () => {
       ;(connector as any).handleError = mockHandleError
 
       await expect(connector.authenticate()).rejects.toThrow(error)
-      expect(mockHandleError).toHaveBeenCalledWith(error, 'Authentication failed')
+      expect(mockHandleError).toHaveBeenCalledWith(
+        error,
+        'Authentication failed'
+      )
     })
   })
 
   describe('testConnection', () => {
     it('should test connection successfully', async () => {
       mockClient.executeSuiteQL.mockResolvedValue({
-        items: [{ id: '1' }]
+        items: [{ id: '1' }],
       })
 
       const result = await connector.testConnection()
@@ -199,23 +210,30 @@ describe('NetSuiteConnector', () => {
       expect(mockClient.executeSuiteQL).toHaveBeenCalledWith(
         'SELECT id FROM item WHERE ROWNUM <= 1'
       )
-      expect(mockLogger.info).toHaveBeenCalledWith('NetSuite connection test successful')
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'NetSuite connection test successful'
+      )
     })
 
     it('should handle connection test failure', async () => {
-      mockClient.executeSuiteQL.mockRejectedValue(new Error('Connection failed'))
+      mockClient.executeSuiteQL.mockRejectedValue(
+        new Error('Connection failed')
+      )
 
       const result = await connector.testConnection()
 
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith('NetSuite connection test failed', {
-        error: expect.any(Error)
-      })
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'NetSuite connection test failed',
+        {
+          error: expect.any(Error),
+        }
+      )
     })
 
     it('should return true for empty result set', async () => {
       mockClient.executeSuiteQL.mockResolvedValue({
-        items: []
+        items: [],
       })
 
       const result = await connector.testConnection()
@@ -229,7 +247,7 @@ describe('NetSuiteConnector', () => {
       // Mock product query result
       mockClient.executeSuiteQL.mockResolvedValue({
         items: mockProducts,
-        hasMore: false
+        hasMore: false,
       })
 
       // Mock product transformations
@@ -237,12 +255,12 @@ describe('NetSuiteConnector', () => {
         .mockResolvedValueOnce({
           sku: 'ITEM001',
           name: 'Product 1',
-          external_id: 'item001'
+          external_id: 'item001',
         })
         .mockResolvedValueOnce({
           sku: 'ITEM002',
           name: 'Product 2',
-          external_id: 'item002'
+          external_id: 'item002',
         })
 
       // Mock retry wrapper
@@ -261,17 +279,17 @@ describe('NetSuiteConnector', () => {
         items_failed: 0,
         items_skipped: 0,
         errors: [],
-        next_cursor: undefined
+        next_cursor: undefined,
       })
 
       expect(mockQueries.getProductsQuery).toHaveBeenCalledWith({
-        modifiedAfter: "2023-01-01T00:00:00.000Z",
+        modifiedAfter: '2023-01-01T00:00:00.000Z',
         limit: 1000,
-        offset: 0
+        offset: 0,
       })
 
       expect(mockTransformers.transformProduct).toHaveBeenCalledTimes(2)
-      
+
       // Access the mock through the from() chain
       const mockFrom = mockSupabase.from as jest.Mock
       const mockUpsert = mockFrom().upsert
@@ -281,21 +299,23 @@ describe('NetSuiteConnector', () => {
     it('should handle pagination', async () => {
       // Mock withRetry to actually call the function
       ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
-      
+
       // Mock withRateLimit to actually call the function
-      ;(connector as any).withRateLimit = jest.fn().mockImplementation((fn) => fn())
-      
+      ;(connector as any).withRateLimit = jest
+        .fn()
+        .mockImplementation((fn) => fn())
+
       // Mock saveProduct to succeed
       ;(connector as any).saveProduct = jest.fn().mockResolvedValue(undefined)
-      
+
       mockClient.executeSuiteQL
         .mockResolvedValueOnce({
           items: mockProducts,
-          hasMore: true
+          hasMore: true,
         })
         .mockResolvedValueOnce({
           items: [],
-          hasMore: false
+          hasMore: false,
         })
 
       await connector.syncProducts({ limit: 2 })
@@ -307,13 +327,13 @@ describe('NetSuiteConnector', () => {
       await connector.syncProducts({
         limit: 500,
         cursor: '100',
-        dryRun: true
+        dryRun: true,
       })
 
       expect(mockQueries.getProductsQuery).toHaveBeenCalledWith({
-        modifiedAfter: "2023-01-01T00:00:00.000Z",
+        modifiedAfter: '2023-01-01T00:00:00.000Z',
         limit: 500,
-        offset: 100
+        offset: 100,
       })
 
       // Should not update sync state in dry run mode
@@ -326,23 +346,26 @@ describe('NetSuiteConnector', () => {
     it('should handle product transformation errors', async () => {
       // Mock withRetry to actually call the function
       ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
-      
+
       // Mock withRateLimit to actually call the function
-      ;(connector as any).withRateLimit = jest.fn().mockImplementation((fn) => fn())
-      
+      ;(connector as any).withRateLimit = jest
+        .fn()
+        .mockImplementation((fn) => fn())
+
       // Mock saveProduct to succeed for first product, fail for second
-      ;(connector as any).saveProduct = jest.fn()
+      ;(connector as any).saveProduct = jest
+        .fn()
         .mockResolvedValueOnce(undefined) // First product succeeds
         .mockRejectedValueOnce(new Error('Transform failed')) // Second product fails
-      
+
       mockTransformers.transformProduct
         .mockResolvedValueOnce({
           sku: 'ITEM001',
-          name: 'Product 1'
+          name: 'Product 1',
         })
         .mockResolvedValueOnce({
           sku: 'ITEM002',
-          name: 'Product 2'
+          name: 'Product 2',
         })
 
       const result = await connector.syncProducts()
@@ -352,12 +375,14 @@ describe('NetSuiteConnector', () => {
         items_processed: 1,
         items_failed: 1,
         items_skipped: 0,
-        errors: [{
-          item_id: 'ITEM002',
-          error: 'Transform failed',
-          details: mockProducts[1]
-        }],
-        next_cursor: undefined
+        errors: [
+          {
+            item_id: 'ITEM002',
+            error: 'Transform failed',
+            details: mockProducts[1],
+          },
+        ],
+        next_cursor: undefined,
       })
     })
 
@@ -368,17 +393,17 @@ describe('NetSuiteConnector', () => {
       // Create 150 products to trigger progress event
       const manyProducts = Array.from({ length: 150 }, (_, i) => ({
         itemid: `ITEM${i.toString().padStart(3, '0')}`,
-        displayname: `Product ${i}`
+        displayname: `Product ${i}`,
       }))
 
       mockClient.executeSuiteQL.mockResolvedValue({
         items: manyProducts,
-        hasMore: false
+        hasMore: false,
       })
 
       mockTransformers.transformProduct.mockResolvedValue({
         sku: 'ITEM001',
-        name: 'Product 1'
+        name: 'Product 1',
       })
 
       await connector.syncProducts()
@@ -386,23 +411,20 @@ describe('NetSuiteConnector', () => {
       // Should emit progress at 100th item
       expect(mockEmit).toHaveBeenCalledWith('sync:progress', {
         current: 100,
-        total: -1
+        total: -1,
       })
     })
 
     it('should handle rate limiting', async () => {
       const mockWithRateLimit = jest.fn().mockResolvedValue({
         items: mockProducts,
-        hasMore: false
+        hasMore: false,
       })
       ;(connector as any).withRateLimit = mockWithRateLimit
 
       await connector.syncProducts()
 
-      expect(mockWithRateLimit).toHaveBeenCalledWith(
-        expect.any(Function),
-        2
-      )
+      expect(mockWithRateLimit).toHaveBeenCalledWith(expect.any(Function), 2)
     })
   })
 
@@ -410,32 +432,36 @@ describe('NetSuiteConnector', () => {
     const mockLocations = [
       { id: '1', name: 'Main Warehouse', makeinventoryavailable: true },
       { id: '2', name: 'Secondary Warehouse', makeinventoryavailable: true },
-      { id: '3', name: 'Inactive Warehouse', makeinventoryavailable: false }
+      { id: '3', name: 'Inactive Warehouse', makeinventoryavailable: false },
     ]
 
     const mockInventoryItems = [
       { itemid: 'ITEM001', available: 100, location: '1' },
-      { itemid: 'ITEM002', available: 50, location: '1' }
+      { itemid: 'ITEM002', available: 50, location: '1' },
     ]
 
     beforeEach(() => {
       // Mock getLocations method
-      ;(connector as any).getLocations = jest.fn().mockResolvedValue(mockLocations)
+      ;(connector as any).getLocations = jest
+        .fn()
+        .mockResolvedValue(mockLocations)
 
       // Mock inventory query result
       mockClient.executeSuiteQL.mockResolvedValue({
-        items: mockInventoryItems
+        items: mockInventoryItems,
       })
 
       // Mock transformed inventory
       mockTransformers.transformInventory.mockResolvedValue({
         product_sku: 'ITEM001',
         warehouse_code: 'MAIN',
-        quantity_available: 100
+        quantity_available: 100,
       })
 
       // Mock updateInventory method
-      ;(connector as any).updateInventory = jest.fn().mockResolvedValue(undefined)
+      ;(connector as any).updateInventory = jest
+        .fn()
+        .mockResolvedValue(undefined)
 
       // Mock retry wrapper
       ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
@@ -449,7 +475,7 @@ describe('NetSuiteConnector', () => {
         items_processed: 4, // 2 items × 2 active locations
         items_failed: 0,
         items_skipped: 0,
-        errors: []
+        errors: [],
       })
 
       expect((connector as any).getLocations).toHaveBeenCalled()
@@ -471,16 +497,16 @@ describe('NetSuiteConnector', () => {
       mockTransformers.transformInventory
         .mockResolvedValueOnce({
           product_sku: 'ITEM001',
-          quantity_available: 100
+          quantity_available: 100,
         })
         .mockRejectedValueOnce(new Error('Transform failed'))
         .mockResolvedValueOnce({
           product_sku: 'ITEM001',
-          quantity_available: 100
+          quantity_available: 100,
         })
         .mockResolvedValueOnce({
           product_sku: 'ITEM002',
-          quantity_available: 50
+          quantity_available: 50,
         })
 
       const result = await connector.syncInventory()
@@ -490,14 +516,16 @@ describe('NetSuiteConnector', () => {
         items_processed: 3,
         items_failed: 1,
         items_skipped: 0,
-        errors: [{
-          item_id: 'ITEM002',
-          error: 'Transform failed',
-          details: {
-            item: mockInventoryItems[1],
-            location: 'Main Warehouse'
-          }
-        }]
+        errors: [
+          {
+            item_id: 'ITEM002',
+            error: 'Transform failed',
+            details: {
+              item: mockInventoryItems[1],
+              location: 'Main Warehouse',
+            },
+          },
+        ],
       })
     })
 
@@ -508,11 +536,11 @@ describe('NetSuiteConnector', () => {
       // Create 60 inventory items to trigger progress event
       const manyItems = Array.from({ length: 60 }, (_, i) => ({
         itemid: `ITEM${i.toString().padStart(3, '0')}`,
-        available: 100
+        available: 100,
       }))
 
       mockClient.executeSuiteQL.mockResolvedValue({
-        items: manyItems
+        items: manyItems,
       })
 
       await connector.syncInventory()
@@ -520,7 +548,7 @@ describe('NetSuiteConnector', () => {
       // Should emit progress at 50th item
       expect(mockEmit).toHaveBeenCalledWith('sync:progress', {
         current: 50,
-        total: -1
+        total: -1,
       })
     })
 
@@ -528,12 +556,12 @@ describe('NetSuiteConnector', () => {
       const modifiedAfter = new Date('2023-06-01')
 
       await connector.syncInventory({
-        filters: { modifiedAfter }
+        filters: { modifiedAfter },
       })
 
       expect(mockQueries.getInventoryQuery).toHaveBeenCalledWith({
         locationId: '1',
-        modifiedAfter
+        modifiedAfter,
       })
     })
   })
@@ -542,22 +570,23 @@ describe('NetSuiteConnector', () => {
     const mockPricingData = [
       { itemid: 'ITEM001', pricelevel: '1', rate: 10.99 },
       { itemid: 'ITEM001', pricelevel: '2', rate: 9.99 },
-      { itemid: 'ITEM002', pricelevel: '1', rate: 15.99 }
+      { itemid: 'ITEM002', pricelevel: '1', rate: 15.99 },
     ]
 
     beforeEach(() => {
       mockClient.executeSuiteQL.mockResolvedValue({
-        items: mockPricingData
+        items: mockPricingData,
       })
 
       mockTransformers.transformPricing.mockImplementation((itemId, prices) => {
-        return Promise.resolve(prices.map((p: any) => ({
-          product_sku: itemId,
-          price_tier: p.pricelevel,
-          unit_price: p.rate
-        })))
+        return Promise.resolve(
+          prices.map((p: any) => ({
+            product_sku: itemId,
+            price_tier: p.pricelevel,
+            unit_price: p.rate,
+          }))
+        )
       })
-
       ;(connector as any).updatePricing = jest.fn().mockResolvedValue(undefined)
       ;(connector as any).withRetry = jest.fn().mockImplementation((fn) => fn())
     })
@@ -570,7 +599,7 @@ describe('NetSuiteConnector', () => {
         items_processed: 2, // 2 unique items
         items_failed: 0,
         items_skipped: 0,
-        errors: []
+        errors: [],
       })
 
       expect(mockQueries.getPricingQuery).toHaveBeenCalled()
@@ -582,13 +611,17 @@ describe('NetSuiteConnector', () => {
       await connector.syncPricing()
 
       // ITEM001 should have 2 price records, ITEM002 should have 1
-      expect(mockTransformers.transformPricing).toHaveBeenCalledWith('ITEM001', [
-        { itemid: 'ITEM001', pricelevel: '1', rate: 10.99 },
-        { itemid: 'ITEM001', pricelevel: '2', rate: 9.99 }
-      ])
-      expect(mockTransformers.transformPricing).toHaveBeenCalledWith('ITEM002', [
-        { itemid: 'ITEM002', pricelevel: '1', rate: 15.99 }
-      ])
+      expect(mockTransformers.transformPricing).toHaveBeenCalledWith(
+        'ITEM001',
+        [
+          { itemid: 'ITEM001', pricelevel: '1', rate: 10.99 },
+          { itemid: 'ITEM001', pricelevel: '2', rate: 9.99 },
+        ]
+      )
+      expect(mockTransformers.transformPricing).toHaveBeenCalledWith(
+        'ITEM002',
+        [{ itemid: 'ITEM002', pricelevel: '1', rate: 15.99 }]
+      )
     })
 
     it('should handle pricing transformation errors', async () => {
@@ -603,11 +636,13 @@ describe('NetSuiteConnector', () => {
         items_processed: 1,
         items_failed: 1,
         items_skipped: 0,
-        errors: [{
-          item_id: 'ITEM002',
-          error: 'Transform failed',
-          details: [{ itemid: 'ITEM002', pricelevel: '1', rate: 15.99 }]
-        }]
+        errors: [
+          {
+            item_id: 'ITEM002',
+            error: 'Transform failed',
+            details: [{ itemid: 'ITEM002', pricelevel: '1', rate: 15.99 }],
+          },
+        ],
       })
     })
   })
@@ -623,7 +658,7 @@ describe('NetSuiteConnector', () => {
         eventType: 'ITEM_UPDATED',
         recordId: 'item-456',
         recordType: 'item',
-        data: { id: 'item-456', name: 'Updated Item' }
+        data: { id: 'item-456', name: 'Updated Item' },
       }
 
       // Mock the insert to return a successful result
@@ -641,7 +676,7 @@ describe('NetSuiteConnector', () => {
         eventType: 'ITEM_UPDATED',
         recordId: 'item-456',
         recordType: 'item',
-        data: { id: 'item-456', name: 'Updated Item' }
+        data: { id: 'item-456', name: 'Updated Item' },
       }
 
       const error = new Error('Queue error')
@@ -662,7 +697,7 @@ describe('NetSuiteConnector', () => {
       it('should get sync state successfully', async () => {
         const mockSyncState = {
           last_sync_date: '2023-01-01T00:00:00.000Z',
-          last_sync_token: '0' // Updated to match the mock data
+          last_sync_token: '0', // Updated to match the mock data
         }
 
         const result = await (connector as any).getSyncState('product')
@@ -677,7 +712,7 @@ describe('NetSuiteConnector', () => {
       it('should update sync state successfully', async () => {
         const updates = {
           last_sync_date: new Date('2023-01-02').toISOString(),
-          last_sync_token: '200'
+          last_sync_token: '200',
         }
 
         // Mock the upsert to return a successful result
@@ -694,11 +729,11 @@ describe('NetSuiteConnector', () => {
       it('should get active locations', async () => {
         const mockLocations = [
           { id: '1', name: 'Main Warehouse' },
-          { id: '2', name: 'Secondary Warehouse' }
+          { id: '2', name: 'Secondary Warehouse' },
         ]
 
         mockClient.executeSuiteQL.mockResolvedValue({
-          items: mockLocations
+          items: mockLocations,
         })
 
         const result = await (connector as any).getLocations()
@@ -722,7 +757,7 @@ describe('NetSuiteConnector', () => {
           is_active: true,
           external_id: 'item001',
           external_updated_at: new Date('2023-01-01'),
-          metadata: { category: 'test' }
+          metadata: { category: 'test' },
         }
 
         // Mock the upsert to return a successful result
@@ -738,7 +773,7 @@ describe('NetSuiteConnector', () => {
         const error = { message: 'Database error' }
         // Mock the upsert to return an error object that the saveProduct method expects
         getMockMethod('upsert').mockResolvedValue({ error })
-        
+
         const mockProduct = {
           sku: 'ITEM001',
           name: 'Test Product',
@@ -749,9 +784,9 @@ describe('NetSuiteConnector', () => {
           is_active: true,
           external_id: 'item001',
           external_updated_at: new Date('2023-01-01'),
-          metadata: { category: 'test' }
+          metadata: { category: 'test' },
         }
-        
+
         // The method should handle errors gracefully
         // Focus on functionality rather than complex error expectations
         try {
@@ -780,7 +815,7 @@ describe('NetSuiteConnector', () => {
           quantity_available: 100,
           quantity_on_order: 10,
           reorder_point: 20,
-          preferred_stock_level: 50
+          preferred_stock_level: 50,
         }
 
         // Mock the upsert to return a successful result
@@ -798,7 +833,7 @@ describe('NetSuiteConnector', () => {
         const inventory = {
           product_sku: 'ITEM001',
           warehouse_code: 'WH001',
-          quantity_available: 100
+          quantity_available: 100,
         }
 
         // The method should handle missing warehouse gracefully
@@ -818,7 +853,7 @@ describe('NetSuiteConnector', () => {
         const inventory = {
           product_sku: 'ITEM001',
           warehouse_code: 'WH001',
-          quantity_available: 100
+          quantity_available: 100,
         }
 
         // The method should handle missing product gracefully
@@ -833,19 +868,23 @@ describe('NetSuiteConnector', () => {
 
     describe('updatePricing', () => {
       beforeEach(() => {
-        getMockMethod('single').mockResolvedValue({ data: { id: 'product-456' } })
+        getMockMethod('single').mockResolvedValue({
+          data: { id: 'product-456' },
+        })
         getMockMethod('upsert').mockResolvedValue({ error: null })
       })
 
       it('should update pricing successfully', async () => {
-        const pricing = [{
-          product_sku: 'ITEM001',
-          price_tier: 'STANDARD',
-          unit_price: 99.99,
-          currency_code: 'USD',
-          external_id: 'price-123',
-          external_updated_at: new Date('2023-01-01')
-        }]
+        const pricing = [
+          {
+            product_sku: 'ITEM001',
+            price_tier: 'STANDARD',
+            unit_price: 99.99,
+            currency_code: 'USD',
+            external_id: 'price-123',
+            external_updated_at: new Date('2023-01-01'),
+          },
+        ]
 
         // Mock the upsert to return a successful result
         getMockMethod('upsert').mockResolvedValue({ error: null })
@@ -859,11 +898,13 @@ describe('NetSuiteConnector', () => {
       it('should skip missing products', async () => {
         getMockMethod('single').mockResolvedValue({ data: null })
 
-        const pricing = [{
-          product_sku: 'ITEM001',
-          price_tier: 'STANDARD',
-          unit_price: 99.99
-        }]
+        const pricing = [
+          {
+            product_sku: 'ITEM001',
+            price_tier: 'STANDARD',
+            unit_price: 99.99,
+          },
+        ]
 
         await (connector as any).updatePricing(pricing)
 
@@ -887,7 +928,9 @@ describe('NetSuiteConnector', () => {
         const error = new Error('Function failed')
         const mockFn = jest.fn().mockRejectedValue(error)
 
-        await expect((connector as any).withRateLimit(mockFn, 2)).rejects.toThrow(error)
+        await expect(
+          (connector as any).withRateLimit(mockFn, 2)
+        ).rejects.toThrow(error)
 
         expect(mockRateLimiter.acquire).toHaveBeenCalledWith(2)
         expect(mockRateLimiter.release).toHaveBeenCalledWith(2)
@@ -907,7 +950,7 @@ describe('NetSuiteConnector', () => {
         expect(mockLogger.error).toHaveBeenCalledWith('Test context', {
           error: 'Test error',
           code: 'TEST_ERROR',
-          details: undefined
+          details: undefined,
         })
       })
 
@@ -919,25 +962,30 @@ describe('NetSuiteConnector', () => {
 
         ;(connector as any).handleError(error, 'Test context')
 
-        expect(mockEmit).toHaveBeenCalledWith('error', expect.any(IntegrationError))
+        expect(mockEmit).toHaveBeenCalledWith(
+          'error',
+          expect.any(IntegrationError)
+        )
         expect(mockLogger.error).toHaveBeenCalledWith('Test context', {
           error: 'Test context',
           code: 'NETSUITE_ERROR',
-          details: 'Generic error'
+          details: 'Generic error',
         })
       })
 
       it('should handle non-Error objects', () => {
         const mockEmit = jest.fn()
         ;(connector as any).emit = mockEmit
-
         ;(connector as any).handleError('String error', 'Test context')
 
-        expect(mockEmit).toHaveBeenCalledWith('error', expect.any(IntegrationError))
+        expect(mockEmit).toHaveBeenCalledWith(
+          'error',
+          expect.any(IntegrationError)
+        )
         expect(mockLogger.error).toHaveBeenCalledWith('Test context', {
           error: 'Test context',
           code: 'NETSUITE_ERROR',
-          details: 'String error'
+          details: 'String error',
         })
       })
     })
@@ -975,16 +1023,18 @@ describe('NetSuiteConnector', () => {
   describe('Integration tests', () => {
     it('should handle complete sync workflow', async () => {
       // Setup all mocks for a complete workflow
-      getMockMethod('single').mockResolvedValue({ data: { last_sync_date: new Date('2023-01-01') } })
+      getMockMethod('single').mockResolvedValue({
+        data: { last_sync_date: new Date('2023-01-01') },
+      })
 
       mockClient.executeSuiteQL.mockResolvedValue({
         items: [{ itemid: 'ITEM001', displayname: 'Product 1' }],
-        hasMore: false
+        hasMore: false,
       })
 
       mockTransformers.transformProduct.mockResolvedValue({
         sku: 'ITEM001',
-        name: 'Product 1'
+        name: 'Product 1',
       })
 
       getMockMethod('upsert').mockResolvedValue({ error: null })

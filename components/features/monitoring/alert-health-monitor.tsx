@@ -1,9 +1,15 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export function AlertHealthMonitor() {
   // This is a placeholder component - in a real implementation,
@@ -25,9 +31,7 @@ export function AlertHealthMonitor() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">3</div>
-            <p className="text-xs text-muted-foreground">
-              Requires attention
-            </p>
+            <p className="text-xs text-muted-foreground">Requires attention</p>
           </CardContent>
         </Card>
 
@@ -38,9 +42,7 @@ export function AlertHealthMonitor() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">2</div>
-            <p className="text-xs text-muted-foreground">
-              Under review
-            </p>
+            <p className="text-xs text-muted-foreground">Under review</p>
           </CardContent>
         </Card>
 
@@ -51,9 +53,7 @@ export function AlertHealthMonitor() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">15</div>
-            <p className="text-xs text-muted-foreground">
-              This week
-            </p>
+            <p className="text-xs text-muted-foreground">This week</p>
           </CardContent>
         </Card>
 
@@ -83,16 +83,22 @@ export function AlertHealthMonitor() {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Critical:</strong> Sync job failed for Shopify integration
-                <Badge variant="outline" className="ml-2">2 hours ago</Badge>
+                <strong>Critical:</strong> Sync job failed for Shopify
+                integration
+                <Badge variant="outline" className="ml-2">
+                  2 hours ago
+                </Badge>
               </AlertDescription>
             </Alert>
 
             <Alert>
               <Clock className="h-4 w-4" />
               <AlertDescription>
-                <strong>Warning:</strong> High error rate detected in API endpoints
-                <Badge variant="outline" className="ml-2">4 hours ago</Badge>
+                <strong>Warning:</strong> High error rate detected in API
+                endpoints
+                <Badge variant="outline" className="ml-2">
+                  4 hours ago
+                </Badge>
               </AlertDescription>
             </Alert>
 
@@ -100,7 +106,9 @@ export function AlertHealthMonitor() {
               <Clock className="h-4 w-4" />
               <AlertDescription>
                 <strong>Info:</strong> Database connection pool at 80% capacity
-                <Badge variant="outline" className="ml-2">6 hours ago</Badge>
+                <Badge variant="outline" className="ml-2">
+                  6 hours ago
+                </Badge>
               </AlertDescription>
             </Alert>
           </div>
@@ -108,4 +116,4 @@ export function AlertHealthMonitor() {
       </Card>
     </div>
   )
-} 
+}

@@ -2,16 +2,32 @@
 'use client'
 
 import { useState } from 'react'
-import { formatDistanceToNow } from 'date-fns'
 import { useQueryClient } from '@tanstack/react-query'
-import { useNetSuiteSyncStatus, useNetSuiteLogs } from '@/hooks/use-netsuite-sync'
-import type { SyncState, IntegrationLog } from '@/hooks/use-netsuite-sync'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatDistanceToNow } from 'date-fns'
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  Loader2,
+  Package,
+  RefreshCw,
+  ShoppingCart,
+  Users,
+  XCircle,
+} from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Table,
   TableBody,
@@ -21,21 +37,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  RefreshCw,
-  Clock,
-  Package,
-  DollarSign,
-  Users,
-  ShoppingCart,
-  Loader2,
-  Activity,
-} from 'lucide-react'
-import { triggerSync } from '@/app/actions/integrations'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/use-toast'
+import { triggerSync } from '@/app/actions/integrations'
+import {
+  useNetSuiteLogs,
+  useNetSuiteSyncStatus,
+} from '@/hooks/use-netsuite-sync'
+import type { IntegrationLog, SyncState } from '@/hooks/use-netsuite-sync'
 
 interface NetSuiteSyncStatusProps {
   integrationId: string
@@ -64,16 +73,22 @@ const statusColors = {
   skipped: 'outline',
 } as const
 
-export function NetSuiteSyncStatus({ 
-  integrationId
-}: NetSuiteSyncStatusProps) {
+export function NetSuiteSyncStatus({ integrationId }: NetSuiteSyncStatusProps) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const queryClient = useQueryClient()
 
   // Use React Query hooks to fetch data
-  const { data: syncStates, isLoading: isLoadingStates, error: statesError } = useNetSuiteSyncStatus(integrationId)
-  const { data: recentLogs, isLoading: isLoadingLogs, error: logsError } = useNetSuiteLogs(integrationId)
+  const {
+    data: syncStates,
+    isLoading: isLoadingStates,
+    error: statesError,
+  } = useNetSuiteSyncStatus(integrationId)
+  const {
+    data: recentLogs,
+    isLoading: isLoadingLogs,
+    error: logsError,
+  } = useNetSuiteLogs(integrationId)
 
   async function handleResync(entityType: string) {
     setIsSyncing(true)
@@ -82,13 +97,17 @@ export function NetSuiteSyncStatus({
       const formData = new FormData()
       formData.append('integrationId', integrationId)
       formData.append('entityType', entityType)
-      
+
       await triggerSync(formData)
-      
+
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['netsuite-sync-status', integrationId] })
-      queryClient.invalidateQueries({ queryKey: ['netsuite-logs', integrationId] })
-      
+      queryClient.invalidateQueries({
+        queryKey: ['netsuite-sync-status', integrationId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['netsuite-logs', integrationId],
+      })
+
       toast({
         title: 'Sync started',
         description: `${entityType} resync has been initiated.`,
@@ -97,7 +116,8 @@ export function NetSuiteSyncStatus({
       console.error('Failed to trigger resync:', error)
       toast({
         title: 'Sync failed',
-        description: error instanceof Error ? error.message : 'Failed to start sync',
+        description:
+          error instanceof Error ? error.message : 'Failed to start sync',
         variant: 'destructive',
       })
     } finally {
@@ -121,30 +141,38 @@ export function NetSuiteSyncStatus({
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
-          Failed to load sync status: {statesError?.message || logsError?.message}
+          Failed to load sync status:{' '}
+          {statesError?.message || logsError?.message}
         </AlertDescription>
       </Alert>
     )
   }
 
   // Group sync states by entity type
-  const syncStatesByEntity = (syncStates || []).reduce((acc, state) => {
-    if (!acc[state.entity_type]) {
-      acc[state.entity_type] = state
-    } else if (state.last_sync_at && (!acc[state.entity_type].last_sync_at || 
-              new Date(state.last_sync_at) > new Date(acc[state.entity_type].last_sync_at))) {
-      acc[state.entity_type] = state
-    }
-    return acc
-  }, {} as Record<string, SyncState>)
+  const syncStatesByEntity = (syncStates || []).reduce(
+    (acc, state) => {
+      if (!acc[state.entity_type]) {
+        acc[state.entity_type] = state
+      } else if (
+        state.last_sync_at &&
+        (!acc[state.entity_type].last_sync_at ||
+          new Date(state.last_sync_at) >
+            new Date(acc[state.entity_type].last_sync_at))
+      ) {
+        acc[state.entity_type] = state
+      }
+      return acc
+    },
+    {} as Record<string, SyncState>
+  )
 
   // Calculate overall sync health
   const activeSyncs = Object.values(syncStatesByEntity).filter(
-    state => state.sync_status === 'in_progress'
+    (state) => state.sync_status === 'in_progress'
   ).length
-  
+
   const failedSyncs = Object.values(syncStatesByEntity).filter(
-    state => state.sync_status === 'failed'
+    (state) => state.sync_status === 'failed'
   ).length
 
   return (
@@ -171,7 +199,8 @@ export function NetSuiteSyncStatus({
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                {activeSyncs > 0 && `${activeSyncs} sync${activeSyncs > 1 ? 's' : ''} in progress`}
+                {activeSyncs > 0 &&
+                  `${activeSyncs} sync${activeSyncs > 1 ? 's' : ''} in progress`}
               </p>
             </CardContent>
           </Card>
@@ -183,11 +212,11 @@ export function NetSuiteSyncStatus({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {syncStates && syncStates.length > 0 ? (
-                  formatDistanceToNow(new Date(syncStates[0].last_sync_at), { addSuffix: true })
-                ) : (
-                  'Never'
-                )}
+                {syncStates && syncStates.length > 0
+                  ? formatDistanceToNow(new Date(syncStates[0].last_sync_at), {
+                      addSuffix: true,
+                    })
+                  : 'Never'}
               </div>
               <p className="text-xs text-muted-foreground">
                 Across all entity types
@@ -197,15 +226,19 @@ export function NetSuiteSyncStatus({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Records Synced</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Records Synced
+              </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {Object.values(syncStatesByEntity).reduce(
-                  (sum, state) => sum + (state.records_processed || 0),
-                  0
-                ).toLocaleString()}
+                {Object.values(syncStatesByEntity)
+                  .reduce(
+                    (sum, state) => sum + (state.records_processed || 0),
+                    0
+                  )
+                  .toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">
                 Total records processed
@@ -225,7 +258,8 @@ export function NetSuiteSyncStatus({
             <div className="space-y-4">
               {Object.keys(ENTITY_ICONS).map((entityType) => {
                 const state = syncStatesByEntity[entityType]
-                const Icon = ENTITY_ICONS[entityType as keyof typeof ENTITY_ICONS]
+                const Icon =
+                  ENTITY_ICONS[entityType as keyof typeof ENTITY_ICONS]
                 const isInProgress = state?.sync_status === 'in_progress'
                 const progress = state?.sync_progress || 0
 
@@ -234,10 +268,16 @@ export function NetSuiteSyncStatus({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium capitalize">{entityType}</span>
+                        <span className="font-medium capitalize">
+                          {entityType}
+                        </span>
                         {state && (
-                          <Badge 
-                            variant={statusColors[state.sync_status as keyof typeof statusColors] || 'outline'}
+                          <Badge
+                            variant={
+                              statusColors[
+                                state.sync_status as keyof typeof statusColors
+                              ] || 'outline'
+                            }
                           >
                             {state.sync_status}
                           </Badge>
@@ -246,10 +286,12 @@ export function NetSuiteSyncStatus({
                       <div className="flex items-center gap-2">
                         {state && (
                           <span className="text-sm text-muted-foreground">
-                            {state.last_sync_at 
-                              ? formatDistanceToNow(new Date(state.last_sync_at), { addSuffix: true })
-                              : 'Never synced'
-                            }
+                            {state.last_sync_at
+                              ? formatDistanceToNow(
+                                  new Date(state.last_sync_at),
+                                  { addSuffix: true }
+                                )
+                              : 'Never synced'}
                           </span>
                         )}
                         <Button
@@ -318,38 +360,42 @@ export function NetSuiteSyncStatus({
                         {state.entity_type}
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={statusColors[state.sync_status as keyof typeof statusColors] || 'outline'}
+                        <Badge
+                          variant={
+                            statusColors[
+                              state.sync_status as keyof typeof statusColors
+                            ] || 'outline'
+                          }
                         >
                           {state.sync_status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {state.last_sync_at 
+                        {state.last_sync_at
                           ? new Date(state.last_sync_at).toLocaleString()
-                          : 'Never'
-                        }
+                          : 'Never'}
                       </TableCell>
                       <TableCell>
                         {state.sync_duration ? `${state.sync_duration}s` : '-'}
                       </TableCell>
                       <TableCell>
-                        {state.records_processed || 0} / {state.total_records || 0}
+                        {state.records_processed || 0} /{' '}
+                        {state.total_records || 0}
                       </TableCell>
+                      <TableCell>{state.error_count || 0}</TableCell>
                       <TableCell>
-                        {state.error_count || 0}
-                      </TableCell>
-                      <TableCell>
-                        {state.next_sync_at 
+                        {state.next_sync_at
                           ? new Date(state.next_sync_at).toLocaleString()
-                          : 'Manual'
-                        }
+                          : 'Manual'}
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={7}
+                      className="text-center text-muted-foreground"
+                    >
                       No sync history available
                     </TableCell>
                   </TableRow>
@@ -387,8 +433,12 @@ export function NetSuiteSyncStatus({
                     </div>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-2">
-                        <Badge 
-                          variant={severityColors[log.severity as keyof typeof severityColors] || 'outline'}
+                        <Badge
+                          variant={
+                            severityColors[
+                              log.severity as keyof typeof severityColors
+                            ] || 'outline'
+                          }
                           className="text-xs"
                         >
                           {log.severity}
@@ -397,7 +447,9 @@ export function NetSuiteSyncStatus({
                           {log.log_type}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(log.created_at), {
+                            addSuffix: true,
+                          })}
                         </span>
                       </div>
                       <p className="text-sm">{log.message}</p>

@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from '../contexts/ThemeContext';
+import React from 'react'
+import { StyleSheet, Text, View } from 'react-native'
+import { useTheme } from '../contexts/ThemeContext'
 
 export default function InventoryScreen() {
-  const { theme } = useTheme();
+  const { theme } = useTheme()
 
   const styles = StyleSheet.create({
     container: {
@@ -24,7 +24,7 @@ export default function InventoryScreen() {
       color: theme.colors.textSecondary,
       textAlign: 'center',
     },
-  });
+  })
 
   return (
     <View style={styles.container}>
@@ -33,5 +33,5 @@ export default function InventoryScreen() {
         View and manage your product inventory
       </Text>
     </View>
-  );
-} 
+  )
+}

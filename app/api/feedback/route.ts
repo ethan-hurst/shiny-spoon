@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { rateLimiters } from '@/lib/rate-limit'
+import { createClient } from '@/lib/supabase/server'
 
 const feedbackSchema = z.object({
   articleId: z.string(),
@@ -16,21 +16,22 @@ export async function POST(request: NextRequest) {
       const forwarded = request.headers.get('x-forwarded-for')
       const realIp = request.headers.get('x-real-ip')
       const ip = forwarded?.split(',')[0]?.trim() || realIp || '127.0.0.1'
-      const { success, limit, reset, remaining } = await rateLimiters.api.limit(ip)
-      
+      const { success, limit, reset, remaining } =
+        await rateLimiters.api.limit(ip)
+
       if (!success) {
         return NextResponse.json(
-          { 
+          {
             error: 'Too many requests. Please try again later.',
-            details: `Rate limit exceeded. Try again in ${Math.round((reset - Date.now()) / 1000 / 60)} minutes.`
+            details: `Rate limit exceeded. Try again in ${Math.round((reset - Date.now()) / 1000 / 60)} minutes.`,
           },
-          { 
+          {
             status: 429,
             headers: {
               'X-RateLimit-Limit': limit.toString(),
               'X-RateLimit-Remaining': remaining.toString(),
               'X-RateLimit-Reset': reset.toString(),
-            }
+            },
           }
         )
       }
@@ -38,23 +39,23 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = feedbackSchema.parse(body)
-    
+
     const supabase = await createClient()
-    
+
     // Get the current user (optional - feedback can be anonymous)
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     // Store feedback in database
-    const { error } = await supabase
-      .from('article_feedback')
-      .insert({
-        article_id: validatedData.articleId,
-        helpful: validatedData.helpful,
-        feedback: validatedData.feedback,
-        user_id: user?.id,
-        created_at: new Date().toISOString(),
-      })
-    
+    const { error } = await supabase.from('article_feedback').insert({
+      article_id: validatedData.articleId,
+      helpful: validatedData.helpful,
+      feedback: validatedData.feedback,
+      user_id: user?.id,
+      created_at: new Date().toISOString(),
+    })
+
     if (error) {
       console.error('Failed to save feedback:', error)
       return NextResponse.json(
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-    
+
     return NextResponse.json(
       { message: 'Feedback saved successfully' },
       { status: 200 }
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     console.error('Feedback API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

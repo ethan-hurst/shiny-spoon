@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { format, formatDistanceToNow } from 'date-fns'
 import {
   ArrowDown,
   ArrowUp,
@@ -24,12 +25,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { format, formatDistanceToNow } from 'date-fns'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import {
-  PriceHistoryEntry,
-  getChangeTypeIcon,
   ChangeType,
+  getChangeTypeIcon,
+  PriceHistoryEntry,
 } from '@/types/customer-pricing.types'
 
 interface PriceHistoryTimelineProps {
@@ -74,14 +74,17 @@ export function PriceHistoryTimeline({ history }: PriceHistoryTimelineProps) {
   })
 
   // Group by date
-  const groupedHistory = filteredHistory.reduce((groups, entry) => {
-    const date = format(new Date(entry.created_at), 'yyyy-MM-dd')
-    if (!groups[date]) {
-      groups[date] = []
-    }
-    groups[date].push(entry)
-    return groups
-  }, {} as Record<string, PriceHistoryEntry[]>)
+  const groupedHistory = filteredHistory.reduce(
+    (groups, entry) => {
+      const date = format(new Date(entry.created_at), 'yyyy-MM-dd')
+      if (!groups[date]) {
+        groups[date] = []
+      }
+      groups[date].push(entry)
+      return groups
+    },
+    {} as Record<string, PriceHistoryEntry[]>
+  )
 
   if (history.length === 0) {
     return (
@@ -280,10 +283,13 @@ export function PriceHistoryTimeline({ history }: PriceHistoryTimelineProps) {
                           <>
                             {(() => {
                               // Calculate percentage change safely
-                              const percentageChange = entry.old_price > 0 
-                                ? ((entry.new_price - entry.old_price) / entry.old_price) * 100
-                                : 0
-                              
+                              const percentageChange =
+                                entry.old_price > 0
+                                  ? ((entry.new_price - entry.old_price) /
+                                      entry.old_price) *
+                                    100
+                                  : 0
+
                               if (entry.new_price > entry.old_price) {
                                 return (
                                   <div className="flex items-center gap-1 text-red-600">

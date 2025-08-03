@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimiters, withAPIRateLimit } from '@/lib/rate-limit'
 import { createClient } from '@/lib/supabase/server'
-import { withAPIRateLimit } from '@/lib/rate-limit'
-import { rateLimiters } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createClient()
-    
+
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
@@ -29,7 +28,8 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = supabase
       .from('orders')
-      .select(`
+      .select(
+        `
         id,
         order_number,
         customer_id,
@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
           display_name,
           email
         )
-      `)
+      `
+      )
       .eq('organization_id', 'current') // Will be set by RLS
 
     // Apply filters
@@ -92,36 +93,39 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data for API response
-    const transformedOrders = orders?.map(order => ({
-      id: order.id,
-      orderNumber: order.order_number,
-      customerId: order.customer_id,
-      status: order.status,
-      subtotal: order.subtotal,
-      taxAmount: order.tax_amount,
-      shippingAmount: order.shipping_amount,
-      discountAmount: order.discount_amount,
-      totalAmount: order.total_amount,
-      billingAddress: order.billing_address,
-      shippingAddress: order.shipping_address,
-      orderDate: order.order_date,
-      expectedDeliveryDate: order.expected_delivery_date,
-      actualDeliveryDate: order.actual_delivery_date,
-      externalOrderId: order.external_order_id,
-      sourcePlatform: order.source_platform,
-      syncStatus: order.sync_status,
-      lastSyncAt: order.last_sync_at,
-      notes: order.notes,
-      metadata: order.metadata,
-      createdAt: order.created_at,
-      updatedAt: order.updated_at,
-      customer: order.customers ? {
-        id: order.customers.id,
-        companyName: order.customers.company_name,
-        displayName: order.customers.display_name,
-        email: order.customers.email
-      } : null
-    })) || []
+    const transformedOrders =
+      orders?.map((order) => ({
+        id: order.id,
+        orderNumber: order.order_number,
+        customerId: order.customer_id,
+        status: order.status,
+        subtotal: order.subtotal,
+        taxAmount: order.tax_amount,
+        shippingAmount: order.shipping_amount,
+        discountAmount: order.discount_amount,
+        totalAmount: order.total_amount,
+        billingAddress: order.billing_address,
+        shippingAddress: order.shipping_address,
+        orderDate: order.order_date,
+        expectedDeliveryDate: order.expected_delivery_date,
+        actualDeliveryDate: order.actual_delivery_date,
+        externalOrderId: order.external_order_id,
+        sourcePlatform: order.source_platform,
+        syncStatus: order.sync_status,
+        lastSyncAt: order.last_sync_at,
+        notes: order.notes,
+        metadata: order.metadata,
+        createdAt: order.created_at,
+        updatedAt: order.updated_at,
+        customer: order.customers
+          ? {
+              id: order.customers.id,
+              companyName: order.customers.company_name,
+              displayName: order.customers.display_name,
+              email: order.customers.email,
+            }
+          : null,
+      })) || []
 
     return NextResponse.json({
       data: transformedOrders,
@@ -129,10 +133,9 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
-      }
+        totalPages: Math.ceil((count || 0) / limit),
+      },
     })
-
   } catch (error) {
     console.error('Orders API error:', error)
     return NextResponse.json(
@@ -160,7 +163,10 @@ export async function POST(request: NextRequest) {
     const { orderNumber, customerId, totalAmount } = body
     if (!orderNumber || !customerId || typeof totalAmount !== 'number') {
       return NextResponse.json(
-        { error: 'Missing required fields: orderNumber, customerId, totalAmount' },
+        {
+          error:
+            'Missing required fields: orderNumber, customerId, totalAmount',
+        },
         { status: 400 }
       )
     }
@@ -198,7 +204,7 @@ export async function POST(request: NextRequest) {
         external_order_id: body.externalOrderId,
         source_platform: body.sourcePlatform || 'api',
         notes: body.notes,
-        metadata: body.metadata
+        metadata: body.metadata,
       })
       .select()
       .single()
@@ -211,30 +217,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({
-      data: {
-        id: order.id,
-        orderNumber: order.order_number,
-        customerId: order.customer_id,
-        status: order.status,
-        subtotal: order.subtotal,
-        taxAmount: order.tax_amount,
-        shippingAmount: order.shipping_amount,
-        discountAmount: order.discount_amount,
-        totalAmount: order.total_amount,
-        billingAddress: order.billing_address,
-        shippingAddress: order.shipping_address,
-        orderDate: order.order_date,
-        expectedDeliveryDate: order.expected_delivery_date,
-        externalOrderId: order.external_order_id,
-        sourcePlatform: order.source_platform,
-        notes: order.notes,
-        metadata: order.metadata,
-        createdAt: order.created_at,
-        updatedAt: order.updated_at
-      }
-    }, { status: 201 })
-
+    return NextResponse.json(
+      {
+        data: {
+          id: order.id,
+          orderNumber: order.order_number,
+          customerId: order.customer_id,
+          status: order.status,
+          subtotal: order.subtotal,
+          taxAmount: order.tax_amount,
+          shippingAmount: order.shipping_amount,
+          discountAmount: order.discount_amount,
+          totalAmount: order.total_amount,
+          billingAddress: order.billing_address,
+          shippingAddress: order.shipping_address,
+          orderDate: order.order_date,
+          expectedDeliveryDate: order.expected_delivery_date,
+          externalOrderId: order.external_order_id,
+          sourcePlatform: order.source_platform,
+          notes: order.notes,
+          metadata: order.metadata,
+          createdAt: order.created_at,
+          updatedAt: order.updated_at,
+        },
+      },
+      { status: 201 }
+    )
   } catch (error) {
     console.error('Orders API error:', error)
     return NextResponse.json(
@@ -242,4 +250,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

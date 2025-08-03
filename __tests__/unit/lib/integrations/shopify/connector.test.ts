@@ -1,11 +1,11 @@
-import { ShopifyConnector } from '@/lib/integrations/shopify/connector'
+import type { ConnectorConfig } from '@/lib/integrations/base-connector'
 import { ShopifyApiClient } from '@/lib/integrations/shopify/api-client'
 import { BulkOperationManager } from '@/lib/integrations/shopify/bulk-operations'
+import { ShopifyConnector } from '@/lib/integrations/shopify/connector'
 import { PricingManager } from '@/lib/integrations/shopify/pricing-manager'
 import { ShopifyTransformers } from '@/lib/integrations/shopify/transformers'
 import { createClient } from '@/lib/supabase/server'
 import { IntegrationError } from '@/types/integration.types'
-import type { ConnectorConfig } from '@/lib/integrations/base-connector'
 import type { ShopifyIntegrationSettings } from '@/types/shopify.types'
 
 // Mock dependencies
@@ -33,14 +33,14 @@ describe('ShopifyConnector', () => {
     isActive: true,
     credentials: {
       encrypted: true,
-      data: 'encrypted-credentials-data'
+      data: 'encrypted-credentials-data',
     },
     settings: {
       shop_domain: 'test-shop.myshopify.com',
       api_version: '2024-01',
       currency: 'USD',
-      webhook_secret: 'test-webhook-secret'
-    } as ShopifyIntegrationSettings
+      webhook_secret: 'test-webhook-secret',
+    } as ShopifyIntegrationSettings,
   }
 
   beforeEach(() => {
@@ -50,14 +50,18 @@ describe('ShopifyConnector', () => {
     const mockCrypto = require('crypto')
     mockCrypto.createHash = jest.fn().mockReturnValue({
       update: jest.fn().mockReturnValue({
-        digest: jest.fn().mockReturnValue(Buffer.from('test-salt'))
-      })
+        digest: jest.fn().mockReturnValue(Buffer.from('test-salt')),
+      }),
     })
     mockCrypto.scryptSync = jest.fn().mockReturnValue(Buffer.from('test-key'))
     mockCrypto.createDecipheriv = jest.fn().mockReturnValue({
       setAuthTag: jest.fn(),
-      update: jest.fn().mockReturnValue('{"access_token":"test-token","webhook_secret":"test-secret"}'),
-      final: jest.fn().mockReturnValue('')
+      update: jest
+        .fn()
+        .mockReturnValue(
+          '{"access_token":"test-token","webhook_secret":"test-secret"}'
+        ),
+      final: jest.fn().mockReturnValue(''),
     })
 
     // Mock Supabase client
@@ -70,15 +74,15 @@ describe('ShopifyConnector', () => {
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
       functions: {
-        invoke: jest.fn().mockResolvedValue({ data: null, error: null })
-    }
+        invoke: jest.fn().mockResolvedValue({ data: null, error: null }),
+      },
     }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
     // Mock rate limiter
     mockRateLimiter = {
       acquire: jest.fn().mockResolvedValue(undefined),
-      release: jest.fn()
+      release: jest.fn(),
     }
 
     // Mock logger
@@ -86,7 +90,7 @@ describe('ShopifyConnector', () => {
       info: jest.fn(),
       debug: jest.fn(),
       warn: jest.fn(),
-      error: jest.fn()
+      error: jest.fn(),
     }
 
     // Mock Shopify API Client
@@ -98,20 +102,20 @@ describe('ShopifyConnector', () => {
             name: 'Test Shop',
             email: 'test@shop.com',
             plan: {
-              displayName: 'Shopify Plus'
+              displayName: 'Shopify Plus',
             },
             features: {
               storefront: true,
-              b2b: true
-            }
-          }
-        }
+              b2b: true,
+            },
+          },
+        },
       }),
       mutation: jest.fn(),
       get: jest.fn(),
       post: jest.fn(),
       put: jest.fn(),
-      delete: jest.fn()
+      delete: jest.fn(),
     } as any
     ;(ShopifyApiClient as jest.Mock).mockImplementation(() => mockClient)
 
@@ -119,15 +123,17 @@ describe('ShopifyConnector', () => {
     mockBulkManager = {
       createBulkOperation: jest.fn(),
       pollBulkOperation: jest.fn(),
-      getBulkOperationResults: jest.fn()
+      getBulkOperationResults: jest.fn(),
     } as any
-    ;(BulkOperationManager as jest.Mock).mockImplementation(() => mockBulkManager)
+    ;(BulkOperationManager as jest.Mock).mockImplementation(
+      () => mockBulkManager
+    )
 
     // Mock Pricing Manager
     mockPricingManager = {
       syncPricing: jest.fn(),
       updatePricing: jest.fn(),
-      getPricingRules: jest.fn()
+      getPricingRules: jest.fn(),
     } as any
     ;(PricingManager as jest.Mock).mockImplementation(() => mockPricingManager)
 
@@ -135,19 +141,21 @@ describe('ShopifyConnector', () => {
     mockTransformers = {
       transformProduct: jest.fn(),
       transformInventory: jest.fn(),
-      transformPricing: jest.fn()
+      transformPricing: jest.fn(),
     } as any
-    ;(ShopifyTransformers as jest.Mock).mockImplementation(() => mockTransformers)
+    ;(ShopifyTransformers as jest.Mock).mockImplementation(
+      () => mockTransformers
+    )
 
     // Create connector instance
     connector = new ShopifyConnector(mockConfig)
-    
+
     // Mock the connector's logger after creation
     if (connector && typeof connector === 'object') {
       Object.defineProperty(connector, 'logger', {
         get: jest.fn().mockReturnValue(mockLogger),
         configurable: true,
-        enumerable: true
+        enumerable: true,
       })
     }
   })
@@ -170,8 +178,8 @@ describe('ShopifyConnector', () => {
         ...mockConfig,
         credentials: {
           encrypted: true,
-          data: Buffer.alloc(64).toString('base64') // Valid base64 data that's 64 bytes
-        }
+          data: Buffer.alloc(64).toString('base64'), // Valid base64 data that's 64 bytes
+        },
       }
 
       // Set encryption key environment variable
@@ -183,7 +191,9 @@ describe('ShopifyConnector', () => {
         throw new Error('Decryption failed')
       })
 
-      expect(() => new ShopifyConnector(encryptedConfig)).toThrow('Invalid credentials encryption')
+      expect(() => new ShopifyConnector(encryptedConfig)).toThrow(
+        'Invalid credentials encryption'
+      )
     })
   })
 
@@ -196,31 +206,38 @@ describe('ShopifyConnector', () => {
             name: 'Test Shop',
             email: 'test@shop.com',
             plan: {
-              displayName: 'Shopify Plus'
+              displayName: 'Shopify Plus',
             },
             features: {
               storefront: true,
-              b2b: true
-            }
-          }
-        }
+              b2b: true,
+            },
+          },
+        },
       }
 
       mockClient.query.mockResolvedValue(mockShopData)
 
       await connector.authenticate()
 
-      expect(mockClient.query).toHaveBeenCalledWith(expect.stringContaining('query'))
-      expect(mockLogger.info).toHaveBeenCalledWith('Authenticated with Shopify', {
-        shop: 'Test Shop',
-        plan: 'Shopify Plus'
-      })
+      expect(mockClient.query).toHaveBeenCalledWith(
+        expect.stringContaining('query')
+      )
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Authenticated with Shopify',
+        {
+          shop: 'Test Shop',
+          plan: 'Shopify Plus',
+        }
+      )
     })
 
     it('should throw error when shop data is missing', async () => {
       mockClient.query.mockResolvedValue({ data: {} })
 
-      await expect(connector.authenticate()).rejects.toThrow('Failed to authenticate with Shopify')
+      await expect(connector.authenticate()).rejects.toThrow(
+        'Failed to authenticate with Shopify'
+      )
     })
 
     it('should handle API errors during authentication', async () => {
@@ -235,15 +252,17 @@ describe('ShopifyConnector', () => {
       mockClient.query.mockResolvedValue({
         data: {
           shop: {
-            id: 'gid://shopify/Shop/123'
-          }
-        }
+            id: 'gid://shopify/Shop/123',
+          },
+        },
       })
 
       const result = await connector.testConnection()
 
       expect(result).toBe(true)
-      expect(mockClient.query).toHaveBeenCalledWith(expect.stringContaining('query'))
+      expect(mockClient.query).toHaveBeenCalledWith(
+        expect.stringContaining('query')
+      )
     })
 
     it('should return false for failed connection test', async () => {
@@ -253,56 +272,69 @@ describe('ShopifyConnector', () => {
       const result = await connector.testConnection()
 
       expect(result).toBe(false)
-      expect(mockLogger.error).toHaveBeenCalledWith('Connection test failed', expect.any(Error))
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'Connection test failed',
+        expect.any(Error)
+      )
     })
   })
 
   describe('syncProducts', () => {
-      const mockSyncState = {
+    const mockSyncState = {
       last_sync_at: new Date().toISOString(),
-      cursor: 'test-cursor'
+      cursor: 'test-cursor',
     }
 
     beforeEach(() => {
       // Mock sync state methods
-      jest.spyOn(connector as any, 'getSyncState').mockResolvedValue(mockSyncState)
+      jest
+        .spyOn(connector as any, 'getSyncState')
+        .mockResolvedValue(mockSyncState)
       jest.spyOn(connector as any, 'saveProduct').mockResolvedValue(undefined)
-      jest.spyOn(connector as any, 'saveProductMapping').mockResolvedValue(undefined)
-      jest.spyOn(connector as any, 'saveSyncCursor').mockResolvedValue(undefined)
-      jest.spyOn(connector as any, 'updateSyncState').mockResolvedValue(undefined)
+      jest
+        .spyOn(connector as any, 'saveProductMapping')
+        .mockResolvedValue(undefined)
+      jest
+        .spyOn(connector as any, 'saveSyncCursor')
+        .mockResolvedValue(undefined)
+      jest
+        .spyOn(connector as any, 'updateSyncState')
+        .mockResolvedValue(undefined)
       jest.spyOn(connector as any, 'emitProgress').mockResolvedValue(undefined)
-      jest.spyOn(connector as any, 'withRateLimit').mockImplementation(async (fn) => fn())
+      jest
+        .spyOn(connector as any, 'withRateLimit')
+        .mockImplementation(async (fn) => fn())
     })
 
     it('should perform incremental sync when sync state exists', async () => {
       // Mock authentication to succeed
       jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
-      
+
       const mockProducts = [
         {
           id: 'gid://shopify/Product/123',
           title: 'Test Product',
           handle: 'test-product',
-          status: 'ACTIVE'
-        }
+          status: 'ACTIVE',
+        },
       ]
 
       mockClient.query.mockResolvedValue({
         data: {
           products: {
-            edges: mockProducts.map(p => ({ node: p })),
-              pageInfo: {
-                hasNextPage: false,
-              endCursor: 'next-cursor'
-            }
-          }
-        }
+            edges: mockProducts.map((p) => ({ node: p })),
+            pageInfo: {
+              hasNextPage: false,
+              endCursor: 'next-cursor',
+            },
+          },
+        },
       })
 
       mockTransformers.transformProduct.mockReturnValue({
         id: 'internal-123',
         name: 'Test Product',
-        sku: 'TEST-123'
+        sku: 'TEST-123',
       })
 
       const result = await connector.syncProducts()
@@ -315,21 +347,25 @@ describe('ShopifyConnector', () => {
     it('should perform bulk sync when force option is provided', async () => {
       // Mock authentication to succeed
       jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
-      
+
       const mockBulkResult = {
         success: true,
         items_processed: 100,
         items_failed: 0,
         duration_ms: 5000,
-        errors: []
+        errors: [],
       }
 
-      jest.spyOn(connector as any, 'bulkSyncProducts').mockResolvedValue(mockBulkResult)
+      jest
+        .spyOn(connector as any, 'bulkSyncProducts')
+        .mockResolvedValue(mockBulkResult)
 
       const result = await connector.syncProducts({ force: true })
 
       expect(result).toEqual(mockBulkResult)
-      expect((connector as any).bulkSyncProducts).toHaveBeenCalledWith({ force: true })
+      expect((connector as any).bulkSyncProducts).toHaveBeenCalledWith({
+        force: true,
+      })
     })
 
     it('should handle sync errors gracefully', async () => {
@@ -348,41 +384,45 @@ describe('ShopifyConnector', () => {
   describe('syncInventory', () => {
     beforeEach(() => {
       jest.spyOn(connector as any, 'getSyncState').mockResolvedValue({
-        last_sync_at: new Date().toISOString()
+        last_sync_at: new Date().toISOString(),
       })
-      jest.spyOn(connector as any, 'updateInventory').mockResolvedValue(undefined)
-      jest.spyOn(connector as any, 'updateSyncState').mockResolvedValue(undefined)
+      jest
+        .spyOn(connector as any, 'updateInventory')
+        .mockResolvedValue(undefined)
+      jest
+        .spyOn(connector as any, 'updateSyncState')
+        .mockResolvedValue(undefined)
     })
 
     it('should sync inventory levels successfully', async () => {
       // Mock authentication to succeed
       jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
-      
+
       const mockInventory = [
         {
           id: 'gid://shopify/InventoryLevel/123',
           available: 50,
           location: {
-            id: 'gid://shopify/Location/456'
-          }
-        }
+            id: 'gid://shopify/Location/456',
+          },
+        },
       ]
 
       mockClient.query.mockResolvedValue({
         data: {
-            inventoryLevels: {
-            edges: mockInventory.map(i => ({ node: i })),
+          inventoryLevels: {
+            edges: mockInventory.map((i) => ({ node: i })),
             pageInfo: {
-              hasNextPage: false
-            }
-          }
-        }
+              hasNextPage: false,
+            },
+          },
+        },
       })
 
       mockTransformers.transformInventory.mockReturnValue({
         id: 'internal-inv-123',
         quantity: 50,
-        location_id: 'loc-456'
+        location_id: 'loc-456',
       })
 
       const result = await connector.syncInventory()
@@ -396,13 +436,13 @@ describe('ShopifyConnector', () => {
     it('should delegate to pricing manager', async () => {
       // Mock authentication to succeed
       jest.spyOn(connector, 'authenticate').mockResolvedValue(undefined)
-      
+
       const mockPricingResult = {
         success: true,
         items_processed: 10,
         items_failed: 0,
         duration_ms: 1000,
-        errors: []
+        errors: [],
       }
 
       mockPricingManager.syncPricing.mockResolvedValue(mockPricingResult)
@@ -417,7 +457,7 @@ describe('ShopifyConnector', () => {
   describe('verifyWebhook', () => {
     it('should verify webhook signature correctly', async () => {
       const headers = new Headers({
-        'x-shopify-hmac-sha256': 'valid-signature'
+        'x-shopify-hmac-sha256': 'valid-signature',
       })
       const body = 'test-body'
 
@@ -425,8 +465,8 @@ describe('ShopifyConnector', () => {
       const mockCrypto = require('crypto')
       const mockHmac = {
         update: jest.fn().mockReturnValue({
-          digest: jest.fn().mockReturnValue('valid-signature')
-        })
+          digest: jest.fn().mockReturnValue('valid-signature'),
+        }),
       }
       mockCrypto.createHmac.mockReturnValue(mockHmac)
       mockCrypto.timingSafeEqual.mockReturnValue(true)
@@ -434,14 +474,17 @@ describe('ShopifyConnector', () => {
       const result = await connector.verifyWebhook(headers, body)
 
       expect(result).toBe(true)
-      expect(mockCrypto.createHmac).toHaveBeenCalledWith('sha256', expect.any(String))
+      expect(mockCrypto.createHmac).toHaveBeenCalledWith(
+        'sha256',
+        expect.any(String)
+      )
       expect(mockHmac.update).toHaveBeenCalledWith(body)
       expect(mockHmac.digest).toHaveBeenCalledWith('hex')
     })
 
     it('should reject invalid webhook signatures', async () => {
       const headers = new Headers({
-        'x-shopify-hmac-sha256': 'invalid-signature'
+        'x-shopify-hmac-sha256': 'invalid-signature',
       })
       const body = 'test-body'
 
@@ -449,8 +492,8 @@ describe('ShopifyConnector', () => {
       const mockCrypto = require('crypto')
       const mockHmac = {
         update: jest.fn().mockReturnValue({
-          digest: jest.fn().mockReturnValue('different-signature')
-        })
+          digest: jest.fn().mockReturnValue('different-signature'),
+        }),
       }
       mockCrypto.createHmac.mockReturnValue(mockHmac)
       mockCrypto.timingSafeEqual.mockReturnValue(false)
@@ -463,55 +506,72 @@ describe('ShopifyConnector', () => {
 
   describe('handleWebhook', () => {
     beforeEach(() => {
-      jest.spyOn(connector as any, 'processProductWebhook').mockResolvedValue(undefined)
-      jest.spyOn(connector as any, 'processInventoryWebhook').mockResolvedValue(undefined)
-      jest.spyOn(connector as any, 'processOrderWebhook').mockResolvedValue(undefined)
-      jest.spyOn(connector as any, 'updateWebhookStatus').mockResolvedValue(undefined)
-      
+      jest
+        .spyOn(connector as any, 'processProductWebhook')
+        .mockResolvedValue(undefined)
+      jest
+        .spyOn(connector as any, 'processInventoryWebhook')
+        .mockResolvedValue(undefined)
+      jest
+        .spyOn(connector as any, 'processOrderWebhook')
+        .mockResolvedValue(undefined)
+      jest
+        .spyOn(connector as any, 'updateWebhookStatus')
+        .mockResolvedValue(undefined)
+
       // Mock Supabase insert to return data
       mockSupabase.from.mockReturnValue({
         insert: jest.fn().mockReturnValue({
           select: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: { id: 'webhook-123' },
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       })
     })
 
     it('should handle product webhooks', async () => {
       const webhookBody = {
         id: 123,
-        admin_graphql_api_id: 'gid://shopify/Product/456'
+        admin_graphql_api_id: 'gid://shopify/Product/456',
       }
 
       await connector.handleWebhook('products/create', webhookBody)
 
-      expect((connector as any).processProductWebhook).toHaveBeenCalledWith('123', webhookBody)
+      expect((connector as any).processProductWebhook).toHaveBeenCalledWith(
+        '123',
+        webhookBody
+      )
     })
 
     it('should handle inventory webhooks', async () => {
       const webhookBody = {
         id: 123,
-        inventory_item_id: 456
+        inventory_item_id: 456,
       }
 
       await connector.handleWebhook('inventory_levels/update', webhookBody)
 
-      expect((connector as any).processInventoryWebhook).toHaveBeenCalledWith('123', webhookBody)
+      expect((connector as any).processInventoryWebhook).toHaveBeenCalledWith(
+        '123',
+        webhookBody
+      )
     })
 
     it('should handle order webhooks', async () => {
       const webhookBody = {
         id: 123,
-        name: '#1001'
+        name: '#1001',
       }
 
       await connector.handleWebhook('orders/create', webhookBody)
 
-      expect((connector as any).processOrderWebhook).toHaveBeenCalledWith('123', webhookBody)
+      expect((connector as any).processOrderWebhook).toHaveBeenCalledWith(
+        '123',
+        webhookBody
+      )
     })
 
     it('should handle unknown webhook topics', async () => {
@@ -521,7 +581,7 @@ describe('ShopifyConnector', () => {
 
       expect(mockLogger.warn).toHaveBeenCalledWith('Unhandled webhook topic', {
         topic: 'unknown/topic',
-        webhookId: '123'
+        webhookId: '123',
       })
     })
   })
@@ -532,45 +592,45 @@ describe('ShopifyConnector', () => {
         data: {
           shop: {
             plan: {
-              displayName: 'Shopify Plus'
+              displayName: 'Shopify Plus',
             },
             features: {
-              b2b: true
-            }
-          }
-        }
+              b2b: true,
+            },
+          },
+        },
       })
 
       const result = await (connector as any).getStoreInfo()
 
       expect(result).toEqual({
         hasB2B: true,
-        plan: 'Shopify Plus'
+        plan: 'Shopify Plus',
       })
     })
 
     it('should handle stores without B2B features', async () => {
       mockClient.query.mockResolvedValue({
-          data: {
-            shop: {
+        data: {
+          shop: {
             plan: {
-              displayName: 'Basic Shopify'
+              displayName: 'Basic Shopify',
             },
             features: {
-              b2b: false
-            }
-          }
-        }
+              b2b: false,
+            },
+          },
+        },
       })
 
-        const result = await (connector as any).getStoreInfo()
+      const result = await (connector as any).getStoreInfo()
 
-        expect(result).toEqual({
-          hasB2B: false,
-        plan: 'Basic Shopify'
-        })
+      expect(result).toEqual({
+        hasB2B: false,
+        plan: 'Basic Shopify',
       })
     })
+  })
 
   describe('extractIdFromGid', () => {
     it('should extract ID from Shopify GID', () => {

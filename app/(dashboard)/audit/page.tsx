@@ -1,14 +1,20 @@
 // app/(dashboard)/audit/page.tsx
 import { Suspense } from 'react'
-import { createServerClient } from '@/lib/supabase/server'
-import { AuditTable } from '@/components/features/audit/audit-table'
-import { AuditFilters } from '@/components/features/audit/audit-filters'
-import { AuditExportButton } from '@/components/features/audit/audit-export-button'
-import { RetentionPolicyDialog } from '@/components/features/audit/retention-policy-dialog'
-import { AuditSkeleton } from '@/components/features/audit/audit-skeleton'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { endOfDay, startOfDay, subDays } from 'date-fns'
 import { Shield } from 'lucide-react'
-import { startOfDay, endOfDay, subDays } from 'date-fns'
+import { AuditExportButton } from '@/components/features/audit/audit-export-button'
+import { AuditFilters } from '@/components/features/audit/audit-filters'
+import { AuditSkeleton } from '@/components/features/audit/audit-skeleton'
+import { AuditTable } from '@/components/features/audit/audit-table'
+import { RetentionPolicyDialog } from '@/components/features/audit/retention-policy-dialog'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { createServerClient } from '@/lib/supabase/server'
 
 interface AuditPageProps {
   searchParams: {
@@ -25,7 +31,9 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
   const supabase = await createServerClient()
 
   // Get user's organization and check permissions
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
   const { data: profile } = await supabase
@@ -41,9 +49,11 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
     user_id: searchParams.user,
     action: searchParams.action,
     entity_type: searchParams.entity,
-    from: searchParams.from ? new Date(searchParams.from) : subDays(new Date(), 7),
+    from: searchParams.from
+      ? new Date(searchParams.from)
+      : subDays(new Date(), 7),
     to: searchParams.to ? new Date(searchParams.to) : endOfDay(new Date()),
-    page: parseInt(searchParams.page || '1', 10)
+    page: parseInt(searchParams.page || '1', 10),
   }
 
   // Build query
@@ -110,10 +120,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
         </CardHeader>
         <CardContent>
           <Suspense fallback={<AuditSkeleton />}>
-            <AuditFilters
-              users={users || []}
-              currentFilters={filters}
-            />
+            <AuditFilters users={users || []} currentFilters={filters} />
 
             <AuditTable
               logs={logs || []}

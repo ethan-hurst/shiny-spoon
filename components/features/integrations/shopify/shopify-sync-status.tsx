@@ -3,31 +3,36 @@
 // PRP-014: Shopify Sync Status Component
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { createBrowserClient } from '@/lib/supabase/client'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
-import { useToast } from '@/components/ui/use-toast'
-import { 
-  Package, 
-  Warehouse, 
-  ShoppingCart, 
-  Users, 
+import { formatDistanceToNow } from 'date-fns'
+import {
   AlertCircle,
   CheckCircle,
   Clock,
+  Package,
+  RefreshCw,
+  ShoppingCart,
+  Users,
+  Warehouse,
   XCircle,
-  RefreshCw
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/components/ui/use-toast'
+import { createBrowserClient } from '@/lib/supabase/client'
 
 interface ShopifySyncStatusProps {
   integrationId: string
 }
 
 interface SyncStatus {
-  entity_type: 'products' | 'inventory' | 'orders' | 'customers' | 'b2b_catalogs'
+  entity_type:
+    | 'products'
+    | 'inventory'
+    | 'orders'
+    | 'customers'
+    | 'b2b_catalogs'
   last_sync_at: string | null
   sync_status: 'completed' | 'in_progress' | 'failed' | 'pending'
   records_synced: number
@@ -40,34 +45,34 @@ const entityConfig = {
   products: {
     icon: Package,
     label: 'Products',
-    description: 'Product catalog and variants'
+    description: 'Product catalog and variants',
   },
   inventory: {
     icon: Warehouse,
     label: 'Inventory',
-    description: 'Stock levels across locations'
+    description: 'Stock levels across locations',
   },
   orders: {
     icon: ShoppingCart,
     label: 'Orders',
-    description: 'Order history and status'
+    description: 'Order history and status',
   },
   customers: {
     icon: Users,
     label: 'Customers',
-    description: 'Customer data and companies'
+    description: 'Customer data and companies',
   },
   b2b_catalogs: {
     icon: Package,
     label: 'B2B Catalogs',
-    description: 'Catalogs and price lists'
-  }
+    description: 'Catalogs and price lists',
+  },
 }
 
 // Query function for fetching sync status
 async function fetchSyncStatus(integrationId: string): Promise<SyncStatus[]> {
   const supabase = createBrowserClient()
-  
+
   const { data, error } = await supabase
     .from('shopify_sync_state')
     .select('*')
@@ -92,7 +97,11 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
   const { toast } = useToast()
 
   // Use React Query for fetching sync status
-  const { data: syncStatuses = [], isLoading, error } = useQuery({
+  const {
+    data: syncStatuses = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['sync-status', integrationId],
     queryFn: () => fetchSyncStatus(integrationId),
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -105,7 +114,7 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
       toast({
         title: 'Sync status error',
         description: 'Failed to load sync status. Please refresh the page.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     }
   }, [error, toast])
@@ -120,11 +129,13 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
           event: '*',
           schema: 'public',
           table: 'shopify_sync_state',
-          filter: `integration_id=eq.${integrationId}`
+          filter: `integration_id=eq.${integrationId}`,
         },
         () => {
           // Invalidate query to trigger refetch
-          queryClient.invalidateQueries({ queryKey: ['sync-status', integrationId] })
+          queryClient.invalidateQueries({
+            queryKey: ['sync-status', integrationId],
+          })
         }
       )
       .subscribe()
@@ -147,7 +158,9 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
     }
   }
 
-  function getStatusColor(status: string): "default" | "secondary" | "destructive" | "outline" {
+  function getStatusColor(
+    status: string
+  ): 'default' | 'secondary' | 'destructive' | 'outline' {
     switch (status) {
       case 'completed':
         return 'default'
@@ -173,14 +186,16 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {Object.entries(entityConfig).map(([entityType, config]) => {
-        const status = syncStatuses.find(s => s.entity_type === entityType) || {
+        const status = syncStatuses.find(
+          (s) => s.entity_type === entityType
+        ) || {
           entity_type: entityType as SyncStatus['entity_type'],
           last_sync_at: null,
           sync_status: 'pending' as const,
           records_synced: 0,
           records_failed: 0,
           error_message: null,
-          next_sync_at: null
+          next_sync_at: null,
         }
 
         const Icon = config.icon
@@ -212,7 +227,9 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Last sync</span>
                     <span>
-                      {formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(status.last_sync_at), {
+                        addSuffix: true,
+                      })}
                     </span>
                   </div>
                 )}
@@ -232,13 +249,18 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
                 )}
 
                 {status.sync_status === 'in_progress' && (
-                  <Progress 
-                    className="h-1.5" 
+                  <Progress
+                    className="h-1.5"
                     value={
                       status.records_synced && status.records_synced > 0
-                        ? Math.min(90, (status.records_synced / (status.records_synced + 100)) * 100)
+                        ? Math.min(
+                            90,
+                            (status.records_synced /
+                              (status.records_synced + 100)) *
+                              100
+                          )
                         : 20
-                    } 
+                    }
                   />
                 )}
 
@@ -251,11 +273,15 @@ export function ShopifySyncStatus({ integrationId }: ShopifySyncStatusProps) {
                   </div>
                 )}
 
-                {status.next_sync_at && status.sync_status !== 'in_progress' && (
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Next sync: {formatDistanceToNow(new Date(status.next_sync_at), { addSuffix: true })}
-                  </div>
-                )}
+                {status.next_sync_at &&
+                  status.sync_status !== 'in_progress' && (
+                    <div className="text-xs text-muted-foreground mt-2">
+                      Next sync:{' '}
+                      {formatDistanceToNow(new Date(status.next_sync_at), {
+                        addSuffix: true,
+                      })}
+                    </div>
+                  )}
               </div>
             </CardContent>
           </Card>

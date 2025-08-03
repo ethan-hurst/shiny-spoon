@@ -2,9 +2,8 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Server Actions are stable in Next.js 14+
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcrypt'],
+    serverExternalPackages: ['@prisma/client', 'bcrypt'],
   },
   images: {
     remotePatterns: [
@@ -81,7 +80,7 @@ const nextConfig = {
         os: false,
         path: false,
         querystring: false,
-        'diagnostics_channel': false,
+        diagnostics_channel: false,
       }
     }
     return config

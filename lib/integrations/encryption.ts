@@ -10,14 +10,14 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   // Always compare up to the maximum length to avoid timing differences
   const maxLength = Math.max(a.length, b.length)
   let result = a.length ^ b.length // Include length difference in result
-  
+
   for (let i = 0; i < maxLength; i++) {
     // Use 0 as default for out-of-bounds indices
     const aVal = i < a.length ? a[i] : 0
     const bVal = i < b.length ? b[i] : 0
     result |= aVal ^ bVal
   }
-  
+
   return result === 0
 }
 
@@ -44,18 +44,17 @@ export class EncryptionService {
    */
   async encrypt(plaintext: string): Promise<string> {
     const supabase = createClient()
-    
+
     try {
       if (!plaintext) {
         throw new Error('Cannot encrypt empty data')
       }
 
       // Use Supabase RPC function for encryption
-      const { data, error } = await supabase
-        .rpc('encrypt_credential', {
-          p_credential: plaintext,
-          p_key_id: this.config.keyId,
-        })
+      const { data, error } = await supabase.rpc('encrypt_credential', {
+        p_credential: plaintext,
+        p_key_id: this.config.keyId,
+      })
 
       if (error) {
         throw new AuthenticationError('Encryption failed', error)
@@ -75,18 +74,17 @@ export class EncryptionService {
    */
   async decrypt(ciphertext: string): Promise<string> {
     const supabase = createClient()
-    
+
     try {
       if (!ciphertext) {
         throw new Error('Cannot decrypt empty data')
       }
 
       // Use Supabase RPC function for decryption
-      const { data, error } = await supabase
-        .rpc('decrypt_credential', {
-          p_encrypted: ciphertext,
-          p_key_id: this.config.keyId,
-        })
+      const { data, error } = await supabase.rpc('decrypt_credential', {
+        p_encrypted: ciphertext,
+        p_key_id: this.config.keyId,
+      })
 
       if (error) {
         throw new AuthenticationError('Decryption failed', error)
@@ -138,7 +136,7 @@ export class EncryptionService {
   async hash(data: string, salt: string): Promise<string> {
     try {
       const encoder = new TextEncoder()
-      
+
       // Import the salt as a key for HMAC
       const keyData = encoder.encode(salt)
       const key = await crypto.subtle.importKey(
@@ -148,14 +146,14 @@ export class EncryptionService {
         false,
         ['sign']
       )
-      
+
       // Create HMAC of the data
       const dataBuffer = encoder.encode(data)
       const signature = await crypto.subtle.sign('HMAC', key, dataBuffer)
-      
+
       // Convert to hex string
       const hashArray = Array.from(new Uint8Array(signature))
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
     } catch (error) {
       throw new AuthenticationError(
         'Failed to hash data',
@@ -170,7 +168,9 @@ export class EncryptionService {
   generateSecureToken(length: number = 32): string {
     const array = new Uint8Array(length)
     crypto.getRandomValues(array)
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join(
+      ''
+    )
   }
 
   /**
@@ -257,22 +257,22 @@ export const encryptionUtils = {
       // Decrypt both values
       const decrypted1 = await encryption.decrypt(encrypted1)
       const decrypted2 = await encryption.decrypt(encrypted2)
-      
+
       // Convert strings to Uint8Array for Web Crypto API
       const encoder = new TextEncoder()
       const data1 = encoder.encode(decrypted1)
       const data2 = encoder.encode(decrypted2)
-      
+
       // Compute SHA-256 hashes using Web Crypto API
       const [hashBuffer1, hashBuffer2] = await Promise.all([
         crypto.subtle.digest('SHA-256', data1),
-        crypto.subtle.digest('SHA-256', data2)
+        crypto.subtle.digest('SHA-256', data2),
       ])
-      
+
       // Convert ArrayBuffers to Uint8Arrays for comparison
       const hash1 = new Uint8Array(hashBuffer1)
       const hash2 = new Uint8Array(hashBuffer2)
-      
+
       // Timing-safe comparison compatible with Web Crypto API
       return timingSafeEqual(hash1, hash2)
     } catch {
@@ -289,7 +289,7 @@ export const encryptionUtils = {
   }> {
     const key = `${prefix || 'key'}_${encryption.generateSecureToken(32)}`
     const encrypted = await encryption.encrypt(key)
-    
+
     return { plaintext: key, encrypted }
   },
 
@@ -326,7 +326,7 @@ export const encryptionUtils = {
       // Convert signature to hex string
       const computedSignatureArray = new Uint8Array(signatureBuffer)
       const computedSignature = Array.from(computedSignatureArray)
-        .map(b => b.toString(16).padStart(2, '0'))
+        .map((b) => b.toString(16).padStart(2, '0'))
         .join('')
 
       // Convert both signatures to Uint8Array for byte-level comparison

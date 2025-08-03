@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Eye, Loader2, Shield, User } from 'lucide-react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -22,13 +25,10 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { inviteTeamMember } from '@/app/actions/team'
+import { Textarea } from '@/components/ui/textarea'
 import { TEAM_ROLES } from '@/lib/constants/team'
-import { Shield, User, Eye, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { inviteTeamMember } from '@/app/actions/team'
 
 const formSchema = z.object({
   email: z
@@ -41,7 +41,7 @@ const formSchema = z.object({
     [
       TEAM_ROLES.ADMIN.value,
       TEAM_ROLES.MEMBER.value,
-      TEAM_ROLES.VIEWER.value
+      TEAM_ROLES.VIEWER.value,
     ] as [string, ...string[]],
     {
       required_error: 'Please select a role',
@@ -58,7 +58,10 @@ interface InviteTeamMemberDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function InviteTeamMemberDialog({ open, onOpenChange }: InviteTeamMemberDialogProps) {
+export function InviteTeamMemberDialog({
+  open,
+  onOpenChange,
+}: InviteTeamMemberDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -93,7 +96,7 @@ export function InviteTeamMemberDialog({ open, onOpenChange }: InviteTeamMemberD
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    
+
     const formData = new FormData()
     formData.append('email', values.email)
     formData.append('role', values.role)
@@ -107,7 +110,9 @@ export function InviteTeamMemberDialog({ open, onOpenChange }: InviteTeamMemberD
       form.reset()
       onOpenChange(false)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send invitation')
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to send invitation'
+      )
     } finally {
       setIsLoading(false)
     }
@@ -119,10 +124,11 @@ export function InviteTeamMemberDialog({ open, onOpenChange }: InviteTeamMemberD
         <DialogHeader>
           <DialogTitle>Invite Team Member</DialogTitle>
           <DialogDescription>
-            Send an invitation to join your team. They'll receive an email with instructions.
+            Send an invitation to join your team. They'll receive an email with
+            instructions.
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -132,10 +138,10 @@ export function InviteTeamMemberDialog({ open, onOpenChange }: InviteTeamMemberD
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="email" 
-                      placeholder="colleague@company.com" 
-                      {...field} 
+                    <Input
+                      type="email"
+                      placeholder="colleague@company.com"
+                      {...field}
                     />
                   </FormControl>
                   <FormDescription>
@@ -193,7 +199,7 @@ export function InviteTeamMemberDialog({ open, onOpenChange }: InviteTeamMemberD
                 <FormItem>
                   <FormLabel>Personal Message (optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Hey! I'm inviting you to join our team on TruthSource..."
                       className="resize-none"
                       rows={3}

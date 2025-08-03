@@ -35,7 +35,7 @@ export default function ProductsLoading() {
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-4 w-16" />
           </div>
-          
+
           {/* Table rows */}
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex items-center gap-4 py-4 border-t">

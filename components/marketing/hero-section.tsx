@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { ArrowRight, CheckCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { ArrowRight, CheckCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function HeroSection() {
   return (
@@ -20,7 +20,9 @@ export function HeroSection() {
               <span className="text-primary">Perfectly Synchronized</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              TruthSource prevents costly order errors by synchronizing inventory, pricing, and customer data across NetSuite, Shopify, and all your B2B systems in real-time.
+              TruthSource prevents costly order errors by synchronizing
+              inventory, pricing, and customer data across NetSuite, Shopify,
+              and all your B2B systems in real-time.
             </p>
           </motion.div>
 

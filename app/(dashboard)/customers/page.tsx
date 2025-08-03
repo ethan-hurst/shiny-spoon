@@ -101,12 +101,41 @@ export default async function CustomersPage(props: PageProps) {
     .select('customer_id')
     .in('customer_id', customerIds)
 
-  // Create contact count map
-  const contactCountMap = new Map<string, number>()
-  contactCounts?.forEach((contact: any) => {
-    const currentCount = contactCountMap.get(contact.customer_id) || 0
-    contactCountMap.set(contact.customer_id, currentCount + 1)
-  })
+  // Get order counts and revenue for customers
+  const { data: orderStats } = await supabase
+    .from('orders')
+    .select('customer_id, total_amount, status')
+    .eq('organization_id', profile.organization_id)
+    .in('customer_id', customerIds)
+
+  // Calculate customer stats
+  const customerStats =
+    customers?.map((customer: any) => {
+      const contacts =
+        contactCounts?.filter((c: any) => c.customer_id === customer.id)
+          .length || 0
+      const orders =
+        orderStats?.filter((o: any) => o.customer_id === customer.id) || []
+      const totalRevenue = orders.reduce(
+        (sum: number, order: any) => sum + (order.total_amount || 0),
+        0
+      )
+      const orderCount = orders.length
+      const lastOrder =
+        orders.length > 0
+          ? Math.max(
+              ...orders.map((o: any) => new Date(o.created_at).getTime())
+            )
+          : null
+
+      return {
+        ...customer,
+        contact_count: contacts,
+        order_count: orderCount,
+        total_revenue: totalRevenue,
+        last_order_date: lastOrder ? new Date(lastOrder).toISOString() : null,
+      }
+    }) || []
 
   // Get customer stats
   const { data: stats, error: statsError } = await supabase.rpc(
@@ -135,11 +164,17 @@ export default async function CustomersPage(props: PageProps) {
       tier_level: customer.customer_tiers?.level,
       tier_discount: customer.customer_tiers?.discount_percentage,
       tier_color: customer.customer_tiers?.color,
-      contact_count: contactCountMap.get(customer.id) || 0,
-      // TODO: Replace with actual order data once orders table is implemented
-      total_orders: 0,
-      total_revenue: 0,
-      last_order_date: null,
+      contact_count:
+        customerStats.find((c: any) => c.id === customer.id)?.contact_count ||
+        0,
+      order_count:
+        customerStats.find((c: any) => c.id === customer.id)?.order_count || 0,
+      total_revenue:
+        customerStats.find((c: any) => c.id === customer.id)?.total_revenue ||
+        0,
+      last_order_date:
+        customerStats.find((c: any) => c.id === customer.id)?.last_order_date ||
+        null,
       account_age_days: Math.floor(
         (Date.now() - new Date(customer.created_at).getTime()) /
           (1000 * 60 * 60 * 24)
@@ -174,20 +209,26 @@ export default async function CustomersPage(props: PageProps) {
           stats || {
             total_customers: customers?.length || 0,
             active_customers:
-              customers?.filter((c: CustomerWithStats) => c.status === 'active').length || 0,
+              customers?.filter((c: CustomerWithStats) => c.status === 'active')
+                .length || 0,
             inactive_customers:
-              customers?.filter((c: CustomerWithStats) => c.status === 'inactive').length ||
-              0,
+              customers?.filter(
+                (c: CustomerWithStats) => c.status === 'inactive'
+              ).length || 0,
             suspended_customers:
-              customers?.filter((c: CustomerWithStats) => c.status === 'suspended').length ||
-              0,
+              customers?.filter(
+                (c: CustomerWithStats) => c.status === 'suspended'
+              ).length || 0,
             by_tier:
-              tiers?.map((tier: { id: string; name: string; color: string }) => ({
-                tier_name: tier.name,
-                count:
-                  customers?.filter((c: CustomerWithStats) => c.tier_id === tier.id).length ||
-                  0,
-              })) || [],
+              tiers?.map(
+                (tier: { id: string; name: string; color: string }) => ({
+                  tier_name: tier.name,
+                  count:
+                    customers?.filter(
+                      (c: CustomerWithStats) => c.tier_id === tier.id
+                    ).length || 0,
+                })
+              ) || [],
           }
         }
       />

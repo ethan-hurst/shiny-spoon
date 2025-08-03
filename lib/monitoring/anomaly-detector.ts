@@ -1,6 +1,6 @@
 // PRP-016: Data Accuracy Monitor - Anomaly Detection
 import { createAdminClient } from '@/lib/supabase/admin'
-import { DiscrepancyResult, AnomalyResult } from './types'
+import { AnomalyResult, DiscrepancyResult } from './types'
 
 interface AnomalyDetectionConfig {
   discrepancies: DiscrepancyResult[]
@@ -18,7 +18,7 @@ interface HistoricalDiscrepancy {
 
 export class AnomalyDetector {
   private supabase = createAdminClient()
-  
+
   // Statistical thresholds
   private readonly Z_SCORE_THRESHOLD = 2.5 // 99% confidence
   private readonly MIN_HISTORICAL_POINTS = 10
@@ -34,10 +34,10 @@ export class AnomalyDetector {
 
     for (const [key, discrepancies] of Object.entries(groupedDiscrepancies)) {
       const [entityType, fieldName] = key.split(':')
-      
+
       // Get historical data for this entity/field combination
       const historicalData = config.historicalData.filter(
-        h => h.entityType === entityType && h.fieldName === fieldName
+        (h) => h.entityType === entityType && h.fieldName === fieldName
       )
 
       if (historicalData.length >= this.MIN_HISTORICAL_POINTS) {
@@ -94,7 +94,7 @@ export class AnomalyDetector {
     const anomalies: AnomalyResult[] = []
 
     // Calculate historical statistics
-    const historicalCounts = historicalData.map(h => h.count)
+    const historicalCounts = historicalData.map((h) => h.count)
     const mean = this.calculateMean(historicalCounts)
     const stdDev = this.calculateStandardDeviation(historicalCounts, mean)
 
@@ -112,7 +112,7 @@ export class AnomalyDetector {
         deviationScore: Math.abs(zScore),
         historicalAverage: mean,
         currentValue: currentCount,
-        explanation: `Discrepancy count (${currentCount}) is ${Math.abs(zScore).toFixed(1)} standard deviations from historical average (${mean.toFixed(1)})`
+        explanation: `Discrepancy count (${currentCount}) is ${Math.abs(zScore).toFixed(1)} standard deviations from historical average (${mean.toFixed(1)})`,
       })
     }
 
@@ -143,9 +143,13 @@ export class AnomalyDetector {
         new Date()
       )
       const actualCount = discrepancies.length
-      const deviation = expectedCount > 0 ? Math.abs(actualCount - expectedCount) / expectedCount : 0
+      const deviation =
+        expectedCount > 0
+          ? Math.abs(actualCount - expectedCount) / expectedCount
+          : 0
 
-      if (deviation > 0.5) { // 50% deviation from pattern
+      if (deviation > 0.5) {
+        // 50% deviation from pattern
         anomalies.push({
           entityId: entityType,
           anomalyType: 'pattern',
@@ -153,7 +157,7 @@ export class AnomalyDetector {
           deviationScore: deviation,
           historicalAverage: expectedCount,
           currentValue: actualCount,
-          explanation: `Current count (${actualCount}) deviates ${(deviation * 100).toFixed(0)}% from expected pattern (${expectedCount.toFixed(0)})`
+          explanation: `Current count (${actualCount}) deviates ${(deviation * 100).toFixed(0)}% from expected pattern (${expectedCount.toFixed(0)})`,
         })
       }
     }
@@ -178,9 +182,9 @@ export class AnomalyDetector {
 
     // Critical severity threshold
     const criticalCount = discrepancies.filter(
-      d => d.severity === 'critical'
+      (d) => d.severity === 'critical'
     ).length
-    
+
     if (criticalCount > 0) {
       anomalies.push({
         entityId: entityType,
@@ -188,13 +192,13 @@ export class AnomalyDetector {
         confidence: 1.0,
         deviationScore: criticalCount,
         currentValue: criticalCount,
-        explanation: `${criticalCount} critical severity discrepancies detected`
+        explanation: `${criticalCount} critical severity discrepancies detected`,
       })
     }
 
     // High confidence mismatches
     const highConfidenceMismatches = discrepancies.filter(
-      d => d.discrepancyType === 'mismatch' && d.confidence > 0.9
+      (d) => d.discrepancyType === 'mismatch' && d.confidence > 0.9
     ).length
 
     if (highConfidenceMismatches > 5) {
@@ -204,15 +208,16 @@ export class AnomalyDetector {
         confidence: 0.9,
         deviationScore: highConfidenceMismatches / 5,
         currentValue: highConfidenceMismatches,
-        explanation: `${highConfidenceMismatches} high-confidence data mismatches detected`
+        explanation: `${highConfidenceMismatches} high-confidence data mismatches detected`,
       })
     }
 
     // Stale data threshold
     const staleCount = discrepancies.filter(
-      d => d.discrepancyType === 'stale'
+      (d) => d.discrepancyType === 'stale'
     ).length
-    const stalePercentage = discrepancies.length > 0 ? (staleCount / discrepancies.length) * 100 : 0
+    const stalePercentage =
+      discrepancies.length > 0 ? (staleCount / discrepancies.length) * 100 : 0
 
     if (stalePercentage > 30) {
       anomalies.push({
@@ -221,7 +226,7 @@ export class AnomalyDetector {
         confidence: 0.85,
         deviationScore: stalePercentage / 30,
         currentValue: stalePercentage,
-        explanation: `${stalePercentage.toFixed(0)}% of data is stale (threshold: 30%)`
+        explanation: `${stalePercentage.toFixed(0)}% of data is stale (threshold: 30%)`,
       })
     }
 
@@ -234,17 +239,18 @@ export class AnomalyDetector {
   ): AnomalyResult | null {
     // Calculate current severity distribution
     const currentSeverityScore = this.calculateSeverityScore(discrepancies)
-    
+
     // Calculate historical average severity
     const historicalAvgSeverity = this.calculateMean(
-      historicalData.map(h => h.avgSeverity)
+      historicalData.map((h) => h.avgSeverity)
     )
 
     const severityDeviation = Math.abs(
       currentSeverityScore - historicalAvgSeverity
     )
 
-    if (severityDeviation > 0.3) { // 30% deviation in severity
+    if (severityDeviation > 0.3) {
+      // 30% deviation in severity
       return {
         entityId: discrepancies[0].entityType,
         anomalyType: 'statistical',
@@ -252,7 +258,7 @@ export class AnomalyDetector {
         deviationScore: severityDeviation,
         historicalAverage: historicalAvgSeverity,
         currentValue: currentSeverityScore,
-        explanation: `Average severity score (${currentSeverityScore.toFixed(2)}) deviates significantly from historical average (${historicalAvgSeverity.toFixed(2)})`
+        explanation: `Average severity score (${currentSeverityScore.toFixed(2)}) deviates significantly from historical average (${historicalAvgSeverity.toFixed(2)})`,
       }
     }
 
@@ -280,12 +286,10 @@ export class AnomalyDetector {
     return null
   }
 
-  private checkWeeklyPattern(
-    data: HistoricalDiscrepancy[]
-  ): TimePattern {
+  private checkWeeklyPattern(data: HistoricalDiscrepancy[]): TimePattern {
     // Group by day of week
     const byDayOfWeek: Record<number, number[]> = {}
-    
+
     for (const point of data) {
       const dayOfWeek = point.timestamp.getDay()
       if (!byDayOfWeek[dayOfWeek]) {
@@ -310,30 +314,29 @@ export class AnomalyDetector {
     }
 
     // Calculate overall variance
-    const allCounts = data.map(d => d.count)
+    const allCounts = data.map((d) => d.count)
     const overallVariance = this.calculateVariance(
       allCounts,
       this.calculateMean(allCounts)
     )
 
     // Pattern confidence based on variance reduction
-    const confidence = overallVariance > 0 && dayCount > 0
-      ? 1 - (totalVariance / dayCount) / overallVariance
-      : 0
+    const confidence =
+      overallVariance > 0 && dayCount > 0
+        ? 1 - totalVariance / dayCount / overallVariance
+        : 0
 
     return {
       type: 'weekly',
       confidence,
-      parameters: byDayOfWeek
+      parameters: byDayOfWeek,
     }
   }
 
-  private checkDailyPattern(
-    data: HistoricalDiscrepancy[]
-  ): TimePattern {
+  private checkDailyPattern(data: HistoricalDiscrepancy[]): TimePattern {
     // Group by hour of day
     const byHourOfDay: Record<number, number[]> = {}
-    
+
     for (const point of data) {
       const hourOfDay = point.timestamp.getHours()
       if (!byHourOfDay[hourOfDay]) {
@@ -355,20 +358,21 @@ export class AnomalyDetector {
       }
     }
 
-    const allCounts = data.map(d => d.count)
+    const allCounts = data.map((d) => d.count)
     const overallVariance = this.calculateVariance(
       allCounts,
       this.calculateMean(allCounts)
     )
 
-    const confidence = overallVariance > 0 && hourCount > 0
-      ? 1 - (totalVariance / hourCount) / overallVariance
-      : 0
+    const confidence =
+      overallVariance > 0 && hourCount > 0
+        ? 1 - totalVariance / hourCount / overallVariance
+        : 0
 
     return {
       type: 'daily',
       confidence,
-      parameters: byHourOfDay
+      parameters: byHourOfDay,
     }
   }
 
@@ -401,11 +405,15 @@ export class AnomalyDetector {
     const mostRecent = sortedHistory[0]
 
     // Calculate change rate
-    const changeRate = mostRecent.count > 0
-      ? Math.abs(currentCount - mostRecent.count) / mostRecent.count
-      : currentCount > 0 ? 1 : 0
+    const changeRate =
+      mostRecent.count > 0
+        ? Math.abs(currentCount - mostRecent.count) / mostRecent.count
+        : currentCount > 0
+          ? 1
+          : 0
 
-    if (changeRate > 1) { // 100% change
+    if (changeRate > 1) {
+      // 100% change
       return {
         entityId: historicalData[0].entityType,
         anomalyType: 'pattern',
@@ -413,7 +421,7 @@ export class AnomalyDetector {
         deviationScore: changeRate,
         historicalAverage: mostRecent.count,
         currentValue: currentCount,
-        explanation: `Sudden ${changeRate > 1 ? 'increase' : 'decrease'} of ${(changeRate * 100).toFixed(0)}% from last period`
+        explanation: `Sudden ${changeRate > 1 ? 'increase' : 'decrease'} of ${(changeRate * 100).toFixed(0)}% from last period`,
       }
     }
 
@@ -425,7 +433,7 @@ export class AnomalyDetector {
       critical: 1.0,
       high: 0.7,
       medium: 0.4,
-      low: 0.1
+      low: 0.1,
     }
 
     let totalScore = 0
@@ -445,7 +453,7 @@ export class AnomalyDetector {
     for (const anomaly of anomalies) {
       const key = `${anomaly.entityId}:${anomaly.anomalyType}`
       const existing = uniqueAnomalies.get(key)
-      
+
       // Keep the one with higher confidence
       if (!existing || anomaly.confidence > existing.confidence) {
         uniqueAnomalies.set(key, anomaly)
@@ -464,20 +472,17 @@ export class AnomalyDetector {
     return values.reduce((sum, val) => sum + val, 0) / values.length
   }
 
-  private calculateStandardDeviation(
-    values: number[],
-    mean: number
-  ): number {
+  private calculateStandardDeviation(values: number[], mean: number): number {
     if (values.length <= 1) return 0
-    
+
     const variance = this.calculateVariance(values, mean)
     return Math.sqrt(variance)
   }
 
   private calculateVariance(values: number[], mean: number): number {
     if (values.length <= 1) return 0
-    
-    const squaredDiffs = values.map(val => Math.pow(val - mean, 2))
+
+    const squaredDiffs = values.map((val) => Math.pow(val - mean, 2))
     return squaredDiffs.reduce((sum, val) => sum + val, 0) / (values.length - 1)
   }
 
@@ -486,9 +491,9 @@ export class AnomalyDetector {
     const absZ = Math.abs(zScore)
     if (absZ >= 3) return 0.99
     if (absZ >= 2.5) return 0.95
-    if (absZ >= 2) return 0.90
-    if (absZ >= 1.5) return 0.80
-    return 0.70
+    if (absZ >= 2) return 0.9
+    if (absZ >= 1.5) return 0.8
+    return 0.7
   }
 }
 

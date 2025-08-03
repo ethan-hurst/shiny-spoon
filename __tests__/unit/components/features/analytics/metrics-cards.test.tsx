@@ -85,13 +85,13 @@ describe('MetricsCards', () => {
 
       // Order Accuracy: 90.0% (current period)
       expect(screen.getByText('90.0%')).toBeInTheDocument()
-      
+
       // Revenue Saved: $25k
       expect(screen.getByText('$25k')).toBeInTheDocument()
-      
+
       // Sync Performance: 1.9s (average of 2000ms and 1800ms)
       expect(screen.getByText('1.9s')).toBeInTheDocument()
-      
+
       // Inventory Value: $0.5M (current period)
       expect(screen.getByText('$0.5M')).toBeInTheDocument()
     })
@@ -101,7 +101,7 @@ describe('MetricsCards', () => {
 
       // Order Accuracy: shows current accuracy rate, not change
       expect(screen.getByText('+90.0%')).toBeInTheDocument()
-      
+
       // Revenue Saved: 150 errors prevented
       expect(screen.getByText('150 errors prevented')).toBeInTheDocument()
 
@@ -155,10 +155,10 @@ describe('MetricsCards', () => {
 
       // Should show 0% for order accuracy
       expect(screen.getByText('0.0%')).toBeInTheDocument()
-      
+
       // Should show 0.0s for sync performance
       expect(screen.getByText('0.0s')).toBeInTheDocument()
-      
+
       // Should show $0.0M for inventory value
       expect(screen.getByText('$0.0M')).toBeInTheDocument()
     })
@@ -200,7 +200,9 @@ describe('MetricsCards', () => {
 
       // Should have trending up and down icons
       const trendingUpIcons = document.querySelectorAll('.lucide-trending-up')
-      const trendingDownIcons = document.querySelectorAll('.lucide-trending-down')
+      const trendingDownIcons = document.querySelectorAll(
+        '.lucide-trending-down'
+      )
 
       expect(trendingUpIcons.length).toBeGreaterThan(0)
       expect(trendingDownIcons.length).toBeGreaterThan(0)
@@ -212,7 +214,12 @@ describe('MetricsCards', () => {
       render(<MetricsCards {...defaultProps} />)
 
       const container = screen.getByText('Order Accuracy').closest('.grid')
-      expect(container).toHaveClass('grid', 'gap-4', 'md:grid-cols-2', 'lg:grid-cols-4')
+      expect(container).toHaveClass(
+        'grid',
+        'gap-4',
+        'md:grid-cols-2',
+        'lg:grid-cols-4'
+      )
     })
 
     it('should render cards in correct order', () => {
@@ -229,25 +236,31 @@ describe('MetricsCards', () => {
   describe('Edge Cases', () => {
     it('should handle zero values correctly', () => {
       const zeroProps = {
-        orderAccuracy: [{
-          date: '2024-01-01',
-          totalOrders: 0,
-          accurateOrders: 0,
-          errorCount: 0,
-          accuracyRate: 0,
-        }],
-        syncPerformance: [{
-          date: '2024-01-01',
-          syncCount: 0,
-          avgDuration: 0,
-          successRate: 0,
-        }],
-        inventoryTrends: [{
-          date: '2024-01-01',
-          totalValue: 0,
-          lowStockCount: 0,
-          outOfStockCount: 0,
-        }],
+        orderAccuracy: [
+          {
+            date: '2024-01-01',
+            totalOrders: 0,
+            accurateOrders: 0,
+            errorCount: 0,
+            accuracyRate: 0,
+          },
+        ],
+        syncPerformance: [
+          {
+            date: '2024-01-01',
+            syncCount: 0,
+            avgDuration: 0,
+            successRate: 0,
+          },
+        ],
+        inventoryTrends: [
+          {
+            date: '2024-01-01',
+            totalValue: 0,
+            lowStockCount: 0,
+            outOfStockCount: 0,
+          },
+        ],
         revenueImpact: {
           totalSaved: 0,
           errorsPrevented: 0,
@@ -284,13 +297,15 @@ describe('MetricsCards', () => {
 
     it('should handle negative values correctly', () => {
       const negativeProps = {
-        orderAccuracy: [{
-          date: '2024-01-01',
-          totalOrders: 100,
-          accurateOrders: 50,
-          errorCount: 50,
-          accuracyRate: 50.0,
-        }],
+        orderAccuracy: [
+          {
+            date: '2024-01-01',
+            totalOrders: 100,
+            accurateOrders: 50,
+            errorCount: 50,
+            accuracyRate: 50.0,
+          },
+        ],
         syncPerformance: mockSyncPerformance,
         inventoryTrends: mockInventoryTrends,
         revenueImpact: {

@@ -40,7 +40,7 @@ export function MetricsCards({
 
   const avgSyncTime =
     syncPerformance.reduce((sum, m) => sum + m.avgDuration, 0) /
-    syncPerformance.length || 0
+      syncPerformance.length || 0
   const totalInventoryValue =
     inventoryTrends[inventoryTrends.length - 1]?.totalValue || 0
 

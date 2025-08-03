@@ -2,9 +2,14 @@
 
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { format } from 'date-fns'
+import { CalendarIcon, Loader2 } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -23,24 +28,21 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { createApiKey } from '@/app/actions/api-keys'
-import { CalendarIcon, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { createApiKey } from '@/app/actions/api-keys'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().max(500).optional(),
-  permissions: z.array(z.enum(['read', 'write', 'delete'])).min(1, 'Select at least one permission'),
+  permissions: z
+    .array(z.enum(['read', 'write', 'delete']))
+    .min(1, 'Select at least one permission'),
   expiresAt: z.date().optional(),
 })
 
@@ -50,7 +52,11 @@ interface CreateApiKeyDialogProps {
   onSuccess: (result: { id: string; key: string }) => void
 }
 
-export function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiKeyDialogProps) {
+export function CreateApiKeyDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+}: CreateApiKeyDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -82,13 +88,13 @@ export function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiK
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
-    
+
     const formData = new FormData()
     formData.append('name', values.name)
     if (values.description) {
       formData.append('description', values.description)
     }
-    values.permissions.forEach(perm => formData.append('permissions', perm))
+    values.permissions.forEach((perm) => formData.append('permissions', perm))
     if (values.expiresAt) {
       formData.append('expiresAt', values.expiresAt.toISOString())
     }
@@ -99,7 +105,9 @@ export function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiK
       onSuccess(result)
       form.reset()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create API key')
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create API key'
+      )
     } finally {
       setIsLoading(false)
     }
@@ -114,7 +122,7 @@ export function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiK
             Create a new API key for programmatic access to your data
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -141,7 +149,7 @@ export function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiK
                 <FormItem>
                   <FormLabel>Description (optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Used for syncing inventory data to our warehouse management system"
                       className="resize-none"
                       {...field}
@@ -179,7 +187,10 @@ export function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiK
                                 checked={field.value?.includes(permission.id)}
                                 onCheckedChange={(checked) => {
                                   return checked
-                                    ? field.onChange([...field.value, permission.id])
+                                    ? field.onChange([
+                                        ...field.value,
+                                        permission.id,
+                                      ])
                                     : field.onChange(
                                         field.value?.filter(
                                           (value) => value !== permission.id
@@ -236,9 +247,7 @@ export function CreateApiKeyDialog({ open, onOpenChange, onSuccess }: CreateApiK
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date()
-                        }
+                        disabled={(date) => date < new Date()}
                         initialFocus
                       />
                     </PopoverContent>

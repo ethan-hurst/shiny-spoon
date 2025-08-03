@@ -1,25 +1,25 @@
-import { Card } from '@/components/ui/card'
-import { 
-  ShieldCheck, 
-  Warehouse, 
+import {
+  BarChart,
+  Lock,
+  LucideIcon,
   RefreshCw,
+  ShieldCheck,
   TrendingUp,
   Users,
+  Warehouse,
   Zap,
-  BarChart,
-  Lock
 } from 'lucide-react'
-import { LucideIcon } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 
 const iconMap: Record<string, LucideIcon> = {
   'shield-check': ShieldCheck,
-  'warehouse': Warehouse,
-  'refresh': RefreshCw,
+  warehouse: Warehouse,
+  refresh: RefreshCw,
   'trending-up': TrendingUp,
-  'users': Users,
-  'zap': Zap,
+  users: Users,
+  zap: Zap,
   'bar-chart': BarChart,
-  'lock': Lock,
+  lock: Lock,
 }
 
 interface Benefit {

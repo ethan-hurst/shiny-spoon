@@ -1,4 +1,9 @@
-import { isNotNull, isNotUndefined, isDefined, hasProperty } from '@/lib/type-guards'
+import {
+  hasProperty,
+  isDefined,
+  isNotNull,
+  isNotUndefined,
+} from '@/lib/type-guards'
 
 describe('Type Guards', () => {
   describe('isNotNull', () => {
@@ -125,12 +130,12 @@ describe('Type Guards', () => {
     it('should handle edge cases', () => {
       // Empty object
       expect(hasProperty({}, 'any')).toBe(false)
-      
+
       // Object with null/undefined values
       const obj = { prop: null, undef: undefined }
       expect(hasProperty(obj, 'prop')).toBe(true)
       expect(hasProperty(obj, 'undef')).toBe(true)
-      
+
       // Object with empty string key
       const obj2 = { '': 'empty' }
       expect(hasProperty(obj2, '')).toBe(true)

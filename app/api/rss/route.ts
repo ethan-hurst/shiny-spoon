@@ -1,15 +1,15 @@
-import { generateRssFeed } from '@/lib/rss'
 import { readFileSync } from 'fs'
 import { NextResponse } from 'next/server'
+import { generateRssFeed } from '@/lib/rss'
 
 export async function GET() {
   try {
     // Generate the RSS feed
     await generateRssFeed()
-    
+
     // Read the generated RSS file
     const rssContent = readFileSync('./public/rss.xml', 'utf-8')
-    
+
     // Return the RSS content with appropriate headers
     return new NextResponse(rssContent, {
       headers: {

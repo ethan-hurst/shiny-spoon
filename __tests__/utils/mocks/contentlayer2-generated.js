@@ -9,7 +9,7 @@ module.exports = {
       description: 'Test description 1',
       url: '/blog/test-post-1',
       categories: ['test'],
-      authors: ['Test Author']
+      authors: ['Test Author'],
     },
     {
       _id: 'post-2',
@@ -19,7 +19,7 @@ module.exports = {
       description: 'Test description 2',
       url: '/blog/test-post-2',
       categories: ['test'],
-      authors: ['Test Author']
+      authors: ['Test Author'],
     },
     {
       _id: 'post-3',
@@ -29,7 +29,7 @@ module.exports = {
       description: 'This should not appear',
       url: '/blog/unpublished-post',
       categories: ['test'],
-      authors: ['Test Author']
+      authors: ['Test Author'],
     },
     {
       _id: 'post-4',
@@ -39,9 +39,9 @@ module.exports = {
       description: 'Latest post',
       url: '/blog/post-4',
       categories: [],
-      authors: []
-    }
+      authors: [],
+    },
   ],
   allAuthors: [],
-  allDocuments: []
+  allDocuments: [],
 }

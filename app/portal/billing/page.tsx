@@ -1,16 +1,18 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getSubscription, getInvoices, getPaymentMethods } from '@/lib/billing'
-import { PaymentMethods } from '@/components/portal/billing/payment-methods'
-import { InvoiceHistory } from '@/components/portal/billing/invoice-history'
-import { BillingDetails } from '@/components/portal/billing/billing-details'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
+import { BillingDetails } from '@/components/portal/billing/billing-details'
+import { InvoiceHistory } from '@/components/portal/billing/invoice-history'
+import { PaymentMethods } from '@/components/portal/billing/payment-methods'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { getInvoices, getPaymentMethods, getSubscription } from '@/lib/billing'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function BillingPage() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -27,8 +29,12 @@ export default async function BillingPage() {
     getPaymentMethods(profile.organization_id),
   ])
 
-  const hasActiveSubscription = Boolean(subscription && subscription.id !== 'free')
-  const hasPastDueInvoice = invoices.some(invoice => invoice.status === 'past_due')
+  const hasActiveSubscription = Boolean(
+    subscription && subscription.id !== 'free'
+  )
+  const hasPastDueInvoice = invoices.some(
+    (invoice) => invoice.status === 'past_due'
+  )
 
   return (
     <div className="space-y-8">
@@ -44,25 +50,26 @@ export default async function BillingPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Payment Required</AlertTitle>
           <AlertDescription>
-            You have an overdue invoice. Please update your payment method to avoid service interruption.
+            You have an overdue invoice. Please update your payment method to
+            avoid service interruption.
           </AlertDescription>
         </Alert>
       )}
 
       <div className="grid gap-6">
         {hasActiveSubscription && (
-          <BillingDetails 
+          <BillingDetails
             subscription={subscription}
             organization={profile.organizations}
           />
         )}
 
-        <PaymentMethods 
+        <PaymentMethods
           paymentMethods={paymentMethods}
           hasActiveSubscription={hasActiveSubscription}
         />
 
-        <InvoiceHistory 
+        <InvoiceHistory
           invoices={invoices}
           hasActiveSubscription={hasActiveSubscription}
         />

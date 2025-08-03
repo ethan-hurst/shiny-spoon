@@ -1,8 +1,8 @@
 import React, { ReactElement } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, RenderOptions, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe, toHaveNoViolations } from 'jest-axe'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Extend Jest matchers for accessibility testing
 expect.extend(toHaveNoViolations)
@@ -27,17 +27,12 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div data-testid="test-provider">
-        {children}
-      </div>
+      <div data-testid="test-provider">{children}</div>
     </QueryClientProvider>
   )
 }
 
-const customRender = (
-  ui: ReactElement,
-  options?: CustomRenderOptions
-) => {
+const customRender = (ui: ReactElement, options?: CustomRenderOptions) => {
   return render(ui, { wrapper: AllTheProviders, ...options })
 }
 
@@ -85,7 +80,7 @@ export const testComponentInteractions = (
 ) => {
   it('should handle user interactions correctly', async () => {
     customRender(component)
-    
+
     for (const { action, assertion, description } of interactions) {
       await action()
       assertion()
@@ -101,17 +96,19 @@ export const testFormSubmission = async (
 ) => {
   const user = createUser()
   customRender(formComponent)
-  
+
   // Fill form fields
   for (const [fieldName, value] of Object.entries(submitData)) {
     const field = screen.getByLabelText(new RegExp(fieldName, 'i'))
     await user.type(field, value.toString())
   }
-  
+
   // Submit form
-  const submitButton = screen.getByRole('button', { name: /submit|save|create/i })
+  const submitButton = screen.getByRole('button', {
+    name: /submit|save|create/i,
+  })
   await user.click(submitButton)
-  
+
   // Verify expected behavior
   expectedBehavior()
 }
@@ -127,9 +124,7 @@ export const mockApiResponse = (url: string, response: any) => {
 }
 
 export const mockApiError = (url: string, error: any) => {
-  global.fetch = jest.fn(() =>
-    Promise.reject(error)
-  ) as jest.Mock
+  global.fetch = jest.fn(() => Promise.reject(error)) as jest.Mock
 }
 
 // Error boundary testing
@@ -140,16 +135,16 @@ export const testErrorBoundary = (
 ) => {
   it('should handle errors gracefully', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
-    
+
     customRender(component)
-    
+
     // Trigger error
     errorTrigger()
-    
+
     if (expectedFallback) {
       expect(screen.getByText(expectedFallback)).toBeInTheDocument()
     }
-    
+
     consoleSpy.mockRestore()
   })
 }
@@ -163,7 +158,7 @@ export const testComponentPerformance = (
     const startTime = performance.now()
     customRender(component)
     const endTime = performance.now()
-    
+
     expect(endTime - startTime).toBeLessThan(maxRenderTime)
   })
 }
@@ -202,7 +197,7 @@ export const expectElementToBeDisabled = (element: HTMLElement) => {
 
 // Async testing helpers
 export const waitForElementToBeRemoved = async (element: HTMLElement) => {
-  await new Promise(resolve => {
+  await new Promise((resolve) => {
     const observer = new MutationObserver(() => {
       if (!document.contains(element)) {
         observer.disconnect()
@@ -224,12 +219,12 @@ export const createTestUser = (overrides = {}) => ({
   id: 'test-user-id',
   email: 'test@example.com',
   name: 'Test User',
-  ...overrides
+  ...overrides,
 })
 
 export const createTestProduct = (overrides = {}) => ({
   id: 'test-product-id',
   name: 'Test Product',
   price: 99.99,
-  ...overrides
+  ...overrides,
 })

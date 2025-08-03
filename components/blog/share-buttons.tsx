@@ -1,9 +1,9 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Twitter, Linkedin, Link2, Check } from 'lucide-react'
 import { useState } from 'react'
+import { Check, Link2, Linkedin, Twitter } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 
 interface ShareButtonsProps {
   url: string
@@ -12,10 +12,11 @@ interface ShareButtonsProps {
 
 export function ShareButtons({ url, title }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false)
-  
-  const fullUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}${url}` 
-    : `https://truthsource.io${url}`
+
+  const fullUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}${url}`
+      : `https://truthsource.io${url}`
 
   const shareLinks = {
     twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(fullUrl)}`,

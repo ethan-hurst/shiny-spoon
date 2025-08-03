@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useState } from 'react'
 import {
   AlertCircle,
@@ -172,7 +173,10 @@ export function BulkUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]" aria-describedby="bulk-upload-description">
+      <DialogContent
+        className="sm:max-w-[500px]"
+        aria-describedby="bulk-upload-description"
+      >
         <DialogHeader>
           <DialogTitle>Bulk Update Inventory</DialogTitle>
           <DialogDescription id="bulk-upload-description">
@@ -189,7 +193,12 @@ export function BulkUploadDialog({
                 <span>Download a template to see the required format</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="link" size="sm" className="h-auto p-0" aria-label="Download CSV templates">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0"
+                      aria-label="Download CSV templates"
+                    >
                       <Download className="mr-2 h-4 w-4" aria-hidden="true" />
                       Templates
                     </Button>
@@ -252,7 +261,10 @@ export function BulkUploadDialog({
                   )}
                 </p>
                 {!file && (
-                  <p className="text-xs text-muted-foreground" id="file-upload-help">
+                  <p
+                    className="text-xs text-muted-foreground"
+                    id="file-upload-help"
+                  >
                     CSV files only (max 10MB, 10,000 rows)
                   </p>
                 )}
@@ -343,7 +355,10 @@ export function BulkUploadDialog({
           <Button onClick={handleUpload} disabled={!file || isUploading}>
             {isUploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                <Loader2
+                  className="mr-2 h-4 w-4 animate-spin"
+                  aria-hidden="true"
+                />
                 Uploading...
               </>
             ) : (

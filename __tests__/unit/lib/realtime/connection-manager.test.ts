@@ -1,5 +1,10 @@
 import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
-import { ConnectionQuality, ConnectionState, ConnectionStatus, RealtimeConfig } from '@/lib/realtime/types'
+import {
+  ConnectionQuality,
+  ConnectionState,
+  ConnectionStatus,
+  RealtimeConfig,
+} from '@/lib/realtime/types'
 
 // Mock fetch for ping monitoring
 global.fetch = jest.fn()
@@ -16,7 +21,7 @@ describe('RealtimeConnectionManager', () => {
     reconnectDelay: 1000,
     maxReconnectAttempts: 5,
     conflictResolutionStrategy: 'manual',
-    queuePersistence: 'indexeddb'
+    queuePersistence: 'indexeddb',
   }
 
   beforeEach(() => {
@@ -29,13 +34,13 @@ describe('RealtimeConnectionManager', () => {
     // Mock window events
     Object.defineProperty(window, 'addEventListener', {
       value: jest.fn(),
-      writable: true
+      writable: true,
     })
 
     // Mock navigator.onLine
     Object.defineProperty(navigator, 'onLine', {
       value: true,
-      writable: true
+      writable: true,
     })
 
     // Create fresh instance
@@ -53,14 +58,14 @@ describe('RealtimeConnectionManager', () => {
     it('should return singleton instance', () => {
       const instance1 = RealtimeConnectionManager.getInstance()
       const instance2 = RealtimeConnectionManager.getInstance()
-      
+
       expect(instance1).toBe(instance2)
     })
 
     it('should apply custom configuration', () => {
       const customConfig: Partial<RealtimeConfig> = {
         reconnectDelay: 2000,
-        maxReconnectAttempts: 10
+        maxReconnectAttempts: 10,
       }
 
       const customManager = RealtimeConnectionManager.getInstance(customConfig)
@@ -170,7 +175,7 @@ describe('RealtimeConnectionManager', () => {
         latency: 0,
         lastConnected: null,
         reconnectAttempts: 0,
-        quality: 'poor'
+        quality: 'poor',
       })
     })
 
@@ -189,7 +194,7 @@ describe('RealtimeConnectionManager', () => {
     it('should register and unregister channels', () => {
       const mockChannel = {
         subscribe: jest.fn(),
-        unsubscribe: jest.fn()
+        unsubscribe: jest.fn(),
       } as any
 
       manager.registerChannel('test-channel', mockChannel)
@@ -250,7 +255,7 @@ describe('RealtimeConnectionManager', () => {
         latency: [],
         stability: 100,
         throughput: 0,
-        lastMeasured: expect.any(Date)
+        lastMeasured: expect.any(Date),
       })
     })
 
@@ -289,9 +294,7 @@ describe('RealtimeConnectionManager', () => {
 
     it('should calculate connection quality based on latency', () => {
       // Simulate excellent latency
-      mockFetch.mockImplementation(() => 
-        Promise.resolve({} as Response)
-      )
+      mockFetch.mockImplementation(() => Promise.resolve({} as Response))
 
       // Fast-forward multiple times to build latency history
       for (let i = 0; i < 5; i++) {
@@ -378,9 +381,7 @@ describe('RealtimeConnectionManager', () => {
   describe('stability calculation', () => {
     it('should calculate stability based on latency variance', () => {
       // Simulate consistent low latency
-      mockFetch.mockImplementation(() => 
-        Promise.resolve({} as Response)
-      )
+      mockFetch.mockImplementation(() => Promise.resolve({} as Response))
 
       // Build latency history
       for (let i = 0; i < 10; i++) {
@@ -397,7 +398,7 @@ describe('RealtimeConnectionManager', () => {
       mockFetch.mockImplementation(() => {
         callCount++
         const latency = callCount % 2 === 0 ? 50 : 500 // Alternating high/low latency
-        return new Promise(resolve => 
+        return new Promise((resolve) =>
           setTimeout(() => resolve({} as Response), latency)
         )
       })
@@ -469,7 +470,7 @@ describe('RealtimeConnectionManager', () => {
 
     it('should handle multiple simultaneous subscribers', () => {
       const callbacks = Array.from({ length: 10 }, () => jest.fn())
-      
+
       callbacks.forEach((callback, index) => {
         manager.subscribe(`listener-${index}`, callback)
       })
@@ -477,16 +478,17 @@ describe('RealtimeConnectionManager', () => {
       manager.connect()
       jest.advanceTimersByTime(1000)
 
-      callbacks.forEach(callback => {
+      callbacks.forEach((callback) => {
         expect(callback).toHaveBeenCalled()
       })
     })
 
     it('should handle very high latency', () => {
-      mockFetch.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve({} as Response), 2000)
-        )
+      mockFetch.mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({} as Response), 2000)
+          )
       )
 
       jest.advanceTimersByTime(5000)
@@ -495,4 +497,4 @@ describe('RealtimeConnectionManager', () => {
       expect(status.quality).toBe('poor')
     })
   })
-}) 
+})

@@ -2,25 +2,20 @@
 
 import { useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  CheckCircle,
+  Clock,
+  Copy,
+  Edit,
+  Eye,
+  Key,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Trash2,
+  XCircle,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,24 +26,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { regenerateApiKey, revokeApiKey } from '@/app/actions/api-keys'
 import { CreateApiKeyDialog } from './create-api-key-dialog'
 import { EditApiKeyDialog } from './edit-api-key-dialog'
 import { ViewApiKeyDialog } from './view-api-key-dialog'
-import { revokeApiKey, regenerateApiKey } from '@/app/actions/api-keys'
-import { 
-  Plus, 
-  MoreHorizontal, 
-  Key, 
-  Edit, 
-  RefreshCw, 
-  Trash2,
-  Copy,
-  Eye,
-  Clock,
-  CheckCircle,
-  XCircle
-} from 'lucide-react'
-import { toast } from 'sonner'
 
 interface ApiKey {
   id: string
@@ -69,14 +75,26 @@ interface ApiKeysListProps {
   activeKeyCount: number
 }
 
-export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListProps) {
+export function ApiKeysList({
+  apiKeys,
+  keyLimit,
+  activeKeyCount,
+}: ApiKeysListProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editingKey, setEditingKey] = useState<ApiKey | null>(null)
-  const [viewingKey, setViewingKey] = useState<{ id: string; key?: string } | null>(null)
+  const [viewingKey, setViewingKey] = useState<{
+    id: string
+    key?: string
+  } | null>(null)
   const [revokingKeyId, setRevokingKeyId] = useState<string | null>(null)
-  const [regeneratingKeyId, setRegeneratingKeyId] = useState<string | null>(null)
+  const [regeneratingKeyId, setRegeneratingKeyId] = useState<string | null>(
+    null
+  )
   const [actionDialogOpen, setActionDialogOpen] = useState(false)
-  const [pendingAction, setPendingAction] = useState<{ type: 'revoke' | 'regenerate'; keyId: string } | null>(null)
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'revoke' | 'regenerate'
+    keyId: string
+  } | null>(null)
 
   const canCreateMore = keyLimit === -1 || activeKeyCount < keyLimit
 
@@ -124,14 +142,21 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
   }
 
   const getPermissionBadge = (permission: string) => {
-    const variants: Record<string, 'secondary' | 'default' | 'destructive' | 'outline'> = {
+    const variants: Record<
+      string,
+      'secondary' | 'default' | 'destructive' | 'outline'
+    > = {
       read: 'secondary',
       write: 'default',
       delete: 'destructive',
     }
-    
+
     return (
-      <Badge key={permission} variant={variants[permission] || 'outline'} className="text-xs">
+      <Badge
+        key={permission}
+        variant={variants[permission] || 'outline'}
+        className="text-xs"
+      >
         {permission}
       </Badge>
     )
@@ -149,10 +174,11 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
             <div>
               <CardTitle>API Keys</CardTitle>
               <CardDescription>
-                {activeKeyCount} of {keyLimit === -1 ? 'unlimited' : keyLimit} keys in use
+                {activeKeyCount} of {keyLimit === -1 ? 'unlimited' : keyLimit}{' '}
+                keys in use
               </CardDescription>
             </div>
-            <Button 
+            <Button
               onClick={() => setCreateDialogOpen(true)}
               disabled={!canCreateMore}
             >
@@ -191,7 +217,10 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
                     const isInactive = !apiKey.is_active || expired
 
                     return (
-                      <TableRow key={apiKey.id} className={isInactive ? 'opacity-60' : ''}>
+                      <TableRow
+                        key={apiKey.id}
+                        className={isInactive ? 'opacity-60' : ''}
+                      >
                         <TableCell>
                           <div>
                             <p className="font-medium">{apiKey.name}</p>
@@ -219,31 +248,47 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {apiKey.permissions.map(perm => getPermissionBadge(perm))}
+                            {apiKey.permissions.map((perm) =>
+                              getPermissionBadge(perm)
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
                           {apiKey.last_used_at ? (
                             <span className="text-sm">
-                              {formatDistanceToNow(new Date(apiKey.last_used_at), { addSuffix: true })}
+                              {formatDistanceToNow(
+                                new Date(apiKey.last_used_at),
+                                { addSuffix: true }
+                              )}
                             </span>
                           ) : (
-                            <span className="text-sm text-muted-foreground">Never</span>
+                            <span className="text-sm text-muted-foreground">
+                              Never
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>
                           {apiKey.revoked_at ? (
-                            <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1 w-fit"
+                            >
                               <XCircle className="h-3 w-3" />
                               Revoked
                             </Badge>
                           ) : expired ? (
-                            <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1 w-fit"
+                            >
                               <Clock className="h-3 w-3" />
                               Expired
                             </Badge>
                           ) : (
-                            <Badge variant="default" className="flex items-center gap-1 w-fit">
+                            <Badge
+                              variant="default"
+                              className="flex items-center gap-1 w-fit"
+                            >
                               <CheckCircle className="h-3 w-3" />
                               Active
                             </Badge>
@@ -252,7 +297,11 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -267,16 +316,26 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => openActionDialog('regenerate', apiKey.id)}
-                                disabled={!apiKey.is_active || regeneratingKeyId === apiKey.id}
+                                onClick={() =>
+                                  openActionDialog('regenerate', apiKey.id)
+                                }
+                                disabled={
+                                  !apiKey.is_active ||
+                                  regeneratingKeyId === apiKey.id
+                                }
                               >
                                 <RefreshCw className="h-4 w-4 mr-2" />
                                 Regenerate
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onClick={() => openActionDialog('revoke', apiKey.id)}
-                                disabled={!apiKey.is_active || revokingKeyId === apiKey.id}
+                                onClick={() =>
+                                  openActionDialog('revoke', apiKey.id)
+                                }
+                                disabled={
+                                  !apiKey.is_active ||
+                                  revokingKeyId === apiKey.id
+                                }
                                 className="text-destructive"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
@@ -296,16 +355,18 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
           {!canCreateMore && apiKeys.length > 0 && (
             <div className="mt-4 text-center">
               <p className="text-sm text-muted-foreground">
-                You've reached the API key limit for your plan. 
-                <a href="/portal/subscription" className="underline ml-1">Upgrade to create more</a>
+                You've reached the API key limit for your plan.
+                <a href="/portal/subscription" className="underline ml-1">
+                  Upgrade to create more
+                </a>
               </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <CreateApiKeyDialog 
-        open={createDialogOpen} 
+      <CreateApiKeyDialog
+        open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSuccess={(result) => {
           setViewingKey(result)
@@ -334,19 +395,24 @@ export function ApiKeysList({ apiKeys, keyLimit, activeKeyCount }: ApiKeysListPr
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {pendingAction?.type === 'revoke' ? 'Revoke API Key' : 'Regenerate API Key'}
+              {pendingAction?.type === 'revoke'
+                ? 'Revoke API Key'
+                : 'Regenerate API Key'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingAction?.type === 'revoke' 
+              {pendingAction?.type === 'revoke'
                 ? 'Are you sure you want to revoke this API key? Any applications using this key will immediately lose access.'
-                : 'Are you sure you want to regenerate this API key? The current key will be revoked and a new one will be created.'
-              }
+                : 'Are you sure you want to regenerate this API key? The current key will be revoked and a new one will be created.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={pendingAction?.type === 'revoke' ? handleRevoke : handleRegenerate}
+            <AlertDialogAction
+              onClick={
+                pendingAction?.type === 'revoke'
+                  ? handleRevoke
+                  : handleRegenerate
+              }
             >
               {pendingAction?.type === 'revoke' ? 'Revoke' : 'Regenerate'}
             </AlertDialogAction>

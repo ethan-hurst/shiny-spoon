@@ -1,7 +1,13 @@
 // types/reports.types.ts
 import { z } from 'zod'
 
-export type ComponentType = 'chart' | 'table' | 'metric' | 'text' | 'image' | 'filter'
+export type ComponentType =
+  | 'chart'
+  | 'table'
+  | 'metric'
+  | 'text'
+  | 'image'
+  | 'filter'
 export type ExportFormat = 'csv' | 'excel' | 'pdf'
 export type AccessLevel = 'private' | 'team' | 'organization'
 

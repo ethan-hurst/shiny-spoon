@@ -58,7 +58,7 @@ jest.mock('@supabase/supabase-js', () => ({
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
       upsert: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnThis()
+        eq: jest.fn().mockReturnThis(),
       }),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
@@ -81,7 +81,7 @@ jest.mock('@supabase/ssr', () => ({
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
       upsert: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnThis()
+        eq: jest.fn().mockReturnThis(),
       }),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
@@ -100,7 +100,7 @@ jest.mock('@supabase/ssr', () => ({
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
       upsert: jest.fn().mockReturnValue({
-        eq: jest.fn().mockReturnThis()
+        eq: jest.fn().mockReturnThis(),
       }),
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
@@ -160,16 +160,18 @@ jest.mock('crypto', () => ({
           let hash = 0
           for (let i = 0; i < input.length; i++) {
             const char = input.charCodeAt(i)
-            hash = ((hash << 5) - hash) + char
+            hash = (hash << 5) - hash + char
             hash = hash & hash
           }
           const hashString = Math.abs(hash).toString(16).padStart(8, '0')
-          return format === 'base64' ? Buffer.from(hashString).toString('base64') : hashString
-        })
+          return format === 'base64'
+            ? Buffer.from(hashString).toString('base64')
+            : hashString
+        }),
       }
       return mockHmac
     }),
-    digest: jest.fn()
+    digest: jest.fn(),
   })),
   createHash: jest.fn((algorithm) => {
     const mockHash = {
@@ -183,18 +185,21 @@ jest.mock('crypto', () => ({
         let hash = 0
         for (let i = 0; i < input.length; i++) {
           const char = input.charCodeAt(i)
-          hash = ((hash << 5) - hash) + char
+          hash = (hash << 5) - hash + char
           hash = hash & hash
         }
-        const uniqueHash = Math.abs(hash).toString(16).padStart(8, '0') + 
-                          input.length.toString(16).padStart(4, '0') +
-                          (input.charCodeAt(0) || 0).toString(16).padStart(4, '0') +
-                          (input.charCodeAt(Math.floor(input.length / 2)) || 0).toString(16).padStart(4, '0')
+        const uniqueHash =
+          Math.abs(hash).toString(16).padStart(8, '0') +
+          input.length.toString(16).padStart(4, '0') +
+          (input.charCodeAt(0) || 0).toString(16).padStart(4, '0') +
+          (input.charCodeAt(Math.floor(input.length / 2)) || 0)
+            .toString(16)
+            .padStart(4, '0')
         return uniqueHash.padStart(64, '0')
       }),
-      _data: ''
+      _data: '',
     }
-    
+
     return mockHash
   }),
   timingSafeEqual: jest.fn((a, b) => {
@@ -204,15 +209,19 @@ jest.mock('crypto', () => ({
     return aStr === bStr
   }),
   subtle: {
-    importKey: jest.fn().mockImplementation(async (format, keyData, algorithm, extractable, keyUsages) => {
-      // Return a mock key object that can be used by the sign method
-      return {
-        algorithm,
-        extractable,
-        keyUsages,
-        type: 'secret'
-      }
-    }),
+    importKey: jest
+      .fn()
+      .mockImplementation(
+        async (format, keyData, algorithm, extractable, keyUsages) => {
+          // Return a mock key object that can be used by the sign method
+          return {
+            algorithm,
+            extractable,
+            keyUsages,
+            type: 'secret',
+          }
+        }
+      ),
     sign: jest.fn().mockImplementation(async (algorithm, key, data) => {
       // Create a deterministic signature based on the data
       const hashArray = new Uint8Array(32)
@@ -253,15 +262,19 @@ global.crypto = {
     return array
   }),
   subtle: {
-    importKey: jest.fn().mockImplementation(async (format, keyData, algorithm, extractable, keyUsages) => {
-      // Return a mock key object that can be used by the sign method
-      return {
-        algorithm,
-        extractable,
-        keyUsages,
-        type: 'secret'
-      }
-    }),
+    importKey: jest
+      .fn()
+      .mockImplementation(
+        async (format, keyData, algorithm, extractable, keyUsages) => {
+          // Return a mock key object that can be used by the sign method
+          return {
+            algorithm,
+            extractable,
+            keyUsages,
+            type: 'secret',
+          }
+        }
+      ),
     sign: jest.fn().mockImplementation(async (algorithm, key, data) => {
       // Create a deterministic signature based on the data
       const hashArray = new Uint8Array(32)
@@ -291,18 +304,20 @@ const MockRatelimit = jest.fn().mockImplementation(() => ({
     success: true,
     limit: 10,
     remaining: 9,
-    reset: Date.now() + 60000
+    reset: Date.now() + 60000,
   }),
   reset: jest.fn(),
   blockUntilReady: jest.fn(),
-  getRemaining: jest.fn()
+  getRemaining: jest.fn(),
 }))
 
-MockRatelimit.slidingWindow = jest.fn().mockReturnValue('sliding-window-limiter')
+MockRatelimit.slidingWindow = jest
+  .fn()
+  .mockReturnValue('sliding-window-limiter')
 
 jest.mock('@upstash/ratelimit', () => ({
   Ratelimit: MockRatelimit,
-  slidingWindow: MockRatelimit.slidingWindow
+  slidingWindow: MockRatelimit.slidingWindow,
 }))
 
 // Mock @upstash/redis
@@ -315,7 +330,7 @@ jest.mock('@upstash/redis', () => ({
     expire: jest.fn(),
     incr: jest.fn(),
     decr: jest.fn(),
-    fromEnv: jest.fn()
+    fromEnv: jest.fn(),
   })),
   fromEnv: jest.fn().mockImplementation(() => ({
     get: jest.fn(),
@@ -324,8 +339,8 @@ jest.mock('@upstash/redis', () => ({
     exists: jest.fn(),
     expire: jest.fn(),
     incr: jest.fn(),
-    decr: jest.fn()
-  }))
+    decr: jest.fn(),
+  })),
 }))
 
 // Mock NextResponse for Next.js API routes
@@ -372,7 +387,7 @@ jest.mock('next/server', () => {
         this.headers = new Map(Object.entries(init?.headers || {}))
       }
     },
-    NextResponse: MockNextResponse
+    NextResponse: MockNextResponse,
   }
 })
 
@@ -415,14 +430,14 @@ global.Request = class {
         value: input,
         writable: false,
         enumerable: true,
-        configurable: true
+        configurable: true,
       })
     } else if (input && typeof input.url === 'string') {
       Object.defineProperty(this, 'url', {
         value: input.url,
         writable: false,
         enumerable: true,
-        configurable: true
+        configurable: true,
       })
     }
     this.method = init.method || 'GET'

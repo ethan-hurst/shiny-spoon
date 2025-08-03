@@ -17,7 +17,12 @@ export function PresenceDisplay({
   if (totalActive === 0) return null
 
   return (
-    <div className="flex items-center gap-3" role="status" aria-live="polite" aria-atomic="true">
+    <div
+      className="flex items-center gap-3"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
       <span className="text-sm text-muted-foreground">
         {totalActive} {totalActive === 1 ? 'person' : 'people'} viewing
       </span>

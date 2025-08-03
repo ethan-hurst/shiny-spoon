@@ -1,11 +1,11 @@
 import { AlertManager } from '@/lib/monitoring/alert-manager'
-import { createAdminClient } from '@/lib/supabase/admin'
 import type {
+  Alert,
   AlertConfig,
   AlertRule,
-  Alert,
   DiscrepancyResult,
 } from '@/lib/monitoring/types'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // Mock dependencies
 jest.mock('@/lib/supabase/admin')
@@ -13,7 +13,7 @@ jest.mock('@/lib/supabase/admin')
 describe('AlertManager', () => {
   let alertManager: AlertManager
   let mockSupabase: ReturnType<typeof createMockSupabase>
-  
+
   const mockAlertRule: AlertRule = {
     id: 'rule-123',
     organizationId: 'org-123',
@@ -31,7 +31,7 @@ describe('AlertManager', () => {
     escalationPolicy: {},
     createdAt: new Date('2024-01-15T10:00:00Z'),
     updatedAt: new Date('2024-01-15T10:00:00Z'),
-    createdBy: 'user-123'
+    createdBy: 'user-123',
   }
 
   const mockAlert: Alert = {
@@ -44,12 +44,12 @@ describe('AlertManager', () => {
     triggeredBy: 'threshold',
     triggerValue: {
       accuracy_score: 85,
-      discrepancy_count: 75
+      discrepancy_count: 75,
     },
     accuracyCheckId: 'check-123',
     status: 'active',
     notificationsSent: {},
-    createdAt: new Date('2024-01-15T12:00:00Z')
+    createdAt: new Date('2024-01-15T12:00:00Z'),
   }
 
   const mockDiscrepancies: DiscrepancyResult[] = [
@@ -61,7 +61,7 @@ describe('AlertManager', () => {
       targetValue: 95,
       discrepancyType: 'mismatch',
       severity: 'high',
-      confidence: 0.95
+      confidence: 0.95,
     },
     {
       entityType: 'pricing',
@@ -71,16 +71,16 @@ describe('AlertManager', () => {
       targetValue: null,
       discrepancyType: 'missing',
       severity: 'critical',
-      confidence: 1.0
-    }
+      confidence: 1.0,
+    },
   ]
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     mockSupabase = createMockSupabase()
     ;(createAdminClient as jest.Mock).mockReturnValue(mockSupabase)
-    
+
     alertManager = new AlertManager()
   })
 
@@ -94,8 +94,8 @@ describe('AlertManager', () => {
       metadata: {
         threshold_type: 'accuracy',
         threshold_value: 90,
-        actual_value: 85
-      }
+        actual_value: 85,
+      },
     }
 
     it('should create alert successfully', async () => {
@@ -106,10 +106,10 @@ describe('AlertManager', () => {
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: mockAlertRule,
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'alerts') {
@@ -118,20 +118,20 @@ describe('AlertManager', () => {
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: mockAlert,
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'notification_log') {
           return {
-            insert: jest.fn().mockResolvedValue({ data: null, error: null })
+            insert: jest.fn().mockResolvedValue({ data: null, error: null }),
           } as any
         }
         if (table === 'remediation_queue') {
           return {
-            insert: jest.fn().mockResolvedValue({ data: null, error: null })
+            insert: jest.fn().mockResolvedValue({ data: null, error: null }),
           } as any
         }
         return {} as any
@@ -152,10 +152,10 @@ describe('AlertManager', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: null,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const alertId = await alertManager.createAlert(mockConfig)
@@ -171,10 +171,10 @@ describe('AlertManager', () => {
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: mockAlertRule,
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'alerts') {
@@ -183,10 +183,10 @@ describe('AlertManager', () => {
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: null,
-                  error: { message: 'Database error' }
-                })
-              })
-            })
+                  error: { message: 'Database error' },
+                }),
+              }),
+            }),
           } as any
         }
         return {} as any
@@ -209,10 +209,14 @@ describe('AlertManager', () => {
 
     it('should calculate severity correctly', async () => {
       const testCases = [
-        { accuracyScore: 75, discrepancyCount: 150, expectedSeverity: 'critical' },
+        {
+          accuracyScore: 75,
+          discrepancyCount: 150,
+          expectedSeverity: 'critical',
+        },
         { accuracyScore: 85, discrepancyCount: 75, expectedSeverity: 'high' },
         { accuracyScore: 92, discrepancyCount: 30, expectedSeverity: 'medium' },
-        { accuracyScore: 96, discrepancyCount: 10, expectedSeverity: 'low' }
+        { accuracyScore: 96, discrepancyCount: 10, expectedSeverity: 'low' },
       ]
 
       for (const testCase of testCases) {
@@ -220,9 +224,9 @@ describe('AlertManager', () => {
           select: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: { ...mockAlert, id: `alert-${testCase.expectedSeverity}` },
-              error: null
-            })
-          })
+              error: null,
+            }),
+          }),
         })
 
         mockSupabase.from.mockImplementation((table: string) => {
@@ -232,22 +236,24 @@ describe('AlertManager', () => {
                 eq: jest.fn().mockReturnValue({
                   single: jest.fn().mockResolvedValue({
                     data: { ...mockAlertRule, severity_threshold: 'low' },
-                    error: null
-                  })
-                })
-              })
+                    error: null,
+                  }),
+                }),
+              }),
             } as any
           }
           if (table === 'alerts') {
             return { insert: mockInsert } as any
           }
-          return { insert: jest.fn().mockResolvedValue({ data: null, error: null }) } as any
+          return {
+            insert: jest.fn().mockResolvedValue({ data: null, error: null }),
+          } as any
         })
 
         await alertManager.createAlert({
           ...mockConfig,
           accuracyScore: testCase.accuracyScore,
-          discrepancyCount: testCase.discrepancyCount
+          discrepancyCount: testCase.discrepancyCount,
         })
 
         const insertCall = mockInsert.mock.calls[0][0]
@@ -260,9 +266,9 @@ describe('AlertManager', () => {
         select: jest.fn().mockReturnValue({
           single: jest.fn().mockResolvedValue({
             data: mockAlert,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       })
 
       mockSupabase.from.mockImplementation((table: string) => {
@@ -272,16 +278,18 @@ describe('AlertManager', () => {
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: mockAlertRule,
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'alerts') {
           return { insert: mockInsert } as any
         }
-        return { insert: jest.fn().mockResolvedValue({ data: null, error: null }) } as any
+        return {
+          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
+        } as any
       })
 
       await alertManager.createAlert({
@@ -289,14 +297,16 @@ describe('AlertManager', () => {
         metadata: {
           affected_products: 25,
           sync_latency_ms: 1500,
-          last_successful_sync: '2024-01-15T11:00:00Z'
-        }
+          last_successful_sync: '2024-01-15T11:00:00Z',
+        },
       })
 
       const insertCall = mockInsert.mock.calls[0][0]
       expect(insertCall.message).toContain('Affected Products: 25')
       expect(insertCall.message).toContain('Sync Latency Ms: 1500')
-      expect(insertCall.message).toContain('Last Successful Sync: 2024-01-15T11:00:00Z')
+      expect(insertCall.message).toContain(
+        'Last Successful Sync: 2024-01-15T11:00:00Z'
+      )
     })
   })
 
@@ -312,10 +322,10 @@ describe('AlertManager', () => {
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: { organization_id: 'org-123' },
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'alert_rules') {
@@ -324,10 +334,10 @@ describe('AlertManager', () => {
               eq: jest.fn().mockReturnValue({
                 eq: jest.fn().mockResolvedValue({
                   data: [mockAlertRule],
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'alerts') {
@@ -338,26 +348,32 @@ describe('AlertManager', () => {
                   order: jest.fn().mockReturnValue({
                     limit: jest.fn().mockResolvedValue({
                       data: [],
-                      error: null
-                    })
-                  })
-                })
-              })
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
             }),
             insert: jest.fn().mockReturnValue({
               select: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: mockAlert,
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
-        return { insert: jest.fn().mockResolvedValue({ data: null, error: null }) } as any
+        return {
+          insert: jest.fn().mockResolvedValue({ data: null, error: null }),
+        } as any
       })
 
-      const alertIds = await alertManager.evaluateAlertRules(checkId, accuracyScore, mockDiscrepancies)
+      const alertIds = await alertManager.evaluateAlertRules(
+        checkId,
+        accuracyScore,
+        mockDiscrepancies
+      )
 
       expect(alertIds).toHaveLength(1)
       expect(alertIds[0]).toBe('alert-123')
@@ -371,10 +387,10 @@ describe('AlertManager', () => {
               eq: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: { organization_id: 'org-123' },
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'alert_rules') {
@@ -383,16 +399,20 @@ describe('AlertManager', () => {
               eq: jest.fn().mockReturnValue({
                 eq: jest.fn().mockResolvedValue({
                   data: [{ ...mockAlertRule, isActive: false }],
-                  error: null
-                })
-              })
-            })
+                  error: null,
+                }),
+              }),
+            }),
           } as any
         }
         return {} as any
       })
 
-      const alertIds = await alertManager.evaluateAlertRules(checkId, accuracyScore, mockDiscrepancies)
+      const alertIds = await alertManager.evaluateAlertRules(
+        checkId,
+        accuracyScore,
+        mockDiscrepancies
+      )
 
       expect(alertIds).toHaveLength(0)
     })
@@ -403,13 +423,17 @@ describe('AlertManager', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: null,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
-      const alertIds = await alertManager.evaluateAlertRules(checkId, accuracyScore, mockDiscrepancies)
+      const alertIds = await alertManager.evaluateAlertRules(
+        checkId,
+        accuracyScore,
+        mockDiscrepancies
+      )
 
       expect(alertIds).toHaveLength(0)
     })
@@ -419,7 +443,11 @@ describe('AlertManager', () => {
         throw new Error('Database error')
       })
 
-      const alertIds = await alertManager.evaluateAlertRules(checkId, accuracyScore, mockDiscrepancies)
+      const alertIds = await alertManager.evaluateAlertRules(
+        checkId,
+        accuracyScore,
+        mockDiscrepancies
+      )
 
       expect(alertIds).toHaveLength(0)
     })
@@ -434,12 +462,12 @@ describe('AlertManager', () => {
               order: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
                   data: [],
-                  error: null
-                })
-              })
-            })
-          })
-        })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const result = await (alertManager as any).shouldTriggerAlert(
@@ -461,12 +489,12 @@ describe('AlertManager', () => {
               order: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
                   data: [],
-                  error: null
-                })
-              })
-            })
-          })
-        })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const manyDiscrepancies = Array(60).fill(mockDiscrepancies[0])
@@ -490,12 +518,12 @@ describe('AlertManager', () => {
               order: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
                   data: [],
-                  error: null
-                })
-              })
-            })
-          })
-        })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const result = await (alertManager as any).shouldTriggerAlert(
@@ -505,13 +533,15 @@ describe('AlertManager', () => {
       )
 
       expect(result.trigger).toBe(true)
-      expect(result.reason).toContain('discrepancies at or above high severity detected')
+      expect(result.reason).toContain(
+        'discrepancies at or above high severity detected'
+      )
       expect(result.metadata.threshold_type).toBe('severity')
     })
 
     it('should suppress alerts within frequency limit', async () => {
       const recentAlert = {
-        created_at: new Date(Date.now() - 1800 * 1000).toISOString() // 30 minutes ago
+        created_at: new Date(Date.now() - 1800 * 1000).toISOString(), // 30 minutes ago
       }
 
       mockSupabase.from.mockReturnValue({
@@ -521,12 +551,12 @@ describe('AlertManager', () => {
               order: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
                   data: [recentAlert],
-                  error: null
-                })
-              })
-            })
-          })
-        })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const result = await (alertManager as any).shouldTriggerAlert(
@@ -547,17 +577,17 @@ describe('AlertManager', () => {
               order: jest.fn().mockReturnValue({
                 limit: jest.fn().mockResolvedValue({
                   data: [],
-                  error: null
-                })
-              })
-            })
-          })
-        })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const inventoryOnlyDiscrepancies = Array(60).fill({
         ...mockDiscrepancies[0],
-        entityType: 'inventory'
+        entityType: 'inventory',
       })
 
       const result = await (alertManager as any).shouldTriggerAlert(
@@ -577,12 +607,15 @@ describe('AlertManager', () => {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             data: null,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       } as any)
 
-      const result = await alertManager.acknowledgeAlert('alert-123', 'user-456')
+      const result = await alertManager.acknowledgeAlert(
+        'alert-123',
+        'user-456'
+      )
 
       expect(result).toBe(true)
       expect(mockSupabase.from).toHaveBeenCalledWith('alerts')
@@ -593,12 +626,15 @@ describe('AlertManager', () => {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             data: null,
-            error: { message: 'Update failed' }
-          })
-        })
+            error: { message: 'Update failed' },
+          }),
+        }),
       } as any)
 
-      const result = await alertManager.acknowledgeAlert('alert-123', 'user-456')
+      const result = await alertManager.acknowledgeAlert(
+        'alert-123',
+        'user-456'
+      )
 
       expect(result).toBe(false)
     })
@@ -610,9 +646,9 @@ describe('AlertManager', () => {
         update: jest.fn().mockReturnValue({
           eq: jest.fn().mockResolvedValue({
             data: null,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       } as any)
 
       const result = await alertManager.resolveAlert('alert-123')
@@ -627,12 +663,12 @@ describe('AlertManager', () => {
       const mockUpdate = jest.fn().mockReturnValue({
         eq: jest.fn().mockResolvedValue({
           data: null,
-          error: null
-        })
+          error: null,
+        }),
       })
 
       mockSupabase.from.mockReturnValue({
-        update: mockUpdate
+        update: mockUpdate,
       } as any)
 
       const result = await alertManager.snoozeAlert('alert-123', snoozeUntil)
@@ -648,7 +684,7 @@ describe('AlertManager', () => {
     it('should retrieve active and acknowledged alerts', async () => {
       const mockAlerts = [
         { ...mockAlert, status: 'active' },
-        { ...mockAlert, id: 'alert-456', status: 'acknowledged' }
+        { ...mockAlert, id: 'alert-456', status: 'acknowledged' },
       ]
 
       mockSupabase.from.mockReturnValue({
@@ -657,11 +693,11 @@ describe('AlertManager', () => {
             in: jest.fn().mockReturnValue({
               order: jest.fn().mockResolvedValue({
                 data: mockAlerts,
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const alerts = await alertManager.getActiveAlerts('org-123')
@@ -678,11 +714,11 @@ describe('AlertManager', () => {
             in: jest.fn().mockReturnValue({
               order: jest.fn().mockResolvedValue({
                 data: null,
-                error: { message: 'Query failed' }
-              })
-            })
-          })
-        })
+                error: { message: 'Query failed' },
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const alerts = await alertManager.getActiveAlerts('org-123')
@@ -693,34 +729,38 @@ describe('AlertManager', () => {
 
   describe('getAlertHistory', () => {
     it('should return paginated alert history with total count', async () => {
-      const mockAlerts = Array(5).fill(null).map((_, i) => ({
-        ...mockAlert,
-        id: `alert-${i}`,
-        created_at: new Date(Date.now() - i * 3600000).toISOString()
-      }))
+      const mockAlerts = Array(5)
+        .fill(null)
+        .map((_, i) => ({
+          ...mockAlert,
+          id: `alert-${i}`,
+          created_at: new Date(Date.now() - i * 3600000).toISOString(),
+        }))
 
       mockSupabase.from.mockImplementation((table: string) => {
         return {
-          select: jest.fn().mockImplementation((columns: string, options?: any) => {
-            if (options?.count === 'exact' && options?.head === true) {
-              return {
-                eq: jest.fn().mockResolvedValue({
-                  count: 100,
-                  error: null
-                })
+          select: jest
+            .fn()
+            .mockImplementation((columns: string, options?: any) => {
+              if (options?.count === 'exact' && options?.head === true) {
+                return {
+                  eq: jest.fn().mockResolvedValue({
+                    count: 100,
+                    error: null,
+                  }),
+                }
               }
-            }
-            return {
-              eq: jest.fn().mockReturnValue({
-                order: jest.fn().mockReturnValue({
-                  range: jest.fn().mockResolvedValue({
-                    data: mockAlerts,
-                    error: null
-                  })
-                })
-              })
-            }
-          })
+              return {
+                eq: jest.fn().mockReturnValue({
+                  order: jest.fn().mockReturnValue({
+                    range: jest.fn().mockResolvedValue({
+                      data: mockAlerts,
+                      error: null,
+                    }),
+                  }),
+                }),
+              }
+            }),
         } as any
       })
 
@@ -738,20 +778,20 @@ describe('AlertManager', () => {
           id: 'alert-123',
           metadata: {
             snoozed_until: new Date(Date.now() - 3600000).toISOString(),
-            other_data: 'preserved'
-          }
+            other_data: 'preserved',
+          },
         },
         {
           id: 'alert-456',
           metadata: {
-            snoozed_until: new Date(Date.now() - 7200000).toISOString()
-          }
-        }
+            snoozed_until: new Date(Date.now() - 7200000).toISOString(),
+          },
+        },
       ]
 
       const mockUpdate = jest.fn().mockResolvedValue({
         data: null,
-        error: null
+        error: null,
       })
 
       mockSupabase.from.mockImplementation((table: string) => {
@@ -761,13 +801,13 @@ describe('AlertManager', () => {
               eq: jest.fn().mockReturnValue({
                 lte: jest.fn().mockResolvedValue({
                   data: expiredAlerts,
-                  error: null
-                })
-              })
+                  error: null,
+                }),
+              }),
             }),
             update: jest.fn().mockReturnValue({
-              eq: mockUpdate
-            })
+              eq: mockUpdate,
+            }),
           } as any
         }
         return {} as any
@@ -776,10 +816,11 @@ describe('AlertManager', () => {
       await alertManager.processSnoozeExpirations()
 
       expect(mockUpdate).toHaveBeenCalledTimes(2)
-      
+
       // Check first alert update preserves other metadata
       expect(mockUpdate).toHaveBeenCalledWith('id', 'alert-123')
-      const firstUpdateCall = mockSupabase.from('alerts').update.mock.calls[0][0]
+      const firstUpdateCall =
+        mockSupabase.from('alerts').update.mock.calls[0][0]
       expect(firstUpdateCall.status).toBe('active')
       expect(firstUpdateCall.metadata.other_data).toBe('preserved')
       expect(firstUpdateCall.metadata.snoozed_until).toBeUndefined()
@@ -791,10 +832,10 @@ describe('AlertManager', () => {
           eq: jest.fn().mockReturnValue({
             lte: jest.fn().mockResolvedValue({
               data: [],
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       await alertManager.processSnoozeExpirations()
@@ -808,14 +849,16 @@ describe('AlertManager', () => {
           eq: jest.fn().mockReturnValue({
             lte: jest.fn().mockResolvedValue({
               data: null,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       // Should not throw
-      await expect(alertManager.processSnoozeExpirations()).resolves.toBeUndefined()
+      await expect(
+        alertManager.processSnoozeExpirations()
+      ).resolves.toBeUndefined()
     })
   })
 
@@ -825,7 +868,7 @@ describe('AlertManager', () => {
         { input: 'affected_products', expected: 'Affected Products' },
         { input: 'sync_latency_ms', expected: 'Sync Latency Ms' },
         { input: 'single_word', expected: 'Single Word' },
-        { input: 'UPPERCASE_KEY', expected: 'UPPERCASE KEY' }
+        { input: 'UPPERCASE_KEY', expected: 'UPPERCASE KEY' },
       ]
 
       for (const testCase of testCases) {
@@ -840,6 +883,6 @@ describe('AlertManager', () => {
 function createMockSupabase() {
   return {
     from: jest.fn(),
-    rpc: jest.fn()
+    rpc: jest.fn(),
   }
 }

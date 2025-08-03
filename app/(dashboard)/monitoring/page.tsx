@@ -1,12 +1,18 @@
 // PRP-016: Data Accuracy Monitor - Dashboard Page
 import { Suspense } from 'react'
 import { Metadata } from 'next'
-import { PerformanceDashboard } from '@/components/features/monitoring/performance-dashboard'
-import { AlertHealthMonitor } from '@/components/features/monitoring/alert-health-monitor'
-import { SyncHealthMonitor } from '@/components/features/sync/sync-health-monitor'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Activity, AlertTriangle, Database } from 'lucide-react'
+import { AlertHealthMonitor } from '@/components/features/monitoring/alert-health-monitor'
+import { PerformanceDashboard } from '@/components/features/monitoring/performance-dashboard'
+import { SyncHealthMonitor } from '@/components/features/sync/sync-health-monitor'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export const metadata: Metadata = {
   title: 'Monitoring - TruthSource',
@@ -25,7 +31,10 @@ export default function MonitoringPage() {
 
       <Tabs defaultValue="performance" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="performance" className="flex items-center space-x-2">
+          <TabsTrigger
+            value="performance"
+            className="flex items-center space-x-2"
+          >
             <Activity className="h-4 w-4" />
             <span>Performance</span>
           </TabsTrigger>

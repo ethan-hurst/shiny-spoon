@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimiters, withAPIRateLimit } from '@/lib/rate-limit'
 import { createClient } from '@/lib/supabase/server'
-import { withAPIRateLimit } from '@/lib/rate-limit'
-import { rateLimiters } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createClient()
-    
+
     // Get query parameters
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
@@ -28,7 +27,8 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = supabase
       .from('products')
-      .select(`
+      .select(
+        `
         id,
         sku,
         name,
@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
         metadata,
         created_at,
         updated_at
-      `)
+      `
+      )
       .eq('organization_id', 'current') // Will be set by RLS
 
     // Apply filters
@@ -54,7 +55,9 @@ export async function GET(request: NextRequest) {
       query = query.eq('active', active === 'true')
     }
     if (search) {
-      query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%,description.ilike.%${search}%`)
+      query = query.or(
+        `name.ilike.%${search}%,sku.ilike.%${search}%,description.ilike.%${search}%`
+      )
     }
 
     // Get total count for pagination
@@ -74,22 +77,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data for API response
-    const transformedProducts = products?.map(product => ({
-      id: product.id,
-      sku: product.sku,
-      name: product.name,
-      description: product.description,
-      category: product.category,
-      basePrice: product.base_price,
-      cost: product.cost,
-      weight: product.weight,
-      dimensions: product.dimensions,
-      imageUrl: product.image_url,
-      active: product.active,
-      metadata: product.metadata,
-      createdAt: product.created_at,
-      updatedAt: product.updated_at
-    })) || []
+    const transformedProducts =
+      products?.map((product) => ({
+        id: product.id,
+        sku: product.sku,
+        name: product.name,
+        description: product.description,
+        category: product.category,
+        basePrice: product.base_price,
+        cost: product.cost,
+        weight: product.weight,
+        dimensions: product.dimensions,
+        imageUrl: product.image_url,
+        active: product.active,
+        metadata: product.metadata,
+        createdAt: product.created_at,
+        updatedAt: product.updated_at,
+      })) || []
 
     return NextResponse.json({
       data: transformedProducts,
@@ -97,10 +101,9 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
-      }
+        totalPages: Math.ceil((count || 0) / limit),
+      },
     })
-
   } catch (error) {
     console.error('Products API error:', error)
     return NextResponse.json(
@@ -161,7 +164,7 @@ export async function POST(request: NextRequest) {
         dimensions: body.dimensions,
         image_url: body.imageUrl,
         active: body.active !== false,
-        metadata: body.metadata
+        metadata: body.metadata,
       })
       .select()
       .single()
@@ -174,25 +177,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({
-      data: {
-        id: product.id,
-        sku: product.sku,
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        basePrice: product.base_price,
-        cost: product.cost,
-        weight: product.weight,
-        dimensions: product.dimensions,
-        imageUrl: product.image_url,
-        active: product.active,
-        metadata: product.metadata,
-        createdAt: product.created_at,
-        updatedAt: product.updated_at
-      }
-    }, { status: 201 })
-
+    return NextResponse.json(
+      {
+        data: {
+          id: product.id,
+          sku: product.sku,
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          basePrice: product.base_price,
+          cost: product.cost,
+          weight: product.weight,
+          dimensions: product.dimensions,
+          imageUrl: product.image_url,
+          active: product.active,
+          metadata: product.metadata,
+          createdAt: product.created_at,
+          updatedAt: product.updated_at,
+        },
+      },
+      { status: 201 }
+    )
   } catch (error) {
     console.error('Products API error:', error)
     return NextResponse.json(
@@ -200,4 +205,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

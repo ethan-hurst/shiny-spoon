@@ -4,22 +4,30 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useToast } from '@/components/ui/use-toast'
-import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, RefreshCw, Save } from 'lucide-react'
-import type { ShopifyIntegrationConfig, ShopifySyncSettings } from '@/types/shopify-integration.types'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useToast } from '@/components/ui/use-toast'
 import { updateShopifySyncSettings } from '@/app/actions/shopify-integration'
+import type {
+  ShopifyIntegrationConfig,
+  ShopifySyncSettings,
+} from '@/types/shopify-integration.types'
 
 interface ShopifySyncSettingsProps {
   integrationId: string
   config: ShopifyIntegrationConfig
   syncSettings: ShopifySyncSettings
 }
-
 
 interface TriggerSyncData {
   integrationId: string
@@ -31,21 +39,21 @@ interface TriggerSyncData {
 async function triggerSyncRequest(data: TriggerSyncData) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-  
+
   try {
     const response = await fetch('/api/integrations/shopify/sync', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         integrationId: data.integrationId,
         entityType: data.entityType,
-        force: data.force ?? true
+        force: data.force ?? true,
       }),
-      signal: controller.signal
+      signal: controller.signal,
     })
-    
+
     clearTimeout(timeoutId)
 
     const result = await response.json()
@@ -76,12 +84,12 @@ async function triggerSyncRequest(data: TriggerSyncData) {
 export function ShopifySyncSettingsForm({
   integrationId,
   config,
-  syncSettings
+  syncSettings,
 }: ShopifySyncSettingsProps) {
   const router = useRouter()
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  
+
   const [settings, setSettings] = useState({
     sync_products: config.sync_products ?? true,
     sync_inventory: config.sync_inventory ?? true,
@@ -89,7 +97,7 @@ export function ShopifySyncSettingsForm({
     sync_customers: config.sync_customers ?? true,
     b2b_catalog_enabled: config.b2b_catalog_enabled ?? false,
     sync_frequency: syncSettings?.sync_frequency ?? 15,
-    batch_size: syncSettings?.batch_size ?? 100
+    batch_size: syncSettings?.batch_size ?? 100,
   })
 
   // Save settings mutation
@@ -98,14 +106,16 @@ export function ShopifySyncSettingsForm({
     onSuccess: () => {
       toast({
         title: 'Settings saved',
-        description: 'Your sync settings have been updated successfully.'
+        description: 'Your sync settings have been updated successfully.',
       })
-      
+
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: ['integrations'] })
       queryClient.invalidateQueries({ queryKey: ['shopify-integrations'] })
-      queryClient.invalidateQueries({ queryKey: ['integration', integrationId] })
-      
+      queryClient.invalidateQueries({
+        queryKey: ['integration', integrationId],
+      })
+
       router.refresh()
     },
     onError: (error) => {
@@ -113,34 +123,38 @@ export function ShopifySyncSettingsForm({
       toast({
         title: 'Error',
         description: 'Failed to save settings. Please try again.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
-    }
+    },
   })
 
   // Trigger sync mutation
   const triggerSyncMutation = useMutation({
-    mutationFn: (entityType: string) => triggerSyncRequest({
-      integrationId,
-      entityType,
-      force: true
-    }),
+    mutationFn: (entityType: string) =>
+      triggerSyncRequest({
+        integrationId,
+        entityType,
+        force: true,
+      }),
     onSuccess: (_, entityType) => {
       toast({
         title: 'Sync started',
-        description: `${entityType} sync has been initiated.`
+        description: `${entityType} sync has been initiated.`,
       })
-      
+
       // Invalidate sync status queries
-      queryClient.invalidateQueries({ queryKey: ['sync-status', integrationId] })
+      queryClient.invalidateQueries({
+        queryKey: ['sync-status', integrationId],
+      })
     },
     onError: (error) => {
       toast({
         title: 'Sync failed',
-        description: error instanceof Error ? error.message : 'Failed to start sync',
-        variant: 'destructive'
+        description:
+          error instanceof Error ? error.message : 'Failed to start sync',
+        variant: 'destructive',
       })
-    }
+    },
   })
 
   const isLoading = saveSettingsMutation.isPending
@@ -161,8 +175,8 @@ export function ShopifySyncSettingsForm({
               <Switch
                 id="sync-products"
                 checked={settings.sync_products}
-                onCheckedChange={(checked) => 
-                  setSettings(prev => ({ ...prev, sync_products: checked }))
+                onCheckedChange={(checked) =>
+                  setSettings((prev) => ({ ...prev, sync_products: checked }))
                 }
                 disabled={isLoading}
               />
@@ -188,8 +202,8 @@ export function ShopifySyncSettingsForm({
               <Switch
                 id="sync-inventory"
                 checked={settings.sync_inventory}
-                onCheckedChange={(checked) => 
-                  setSettings(prev => ({ ...prev, sync_inventory: checked }))
+                onCheckedChange={(checked) =>
+                  setSettings((prev) => ({ ...prev, sync_inventory: checked }))
                 }
                 disabled={isLoading}
               />
@@ -215,8 +229,8 @@ export function ShopifySyncSettingsForm({
               <Switch
                 id="sync-orders"
                 checked={settings.sync_orders}
-                onCheckedChange={(checked) => 
-                  setSettings(prev => ({ ...prev, sync_orders: checked }))
+                onCheckedChange={(checked) =>
+                  setSettings((prev) => ({ ...prev, sync_orders: checked }))
                 }
                 disabled={isLoading}
               />
@@ -242,8 +256,8 @@ export function ShopifySyncSettingsForm({
               <Switch
                 id="sync-customers"
                 checked={settings.sync_customers}
-                onCheckedChange={(checked) => 
-                  setSettings(prev => ({ ...prev, sync_customers: checked }))
+                onCheckedChange={(checked) =>
+                  setSettings((prev) => ({ ...prev, sync_customers: checked }))
                 }
                 disabled={isLoading}
               />
@@ -268,8 +282,11 @@ export function ShopifySyncSettingsForm({
             <Switch
               id="b2b-catalogs"
               checked={settings.b2b_catalog_enabled}
-              onCheckedChange={(checked) => 
-                setSettings(prev => ({ ...prev, b2b_catalog_enabled: checked }))
+              onCheckedChange={(checked) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  b2b_catalog_enabled: checked,
+                }))
               }
               disabled={isLoading}
             />
@@ -284,8 +301,11 @@ export function ShopifySyncSettingsForm({
               <Label htmlFor="sync-frequency">Sync Frequency</Label>
               <Select
                 value={settings.sync_frequency.toString()}
-                onValueChange={(value) => 
-                  setSettings(prev => ({ ...prev, sync_frequency: parseInt(value) }))
+                onValueChange={(value) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    sync_frequency: parseInt(value),
+                  }))
                 }
                 disabled={isLoading}
               >
@@ -311,8 +331,11 @@ export function ShopifySyncSettingsForm({
               <Label htmlFor="batch-size">Batch Size</Label>
               <Select
                 value={settings.batch_size.toString()}
-                onValueChange={(value) => 
-                  setSettings(prev => ({ ...prev, batch_size: parseInt(value) }))
+                onValueChange={(value) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    batch_size: parseInt(value),
+                  }))
                 }
                 disabled={isLoading}
               >
@@ -346,7 +369,10 @@ export function ShopifySyncSettingsForm({
           Sync All Now
         </Button>
 
-        <Button onClick={() => saveSettingsMutation.mutate()} disabled={isLoading}>
+        <Button
+          onClick={() => saveSettingsMutation.mutate()}
+          disabled={isLoading}
+        >
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           <Save className="mr-2 h-4 w-4" />
           Save Settings

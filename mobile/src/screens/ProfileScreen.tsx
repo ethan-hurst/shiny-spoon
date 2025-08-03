@@ -1,11 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+import React from 'react'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
-  const { theme } = useTheme();
+  const { user, signOut } = useAuth()
+  const { theme } = useTheme()
 
   const styles = StyleSheet.create({
     container: {
@@ -51,15 +51,13 @@ export default function ProfileScreen() {
       fontSize: 16,
       fontWeight: '600',
     },
-  });
+  })
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Profile</Text>
-      <Text style={styles.subtitle}>
-        Manage your account settings
-      </Text>
-      
+      <Text style={styles.subtitle}>Manage your account settings</Text>
+
       <View style={styles.userInfo}>
         <Text style={styles.userText}>Name: {user?.name || 'N/A'}</Text>
         <Text style={styles.userText}>Email: {user?.email || 'N/A'}</Text>
@@ -69,5 +67,5 @@ export default function ProfileScreen() {
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>
     </View>
-  );
-} 
+  )
+}

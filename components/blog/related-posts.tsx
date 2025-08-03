@@ -1,8 +1,8 @@
-import { allPosts, type Post } from 'contentlayer2/generated'
 import Link from 'next/link'
+import { allPosts, type Post } from 'contentlayer2/generated'
 import { format } from 'date-fns'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 
 interface RelatedPostsProps {
   currentPost: Post
@@ -39,7 +39,7 @@ export function RelatedPosts({ currentPost }: RelatedPostsProps) {
         return dateB - dateA
       })
       .slice(0, 3)
-    
+
     return (
       <div className="mt-12">
         <h2 className="text-2xl font-bold mb-6">Latest Posts</h2>
@@ -66,7 +66,7 @@ export function RelatedPosts({ currentPost }: RelatedPostsProps) {
 
 function RelatedPostCard({ post }: { post: Post }) {
   return (
-    <Card 
+    <Card
       className="h-full hover:shadow-lg transition-shadow"
       role="article"
       aria-label={`Related post: ${post.title}`}

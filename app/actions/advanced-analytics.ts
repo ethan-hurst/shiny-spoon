@@ -1,10 +1,9 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { PredictiveAnalytics } from '@/lib/analytics/predictive-analytics'
 import { z } from 'zod'
-import { checkRateLimit } from '@/lib/rate-limit'
-import { rateLimiters } from '@/lib/rate-limit'
+import { PredictiveAnalytics } from '@/lib/analytics/predictive-analytics'
+import { checkRateLimit, rateLimiters } from '@/lib/rate-limit'
+import { createClient } from '@/lib/supabase/server'
 
 // Validation schemas
 const DemandForecastSchema = z.object({
@@ -38,20 +37,25 @@ const SeasonalityAnalysisSchema = z.object({
 export async function generateDemandForecast(formData: FormData) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
 
     // Check rate limit
-    const rateLimitResult = await checkRateLimit(rateLimiters.analytics, user.id)
+    const rateLimitResult = await checkRateLimit(
+      rateLimiters.analytics,
+      user.id
+    )
     if (!rateLimitResult.success) {
       return { error: 'Rate limit exceeded. Please try again later.' }
     }
 
     const parsed = DemandForecastSchema.parse(Object.fromEntries(formData))
-    
+
     const analytics = new PredictiveAnalytics(supabase)
     const forecasts = await analytics.generateDemandForecast(
       parsed.productIds,
@@ -71,20 +75,25 @@ export async function generateDemandForecast(formData: FormData) {
 export async function optimizePricing(formData: FormData) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
 
     // Check rate limit
-    const rateLimitResult = await checkRateLimit(rateLimiters.analytics, user.id)
+    const rateLimitResult = await checkRateLimit(
+      rateLimiters.analytics,
+      user.id
+    )
     if (!rateLimitResult.success) {
       return { error: 'Rate limit exceeded. Please try again later.' }
     }
 
     const parsed = PriceOptimizationSchema.parse(Object.fromEntries(formData))
-    
+
     const analytics = new PredictiveAnalytics(supabase)
     const optimizations = await analytics.optimizePricing(parsed.productIds)
 
@@ -101,20 +110,25 @@ export async function optimizePricing(formData: FormData) {
 export async function predictChurnRisk(formData: FormData) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
 
     // Check rate limit
-    const rateLimitResult = await checkRateLimit(rateLimiters.analytics, user.id)
+    const rateLimitResult = await checkRateLimit(
+      rateLimiters.analytics,
+      user.id
+    )
     if (!rateLimitResult.success) {
       return { error: 'Rate limit exceeded. Please try again later.' }
     }
 
     const parsed = ChurnPredictionSchema.parse(Object.fromEntries(formData))
-    
+
     const analytics = new PredictiveAnalytics(supabase)
     const predictions = await analytics.predictChurnRisk(parsed.customerIds)
 
@@ -131,20 +145,25 @@ export async function predictChurnRisk(formData: FormData) {
 export async function detectAnomalies(formData: FormData) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
 
     // Check rate limit
-    const rateLimitResult = await checkRateLimit(rateLimiters.analytics, user.id)
+    const rateLimitResult = await checkRateLimit(
+      rateLimiters.analytics,
+      user.id
+    )
     if (!rateLimitResult.success) {
       return { error: 'Rate limit exceeded. Please try again later.' }
     }
 
     const parsed = AnomalyDetectionSchema.parse(Object.fromEntries(formData))
-    
+
     const analytics = new PredictiveAnalytics(supabase)
     const anomalies = await analytics.detectAnomalies(
       parsed.dataType,
@@ -164,20 +183,25 @@ export async function detectAnomalies(formData: FormData) {
 export async function analyzeSeasonality(formData: FormData) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
 
     // Check rate limit
-    const rateLimitResult = await checkRateLimit(rateLimiters.analytics, user.id)
+    const rateLimitResult = await checkRateLimit(
+      rateLimiters.analytics,
+      user.id
+    )
     if (!rateLimitResult.success) {
       return { error: 'Rate limit exceeded. Please try again later.' }
     }
 
     const parsed = SeasonalityAnalysisSchema.parse(Object.fromEntries(formData))
-    
+
     const analytics = new PredictiveAnalytics(supabase)
     const analyses = await analytics.analyzeSeasonality(parsed.productIds)
 
@@ -194,8 +218,10 @@ export async function analyzeSeasonality(formData: FormData) {
 export async function getPredictiveMetrics() {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -210,42 +236,58 @@ export async function getPredictiveMetrics() {
       return { error: 'No products found' }
     }
 
-    const productIds = products.map(p => p.id)
+    const productIds = products.map((p) => p.id)
     const analytics = new PredictiveAnalytics(supabase)
 
     // Generate various predictions
-    const [demandForecasts, priceOptimizations, churnPredictions] = await Promise.all([
-      analytics.generateDemandForecast(productIds.slice(0, 10)), // Limit for performance
-      analytics.optimizePricing(productIds.slice(0, 10)),
-      analytics.predictChurnRisk([]), // Will be populated with customer IDs
-    ])
+    const [demandForecasts, priceOptimizations, churnPredictions] =
+      await Promise.all([
+        analytics.generateDemandForecast(productIds.slice(0, 10)), // Limit for performance
+        analytics.optimizePricing(productIds.slice(0, 10)),
+        analytics.predictChurnRisk([]), // Will be populated with customer IDs
+      ])
 
     // Calculate aggregate metrics
-    const demandForecast = demandForecasts.length > 0 
-      ? demandForecasts.reduce((sum, f) => sum + f.predictedDemand, 0) / demandForecasts.length
-      : 0
+    const demandForecast =
+      demandForecasts.length > 0
+        ? demandForecasts.reduce((sum, f) => sum + f.predictedDemand, 0) /
+          demandForecasts.length
+        : 0
 
-    const stockoutRisk = demandForecasts.length > 0
-      ? demandForecasts.filter(f => f.predictedDemand > 100).length / demandForecasts.length * 100
-      : 0
+    const stockoutRisk =
+      demandForecasts.length > 0
+        ? (demandForecasts.filter((f) => f.predictedDemand > 100).length /
+            demandForecasts.length) *
+          100
+        : 0
 
-    const revenuePrediction = priceOptimizations.length > 0
-      ? priceOptimizations.reduce((sum, p) => sum + p.revenueImpact, 0) / priceOptimizations.length
-      : 0
+    const revenuePrediction =
+      priceOptimizations.length > 0
+        ? priceOptimizations.reduce((sum, p) => sum + p.revenueImpact, 0) /
+          priceOptimizations.length
+        : 0
 
-    const customerChurnRisk = churnPredictions.length > 0
-      ? churnPredictions.reduce((sum, p) => sum + p.churnRisk, 0) / churnPredictions.length
-      : 0
+    const customerChurnRisk =
+      churnPredictions.length > 0
+        ? churnPredictions.reduce((sum, p) => sum + p.churnRisk, 0) /
+          churnPredictions.length
+        : 0
 
-    const priceOptimization = priceOptimizations.length > 0
-      ? priceOptimizations.reduce((sum, p) => sum + p.revenueImpact, 0) / priceOptimizations.length
-      : 0
+    const priceOptimization =
+      priceOptimizations.length > 0
+        ? priceOptimizations.reduce((sum, p) => sum + p.revenueImpact, 0) /
+          priceOptimizations.length
+        : 0
 
     // Calculate seasonality score
-    const seasonalityAnalyses = await analytics.analyzeSeasonality(productIds.slice(0, 10))
-    const seasonalityScore = seasonalityAnalyses.length > 0
-      ? seasonalityAnalyses.reduce((sum, s) => sum + s.seasonalityScore, 0) / seasonalityAnalyses.length
-      : 0
+    const seasonalityAnalyses = await analytics.analyzeSeasonality(
+      productIds.slice(0, 10)
+    )
+    const seasonalityScore =
+      seasonalityAnalyses.length > 0
+        ? seasonalityAnalyses.reduce((sum, s) => sum + s.seasonalityScore, 0) /
+          seasonalityAnalyses.length
+        : 0
 
     return {
       success: true,
@@ -256,7 +298,7 @@ export async function getPredictiveMetrics() {
         customerChurnRisk: Math.round(customerChurnRisk),
         priceOptimization: Math.round(priceOptimization),
         seasonalityScore: Math.round(seasonalityScore * 100) / 100,
-      }
+      },
     }
   } catch (error) {
     console.error('Error getting predictive metrics:', error)
@@ -270,8 +312,10 @@ export async function getPredictiveMetrics() {
 export async function getBusinessInsights() {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
@@ -279,13 +323,15 @@ export async function getBusinessInsights() {
     // Get top performing products
     const { data: topProducts } = await supabase
       .from('products')
-      .select(`
+      .select(
+        `
         id,
         name,
         base_price,
         current_price,
         order_items!inner(quantity, unit_price)
-      `)
+      `
+      )
       .eq('organization_id', user.organization_id)
       .order('current_price', { ascending: false })
       .limit(5)
@@ -293,27 +339,33 @@ export async function getBusinessInsights() {
     // Get customer segments
     const { data: customerSegments } = await supabase
       .from('customers')
-      .select(`
+      .select(
+        `
         id,
         segment,
         orders!inner(total_amount)
-      `)
+      `
+      )
       .eq('organization_id', user.organization_id)
 
     // Generate insights
     const insights = {
-      topPerformingProducts: topProducts?.map(p => ({
-        id: p.id,
-        name: p.name,
-        revenue: (p.order_items?.[0]?.quantity || 0) * (p.order_items?.[0]?.unit_price || 0),
-        growth: 15, // Mock growth rate
-      })) || [],
-      customerSegments: customerSegments?.map(c => ({
-        segment: c.segment || 'General',
-        count: 1,
-        revenue: c.orders?.[0]?.total_amount || 0,
-        growth: 8, // Mock growth rate
-      })) || [],
+      topPerformingProducts:
+        topProducts?.map((p) => ({
+          id: p.id,
+          name: p.name,
+          revenue:
+            (p.order_items?.[0]?.quantity || 0) *
+            (p.order_items?.[0]?.unit_price || 0),
+          growth: 15, // Mock growth rate
+        })) || [],
+      customerSegments:
+        customerSegments?.map((c) => ({
+          segment: c.segment || 'General',
+          count: 1,
+          revenue: c.orders?.[0]?.total_amount || 0,
+          growth: 8, // Mock growth rate
+        })) || [],
       marketTrends: [
         {
           trend: 'Increasing demand for premium products',
@@ -335,21 +387,24 @@ export async function getBusinessInsights() {
         {
           type: 'pricing',
           title: 'Optimize pricing for high-demand products',
-          description: 'Increase prices for products with low price elasticity to maximize revenue',
+          description:
+            'Increase prices for products with low price elasticity to maximize revenue',
           impact: 'high' as const,
           priority: 9,
         },
         {
           type: 'inventory',
           title: 'Adjust inventory levels based on seasonality',
-          description: 'Increase stock for products with strong seasonal patterns',
+          description:
+            'Increase stock for products with strong seasonal patterns',
           impact: 'medium' as const,
           priority: 7,
         },
         {
           type: 'customer',
           title: 'Implement customer retention program',
-          description: 'Focus on customers with high churn risk to improve retention',
+          description:
+            'Focus on customers with high churn risk to improve retention',
           impact: 'high' as const,
           priority: 8,
         },
@@ -369,21 +424,28 @@ export async function getBusinessInsights() {
 export async function getAnomalyDetection() {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return { error: 'Authentication required' }
     }
 
     const analytics = new PredictiveAnalytics(supabase)
-    
+
     // Detect anomalies for different data types
     const timeRange = {
       start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
       end: new Date(),
     }
 
-    const [priceAnomalies, demandAnomalies, inventoryAnomalies, revenueAnomalies] = await Promise.all([
+    const [
+      priceAnomalies,
+      demandAnomalies,
+      inventoryAnomalies,
+      revenueAnomalies,
+    ] = await Promise.all([
       analytics.detectAnomalies('price', timeRange),
       analytics.detectAnomalies('demand', timeRange),
       analytics.detectAnomalies('inventory', timeRange),
@@ -416,10 +478,10 @@ export async function getAnomalyDetection() {
       data: {
         anomalies: allAnomalies,
         patterns,
-      }
+      },
     }
   } catch (error) {
     console.error('Error getting anomaly detection:', error)
     return { error: 'Failed to get anomaly detection' }
   }
-} 
+}

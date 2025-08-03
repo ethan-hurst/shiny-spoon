@@ -1,11 +1,17 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface RefreshButtonProps {
   className?: string
-  variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link' | 'destructive'
+  variant?:
+    | 'default'
+    | 'outline'
+    | 'secondary'
+    | 'ghost'
+    | 'link'
+    | 'destructive'
   size?: 'default' | 'sm' | 'lg' | 'icon'
 }
 
@@ -14,15 +20,19 @@ interface RefreshButtonProps {
  *
  * Optionally accepts custom styling, variant, and size props for appearance customization.
  */
-export function RefreshButton({ className, variant = 'outline', size = 'sm' }: RefreshButtonProps) {
+export function RefreshButton({
+  className,
+  variant = 'outline',
+  size = 'sm',
+}: RefreshButtonProps) {
   const handleRefresh = () => {
     window.location.reload()
   }
 
   return (
-    <Button 
-      className={className} 
-      variant={variant} 
+    <Button
+      className={className}
+      variant={variant}
       size={size}
       onClick={handleRefresh}
     >

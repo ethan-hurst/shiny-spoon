@@ -1,6 +1,6 @@
 Fix the following issues. The issues can be from different files or can overlap on same lines in one file.
 
-- In __tests__/unit/lib/sync/sync-engine.test.ts at line 39, the mock for createClient is incorrectly set to return a resolved promise, implying it is asynchronous. Since createClient is used synchronously in the codebase, change the mock to return the mockSupabase object directly without wrapping it in a promise, ensuring the mock matches the actual function's synchronous behavior.
+- In **tests**/unit/lib/sync/sync-engine.test.ts at line 39, the mock for createClient is incorrectly set to return a resolved promise, implying it is asynchronous. Since createClient is used synchronously in the codebase, change the mock to return the mockSupabase object directly without wrapping it in a promise, ensuring the mock matches the actual function's synchronous behavior.
 
 - In app/(dashboard)/customers/[id]/pricing/page.tsx around lines 133 to 134, the count values pendingApprovalsCount and expiringContracts might be null, which can cause UI issues. Replace the logical OR (||) with nullish coalescing (??) to safely default to 0 only when the values are null or undefined, ensuring correct handling of falsy but valid counts like 0.
 
@@ -57,9 +57,9 @@ Fix the following issues. The issues can be from different files or can overlap 
 - In app/api/integrations/[id]/sync/route.ts around lines 65 to 72, the current error logging includes raw user emails, which risks exposing sensitive personal data. To fix this, remove the userEmail field from the log or replace it with a pseudonymized version such as a masked email or a one-way hash (e.g., SHA-256). Ensure that only necessary user identifiers like userId are logged, and confirm that any logs containing PII follow encryption, access control, and retention policies.
 
 - In app/api/integrations/netsuite/auth/route.ts around lines 19 to 20, the integration_id
-query parameter is retrieved but not validated. Add a check to validate that integration_id
-is a valid UUID format before proceeding. Use a UUID validation method or regex to verify
-the format and handle invalid cases appropriately, such as returning an error response.
+  query parameter is retrieved but not validated. Add a check to validate that integration_id
+  is a valid UUID format before proceeding. Use a UUID validation method or regex to verify
+  the format and handle invalid cases appropriately, such as returning an error response.
 
 - In app/api/integrations/netsuite/auth/route.ts around lines 142 to 146, avoid initializing access_token and refresh_token with empty strings as placeholders to prevent accidental usage before proper assignment. Instead, set these fields to null or omit them entirely when creating the object, ensuring tokens are only present when valid values exist.
 

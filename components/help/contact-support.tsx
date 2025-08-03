@@ -1,7 +1,13 @@
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Clock, Mail, MessageCircle, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { MessageCircle, Mail, Phone, Clock } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export function ContactSupport() {
   return (

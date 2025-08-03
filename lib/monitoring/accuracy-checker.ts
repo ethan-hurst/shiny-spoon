@@ -1,11 +1,11 @@
 // PRP-016: Data Accuracy Monitor - Accuracy Checker Core
 import { EventEmitter } from 'events'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { 
-  AccuracyCheckConfig, 
-  DiscrepancyResult, 
+import {
+  AccuracyCheckConfig,
   CheckProgressEvent,
-  CheckResultSummary 
+  CheckResultSummary,
+  DiscrepancyResult,
 } from './types'
 
 export class AccuracyChecker extends EventEmitter {
@@ -87,10 +87,11 @@ export class AccuracyChecker extends EventEmitter {
         }
 
         // Emit progress based on actual records checked or integration progress
-        const progress = expectedRecords > 0 
-          ? Math.round((totalRecords / expectedRecords) * 100)
-          : Math.round(((i + 1) / integrations.length) * 100)
-          
+        const progress =
+          expectedRecords > 0
+            ? Math.round((totalRecords / expectedRecords) * 100)
+            : Math.round(((i + 1) / integrations.length) * 100)
+
         this.emit('check:progress', {
           checkId,
           integrationId: integration.id,
@@ -158,7 +159,10 @@ export class AccuracyChecker extends EventEmitter {
     if (!sourceProducts) return { discrepancies, recordsChecked }
 
     // Get mapped products from integration
-    const mappingTable = this.getIntegrationMappingTable(integration.platform, 'product')
+    const mappingTable = this.getIntegrationMappingTable(
+      integration.platform,
+      'product'
+    )
     const { data: mappings } = await this.supabase
       .from(mappingTable)
       .select('*')
@@ -367,7 +371,7 @@ export class AccuracyChecker extends EventEmitter {
     mapping: any
   ): Promise<DiscrepancyResult[]> {
     const discrepancies: DiscrepancyResult[] = []
-    
+
     // Compare name
     if (product.name !== mapping.external_name) {
       discrepancies.push({
@@ -402,7 +406,7 @@ export class AccuracyChecker extends EventEmitter {
         product.description,
         mapping.external_description
       )
-      
+
       if (descriptionSimilarity < 0.8) {
         discrepancies.push({
           entityType: 'product',
@@ -462,24 +466,24 @@ export class AccuracyChecker extends EventEmitter {
   private calculateStringSimilarity(str1: string, str2: string): number {
     const longer = str1.length > str2.length ? str1 : str2
     const shorter = str1.length > str2.length ? str2 : str1
-    
+
     if (longer.length === 0) return 1.0
-    
+
     const editDistance = this.getEditDistance(longer, shorter)
     return (longer.length - editDistance) / longer.length
   }
 
   private getEditDistance(str1: string, str2: string): number {
     const matrix: number[][] = []
-    
+
     for (let i = 0; i <= str2.length; i++) {
       matrix[i] = [i]
     }
-    
+
     for (let j = 0; j <= str1.length; j++) {
       matrix[0][j] = j
     }
-    
+
     for (let i = 1; i <= str2.length; i++) {
       for (let j = 1; j <= str1.length; j++) {
         if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
@@ -493,25 +497,28 @@ export class AccuracyChecker extends EventEmitter {
         }
       }
     }
-    
+
     return matrix[str2.length][str1.length]
   }
 
   private groupBySeverity(discrepancies: DiscrepancyResult[]) {
     return {
-      critical: discrepancies.filter(d => d.severity === 'critical').length,
-      high: discrepancies.filter(d => d.severity === 'high').length,
-      medium: discrepancies.filter(d => d.severity === 'medium').length,
-      low: discrepancies.filter(d => d.severity === 'low').length,
+      critical: discrepancies.filter((d) => d.severity === 'critical').length,
+      high: discrepancies.filter((d) => d.severity === 'high').length,
+      medium: discrepancies.filter((d) => d.severity === 'medium').length,
+      low: discrepancies.filter((d) => d.severity === 'low').length,
     }
   }
 
   private groupByType(discrepancies: DiscrepancyResult[]) {
     return {
-      missing: discrepancies.filter(d => d.discrepancyType === 'missing').length,
-      mismatch: discrepancies.filter(d => d.discrepancyType === 'mismatch').length,
-      stale: discrepancies.filter(d => d.discrepancyType === 'stale').length,
-      duplicate: discrepancies.filter(d => d.discrepancyType === 'duplicate').length,
+      missing: discrepancies.filter((d) => d.discrepancyType === 'missing')
+        .length,
+      mismatch: discrepancies.filter((d) => d.discrepancyType === 'mismatch')
+        .length,
+      stale: discrepancies.filter((d) => d.discrepancyType === 'stale').length,
+      duplicate: discrepancies.filter((d) => d.discrepancyType === 'duplicate')
+        .length,
     }
   }
 
@@ -627,7 +634,10 @@ export class AccuracyChecker extends EventEmitter {
     return data || []
   }
 
-  private getIntegrationMappingTable(platform: string, entityType: string): string {
+  private getIntegrationMappingTable(
+    platform: string,
+    entityType: string
+  ): string {
     // Map platform and entity type to the correct mapping table
     const mappingTables: Record<string, Record<string, string>> = {
       shopify: {
@@ -642,7 +652,10 @@ export class AccuracyChecker extends EventEmitter {
       },
     }
 
-    return mappingTables[platform]?.[entityType] || `${platform}_${entityType}_mapping`
+    return (
+      mappingTables[platform]?.[entityType] ||
+      `${platform}_${entityType}_mapping`
+    )
   }
 
   private async getLastSyncData(

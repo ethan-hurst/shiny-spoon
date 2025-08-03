@@ -59,7 +59,9 @@ export function BlogAuthor({ authors }: BlogAuthorProps) {
               <p className="font-medium">{author.name}</p>
               {author.bio && (
                 <p className="text-sm text-muted-foreground">
-                  {author.bio.length <= 50 ? author.bio : `${author.bio.slice(0, 50)}...`}
+                  {author.bio.length <= 50
+                    ? author.bio
+                    : `${author.bio.slice(0, 50)}...`}
                 </p>
               )}
             </div>

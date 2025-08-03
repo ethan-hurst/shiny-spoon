@@ -32,11 +32,11 @@ export async function GET(
     const { frequency } = params
     const validFrequencies = [
       'every-5-min',
-      'every-15-min', 
+      'every-15-min',
       'every-30-min',
       'hourly',
       'daily',
-      'weekly'
+      'weekly',
     ]
 
     if (!validFrequencies.includes(frequency)) {
@@ -47,14 +47,15 @@ export async function GET(
 
     // Create admin client for system operations
     const supabase = await createClient()
-    
+
     // Map URL frequency to database frequency
     const dbFrequency = frequency.replace('-', '_')
-    
+
     // Find all enabled schedules for this frequency
     const { data: schedules, error: scheduleError } = await supabase
       .from('sync_schedules')
-      .select(`
+      .select(
+        `
         *,
         integrations (
           id,
@@ -63,22 +64,31 @@ export async function GET(
           organization_id,
           sync_settings
         )
-      `)
+      `
+      )
       .eq('enabled', true)
       .eq('frequency', dbFrequency)
 
     if (scheduleError) {
-      console.error('[CRON] Error fetching schedules:', scheduleError.message || 'Unknown error')
-      return NextResponse.json({ 
-        error: 'Failed to fetch schedules'
-      }, { status: 500 })
+      console.error(
+        '[CRON] Error fetching schedules:',
+        scheduleError.message || 'Unknown error'
+      )
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch schedules',
+        },
+        { status: 500 }
+      )
     }
 
     if (!schedules || schedules.length === 0) {
-      console.log(`[CRON] No enabled schedules found for frequency: ${frequency}`)
-      return NextResponse.json({ 
+      console.log(
+        `[CRON] No enabled schedules found for frequency: ${frequency}`
+      )
+      return NextResponse.json({
         message: 'No schedules to process',
-        frequency 
+        frequency,
       })
     }
 
@@ -95,102 +105,129 @@ export async function GET(
     try {
       // Process each schedule
       for (const schedule of schedules) {
-      try {
-        // Skip if integration is not available
-        if (!schedule.integrations) {
-          console.warn(`[CRON] Integration not found for schedule ${schedule.id}`)
-          continue
-        }
+        try {
+          // Skip if integration is not available
+          if (!schedule.integrations) {
+            console.warn(
+              `[CRON] Integration not found for schedule ${schedule.id}`
+            )
+            continue
+          }
 
-        // Check active hours if configured
-        if (schedule.active_hours) {
+          // Check active hours if configured
+          if (schedule.active_hours) {
+            const now = new Date()
+            const currentHour = now.getHours()
+            const [startHour] = schedule.active_hours.start
+              .split(':')
+              .map(Number)
+            const [endHour] = schedule.active_hours.end.split(':').map(Number)
+
+            // Handle case where active period spans midnight
+            const spansMidnight = endHour <= startHour
+            let isWithinActiveHours = false
+
+            if (spansMidnight) {
+              // Active hours span midnight (e.g., 22:00 to 02:00)
+              isWithinActiveHours =
+                currentHour >= startHour || currentHour < endHour
+            } else {
+              // Normal hours (e.g., 09:00 to 17:00)
+              isWithinActiveHours =
+                currentHour >= startHour && currentHour < endHour
+            }
+
+            if (!isWithinActiveHours) {
+              console.log(
+                `[CRON] Skipping schedule ${schedule.id} - outside active hours`
+              )
+              continue
+            }
+          }
+
+          // Check if specific day/time constraints apply
           const now = new Date()
-          const currentHour = now.getHours()
-          const [startHour] = schedule.active_hours.start.split(':').map(Number)
-          const [endHour] = schedule.active_hours.end.split(':').map(Number)
-          
-          // Handle case where active period spans midnight
-          const spansMidnight = endHour <= startHour
-          let isWithinActiveHours = false
-          
-          if (spansMidnight) {
-            // Active hours span midnight (e.g., 22:00 to 02:00)
-            isWithinActiveHours = currentHour >= startHour || currentHour < endHour
-          } else {
-            // Normal hours (e.g., 09:00 to 17:00)
-            isWithinActiveHours = currentHour >= startHour && currentHour < endHour
+          if (
+            schedule.frequency === 'weekly' &&
+            schedule.day_of_week !== undefined
+          ) {
+            if (now.getDay() !== schedule.day_of_week) {
+              console.log(
+                `[CRON] Skipping weekly schedule ${schedule.id} - wrong day`
+              )
+              continue
+            }
           }
-          
-          if (!isWithinActiveHours) {
-            console.log(`[CRON] Skipping schedule ${schedule.id} - outside active hours`)
-            continue
+
+          if (schedule.frequency === 'daily' && schedule.hour !== undefined) {
+            if (now.getHours() !== schedule.hour) {
+              console.log(
+                `[CRON] Skipping daily schedule ${schedule.id} - wrong hour`
+              )
+              continue
+            }
           }
-        }
 
-        // Check if specific day/time constraints apply
-        const now = new Date()
-        if (schedule.frequency === 'weekly' && schedule.day_of_week !== undefined) {
-          if (now.getDay() !== schedule.day_of_week) {
-            console.log(`[CRON] Skipping weekly schedule ${schedule.id} - wrong day`)
-            continue
+          // Create sync job configuration
+          const jobConfig: SyncJobConfig = {
+            integration_id: schedule.integration_id,
+            job_type: 'scheduled',
+            entity_types: schedule.entity_types,
+            sync_mode: 'incremental',
+            batch_size: 100,
+            priority: 'normal',
+            scheduled_at: new Date().toISOString(),
           }
-        }
 
-        if (schedule.frequency === 'daily' && schedule.hour !== undefined) {
-          if (now.getHours() !== schedule.hour) {
-            console.log(`[CRON] Skipping daily schedule ${schedule.id} - wrong hour`)
-            continue
-          }
-        }
+          // Create and queue the job
+          const job = await syncEngine.createSyncJob(jobConfig)
 
-        // Create sync job configuration
-        const jobConfig: SyncJobConfig = {
-          integration_id: schedule.integration_id,
-          job_type: 'scheduled',
-          entity_types: schedule.entity_types,
-          sync_mode: 'incremental',
-          batch_size: 100,
-          priority: 'normal',
-          scheduled_at: new Date().toISOString(),
-        }
+          console.log(
+            `[CRON] Created job ${job.id} for integration ${schedule.integrations.name}`
+          )
 
-        // Create and queue the job
-        const job = await syncEngine.createSyncJob(jobConfig)
-        
-        console.log(`[CRON] Created job ${job.id} for integration ${schedule.integrations.name}`)
+          // Update schedule with last run time
+          await supabase
+            .from('sync_schedules')
+            .update({
+              last_run_at: new Date().toISOString(),
+              next_run_at: calculateNextRun(
+                schedule.frequency,
+                now
+              ).toISOString(),
+            })
+            .eq('id', schedule.id)
 
-        // Update schedule with last run time
-        await supabase
-          .from('sync_schedules')
-          .update({
-            last_run_at: new Date().toISOString(),
-            next_run_at: calculateNextRun(schedule.frequency, now).toISOString(),
+          results.push({
+            schedule_id: schedule.id,
+            integration_id: schedule.integration_id,
+            job_id: job.id,
+            status: 'queued',
           })
-          .eq('id', schedule.id)
-
-        results.push({
-          schedule_id: schedule.id,
-          integration_id: schedule.integration_id,
-          job_id: job.id,
-          status: 'queued',
-        })
-
-      } catch (error) {
-        console.error(`[CRON] Error processing schedule ${schedule.id}:`, error instanceof Error ? error.message : 'Unknown error')
-        results.push({
-          schedule_id: schedule.id,
-          integration_id: schedule.integration_id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          status: 'failed',
-        })
+        } catch (error) {
+          console.error(
+            `[CRON] Error processing schedule ${schedule.id}:`,
+            error instanceof Error ? error.message : 'Unknown error'
+          )
+          results.push({
+            schedule_id: schedule.id,
+            integration_id: schedule.integration_id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            status: 'failed',
+          })
+        }
       }
-    }
     } finally {
       // Clean up - ensure this always runs
       try {
         await syncEngine.shutdown()
       } catch (shutdownError) {
-        console.error('[CRON] Error during sync engine shutdown:', shutdownError instanceof Error ? shutdownError.message : 'Unknown error')
+        console.error(
+          '[CRON] Error during sync engine shutdown:',
+          shutdownError instanceof Error
+            ? shutdownError.message
+            : 'Unknown error'
+        )
       }
     }
 
@@ -202,12 +239,16 @@ export async function GET(
       processed: results.length,
       results,
     })
-
   } catch (error) {
-    console.error('[CRON] Unexpected error:', error instanceof Error ? error.message : 'Unknown error')
-    return NextResponse.json({ 
-      error: 'Internal server error'
-    }, { status: 500 })
+    console.error(
+      '[CRON] Unexpected error:',
+      error instanceof Error ? error.message : 'Unknown error'
+    )
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+      },
+      { status: 500 }
+    )
   }
 }
-

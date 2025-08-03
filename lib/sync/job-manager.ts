@@ -1,15 +1,15 @@
 // PRP-015: Sync Job Manager with Queue Processing
 import { createClient } from '@/lib/supabase/server'
-import { SyncEngine } from './sync-engine'
-import { calculateNextRun } from './utils/schedule-helpers'
-import type { 
-  SyncJob, 
-  SyncJobConfig, 
-  SyncSchedule,
+import type {
   QueueItem,
+  SyncJob,
+  SyncJobConfig,
   SyncJobStatus,
   SyncJobType,
+  SyncSchedule,
 } from '@/types/sync-engine.types'
+import { SyncEngine } from './sync-engine'
+import { calculateNextRun } from './utils/schedule-helpers'
 
 export interface JobManagerConfig {
   worker_id: string
@@ -60,17 +60,17 @@ export class SyncJobManager {
   /**
    * Stop the job manager
    */
-  async stop(options?: { 
-    gracefulShutdownMs?: number 
-    forceKillAfterMs?: number 
+  async stop(options?: {
+    gracefulShutdownMs?: number
+    forceKillAfterMs?: number
   }): Promise<void> {
-    const { 
+    const {
       gracefulShutdownMs = 30000, // 30 seconds default
-      forceKillAfterMs = 60000 // 60 seconds default
+      forceKillAfterMs = 60000, // 60 seconds default
     } = options || {}
-    
+
     this.isRunning = false
-    
+
     if (this.pollTimer) {
       clearTimeout(this.pollTimer)
       this.pollTimer = null
@@ -78,17 +78,21 @@ export class SyncJobManager {
 
     // Wait for active jobs to complete with proper timeout (fix-46)
     if (this.activeJobs.size > 0) {
-      console.log(`Waiting for ${this.activeJobs.size} active jobs to complete...`)
-      
+      console.log(
+        `Waiting for ${this.activeJobs.size} active jobs to complete...`
+      )
+
       const startTime = Date.now()
       const checkInterval = 1000 // Check every second
-      
+
       // Wait for jobs to complete or timeout
       while (this.activeJobs.size > 0) {
         const elapsedTime = Date.now() - startTime
-        
+
         if (elapsedTime >= forceKillAfterMs) {
-          console.warn(`Force killing ${this.activeJobs.size} jobs after ${forceKillAfterMs}ms`)
+          console.warn(
+            `Force killing ${this.activeJobs.size} jobs after ${forceKillAfterMs}ms`
+          )
           // Cancel remaining jobs
           for (const jobId of this.activeJobs) {
             try {
@@ -99,19 +103,24 @@ export class SyncJobManager {
           }
           break
         }
-        
-        if (elapsedTime >= gracefulShutdownMs && elapsedTime < forceKillAfterMs) {
-          console.warn(`Still waiting for ${this.activeJobs.size} jobs after ${gracefulShutdownMs}ms`)
+
+        if (
+          elapsedTime >= gracefulShutdownMs &&
+          elapsedTime < forceKillAfterMs
+        ) {
+          console.warn(
+            `Still waiting for ${this.activeJobs.size} jobs after ${gracefulShutdownMs}ms`
+          )
         }
-        
+
         // Wait before checking again
-        await new Promise(resolve => setTimeout(resolve, checkInterval))
+        await new Promise((resolve) => setTimeout(resolve, checkInterval))
       }
     }
 
     // Ensure sync engine is also shut down
     await this.syncEngine.shutdown()
-    
+
     console.log('Job manager stopped')
   }
 
@@ -136,17 +145,16 @@ export class SyncJobManager {
 
       // Claim a job from the queue
       const jobId = await this.claimNextJob()
-      
+
       if (jobId) {
         // Process the job asynchronously
-        this.processJob(jobId).catch(error => {
+        this.processJob(jobId).catch((error) => {
           console.error(`Error processing job ${jobId}:`, error)
         })
       }
 
       // Clean up stale locks
       await this.cleanupStaleLocks()
-
     } catch (error) {
       console.error('Error polling for jobs:', error)
     }
@@ -171,7 +179,7 @@ export class SyncJobManager {
    */
   private async claimNextJob(): Promise<string | null> {
     const supabase = await createClient()
-    
+
     const { data, error } = await supabase.rpc('claim_next_sync_job', {
       p_worker_id: this.config.worker_id,
       p_lock_duration_seconds: this.config.lock_duration_seconds,
@@ -195,16 +203,15 @@ export class SyncJobManager {
     try {
       // Execute the job using sync engine
       const result = await this.syncEngine.executeJob(jobId)
-      
+
       console.log(`Job ${jobId} completed successfully`, {
         processed: result.summary.total_processed,
         created: result.summary.created,
         updated: result.summary.updated,
       })
-
     } catch (error) {
       console.error(`Job ${jobId} failed:`, error)
-      
+
       // Handle retry if enabled
       if (this.config.enable_auto_retry) {
         await this.handleJobRetry(jobId, error)
@@ -219,7 +226,7 @@ export class SyncJobManager {
    */
   private async handleJobRetry(jobId: string, error: any): Promise<void> {
     const supabase = await createClient()
-    
+
     // Get job and queue info
     const { data: queueItem } = await supabase
       .from('sync_queue')
@@ -246,7 +253,7 @@ export class SyncJobManager {
       })
     } else {
       console.log(`Job ${jobId} exceeded max retry attempts`)
-      
+
       // Mark job as permanently failed
       await supabase
         .from('sync_jobs')
@@ -261,10 +268,7 @@ export class SyncJobManager {
         .eq('id', jobId)
 
       // Remove from queue
-      await supabase
-        .from('sync_queue')
-        .delete()
-        .eq('job_id', jobId)
+      await supabase.from('sync_queue').delete().eq('job_id', jobId)
     }
   }
 
@@ -273,7 +277,7 @@ export class SyncJobManager {
    */
   private async checkScheduledJobs(): Promise<void> {
     const supabase = await createClient()
-    
+
     // Find schedules that need to run
     const { data: schedules } = await supabase
       .from('sync_schedules')
@@ -299,43 +303,59 @@ export class SyncJobManager {
   /**
    * Check if a schedule should run now
    */
-  private shouldRunSchedule(schedule: SyncSchedule & { last_run_at?: string }): boolean {
+  private shouldRunSchedule(
+    schedule: SyncSchedule & { last_run_at?: string }
+  ): boolean {
     const now = new Date()
-    
+
     // Check active hours if configured (fix-47: add timezone support)
     if (schedule.active_hours) {
       // Get current time in schedule's timezone (default to UTC if not specified)
       const timezone = schedule.active_hours.timezone || 'UTC'
-      
+
       // Convert current time to the schedule's timezone
       const formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: timezone,
         hour: 'numeric',
         minute: 'numeric',
-        hour12: false
+        hour12: false,
       })
-      
+
       const timeParts = formatter.formatToParts(now)
-      const currentHour = parseInt(timeParts.find(p => p.type === 'hour')?.value || '0')
-      const currentMinute = parseInt(timeParts.find(p => p.type === 'minute')?.value || '0')
+      const currentHour = parseInt(
+        timeParts.find((p) => p.type === 'hour')?.value || '0'
+      )
+      const currentMinute = parseInt(
+        timeParts.find((p) => p.type === 'minute')?.value || '0'
+      )
       const currentTimeMinutes = currentHour * 60 + currentMinute
-      
+
       // Parse start and end times
-      const [startHour, startMinute = 0] = schedule.active_hours.start.split(':').map(Number)
-      const [endHour, endMinute = 0] = schedule.active_hours.end.split(':').map(Number)
+      const [startHour, startMinute = 0] = schedule.active_hours.start
+        .split(':')
+        .map(Number)
+      const [endHour, endMinute = 0] = schedule.active_hours.end
+        .split(':')
+        .map(Number)
       const startTimeMinutes = startHour * 60 + startMinute
       const endTimeMinutes = endHour * 60 + endMinute
-      
+
       // Check if current time is within active hours
       if (startTimeMinutes < endTimeMinutes) {
         // Normal case: start time is before end time (e.g., 9:00 - 17:00)
-        if (currentTimeMinutes < startTimeMinutes || currentTimeMinutes >= endTimeMinutes) {
+        if (
+          currentTimeMinutes < startTimeMinutes ||
+          currentTimeMinutes >= endTimeMinutes
+        ) {
           return false
         }
       } else {
         // Overnight case: end time is before start time (e.g., 22:00 - 6:00)
         // Should run if current time is >= start time OR < end time
-        if (currentTimeMinutes >= endTimeMinutes && currentTimeMinutes < startTimeMinutes) {
+        if (
+          currentTimeMinutes >= endTimeMinutes &&
+          currentTimeMinutes < startTimeMinutes
+        ) {
           return false
         }
       }
@@ -345,7 +365,7 @@ export class SyncJobManager {
     if (schedule.last_run_at) {
       const lastRun = new Date(schedule.last_run_at)
       const timeSinceLastRun = now.getTime() - lastRun.getTime()
-      
+
       switch (schedule.frequency) {
         case 'every_5_min':
           return timeSinceLastRun >= 5 * 60 * 1000
@@ -370,7 +390,7 @@ export class SyncJobManager {
    */
   private async createScheduledJob(schedule: any): Promise<void> {
     const supabase = await createClient()
-    
+
     // Create job configuration
     const jobConfig: SyncJobConfig = {
       integration_id: schedule.integration_id,
@@ -383,12 +403,14 @@ export class SyncJobManager {
 
     // Create the job
     const job = await this.syncEngine.createSyncJob(jobConfig)
-    
-    console.log(`Created scheduled job ${job.id} for integration ${schedule.integration_id}`)
+
+    console.log(
+      `Created scheduled job ${job.id} for integration ${schedule.integration_id}`
+    )
 
     // Update schedule with last run time and calculate next run
     const nextRun = calculateNextRun(schedule.frequency, new Date())
-    
+
     await supabase
       .from('sync_schedules')
       .update({
@@ -398,13 +420,12 @@ export class SyncJobManager {
       .eq('id', schedule.id)
   }
 
-
   /**
    * Clean up stale locks in the queue
    */
   private async cleanupStaleLocks(): Promise<void> {
     const supabase = await createClient()
-    
+
     // Find stale locks (locked for more than lock duration)
     const staleTime = new Date(
       Date.now() - this.config.lock_duration_seconds * 1000 * 2 // 2x lock duration
@@ -477,7 +498,7 @@ export class SyncJobManager {
    */
   async retryJob(originalJobId: string): Promise<SyncJob> {
     const supabase = await createClient()
-    
+
     // Get original job details
     const { data: originalJob, error } = await supabase
       .from('sync_jobs')
@@ -501,9 +522,11 @@ export class SyncJobManager {
     }
 
     const retryJob = await this.syncEngine.createSyncJob(retryConfig)
-    
-    console.log(`Created retry job ${retryJob.id} for original job ${originalJobId}`)
-    
+
+    console.log(
+      `Created retry job ${retryJob.id} for original job ${originalJobId}`
+    )
+
     return retryJob
   }
 }

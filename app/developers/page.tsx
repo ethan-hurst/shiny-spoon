@@ -1,25 +1,32 @@
 import { type Metadata } from 'next'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   ArrowRight,
-  Zap,
-  Shield,
   BarChart3,
-  Package,
-  CreditCard,
-  Truck,
-  Code2,
-  Terminal,
-  FileJson,
   Braces,
+  Code2,
+  CreditCard,
+  FileJson,
+  Package,
+  Shield,
+  Terminal,
+  Truck,
+  Zap,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export const metadata: Metadata = {
   title: 'Developer Portal',
-  description: 'Build powerful integrations with the TruthSource API. Access documentation, SDKs, and tools to sync inventory, pricing, and delivery data.',
+  description:
+    'Build powerful integrations with the TruthSource API. Access documentation, SDKs, and tools to sync inventory, pricing, and delivery data.',
 }
 
 const popularEndpoints = [
@@ -57,39 +64,46 @@ const quickStartSteps = [
   {
     step: 1,
     title: 'Get your API key',
-    description: 'Sign up for a TruthSource account and generate your API key from the dashboard.',
+    description:
+      'Sign up for a TruthSource account and generate your API key from the dashboard.',
   },
   {
     step: 2,
     title: 'Make your first request',
-    description: 'Use your API key to authenticate and make your first API call.',
+    description:
+      'Use your API key to authenticate and make your first API call.',
   },
   {
     step: 3,
     title: 'Explore the documentation',
-    description: 'Browse our comprehensive API documentation to discover all available endpoints.',
+    description:
+      'Browse our comprehensive API documentation to discover all available endpoints.',
   },
   {
     step: 4,
     title: 'Integrate with your system',
-    description: 'Use our SDKs or direct API calls to integrate TruthSource with your platform.',
+    description:
+      'Use our SDKs or direct API calls to integrate TruthSource with your platform.',
   },
 ]
 
 const features = [
   {
     title: 'Real-time Sync',
-    description: 'Keep inventory and pricing data synchronized across all your systems.',
+    description:
+      'Keep inventory and pricing data synchronized across all your systems.',
     icon: Zap,
   },
   {
     title: 'Enterprise Security',
-    description: 'Bank-level encryption and SOC 2 Type II certified infrastructure.',
+    description:
+      'Bank-level encryption and SOC 2 Type II certified infrastructure.',
     icon: Shield,
   },
   {
     title: 'Powerful Analytics',
-    description: 'Track API usage, performance metrics, and sync status in real-time.',
+    description:
+      'Track API usage, performance metrics, and sync status in real-time.',
     icon: BarChart3,
   },
 ]
@@ -104,8 +118,8 @@ export default function DevelopersPage() {
             Build with TruthSource
           </h1>
           <p className="max-w-[42rem] leading-normal text-muted-foreground sm:text-xl sm:leading-8">
-            Integrate your B2B e-commerce platform with our powerful API. Sync inventory,
-            pricing, and delivery data in real-time.
+            Integrate your B2B e-commerce platform with our powerful API. Sync
+            inventory, pricing, and delivery data in real-time.
           </p>
           <div className="space-x-4">
             <Button size="lg" asChild>
@@ -261,7 +275,9 @@ print(inventory)`}</code>
                       {endpoint.method}
                     </span>
                   </div>
-                  <CardTitle className="text-lg font-mono">{endpoint.path}</CardTitle>
+                  <CardTitle className="text-lg font-mono">
+                    {endpoint.path}
+                  </CardTitle>
                   <CardDescription>{endpoint.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -313,7 +329,8 @@ print(inventory)`}</code>
             Official SDKs
           </h2>
           <p className="max-w-[85%] mx-auto leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-            Use our official libraries to integrate TruthSource in your favorite language
+            Use our official libraries to integrate TruthSource in your favorite
+            language
           </p>
         </div>
 
@@ -375,7 +392,9 @@ print(inventory)`}</code>
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <code className="text-sm">composer require truthsource/php-sdk</code>
+              <code className="text-sm">
+                composer require truthsource/php-sdk
+              </code>
               <div className="mt-4">
                 <Link
                   href="/developers/sdks#php"
@@ -406,8 +425,9 @@ print(inventory)`}</code>
               <Package className="h-10 w-10 text-primary" />
               <CardTitle>Real-time Inventory Sync</CardTitle>
               <CardDescription>
-                Keep inventory levels synchronized between your ERP and e-commerce platform.
-                Prevent overselling and stockouts with real-time updates.
+                Keep inventory levels synchronized between your ERP and
+                e-commerce platform. Prevent overselling and stockouts with
+                real-time updates.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -426,8 +446,9 @@ print(inventory)`}</code>
               <CreditCard className="h-10 w-10 text-primary" />
               <CardTitle>Dynamic B2B Pricing</CardTitle>
               <CardDescription>
-                Implement customer-specific pricing, volume discounts, and promotional rules.
-                Calculate accurate prices based on complex business logic.
+                Implement customer-specific pricing, volume discounts, and
+                promotional rules. Calculate accurate prices based on complex
+                business logic.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -446,8 +467,8 @@ print(inventory)`}</code>
               <Truck className="h-10 w-10 text-primary" />
               <CardTitle>Delivery Date Accuracy</CardTitle>
               <CardDescription>
-                Calculate accurate delivery dates based on real-time inventory location,
-                shipping methods, and carrier schedules.
+                Calculate accurate delivery dates based on real-time inventory
+                location, shipping methods, and carrier schedules.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -466,8 +487,9 @@ print(inventory)`}</code>
               <Zap className="h-10 w-10 text-primary" />
               <CardTitle>Webhook Integration</CardTitle>
               <CardDescription>
-                Receive real-time notifications when inventory changes, orders are placed,
-                or prices are updated. Build reactive systems that respond to events.
+                Receive real-time notifications when inventory changes, orders
+                are placed, or prices are updated. Build reactive systems that
+                respond to events.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -490,7 +512,8 @@ print(inventory)`}</code>
             Ready to get started?
           </h2>
           <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-            Join thousands of businesses using TruthSource to eliminate costly order errors.
+            Join thousands of businesses using TruthSource to eliminate costly
+            order errors.
           </p>
           <div className="space-x-4">
             <Button size="lg" asChild>

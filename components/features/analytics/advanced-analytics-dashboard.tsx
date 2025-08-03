@@ -1,28 +1,34 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  BarChart3, 
-  PieChart,
+import {
   Activity,
-  Target,
-  Lightbulb,
   AlertTriangle,
+  BarChart3,
+  Calendar,
   CheckCircle,
   Clock,
-  RefreshCw,
   Download,
   Filter,
-  Calendar
+  Lightbulb,
+  PieChart,
+  RefreshCw,
+  Target,
+  TrendingDown,
+  TrendingUp,
 } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/client'
 
 interface PredictiveMetrics {
@@ -78,9 +84,12 @@ interface AnomalyDetection {
 }
 
 export function AdvancedAnalyticsDashboard() {
-  const [predictiveMetrics, setPredictiveMetrics] = useState<PredictiveMetrics | null>(null)
-  const [businessInsights, setBusinessInsights] = useState<BusinessInsights | null>(null)
-  const [anomalyDetection, setAnomalyDetection] = useState<AnomalyDetection | null>(null)
+  const [predictiveMetrics, setPredictiveMetrics] =
+    useState<PredictiveMetrics | null>(null)
+  const [businessInsights, setBusinessInsights] =
+    useState<BusinessInsights | null>(null)
+  const [anomalyDetection, setAnomalyDetection] =
+    useState<AnomalyDetection | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
@@ -124,19 +133,27 @@ export function AdvancedAnalyticsDashboard() {
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
-      case 'positive': return 'text-green-600'
-      case 'negative': return 'text-red-600'
-      case 'neutral': return 'text-gray-600'
-      default: return 'text-gray-600'
+      case 'positive':
+        return 'text-green-600'
+      case 'negative':
+        return 'text-red-600'
+      case 'neutral':
+        return 'text-gray-600'
+      default:
+        return 'text-gray-600'
     }
   }
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'destructive'
-      case 'warning': return 'warning'
-      case 'info': return 'default'
-      default: return 'default'
+      case 'critical':
+        return 'destructive'
+      case 'warning':
+        return 'warning'
+      case 'info':
+        return 'default'
+      default:
+        return 'default'
     }
   }
 
@@ -166,7 +183,9 @@ export function AdvancedAnalyticsDashboard() {
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={loadAdvancedAnalytics} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
           <Button variant="outline">
@@ -183,7 +202,9 @@ export function AdvancedAnalyticsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Demand Forecast</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Demand Forecast
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -203,7 +224,14 @@ export function AdvancedAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={predictiveMetrics?.stockoutRisk && predictiveMetrics.stockoutRisk > 20 ? 'text-red-600' : 'text-green-600'}>
+              <span
+                className={
+                  predictiveMetrics?.stockoutRisk &&
+                  predictiveMetrics.stockoutRisk > 20
+                    ? 'text-red-600'
+                    : 'text-green-600'
+                }
+              >
                 {predictiveMetrics?.stockoutRisk || 0}%
               </span>
             </div>
@@ -215,7 +243,9 @@ export function AdvancedAnalyticsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue Prediction</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Revenue Prediction
+            </CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -235,19 +265,26 @@ export function AdvancedAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={predictiveMetrics?.customerChurnRisk && predictiveMetrics.customerChurnRisk > 15 ? 'text-red-600' : 'text-green-600'}>
+              <span
+                className={
+                  predictiveMetrics?.customerChurnRisk &&
+                  predictiveMetrics.customerChurnRisk > 15
+                    ? 'text-red-600'
+                    : 'text-green-600'
+                }
+              >
                 {predictiveMetrics?.customerChurnRisk || 0}%
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Customer churn risk
-            </p>
+            <p className="text-xs text-muted-foreground">Customer churn risk</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Price Optimization</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Price Optimization
+            </CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -295,32 +332,41 @@ export function AdvancedAnalyticsDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {businessInsights?.topPerformingProducts?.map((product, index) => (
-                  <div key={product.id} className="flex items-center justify-between py-2">
-                    <div>
-                      <div className="font-medium">{product.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        ${product.revenue.toLocaleString()}
+                {businessInsights?.topPerformingProducts?.map(
+                  (product, index) => (
+                    <div
+                      key={product.id}
+                      className="flex items-center justify-between py-2"
+                    >
+                      <div>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          ${product.revenue.toLocaleString()}
+                        </div>
                       </div>
+                      <Badge
+                        variant={product.growth > 0 ? 'default' : 'secondary'}
+                      >
+                        {product.growth > 0 ? '+' : ''}
+                        {product.growth}%
+                      </Badge>
                     </div>
-                    <Badge variant={product.growth > 0 ? 'default' : 'secondary'}>
-                      {product.growth > 0 ? '+' : ''}{product.growth}%
-                    </Badge>
-                  </div>
-                ))}
+                  )
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>Customer Segments</CardTitle>
-                <CardDescription>
-                  Revenue by customer segment
-                </CardDescription>
+                <CardDescription>Revenue by customer segment</CardDescription>
               </CardHeader>
               <CardContent>
                 {businessInsights?.customerSegments?.map((segment) => (
-                  <div key={segment.segment} className="flex items-center justify-between py-2">
+                  <div
+                    key={segment.segment}
+                    className="flex items-center justify-between py-2"
+                  >
                     <div>
                       <div className="font-medium">{segment.segment}</div>
                       <div className="text-sm text-muted-foreground">
@@ -328,9 +374,14 @@ export function AdvancedAnalyticsDashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium">${segment.revenue.toLocaleString()}</div>
-                      <Badge variant={segment.growth > 0 ? 'default' : 'secondary'}>
-                        {segment.growth > 0 ? '+' : ''}{segment.growth}%
+                      <div className="font-medium">
+                        ${segment.revenue.toLocaleString()}
+                      </div>
+                      <Badge
+                        variant={segment.growth > 0 ? 'default' : 'secondary'}
+                      >
+                        {segment.growth > 0 ? '+' : ''}
+                        {segment.growth}%
                       </Badge>
                     </div>
                   </div>
@@ -357,15 +408,22 @@ export function AdvancedAnalyticsDashboard() {
               ) : (
                 <div className="space-y-4">
                   {anomalyDetection?.anomalies?.map((anomaly) => (
-                    <Alert key={anomaly.id} variant={getSeverityColor(anomaly.severity)}>
+                    <Alert
+                      key={anomaly.id}
+                      variant={getSeverityColor(anomaly.severity)}
+                    >
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>{anomaly.type.toUpperCase()} Anomaly</AlertTitle>
+                      <AlertTitle>
+                        {anomaly.type.toUpperCase()} Anomaly
+                      </AlertTitle>
                       <AlertDescription>
                         {anomaly.description}
                         <div className="mt-2 text-sm">
-                          <span className="font-medium">Confidence:</span> {anomaly.confidence}%
+                          <span className="font-medium">Confidence:</span>{' '}
+                          {anomaly.confidence}%
                           <br />
-                          <span className="font-medium">Detected:</span> {anomaly.detectedAt.toLocaleString()}
+                          <span className="font-medium">Detected:</span>{' '}
+                          {anomaly.detectedAt.toLocaleString()}
                         </div>
                       </AlertDescription>
                     </Alert>
@@ -392,7 +450,15 @@ export function AdvancedAnalyticsDashboard() {
                       <Lightbulb className="h-4 w-4 text-yellow-600" />
                       <span className="font-medium">{rec.title}</span>
                     </div>
-                    <Badge variant={rec.impact === 'high' ? 'destructive' : rec.impact === 'medium' ? 'warning' : 'default'}>
+                    <Badge
+                      variant={
+                        rec.impact === 'high'
+                          ? 'destructive'
+                          : rec.impact === 'medium'
+                            ? 'warning'
+                            : 'default'
+                      }
+                    >
                       {rec.impact} priority
                     </Badge>
                   </div>
@@ -420,12 +486,20 @@ export function AdvancedAnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               {businessInsights?.marketTrends?.map((trend, index) => (
-                <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
+                <div
+                  key={index}
+                  className="flex items-center justify-between py-3 border-b last:border-b-0"
+                >
                   <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      trend.impact === 'positive' ? 'bg-green-500' : 
-                      trend.impact === 'negative' ? 'bg-red-500' : 'bg-gray-500'
-                    }`} />
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        trend.impact === 'positive'
+                          ? 'bg-green-500'
+                          : trend.impact === 'negative'
+                            ? 'bg-red-500'
+                            : 'bg-gray-500'
+                      }`}
+                    />
                     <div>
                       <div className="font-medium">{trend.trend}</div>
                       <div className="text-sm text-muted-foreground">
@@ -433,7 +507,15 @@ export function AdvancedAnalyticsDashboard() {
                       </div>
                     </div>
                   </div>
-                  <Badge variant={trend.impact === 'positive' ? 'default' : trend.impact === 'negative' ? 'destructive' : 'secondary'}>
+                  <Badge
+                    variant={
+                      trend.impact === 'positive'
+                        ? 'default'
+                        : trend.impact === 'negative'
+                          ? 'destructive'
+                          : 'secondary'
+                    }
+                  >
                     {trend.impact}
                   </Badge>
                 </div>
@@ -444,4 +526,4 @@ export function AdvancedAnalyticsDashboard() {
       </Tabs>
     </div>
   )
-} 
+}

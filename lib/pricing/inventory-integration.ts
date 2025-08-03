@@ -47,7 +47,10 @@ export async function getProductInventory(
 
     // Aggregate inventory across warehouses
     const aggregated = data.reduce(
-      (acc: { totalQuantity: number; reservedQuantity: number }, item: InventoryItem) => {
+      (
+        acc: { totalQuantity: number; reservedQuantity: number },
+        item: InventoryItem
+      ) => {
         acc.totalQuantity += item.quantity || 0
         acc.reservedQuantity += item.reserved_quantity || 0
         return acc

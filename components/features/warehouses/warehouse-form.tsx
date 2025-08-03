@@ -30,7 +30,7 @@ import {
   createWarehouseTyped,
   updateWarehouseTyped,
 } from '@/app/actions/warehouses'
-import { Warehouse, Address, Contact } from '@/types/warehouse.types'
+import { Address, Contact, Warehouse } from '@/types/warehouse.types'
 import { AddressFields } from './address-fields'
 import { ContactList } from './contact-list'
 

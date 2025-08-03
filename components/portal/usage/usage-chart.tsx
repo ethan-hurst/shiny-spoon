@@ -1,10 +1,24 @@
 'use client'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { eachDayOfInterval, format, subDays } from 'date-fns'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UsageStats } from '@/lib/billing'
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts'
-import { format, eachDayOfInterval, subDays } from 'date-fns'
 
 interface HistoricalUsageItem {
   created_at: string
@@ -24,30 +38,38 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
     end: new Date(),
   })
 
-  const dailyData = last30Days.map(date => {
+  const dailyData = last30Days.map((date) => {
     const dateStr = format(date, 'yyyy-MM-dd')
     const dayData = historicalUsage.filter(
-      item => format(new Date(item.created_at), 'yyyy-MM-dd') === dateStr
+      (item) => format(new Date(item.created_at), 'yyyy-MM-dd') === dateStr
     )
 
     // Aggregate data for the day
     const apiCalls = dayData
-      .filter(item => item.metric_type === 'api_calls')
+      .filter((item) => item.metric_type === 'api_calls')
       .reduce((sum, item) => sum + (item.metric_value || 0), 0)
 
     const products = dayData
-      .filter(item => item.metric_type === 'products_count')
+      .filter((item) => item.metric_type === 'products_count')
       .reduce((max, item) => Math.max(max, item.metric_value || 0), 0)
 
     const warehouses = dayData
-      .filter(item => item.metric_type === 'warehouses_count')
+      .filter((item) => item.metric_type === 'warehouses_count')
       .reduce((max, item) => Math.max(max, item.metric_value || 0), 0)
 
     return {
       date: format(date, 'MMM d'),
       apiCalls,
-      products: products || (format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? currentUsage.products.current : null),
-      warehouses: warehouses || (format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') ? currentUsage.warehouses.current : null),
+      products:
+        products ||
+        (format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+          ? currentUsage.products.current
+          : null),
+      warehouses:
+        warehouses ||
+        (format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+          ? currentUsage.warehouses.current
+          : null),
     }
   })
 
@@ -70,12 +92,14 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
           <p className="text-sm font-medium mb-2">{label}</p>
           {payload.map((entry, index) => (
             <div key={index} className="flex items-center gap-2 text-sm">
-              <div 
-                className="w-3 h-3 rounded-full" 
+              <div
+                className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: entry.color }}
               />
               <span className="text-muted-foreground">{entry.name}:</span>
-              <span className="font-medium">{entry.value?.toLocaleString() || 'N/A'}</span>
+              <span className="font-medium">
+                {entry.value?.toLocaleString() || 'N/A'}
+              </span>
             </div>
           ))}
         </div>
@@ -104,16 +128,16 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="date" 
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted"
+                  />
+                  <XAxis
+                    dataKey="date"
                     className="text-xs"
                     tick={{ fill: 'currentColor' }}
                   />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: 'currentColor' }}
-                  />
+                  <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Line
                     type="monotone"
@@ -130,14 +154,17 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
               <div className="text-center">
                 <p className="text-muted-foreground">Today</p>
                 <p className="text-2xl font-bold">
-                  {dailyData[dailyData.length - 1]?.apiCalls.toLocaleString() || '0'}
+                  {dailyData[dailyData.length - 1]?.apiCalls.toLocaleString() ||
+                    '0'}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-muted-foreground">7-day avg</p>
                 <p className="text-2xl font-bold">
                   {Math.round(
-                    dailyData.slice(-7).reduce((sum, d) => sum + d.apiCalls, 0) / 7
+                    dailyData
+                      .slice(-7)
+                      .reduce((sum, d) => sum + d.apiCalls, 0) / 7
                   ).toLocaleString()}
                 </p>
               </div>
@@ -154,16 +181,16 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="date" 
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted"
+                  />
+                  <XAxis
+                    dataKey="date"
                     className="text-xs"
                     tick={{ fill: 'currentColor' }}
                   />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: 'currentColor' }}
-                  />
+                  <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Line
                     type="stepAfter"
@@ -178,7 +205,9 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
               </ResponsiveContainer>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Current product count</p>
+              <p className="text-sm text-muted-foreground">
+                Current product count
+              </p>
               <p className="text-3xl font-bold mt-1">
                 {currentUsage.products.current.toLocaleString()}
               </p>
@@ -189,16 +218,16 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="date" 
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    className="stroke-muted"
+                  />
+                  <XAxis
+                    dataKey="date"
                     className="text-xs"
                     tick={{ fill: 'currentColor' }}
                   />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: 'currentColor' }}
-                  />
+                  <YAxis className="text-xs" tick={{ fill: 'currentColor' }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Line
                     type="stepAfter"
@@ -213,7 +242,9 @@ export function UsageChart({ historicalUsage, currentUsage }: UsageChartProps) {
               </ResponsiveContainer>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Active warehouse locations</p>
+              <p className="text-sm text-muted-foreground">
+                Active warehouse locations
+              </p>
               <p className="text-3xl font-bold mt-1">
                 {currentUsage.warehouses.current}
               </p>

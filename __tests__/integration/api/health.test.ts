@@ -5,16 +5,16 @@ describe('Health API', () => {
   it('should return 200 status for HEAD request', async () => {
     const request = new NextRequest('http://localhost:3000/api/health')
     const response = await HEAD(request)
-    
+
     expect(response.status).toBe(200)
   })
 
   it('should return JSON with correct structure for GET request', async () => {
     const request = new NextRequest('http://localhost:3000/api/health')
     const response = await GET(request)
-    
+
     expect(response.status).toBe(200)
-    
+
     const data = await response.json()
     expect(data).toHaveProperty('status')
     expect(data).toHaveProperty('timestamp')
@@ -25,13 +25,13 @@ describe('Health API', () => {
   it('should return valid ISO timestamp', async () => {
     const request = new NextRequest('http://localhost:3000/api/health')
     const response = await GET(request)
-    
+
     const data = await response.json()
     const timestamp = new Date(data.timestamp)
-    
+
     // Verify it's a valid date
     expect(timestamp.getTime()).not.toBeNaN()
-    
+
     // Verify it's recent (within last minute)
     const now = new Date()
     const diff = Math.abs(now.getTime() - timestamp.getTime())
@@ -41,7 +41,7 @@ describe('Health API', () => {
   it('should have correct content type for JSON response', async () => {
     const request = new NextRequest('http://localhost:3000/api/health')
     const response = await GET(request)
-    
+
     expect(response.headers.get('content-type')).toContain('application/json')
   })
 })

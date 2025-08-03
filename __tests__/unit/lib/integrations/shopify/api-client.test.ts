@@ -1,9 +1,6 @@
-import { ShopifyApiClient } from '@/lib/integrations/shopify/api-client'
-import {
-  ShopifyAPIError,
-  ShopifyRateLimitError
-} from '@/types/shopify.types'
 import type { RateLimiter } from '@/lib/integrations/base-connector'
+import { ShopifyApiClient } from '@/lib/integrations/shopify/api-client'
+import { ShopifyAPIError, ShopifyRateLimitError } from '@/types/shopify.types'
 
 // Mock global fetch
 const mockFetch = jest.fn()
@@ -12,18 +9,18 @@ global.fetch = mockFetch as any
 // Mock AbortController
 const mockAbortController = {
   abort: jest.fn(),
-  signal: {}
+  signal: {},
 }
 global.AbortController = jest.fn(() => mockAbortController) as any
 
 describe('ShopifyApiClient', () => {
   let apiClient: ShopifyApiClient
   let mockRateLimiter: jest.Mocked<RateLimiter>
-  
+
   const config = {
     shop: 'test-shop.myshopify.com',
     accessToken: 'test-access-token',
-    apiVersion: '2023-10'
+    apiVersion: '2023-10',
   }
 
   beforeEach(() => {
@@ -35,11 +32,14 @@ describe('ShopifyApiClient', () => {
       acquire: jest.fn().mockResolvedValue(undefined),
       release: jest.fn(),
       waitForAvailability: jest.fn().mockResolvedValue(undefined),
-      getQueueLength: jest.fn().mockReturnValue(0)
+      getQueueLength: jest.fn().mockReturnValue(0),
     }
 
     // Create API client instance
-    apiClient = new ShopifyApiClient({ ...config, rateLimiter: mockRateLimiter })
+    apiClient = new ShopifyApiClient({
+      ...config,
+      rateLimiter: mockRateLimiter,
+    })
   })
 
   afterEach(() => {
@@ -54,7 +54,7 @@ describe('ShopifyApiClient', () => {
       expect(apiClient['headers']).toEqual({
         'X-Shopify-Access-Token': config.accessToken,
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        Accept: 'application/json',
       })
     })
 
@@ -70,19 +70,19 @@ describe('ShopifyApiClient', () => {
         products: {
           edges: [
             { node: { id: '1', title: 'Product 1' } },
-            { node: { id: '2', title: 'Product 2' } }
-          ]
-        }
+            { node: { id: '2', title: 'Product 2' } },
+          ],
+        },
       },
       extensions: {
         cost: {
           actualQueryCost: 5,
           throttleStatus: {
             maximumAvailable: 1000,
-            currentlyAvailable: 995
-          }
-        }
-      }
+            currentlyAvailable: 995,
+          },
+        },
+      },
     }
 
     beforeEach(() => {
@@ -90,7 +90,7 @@ describe('ShopifyApiClient', () => {
         ok: true,
         status: 200,
         json: jest.fn().mockResolvedValue(mockGraphQLResponse),
-        headers: new Map()
+        headers: new Map(),
       })
     })
 
@@ -121,10 +121,10 @@ describe('ShopifyApiClient', () => {
           headers: {
             'X-Shopify-Access-Token': config.accessToken,
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            Accept: 'application/json',
           },
           body: JSON.stringify({ query, variables }),
-          signal: mockAbortController.signal
+          signal: mockAbortController.signal,
         }
       )
 
@@ -175,10 +175,12 @@ describe('ShopifyApiClient', () => {
         ok: false,
         status: 429,
         headers: new Map([['Retry-After', '120']]),
-        json: jest.fn().mockResolvedValue({})
+        json: jest.fn().mockResolvedValue({}),
       })
 
-      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(ShopifyRateLimitError)
+      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(
+        ShopifyRateLimitError
+      )
     })
 
     it('should handle GraphQL errors', async () => {
@@ -188,19 +190,21 @@ describe('ShopifyApiClient', () => {
           {
             message: 'Field "invalidField" doesn\'t exist on type "Shop"',
             extensions: {
-              code: 'BAD_USER_INPUT'
-            }
-          }
-        ]
+              code: 'BAD_USER_INPUT',
+            },
+          },
+        ],
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(errorResponse)
+        json: jest.fn().mockResolvedValue(errorResponse),
       })
 
-      await expect(apiClient.query('{ shop { invalidField } }')).rejects.toThrow(ShopifyAPIError)
+      await expect(
+        apiClient.query('{ shop { invalidField } }')
+      ).rejects.toThrow(ShopifyAPIError)
     })
 
     it('should handle throttling errors', async () => {
@@ -210,19 +214,21 @@ describe('ShopifyApiClient', () => {
           {
             message: 'Throttled',
             extensions: {
-              code: 'THROTTLED'
-            }
-          }
-        ]
+              code: 'THROTTLED',
+            },
+          },
+        ],
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(throttleResponse)
+        json: jest.fn().mockResolvedValue(throttleResponse),
       })
 
-      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(ShopifyRateLimitError)
+      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(
+        ShopifyRateLimitError
+      )
     })
 
     it('should handle timeout errors', async () => {
@@ -231,18 +237,22 @@ describe('ShopifyApiClient', () => {
         return Promise.reject(new Error('Timeout'))
       })
 
-      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(ShopifyAPIError)
+      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(
+        ShopifyAPIError
+      )
     }, 10000) // Reasonable timeout
 
     it('should handle network errors', async () => {
       mockFetch.mockRejectedValue(new Error('Network connection failed'))
 
-      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(ShopifyAPIError)
+      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(
+        ShopifyAPIError
+      )
     })
 
     it('should work without rate limiter', async () => {
       const clientWithoutRateLimit = new ShopifyApiClient(config)
-      
+
       const result = await clientWithoutRateLimit.query('{ shop { name } }')
 
       expect(result).toEqual(mockGraphQLResponse)
@@ -265,17 +275,17 @@ describe('ShopifyApiClient', () => {
           productCreate: {
             product: {
               id: 'gid://shopify/Product/123',
-              title: 'New Product'
+              title: 'New Product',
             },
-            userErrors: []
-          }
-        }
+            userErrors: [],
+          },
+        },
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockMutationResponse)
+        json: jest.fn().mockResolvedValue(mockMutationResponse),
       })
 
       const mutation = `
@@ -295,8 +305,8 @@ describe('ShopifyApiClient', () => {
       const variables = {
         input: {
           title: 'New Product',
-          productType: 'Widget'
-        }
+          productType: 'Widget',
+        },
       }
 
       const result = await apiClient.mutation(mutation, variables)
@@ -316,17 +326,17 @@ describe('ShopifyApiClient', () => {
               errorCode: null,
               createdAt: '2023-01-01T00:00:00Z',
               url: null,
-              partialDataUrl: null
+              partialDataUrl: null,
             },
-            userErrors: []
-          }
-        }
+            userErrors: [],
+          },
+        },
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockBulkResponse)
+        json: jest.fn().mockResolvedValue(mockBulkResponse),
       })
 
       const query = `
@@ -344,7 +354,9 @@ describe('ShopifyApiClient', () => {
 
       const result = await apiClient.bulkOperation(query)
 
-      expect(result).toEqual(mockBulkResponse.data.bulkOperationRunQuery.bulkOperation)
+      expect(result).toEqual(
+        mockBulkResponse.data.bulkOperationRunQuery.bulkOperation
+      )
     })
 
     it('should handle bulk operation user errors', async () => {
@@ -355,30 +367,34 @@ describe('ShopifyApiClient', () => {
             userErrors: [
               {
                 field: ['query'],
-                message: 'Invalid query syntax'
-              }
-            ]
-          }
-        }
+                message: 'Invalid query syntax',
+              },
+            ],
+          },
+        },
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockErrorResponse)
+        json: jest.fn().mockResolvedValue(mockErrorResponse),
       })
 
-      await expect(apiClient.bulkOperation('invalid query')).rejects.toThrow(ShopifyAPIError)
+      await expect(apiClient.bulkOperation('invalid query')).rejects.toThrow(
+        ShopifyAPIError
+      )
     })
 
     it('should handle missing data response', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue({ data: null })
+        json: jest.fn().mockResolvedValue({ data: null }),
       })
 
-      await expect(apiClient.bulkOperation('{ products }')).rejects.toThrow(ShopifyAPIError)
+      await expect(apiClient.bulkOperation('{ products }')).rejects.toThrow(
+        ShopifyAPIError
+      )
     })
   })
 
@@ -393,18 +409,20 @@ describe('ShopifyApiClient', () => {
             createdAt: '2023-01-01T00:00:00Z',
             completedAt: '2023-01-01T00:05:00Z',
             url: 'https://example.com/bulk-data.jsonl',
-            partialDataUrl: null
-          }
-        }
+            partialDataUrl: null,
+          },
+        },
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockStatusResponse)
+        json: jest.fn().mockResolvedValue(mockStatusResponse),
       })
 
-      const result = await apiClient.getBulkOperationStatus('gid://shopify/BulkOperation/123')
+      const result = await apiClient.getBulkOperationStatus(
+        'gid://shopify/BulkOperation/123'
+      )
 
       expect(result).toEqual(mockStatusResponse.data.node)
     })
@@ -413,7 +431,7 @@ describe('ShopifyApiClient', () => {
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue({ data: { node: null } })
+        json: jest.fn().mockResolvedValue({ data: { node: null } }),
       })
 
       await expect(
@@ -429,17 +447,17 @@ describe('ShopifyApiClient', () => {
           bulkOperationCancel: {
             bulkOperation: {
               id: 'gid://shopify/BulkOperation/123',
-              status: 'CANCELED'
+              status: 'CANCELED',
             },
-            userErrors: []
-          }
-        }
+            userErrors: [],
+          },
+        },
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockCancelResponse)
+        json: jest.fn().mockResolvedValue(mockCancelResponse),
       })
 
       await apiClient.cancelBulkOperation('gid://shopify/BulkOperation/123')
@@ -455,17 +473,17 @@ describe('ShopifyApiClient', () => {
             userErrors: [
               {
                 field: ['id'],
-                message: 'Bulk operation cannot be canceled'
-              }
-            ]
-          }
-        }
+                message: 'Bulk operation cannot be canceled',
+              },
+            ],
+          },
+        },
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockErrorResponse)
+        json: jest.fn().mockResolvedValue(mockErrorResponse),
       })
 
       await expect(
@@ -481,7 +499,7 @@ describe('ShopifyApiClient', () => {
       expect(limits).toEqual({
         used: 0,
         limit: 1000,
-        available: 1000
+        available: 1000,
       })
     })
 
@@ -493,16 +511,16 @@ describe('ShopifyApiClient', () => {
             actualQueryCost: 15,
             throttleStatus: {
               maximumAvailable: 1000,
-              currentlyAvailable: 985
-            }
-          }
-        }
+              currentlyAvailable: 985,
+            },
+          },
+        },
       }
 
       mockFetch.mockResolvedValue({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValue(mockResponse)
+        json: jest.fn().mockResolvedValue(mockResponse),
       })
 
       await apiClient.query('{ shop { name } }')
@@ -511,7 +529,7 @@ describe('ShopifyApiClient', () => {
       expect(limits).toEqual({
         used: 15,
         limit: 1000,
-        available: 985
+        available: 985,
       })
     })
   })
@@ -570,7 +588,9 @@ describe('ShopifyApiClient', () => {
       expect(apiClient['mapErrorCodeToStatus']('THROTTLED')).toBe(429)
       expect(apiClient['mapErrorCodeToStatus']('ACCESS_DENIED')).toBe(403)
       expect(apiClient['mapErrorCodeToStatus']('NOT_FOUND')).toBe(404)
-      expect(apiClient['mapErrorCodeToStatus']('INTERNAL_SERVER_ERROR')).toBe(500)
+      expect(apiClient['mapErrorCodeToStatus']('INTERNAL_SERVER_ERROR')).toBe(
+        500
+      )
     })
 
     it('should return 400 for unknown error codes', () => {
@@ -582,7 +602,7 @@ describe('ShopifyApiClient', () => {
     describe('buildProductQuery', () => {
       it('should build complete product query with metafields', () => {
         const query = ShopifyApiClient.buildProductQuery(true, 50)
-        
+
         expect(query).toContain('id')
         expect(query).toContain('title')
         expect(query).toContain('variants(first: 50)')
@@ -591,7 +611,7 @@ describe('ShopifyApiClient', () => {
 
       it('should build product query without metafields', () => {
         const query = ShopifyApiClient.buildProductQuery(false)
-        
+
         expect(query).toContain('id')
         expect(query).toContain('title')
         expect(query).not.toContain('metafields')
@@ -601,7 +621,7 @@ describe('ShopifyApiClient', () => {
     describe('buildInventoryQuery', () => {
       it('should build complete inventory query', () => {
         const query = ShopifyApiClient.buildInventoryQuery()
-        
+
         expect(query).toContain('id')
         expect(query).toContain('available')
         expect(query).toContain('item')
@@ -612,7 +632,7 @@ describe('ShopifyApiClient', () => {
     describe('buildCustomerQuery', () => {
       it('should build customer query with company', () => {
         const query = ShopifyApiClient.buildCustomerQuery(true)
-        
+
         expect(query).toContain('id')
         expect(query).toContain('email')
         expect(query).toContain('addresses')
@@ -621,7 +641,7 @@ describe('ShopifyApiClient', () => {
 
       it('should build customer query without company', () => {
         const query = ShopifyApiClient.buildCustomerQuery(false)
-        
+
         expect(query).toContain('id')
         expect(query).toContain('email')
         expect(query).not.toContain('company')
@@ -634,19 +654,25 @@ describe('ShopifyApiClient', () => {
       const customError = new ShopifyAPIError('Custom error', 'CUSTOM_ERROR')
       mockFetch.mockRejectedValue(customError)
 
-      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(customError)
+      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(
+        customError
+      )
     })
 
     it('should handle generic errors', async () => {
       mockFetch.mockRejectedValue(new Error('Generic error'))
 
-      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(ShopifyAPIError)
+      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(
+        ShopifyAPIError
+      )
     })
 
     it('should handle unknown error types', async () => {
       mockFetch.mockRejectedValue('String error')
 
-      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(ShopifyAPIError)
+      await expect(apiClient.query('{ shop { name } }')).rejects.toThrow(
+        ShopifyAPIError
+      )
     })
   })
 
@@ -663,11 +689,11 @@ describe('ShopifyApiClient', () => {
               errorCode: null,
               createdAt: '2023-01-01T00:00:00Z',
               url: null,
-              partialDataUrl: null
+              partialDataUrl: null,
             },
-            userErrors: []
-          }
-        }
+            userErrors: [],
+          },
+        },
       }
 
       // Mock bulk operation status
@@ -680,25 +706,27 @@ describe('ShopifyApiClient', () => {
             createdAt: '2023-01-01T00:00:00Z',
             completedAt: '2023-01-01T00:05:00Z',
             url: 'https://example.com/bulk-data.jsonl',
-            partialDataUrl: null
-          }
-        }
+            partialDataUrl: null,
+          },
+        },
       }
 
       mockFetch
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: jest.fn().mockResolvedValue(mockBulkStartResponse)
+          json: jest.fn().mockResolvedValue(mockBulkStartResponse),
         })
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: jest.fn().mockResolvedValue(mockStatusResponse)
+          json: jest.fn().mockResolvedValue(mockStatusResponse),
         })
 
       // Start bulk operation
-      const bulkOp = await apiClient.bulkOperation('{ products { edges { node { id } } } }')
+      const bulkOp = await apiClient.bulkOperation(
+        '{ products { edges { node { id } } } }'
+      )
       expect(bulkOp.status).toBe('CREATED')
 
       // Check status
@@ -713,13 +741,20 @@ describe('ShopifyApiClient', () => {
         status: 200,
         json: jest.fn().mockResolvedValue({
           data: { shop: { name: 'Test' } },
-          extensions: { cost: { actualQueryCost: 1, throttleStatus: { maximumAvailable: 1000 } } }
-        })
+          extensions: {
+            cost: {
+              actualQueryCost: 1,
+              throttleStatus: { maximumAvailable: 1000 },
+            },
+          },
+        }),
       })
 
       // Execute multiple queries
       await apiClient.query('{ shop { name } }')
-      await apiClient.mutation('mutation { productCreate(input: {}) { product { id } } }')
+      await apiClient.mutation(
+        'mutation { productCreate(input: {}) { product { id } } }'
+      )
       await apiClient.query('{ products(first: 10) { edges { node { id } } } }')
 
       // Should have acquired and released tokens for each call

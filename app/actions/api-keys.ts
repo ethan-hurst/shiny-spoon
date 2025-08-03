@@ -1,37 +1,46 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { z } from 'zod'
 import crypto from 'crypto'
-import { 
-  SUBSCRIPTION_LIMITS, 
-  DEFAULT_PLAN, 
-  isLimitExceeded,
-  type SubscriptionPlan 
-} from '@/lib/constants/subscription-limits'
-import type { 
-  ApiKey, 
-  ApiKeyResponse, 
-  CustomerBilling, 
-  UserProfile,
-  ApiKeyPermission
-} from '@/types/api-keys.types'
+import { z } from 'zod'
 import { API_KEY_CONFIG } from '@/lib/constants/api-keys'
+import {
+  DEFAULT_PLAN,
+  isLimitExceeded,
+  SUBSCRIPTION_LIMITS,
+  type SubscriptionPlan,
+} from '@/lib/constants/subscription-limits'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
+import type {
+  ApiKey,
+  ApiKeyPermission,
+  ApiKeyResponse,
+  CustomerBilling,
+  UserProfile,
+} from '@/types/api-keys.types'
 
 // Validation schemas
 const createApiKeySchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name is too long'),
   description: z.string().max(500, 'Description is too long').optional(),
-  permissions: z.array(z.enum(['read', 'write', 'delete'] as const)).min(1, 'At least one permission is required'),
+  permissions: z
+    .array(z.enum(['read', 'write', 'delete'] as const))
+    .min(1, 'At least one permission is required'),
   expiresAt: z.string().datetime().optional(),
 })
 
 const updateApiKeySchema = z.object({
   id: z.string().uuid('Invalid API key ID'),
-  name: z.string().min(1, 'Name is required').max(100, 'Name is too long').optional(),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(100, 'Name is too long')
+    .optional(),
   description: z.string().max(500, 'Description is too long').optional(),
-  permissions: z.array(z.enum(['read', 'write', 'delete'] as const)).min(1, 'At least one permission is required').optional(),
+  permissions: z
+    .array(z.enum(['read', 'write', 'delete'] as const))
+    .min(1, 'At least one permission is required')
+    .optional(),
   isActive: z.boolean().optional(),
 })
 
@@ -47,17 +56,25 @@ const regenerateApiKeySchema = z.object({
 function generateApiKey(): { key: string; hash: string } {
   // Generate a random key with prefix
   const prefix = API_KEY_CONFIG.PREFIX.LIVE
-  const randomBytes = crypto.randomBytes(API_KEY_CONFIG.KEY_LENGTH).toString('base64url')
+  const randomBytes = crypto
+    .randomBytes(API_KEY_CONFIG.KEY_LENGTH)
+    .toString('base64url')
   const key = `${prefix}${randomBytes}`
-  
+
   // Hash the key for storage
-  const hash = crypto.createHash(API_KEY_CONFIG.HASH_ALGORITHM).update(key).digest('hex')
-  
+  const hash = crypto
+    .createHash(API_KEY_CONFIG.HASH_ALGORITHM)
+    .update(key)
+    .digest('hex')
+
   return { key, hash }
 }
 
 // Helper function to get user profile with error handling
-async function getUserProfile(supabase: Awaited<ReturnType<typeof createClient>>, userId: string): Promise<UserProfile> {
+async function getUserProfile(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<UserProfile> {
   try {
     const { data: profile, error } = await supabase
       .from('user_profiles')
@@ -85,7 +102,7 @@ async function getUserProfile(supabase: Awaited<ReturnType<typeof createClient>>
 
 // Helper function to get customer billing with error handling
 async function getCustomerBilling(
-  supabase: Awaited<ReturnType<typeof createClient>>, 
+  supabase: Awaited<ReturnType<typeof createClient>>,
   organizationId: string
 ): Promise<CustomerBilling | null> {
   try {
@@ -109,16 +126,23 @@ async function getCustomerBilling(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error('An unexpected error occurred while fetching billing information')
+    throw new Error(
+      'An unexpected error occurred while fetching billing information'
+    )
   }
 }
 
-export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> {
+export async function createApiKey(
+  formData: FormData
+): Promise<ApiKeyResponse> {
   try {
     const supabase = await createClient()
-    
+
     // Authenticate user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('Unauthorized: Please log in to continue')
     }
@@ -135,7 +159,9 @@ export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> 
     })
 
     if (!validationResult.success) {
-      throw new Error(validationResult.error.errors[0]?.message || 'Validation error')
+      throw new Error(
+        validationResult.error.errors[0]?.message || 'Validation error'
+      )
     }
 
     const parsed = validationResult.data
@@ -153,15 +179,20 @@ export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> 
     }
 
     const keyCount = existingKeys?.count || 0
-    
+
     // Get subscription plan
     const billing = await getCustomerBilling(supabase, profile.organization_id)
-    const subscriptionPlan = (billing?.subscription_plan || DEFAULT_PLAN) as SubscriptionPlan
-    
+    const subscriptionPlan = (billing?.subscription_plan ||
+      DEFAULT_PLAN) as SubscriptionPlan
+
     // Check limits
-    const limit = SUBSCRIPTION_LIMITS[subscriptionPlan]?.apiKeys || SUBSCRIPTION_LIMITS[DEFAULT_PLAN].apiKeys
+    const limit =
+      SUBSCRIPTION_LIMITS[subscriptionPlan]?.apiKeys ||
+      SUBSCRIPTION_LIMITS[DEFAULT_PLAN].apiKeys
     if (isLimitExceeded(limit, keyCount)) {
-      throw new Error(`API key limit reached (${keyCount}/${limit}). Upgrade your plan to create more keys.`)
+      throw new Error(
+        `API key limit reached (${keyCount}/${limit}). Upgrade your plan to create more keys.`
+      )
     }
 
     // Generate API key
@@ -191,10 +222,10 @@ export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> 
     }
 
     // Return the full key (only shown once)
-    return { 
+    return {
       id: data.id,
       key,
-      message: 'Store this key securely. It will not be shown again.'
+      message: 'Store this key securely. It will not be shown again.',
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -207,9 +238,12 @@ export async function createApiKey(formData: FormData): Promise<ApiKeyResponse> 
 export async function updateApiKey(formData: FormData): Promise<void> {
   try {
     const supabase = await createClient()
-    
+
     // Authenticate user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('Unauthorized: Please log in to continue')
     }
@@ -222,12 +256,18 @@ export async function updateApiKey(formData: FormData): Promise<void> {
       id: formData.get('id'),
       name: formData.get('name') || undefined,
       description: formData.get('description') || undefined,
-      permissions: formData.has('permissions') ? formData.getAll('permissions') : undefined,
-      isActive: formData.has('isActive') ? formData.get('isActive') === 'true' : undefined,
+      permissions: formData.has('permissions')
+        ? formData.getAll('permissions')
+        : undefined,
+      isActive: formData.has('isActive')
+        ? formData.get('isActive') === 'true'
+        : undefined,
     })
 
     if (!validationResult.success) {
-      throw new Error(validationResult.error.errors[0]?.message || 'Validation error')
+      throw new Error(
+        validationResult.error.errors[0]?.message || 'Validation error'
+      )
     }
 
     const parsed = validationResult.data
@@ -238,8 +278,10 @@ export async function updateApiKey(formData: FormData): Promise<void> {
     }
 
     if (parsed.name !== undefined) updateData.name = parsed.name
-    if (parsed.description !== undefined) updateData.description = parsed.description
-    if (parsed.permissions !== undefined) updateData.permissions = parsed.permissions as ApiKeyPermission[]
+    if (parsed.description !== undefined)
+      updateData.description = parsed.description
+    if (parsed.permissions !== undefined)
+      updateData.permissions = parsed.permissions as ApiKeyPermission[]
     if (parsed.isActive !== undefined) updateData.is_active = parsed.isActive
 
     // Update the API key
@@ -266,13 +308,18 @@ export async function revokeApiKey(keyId: string): Promise<void> {
     // Validate input
     const validationResult = revokeApiKeySchema.safeParse({ keyId })
     if (!validationResult.success) {
-      throw new Error(validationResult.error.errors[0]?.message || 'Validation error')
+      throw new Error(
+        validationResult.error.errors[0]?.message || 'Validation error'
+      )
     }
 
     const supabase = await createClient()
-    
+
     // Authenticate user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('Unauthorized: Please log in to continue')
     }
@@ -308,13 +355,18 @@ export async function regenerateApiKey(keyId: string): Promise<ApiKeyResponse> {
     // Validate input
     const validationResult = regenerateApiKeySchema.safeParse({ keyId })
     if (!validationResult.success) {
-      throw new Error(validationResult.error.errors[0]?.message || 'Validation error')
+      throw new Error(
+        validationResult.error.errors[0]?.message || 'Validation error'
+      )
     }
 
     const supabase = await createClient()
-    
+
     // Authenticate user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('Unauthorized: Please log in to continue')
     }
@@ -365,10 +417,11 @@ export async function regenerateApiKey(keyId: string): Promise<ApiKeyResponse> {
       throw new Error('Failed to regenerate API key')
     }
 
-    return { 
+    return {
       id: data.id,
       key,
-      message: 'New key generated. Store it securely. It will not be shown again.'
+      message:
+        'New key generated. Store it securely. It will not be shown again.',
     }
   } catch (error) {
     if (error instanceof Error) {

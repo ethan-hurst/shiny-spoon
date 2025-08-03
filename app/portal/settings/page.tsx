@@ -1,14 +1,16 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import { NotificationSettings } from '@/components/portal/settings/notification-settings'
 import { ProfileSettings } from '@/components/portal/settings/profile-settings'
 import { SecuritySettings } from '@/components/portal/settings/security-settings'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -28,18 +30,16 @@ export default async function SettingsPage() {
 
   // If no preferences exist, create default ones
   if (!notificationPrefs) {
-    await supabase
-      .from('notification_preferences')
-      .insert({
-        user_id: user.id,
-        email_notifications: true,
-        billing_alerts: true,
-        usage_alerts: true,
-        team_updates: true,
-        api_updates: true,
-        product_updates: true,
-        security_alerts: true,
-      })
+    await supabase.from('notification_preferences').insert({
+      user_id: user.id,
+      email_notifications: true,
+      billing_alerts: true,
+      usage_alerts: true,
+      team_updates: true,
+      api_updates: true,
+      product_updates: true,
+      security_alerts: true,
+    })
   }
 
   return (
@@ -59,7 +59,7 @@ export default async function SettingsPage() {
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
-          <ProfileSettings 
+          <ProfileSettings
             user={user}
             profile={profile}
             organization={profile.organizations}
@@ -67,17 +67,19 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">
-          <NotificationSettings 
-            preferences={notificationPrefs || {
-              user_id: user.id,
-              email_notifications: true,
-              billing_alerts: true,
-              usage_alerts: true,
-              team_updates: true,
-              api_updates: true,
-              product_updates: true,
-              security_alerts: true,
-            }}
+          <NotificationSettings
+            preferences={
+              notificationPrefs || {
+                user_id: user.id,
+                email_notifications: true,
+                billing_alerts: true,
+                usage_alerts: true,
+                team_updates: true,
+                api_updates: true,
+                product_updates: true,
+                security_alerts: true,
+              }
+            }
           />
         </TabsContent>
 

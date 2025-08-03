@@ -1,15 +1,15 @@
 import {
   calculateAvailableQuantity,
-  calculateInventoryValue,
-  getStockStatus,
   calculateDaysOfStock,
+  calculateFillRate,
+  calculateInventoryValue,
   calculateReorderQuantity,
-  calculateTurnoverRatio,
-  groupInventoryByStatus,
   calculateTotalInventoryValue,
-  validateInventoryAdjustment,
+  calculateTurnoverRatio,
   formatQuantity,
-  calculateFillRate
+  getStockStatus,
+  groupInventoryByStatus,
+  validateInventoryAdjustment,
 } from '@/lib/inventory/calculations'
 import type { Inventory, InventoryWithRelations } from '@/types/inventory.types'
 
@@ -18,46 +18,46 @@ describe('Inventory Calculations', () => {
     it('should calculate available quantity correctly', () => {
       const inventory = {
         quantity: 100,
-        reserved_quantity: 25
+        reserved_quantity: 25,
       }
-      
+
       expect(calculateAvailableQuantity(inventory)).toBe(75)
     })
 
     it('should handle zero quantities', () => {
       const inventory = {
         quantity: 0,
-        reserved_quantity: 0
+        reserved_quantity: 0,
       }
-      
+
       expect(calculateAvailableQuantity(inventory)).toBe(0)
     })
 
     it('should never return negative available quantity', () => {
       const inventory = {
         quantity: 10,
-        reserved_quantity: 20
+        reserved_quantity: 20,
       }
-      
+
       expect(calculateAvailableQuantity(inventory)).toBe(0)
     })
 
     it('should handle null/undefined values', () => {
       const inventory1 = {
         quantity: null as any,
-        reserved_quantity: 10
+        reserved_quantity: 10,
       }
       expect(calculateAvailableQuantity(inventory1)).toBe(0)
 
       const inventory2 = {
         quantity: 50,
-        reserved_quantity: undefined as any
+        reserved_quantity: undefined as any,
       }
       expect(calculateAvailableQuantity(inventory2)).toBe(50)
 
       const inventory3 = {
         quantity: undefined as any,
-        reserved_quantity: undefined as any
+        reserved_quantity: undefined as any,
       }
       expect(calculateAvailableQuantity(inventory3)).toBe(0)
     })
@@ -67,21 +67,21 @@ describe('Inventory Calculations', () => {
     it('should calculate inventory value correctly', () => {
       const inventory = { quantity: 50 }
       const price = 19.99
-      
+
       expect(calculateInventoryValue(inventory, price)).toBeCloseTo(999.5, 2)
     })
 
     it('should handle zero quantity', () => {
       const inventory = { quantity: 0 }
       const price = 100
-      
+
       expect(calculateInventoryValue(inventory, price)).toBe(0)
     })
 
     it('should handle zero price', () => {
       const inventory = { quantity: 100 }
       const price = 0
-      
+
       expect(calculateInventoryValue(inventory, price)).toBe(0)
     })
 
@@ -96,7 +96,7 @@ describe('Inventory Calculations', () => {
     it('should handle decimal values', () => {
       const inventory = { quantity: 3 }
       const price = 9.99
-      
+
       expect(calculateInventoryValue(inventory, price)).toBeCloseTo(29.97, 2)
     })
   })
@@ -106,9 +106,9 @@ describe('Inventory Calculations', () => {
       const inventory = {
         quantity: 10,
         reserved_quantity: 10,
-        reorder_point: 20
+        reorder_point: 20,
       }
-      
+
       expect(getStockStatus(inventory)).toBe('out_of_stock')
     })
 
@@ -116,9 +116,9 @@ describe('Inventory Calculations', () => {
       const inventory = {
         quantity: 5,
         reserved_quantity: 10,
-        reorder_point: 20
+        reorder_point: 20,
       }
-      
+
       expect(getStockStatus(inventory)).toBe('out_of_stock')
     })
 
@@ -126,14 +126,14 @@ describe('Inventory Calculations', () => {
       const inventory1 = {
         quantity: 5,
         reserved_quantity: 0,
-        reorder_point: 10
+        reorder_point: 10,
       }
       expect(getStockStatus(inventory1)).toBe('critical')
 
       const inventory2 = {
         quantity: 10,
         reserved_quantity: 0,
-        reorder_point: 20
+        reorder_point: 20,
       }
       expect(getStockStatus(inventory2)).toBe('critical')
     })
@@ -142,14 +142,14 @@ describe('Inventory Calculations', () => {
       const inventory1 = {
         quantity: 15,
         reserved_quantity: 0,
-        reorder_point: 20
+        reorder_point: 20,
       }
       expect(getStockStatus(inventory1)).toBe('low')
 
       const inventory2 = {
         quantity: 20,
         reserved_quantity: 0,
-        reorder_point: 20
+        reorder_point: 20,
       }
       expect(getStockStatus(inventory2)).toBe('low')
     })
@@ -158,9 +158,9 @@ describe('Inventory Calculations', () => {
       const inventory = {
         quantity: 50,
         reserved_quantity: 5,
-        reorder_point: 20
+        reorder_point: 20,
       }
-      
+
       expect(getStockStatus(inventory)).toBe('normal')
     })
 
@@ -168,9 +168,9 @@ describe('Inventory Calculations', () => {
       const inventory = {
         quantity: 10,
         reserved_quantity: 0,
-        reorder_point: null as any
+        reorder_point: null as any,
       }
-      
+
       expect(getStockStatus(inventory)).toBe('normal')
     })
 
@@ -178,9 +178,9 @@ describe('Inventory Calculations', () => {
       const inventory = {
         quantity: 11,
         reserved_quantity: 0,
-        reorder_point: 21 // 50% = 10.5, ceil = 11
+        reorder_point: 21, // 50% = 10.5, ceil = 11
       }
-      
+
       expect(getStockStatus(inventory)).toBe('critical')
     })
   })
@@ -213,9 +213,9 @@ describe('Inventory Calculations', () => {
         quantity: 100,
         reserved_quantity: 10,
         reorder_point: 50,
-        reorder_quantity: 100
+        reorder_quantity: 100,
       }
-      
+
       expect(calculateReorderQuantity(inventory)).toBe(0)
     })
 
@@ -224,9 +224,9 @@ describe('Inventory Calculations', () => {
         quantity: 30,
         reserved_quantity: 0,
         reorder_point: 50,
-        reorder_quantity: 100
+        reorder_quantity: 100,
       }
-      
+
       const result = calculateReorderQuantity(inventory, 7, 0)
       expect(result).toBe(70) // baseReorderQuantity (100) - available (30) = 70
     })
@@ -236,9 +236,9 @@ describe('Inventory Calculations', () => {
         quantity: 30,
         reserved_quantity: 0,
         reorder_point: 50,
-        reorder_quantity: 100
+        reorder_quantity: 100,
       }
-      
+
       const result = calculateReorderQuantity(inventory, 7, 10)
       // baseReorderQuantity (100) + usageDuringLeadTime (70) - available (30) = 140
       expect(result).toBe(140)
@@ -249,9 +249,9 @@ describe('Inventory Calculations', () => {
         quantity: 25,
         reserved_quantity: 0,
         reorder_point: 50,
-        reorder_quantity: 100
+        reorder_quantity: 100,
       }
-      
+
       const result = calculateReorderQuantity(inventory, 7, 5)
       // baseReorderQuantity (100) + usageDuringLeadTime (35) - available (25) = 110
       expect(result).toBe(110)
@@ -262,9 +262,9 @@ describe('Inventory Calculations', () => {
         quantity: 50,
         reserved_quantity: 0,
         reorder_point: 50,
-        reorder_quantity: 100
+        reorder_quantity: 100,
       }
-      
+
       const result = calculateReorderQuantity(inventory, 7, 5)
       // baseReorderQuantity (100) + usageDuringLeadTime (35) - available (50) = 85 → 90
       expect(result).toBe(90)
@@ -275,9 +275,9 @@ describe('Inventory Calculations', () => {
         quantity: 200,
         reserved_quantity: 0,
         reorder_point: 50,
-        reorder_quantity: 50
+        reorder_quantity: 50,
       }
-      
+
       // Even though available (200) > baseReorderQuantity (50) + usageDuringLeadTime (35)
       // We're above reorder point so should return 0
       const result = calculateReorderQuantity(inventory, 7, 5)
@@ -289,9 +289,9 @@ describe('Inventory Calculations', () => {
         quantity: 10,
         reserved_quantity: 0,
         reorder_point: null as any,
-        reorder_quantity: null as any
+        reorder_quantity: null as any,
       }
-      
+
       // With null reorder_point (treated as 0), available (10) > 0, so return 0
       expect(calculateReorderQuantity(inventory)).toBe(0)
     })
@@ -301,9 +301,9 @@ describe('Inventory Calculations', () => {
         quantity: 30,
         reserved_quantity: 0,
         reorder_point: 50,
-        reorder_quantity: 100
+        reorder_quantity: 100,
       }
-      
+
       // Uses default lead time of 7 days with 0 average daily usage
       const result = calculateReorderQuantity(inventory)
       expect(result).toBe(70) // baseReorderQuantity (100) - available (30) = 70
@@ -341,25 +341,25 @@ describe('Inventory Calculations', () => {
         { quantity: 100, reserved_quantity: 10, reorder_point: 20 }, // normal
         { quantity: 200, reserved_quantity: 0, reorder_point: 50 }, // normal
       ]
-      
+
       const result = groupInventoryByStatus(items)
-      
+
       expect(result).toEqual({
         outOfStock: 1,
         critical: 1,
         low: 1,
-        normal: 2
+        normal: 2,
       })
     })
 
     it('should handle empty array', () => {
       const result = groupInventoryByStatus([])
-      
+
       expect(result).toEqual({
         outOfStock: 0,
         critical: 0,
         low: 0,
-        normal: 0
+        normal: 0,
       })
     })
 
@@ -369,14 +369,14 @@ describe('Inventory Calculations', () => {
         { quantity: 0, reserved_quantity: 0, reorder_point: 20 },
         { quantity: 5, reserved_quantity: 10, reorder_point: 30 },
       ]
-      
+
       const result = groupInventoryByStatus(items)
-      
+
       expect(result).toEqual({
         outOfStock: 3,
         critical: 0,
         low: 0,
-        normal: 0
+        normal: 0,
       })
     })
 
@@ -387,14 +387,14 @@ describe('Inventory Calculations', () => {
         { quantity: 50, reserved_quantity: 30, reorder_point: 20 }, // low (available = 20)
         { quantity: 100, reserved_quantity: 20, reorder_point: 50 }, // normal (available = 80)
       ]
-      
+
       const result = groupInventoryByStatus(items)
-      
+
       expect(result).toEqual({
         outOfStock: 1,
         critical: 1,
         low: 1,
-        normal: 1
+        normal: 1,
       })
     })
   })
@@ -411,7 +411,7 @@ describe('Inventory Calculations', () => {
           reserved_quantity: 0,
           created_at: '2024-01-01',
           updated_at: '2024-01-01',
-          product: { id: 'prod-1', base_price: 50 } as any
+          product: { id: 'prod-1', base_price: 50 } as any,
         },
         {
           id: '2',
@@ -422,7 +422,7 @@ describe('Inventory Calculations', () => {
           reserved_quantity: 0,
           created_at: '2024-01-01',
           updated_at: '2024-01-01',
-          product: { id: 'prod-2', base_price: 25 } as any
+          product: { id: 'prod-2', base_price: 25 } as any,
         },
         {
           id: '3',
@@ -433,10 +433,10 @@ describe('Inventory Calculations', () => {
           reserved_quantity: 0,
           created_at: '2024-01-01',
           updated_at: '2024-01-01',
-          product: { id: 'prod-3', base_price: 100 } as any
-        }
+          product: { id: 'prod-3', base_price: 100 } as any,
+        },
       ]
-      
+
       const total = calculateTotalInventoryValue(items)
       // (10 * 50) + (20 * 25) + (5 * 100) = 500 + 500 + 500 = 1500
       expect(total).toBe(1500)
@@ -453,7 +453,7 @@ describe('Inventory Calculations', () => {
           reserved_quantity: 0,
           created_at: '2024-01-01',
           updated_at: '2024-01-01',
-          product: null as any
+          product: null as any,
         },
         {
           id: '2',
@@ -464,10 +464,10 @@ describe('Inventory Calculations', () => {
           reserved_quantity: 0,
           created_at: '2024-01-01',
           updated_at: '2024-01-01',
-          product: { id: 'prod-2', base_price: 25 } as any
-        }
+          product: { id: 'prod-2', base_price: 25 } as any,
+        },
       ]
-      
+
       const total = calculateTotalInventoryValue(items)
       // (10 * 0) + (20 * 25) = 0 + 500 = 500
       expect(total).toBe(500)
@@ -488,10 +488,10 @@ describe('Inventory Calculations', () => {
           reserved_quantity: 0,
           created_at: '2024-01-01',
           updated_at: '2024-01-01',
-          product: { id: 'prod-1' } as any
-        }
+          product: { id: 'prod-1' } as any,
+        },
       ]
-      
+
       const total = calculateTotalInventoryValue(items)
       expect(total).toBe(0)
     })
@@ -507,37 +507,39 @@ describe('Inventory Calculations', () => {
     it('should reject non-integer quantities', () => {
       expect(validateInventoryAdjustment(100, 150.5)).toEqual({
         valid: false,
-        error: 'Quantity must be a whole number'
+        error: 'Quantity must be a whole number',
       })
-      
+
       expect(validateInventoryAdjustment(100, 99.99)).toEqual({
         valid: false,
-        error: 'Quantity must be a whole number'
+        error: 'Quantity must be a whole number',
       })
     })
 
     it('should reject negative quantities by default', () => {
       expect(validateInventoryAdjustment(100, -10)).toEqual({
         valid: false,
-        error: 'Quantity cannot be negative'
+        error: 'Quantity cannot be negative',
       })
     })
 
     it('should allow negative quantities when specified', () => {
-      expect(validateInventoryAdjustment(100, -10, true)).toEqual({ valid: true })
+      expect(validateInventoryAdjustment(100, -10, true)).toEqual({
+        valid: true,
+      })
     })
 
     it('should reject quantities exceeding maximum', () => {
       expect(validateInventoryAdjustment(100, 1000000)).toEqual({
         valid: false,
-        error: 'Quantity exceeds maximum allowed value'
+        error: 'Quantity exceeds maximum allowed value',
       })
     })
 
     it('should reject unchanged quantities', () => {
       expect(validateInventoryAdjustment(100, 100)).toEqual({
         valid: false,
-        error: 'New quantity must be different from current quantity'
+        error: 'New quantity must be different from current quantity',
       })
     })
 

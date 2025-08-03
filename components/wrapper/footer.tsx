@@ -1,14 +1,14 @@
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import Link from 'next/link'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
+import { z } from 'zod'
+import { createBrowserClient } from '@/lib/supabase/client'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
-import { createBrowserClient } from '@/lib/supabase/client'
 
 const newsletterSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -19,7 +19,7 @@ type NewsletterFormData = z.infer<typeof newsletterSchema>
 export default function Footer() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const supabase = createBrowserClient()
-  
+
   const {
     register,
     handleSubmit,
@@ -31,18 +31,16 @@ export default function Footer() {
 
   const onSubmit = async (data: NewsletterFormData) => {
     setIsSubmitting(true)
-    
+
     try {
       // Store newsletter subscription in database
-      const { error } = await supabase
-        .from('newsletter_subscribers')
-        .insert({
-          email: data.email,
-          subscribed_at: new Date().toISOString(),
-          status: 'active',
-          source: 'footer',
-        })
-        
+      const { error } = await supabase.from('newsletter_subscribers').insert({
+        email: data.email,
+        subscribed_at: new Date().toISOString(),
+        status: 'active',
+        source: 'footer',
+      })
+
       if (error) {
         // Check if email already exists
         if (error.code === '23505') {
@@ -53,10 +51,10 @@ export default function Footer() {
         }
         return
       }
-      
+
       toast.success('Successfully subscribed to our newsletter!')
       reset()
-      
+
       // Track the subscription event
       if (typeof window !== 'undefined' && window.gtag) {
         window.gtag('event', 'newsletter_signup', {
@@ -82,7 +80,8 @@ export default function Footer() {
                   Stay Updated with TruthSource
                 </h3>
                 <p className="mt-4 max-w-lg  ">
-                  Get the latest updates on B2B e-commerce trends, platform features, and integration tips delivered to your inbox.
+                  Get the latest updates on B2B e-commerce trends, platform
+                  features, and integration tips delivered to your inbox.
                 </p>
               </div>
               <form
@@ -155,17 +154,26 @@ export default function Footer() {
                     </Link>
                   </li>
                   <li>
-                    <Link href="/help" className="  transition hover:opacity-75">
+                    <Link
+                      href="/help"
+                      className="  transition hover:opacity-75"
+                    >
                       Help Center
                     </Link>
                   </li>
                   <li>
-                    <Link href="/blog" className="  transition hover:opacity-75">
+                    <Link
+                      href="/blog"
+                      className="  transition hover:opacity-75"
+                    >
                       Blog
                     </Link>
                   </li>
                   <li>
-                    <Link href="/developers" className="  transition hover:opacity-75">
+                    <Link
+                      href="/developers"
+                      className="  transition hover:opacity-75"
+                    >
                       API Reference
                     </Link>
                   </li>
@@ -192,7 +200,7 @@ export default function Footer() {
                     Privacy Policy
                   </Link>
                 </li>
-                
+
                 <li>
                   <Link
                     href="/legal/cookies"
@@ -204,7 +212,8 @@ export default function Footer() {
               </ul>
 
               <p className="mt-8 text-xs  ">
-                &copy; {new Date().getFullYear()} TruthSource Inc. All rights reserved.
+                &copy; {new Date().getFullYear()} TruthSource Inc. All rights
+                reserved.
               </p>
             </div>
           </div>

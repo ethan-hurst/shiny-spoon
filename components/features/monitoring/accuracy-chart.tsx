@@ -2,25 +2,27 @@
 'use client'
 
 import { useMemo } from 'react'
+import { format } from 'date-fns'
 import {
+  CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Legend,
 } from 'recharts'
-import { format } from 'date-fns'
 import type { AccuracyCheck } from '@/lib/monitoring/types'
 
 interface AccuracyChartProps {
-  data: Array<Omit<AccuracyCheck, 'startedAt' | 'completedAt' | 'createdAt'> & {
-    startedAt: string | Date
-    completedAt?: string | Date
-    createdAt: string | Date
-  }>
+  data: Array<
+    Omit<AccuracyCheck, 'startedAt' | 'completedAt' | 'createdAt'> & {
+      startedAt: string | Date
+      completedAt?: string | Date
+      createdAt: string | Date
+    }
+  >
   height?: number
 }
 
@@ -30,13 +32,22 @@ export function AccuracyChart({ data, height = 300 }: AccuracyChartProps) {
 
     // Sort by date and format for chart
     return data
-      .filter(check => check.status === 'completed' && check.accuracyScore !== null && check.accuracyScore !== undefined)
-      .sort((a, b) => 
-        new Date(a.completedAt || a.createdAt).getTime() - 
-        new Date(b.completedAt || b.createdAt).getTime()
+      .filter(
+        (check) =>
+          check.status === 'completed' &&
+          check.accuracyScore !== null &&
+          check.accuracyScore !== undefined
       )
-      .map(check => ({
-        date: format(new Date(check.completedAt || check.createdAt), 'MMM dd HH:mm'),
+      .sort(
+        (a, b) =>
+          new Date(a.completedAt || a.createdAt).getTime() -
+          new Date(b.completedAt || b.createdAt).getTime()
+      )
+      .map((check) => ({
+        date: format(
+          new Date(check.completedAt || check.createdAt),
+          'MMM dd HH:mm'
+        ),
         accuracy: check.accuracyScore,
         records: check.recordsChecked,
         discrepancies: check.discrepanciesFound,
@@ -66,12 +77,18 @@ export function AccuracyChart({ data, height = 300 }: AccuracyChartProps) {
   }
 
   const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length && payload[0]?.value !== undefined) {
+    if (
+      active &&
+      payload &&
+      payload.length &&
+      payload[0]?.value !== undefined
+    ) {
       return (
         <div className="bg-background border rounded-lg shadow-lg p-3">
           <p className="font-medium">{label}</p>
           <p className="text-sm">
-            Accuracy: <span className="font-medium">{payload[0].value.toFixed(2)}%</span>
+            Accuracy:{' '}
+            <span className="font-medium">{payload[0].value.toFixed(2)}%</span>
           </p>
           {payload[0]?.payload?.records && (
             <p className="text-sm text-muted-foreground">
@@ -91,14 +108,17 @@ export function AccuracyChart({ data, height = 300 }: AccuracyChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+      <LineChart
+        data={chartData}
+        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+      >
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis 
-          dataKey="date" 
+        <XAxis
+          dataKey="date"
           className="text-xs"
           tick={{ fill: 'currentColor' }}
         />
-        <YAxis 
+        <YAxis
           domain={[80, 100]}
           className="text-xs"
           tick={{ fill: 'currentColor' }}

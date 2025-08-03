@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
+
 // import type { InventoryWithRelations } from '@/types/inventory.types' // Not currently used
 
 interface UseInventoryOptions {
@@ -163,9 +164,7 @@ export function useInventoryRealtime({
 }
 
 // Hook for optimistic updates
-export function useOptimisticInventory(
-  _organizationId: string
-) {
+export function useOptimisticInventory(_organizationId: string) {
   const router = useRouter()
   const { toast } = useToast()
 

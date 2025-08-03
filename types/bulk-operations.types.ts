@@ -1,7 +1,13 @@
 import { z } from 'zod'
 
 // Reusable status type for bulk operations
-export type BulkOperationStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'rolled_back'
+export type BulkOperationStatus =
+  | 'pending'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'rolled_back'
 
 // Database types matching the schema
 export interface BulkOperation {
@@ -10,28 +16,28 @@ export interface BulkOperation {
   operation_type: 'import' | 'export' | 'update' | 'delete'
   entity_type: 'products' | 'inventory' | 'pricing' | 'customers'
   status: BulkOperationStatus
-  
+
   // File information
   file_name?: string
   file_size_bytes?: number
   file_url?: string
-  
+
   // Progress tracking
   total_records: number
   processed_records: number
   successful_records: number
   failed_records: number
-  
+
   // Timing
   started_at?: string
   completed_at?: string
   estimated_completion?: string
-  
+
   // Configuration and results
   config: BulkOperationConfig
   results: Record<string, any>
   error_log: Array<{ message: string; timestamp: string }>
-  
+
   // Audit
   created_at: string
   created_by: string
@@ -45,12 +51,12 @@ export interface BulkOperationRecord {
   operation_id: string
   record_index: number
   entity_id?: string
-  
+
   // Change tracking
   action: 'create' | 'update' | 'delete'
   before_data?: Record<string, any>
   after_data?: Record<string, any>
-  
+
   // Status
   status: Exclude<BulkOperationStatus, 'cancelled'>
   error?: string
@@ -140,27 +146,27 @@ export const CustomerBulkSchema = z.object({
 
 // Form schemas for UI
 export const BulkUploadFormSchema = z.object({
-  file: z.custom<File>((val) => {
-    // Enhanced file validation for better cross-environment compatibility
-    if (typeof File !== 'undefined' && val instanceof File) {
-      return true;
-    }
-    // Check for File-like properties in environments where File might not be available
-    return (
-      val !== null &&
-      typeof val === 'object' &&
-      typeof (val as any).name === 'string' &&
-      typeof (val as any).size === 'number' &&
-      typeof (val as any).type === 'string' &&
-      typeof (val as any).stream === 'function'
-    );
-  }, 'Must be a valid file').refine(
-    (file) => file.name.endsWith('.csv'),
-    'File must be a CSV'
-  ).refine(
-    (file) => file.size <= 100 * 1024 * 1024, // 100MB limit
-    'File size must not exceed 100MB'
-  ),
+  file: z
+    .custom<File>((val) => {
+      // Enhanced file validation for better cross-environment compatibility
+      if (typeof File !== 'undefined' && val instanceof File) {
+        return true
+      }
+      // Check for File-like properties in environments where File might not be available
+      return (
+        val !== null &&
+        typeof val === 'object' &&
+        typeof (val as any).name === 'string' &&
+        typeof (val as any).size === 'number' &&
+        typeof (val as any).type === 'string' &&
+        typeof (val as any).stream === 'function'
+      )
+    }, 'Must be a valid file')
+    .refine((file) => file.name.endsWith('.csv'), 'File must be a CSV')
+    .refine(
+      (file) => file.size <= 100 * 1024 * 1024, // 100MB limit
+      'File size must not exceed 100MB'
+    ),
   operationType: z.enum(['import', 'update']),
   entityType: z.enum(['products', 'inventory', 'pricing', 'customers']),
   validateOnly: z.boolean().default(false),
@@ -222,18 +228,18 @@ export interface StreamProcessorOptions {
   chunkSize: number
   concurrency: number
   validateSchema?: z.ZodSchema
-  onProgress?: (progress: { processed: number; total?: number; rate: number }) => void
+  onProgress?: (progress: {
+    processed: number
+    total?: number
+    rate: number
+  }) => void
   onError?: (error: BulkOperationError) => void
 }
 
 // Entity processor interface
 export interface EntityProcessor {
   schema: z.ZodSchema
-  process(
-    record: any,
-    config: BulkOperationConfig,
-    supabase: any
-  ): Promise<any>
+  process(record: any, config: BulkOperationConfig, supabase: any): Promise<any>
   rollback(record: BulkOperationRecord, supabase: any): Promise<void>
   validateBatch?(records: any[]): Promise<BulkOperationError[]>
 }
@@ -259,7 +265,13 @@ export interface ColumnMapping {
 export const DefaultColumnMappings: Record<string, ColumnMapping> = {
   inventory: {
     sku: ['sku', 'product_sku', 'item_sku', 'product_code', 'item_code'],
-    warehouse_code: ['warehouse_code', 'warehouse', 'location', 'warehouse_id', 'location_code'],
+    warehouse_code: [
+      'warehouse_code',
+      'warehouse',
+      'location',
+      'warehouse_id',
+      'location_code',
+    ],
     quantity: ['quantity', 'qty', 'count', 'stock', 'on_hand'],
     reason: ['reason', 'adjustment_reason', 'type'],
     notes: ['notes', 'comments', 'description', 'memo'],

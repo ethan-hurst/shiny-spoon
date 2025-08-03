@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const API_BASE_URL = process.env.TRUTHSOURCE_API_URL || 'https://api.truthsource.io/v1'
+const API_BASE_URL =
+  process.env.TRUTHSOURCE_API_URL || 'https://api.truthsource.io/v1'
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,10 +79,9 @@ export async function POST(request: NextRequest) {
       body: responseData,
       time: responseTime,
     })
-
   } catch (error) {
     console.error('API Playground Error:', error)
-    
+
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
       return NextResponse.json(

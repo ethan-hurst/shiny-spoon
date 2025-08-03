@@ -8,9 +8,11 @@ import {
   Plus,
   Upload,
 } from 'lucide-react'
+import { ApprovalQueue } from '@/components/features/pricing/approval-queue'
+import { BulkPriceUpdateDialog } from '@/components/features/pricing/bulk-price-update-dialog'
 // Components
 import { CustomerPriceList } from '@/components/features/pricing/customer-price-list'
-import { ApprovalQueue } from '@/components/features/pricing/approval-queue'
+import { PriceExportButton } from '@/components/features/pricing/price-export-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,9 +26,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createClient } from '@/lib/supabase/server'
 import { formatPercent } from '@/lib/utils'
 import { CustomerPricingStats } from '@/types/customer-pricing.types'
-
-import { BulkPriceUpdateDialog } from '@/components/features/pricing/bulk-price-update-dialog'
-import { PriceExportButton } from '@/components/features/pricing/price-export-button'
 
 interface CustomerPricingPageProps {
   params: Promise<{
@@ -85,7 +84,8 @@ async function getCustomerData(customerId: string) {
   // Get pending approvals
   const { data: approvals, count: pendingApprovalsCount } = await supabase
     .from('price_approvals')
-    .select(`
+    .select(
+      `
       *,
       customers (
         id,
@@ -107,7 +107,9 @@ async function getCustomerData(customerId: string) {
         email,
         full_name
       )
-    `, { count: 'exact' })
+    `,
+      { count: 'exact' }
+    )
     .eq('customer_id', customerId)
     .eq('status', 'pending')
     .order('requested_at', { ascending: false })
@@ -168,8 +170,8 @@ export default async function CustomerPricingPage(
               Bulk Update
             </Button>
           </BulkPriceUpdateDialog>
-          <PriceExportButton 
-            customerId={params.id} 
+          <PriceExportButton
+            customerId={params.id}
             customerName={customer.display_name || customer.company_name}
           />
           <Button size="sm">
@@ -320,7 +322,10 @@ export default async function CustomerPricingPage(
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ApprovalQueue approvals={pendingApprovals} customerId={params.id} />
+              <ApprovalQueue
+                approvals={pendingApprovals}
+                customerId={params.id}
+              />
             </CardContent>
           </Card>
         </TabsContent>

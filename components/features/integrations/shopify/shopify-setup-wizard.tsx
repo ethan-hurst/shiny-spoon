@@ -3,20 +3,20 @@
 // PRP-014: Shopify Setup Wizard Component
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { 
-  CheckCircle, 
-  AlertCircle, 
-  ArrowRight, 
+import {
+  AlertCircle,
   ArrowLeft,
+  ArrowRight,
+  CheckCircle,
   Copy,
   ExternalLink,
-  Loader2
+  Loader2,
 } from 'lucide-react'
-import { ShopifyConfigForm } from './shopify-config-form'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { ShopifyConfigForm } from './shopify-config-form'
 
 interface ShopifySetupWizardProps {
   organizationId: string
@@ -29,13 +29,37 @@ interface StepProps {
 }
 
 const steps = [
-  { id: 'intro', title: 'Introduction', description: 'Learn about the integration' },
-  { id: 'app-creation', title: 'Create Shopify App', description: 'Set up your custom app' },
-  { id: 'permissions', title: 'Configure Permissions', description: 'Grant necessary access' },
-  { id: 'webhooks', title: 'Set Up Webhooks', description: 'Configure real-time updates' },
-  { id: 'credentials', title: 'Enter Credentials', description: 'Connect your store' },
-  { id: 'test', title: 'Test Connection', description: 'Verify everything works' },
-  { id: 'complete', title: 'Complete', description: 'Start syncing data' }
+  {
+    id: 'intro',
+    title: 'Introduction',
+    description: 'Learn about the integration',
+  },
+  {
+    id: 'app-creation',
+    title: 'Create Shopify App',
+    description: 'Set up your custom app',
+  },
+  {
+    id: 'permissions',
+    title: 'Configure Permissions',
+    description: 'Grant necessary access',
+  },
+  {
+    id: 'webhooks',
+    title: 'Set Up Webhooks',
+    description: 'Configure real-time updates',
+  },
+  {
+    id: 'credentials',
+    title: 'Enter Credentials',
+    description: 'Connect your store',
+  },
+  {
+    id: 'test',
+    title: 'Test Connection',
+    description: 'Verify everything works',
+  },
+  { id: 'complete', title: 'Complete', description: 'Start syncing data' },
 ]
 
 /**
@@ -56,7 +80,7 @@ function IntroStep({ onNext }: StepProps) {
             'Keeps inventory levels updated in real-time across locations',
             'Manages B2B catalogs and customer-specific pricing',
             'Imports orders for reporting and analytics',
-            'Synchronizes customer data and company information'
+            'Synchronizes customer data and company information',
           ].map((item, index) => (
             <li key={index} className="flex items-start gap-2">
               <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
@@ -69,8 +93,9 @@ function IntroStep({ onNext }: StepProps) {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <strong>Requirements:</strong> You need admin access to your Shopify store and the ability to create custom apps.
-          B2B features require a Shopify Plus plan.
+          <strong>Requirements:</strong> You need admin access to your Shopify
+          store and the ability to create custom apps. B2B features require a
+          Shopify Plus plan.
         </AlertDescription>
       </Alert>
 
@@ -90,14 +115,16 @@ function IntroStep({ onNext }: StepProps) {
 function AppCreationStep({ onNext, onPrev }: StepProps) {
   const { copyToClipboard } = useCopyToClipboard({
     successMessage: 'The text has been copied to your clipboard.',
-    errorMessage: 'Could not copy to clipboard. Please copy manually.'
+    errorMessage: 'Could not copy to clipboard. Please copy manually.',
   })
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Create a Custom App in Shopify</h3>
-        
+        <h3 className="text-lg font-semibold">
+          Create a Custom App in Shopify
+        </h3>
+
         <ol className="space-y-4">
           <li className="flex gap-3">
             <span className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
@@ -105,9 +132,9 @@ function AppCreationStep({ onNext, onPrev }: StepProps) {
             </span>
             <div className="space-y-2">
               <p className="text-sm">Navigate to your Shopify admin panel</p>
-              <a 
-                href="https://admin.shopify.com" 
-                target="_blank" 
+              <a
+                href="https://admin.shopify.com"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
               >
@@ -122,7 +149,9 @@ function AppCreationStep({ onNext, onPrev }: StepProps) {
               2
             </span>
             <div className="space-y-2">
-              <p className="text-sm">Go to <strong>Settings → Apps and sales channels</strong></p>
+              <p className="text-sm">
+                Go to <strong>Settings → Apps and sales channels</strong>
+              </p>
             </div>
           </li>
 
@@ -131,7 +160,10 @@ function AppCreationStep({ onNext, onPrev }: StepProps) {
               3
             </span>
             <div className="space-y-2">
-              <p className="text-sm">Click <strong>"Develop apps"</strong> (you may need to enable this first)</p>
+              <p className="text-sm">
+                Click <strong>"Develop apps"</strong> (you may need to enable
+                this first)
+              </p>
             </div>
           </li>
 
@@ -140,13 +172,15 @@ function AppCreationStep({ onNext, onPrev }: StepProps) {
               4
             </span>
             <div className="space-y-2">
-              <p className="text-sm">Click <strong>"Create an app"</strong> and name it:</p>
+              <p className="text-sm">
+                Click <strong>"Create an app"</strong> and name it:
+              </p>
               <div className="flex items-center gap-2">
                 <code className="px-2 py-1 bg-muted rounded text-xs flex-1">
                   TruthSource Integration
                 </code>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   variant="ghost"
                   onClick={() => copyToClipboard('TruthSource Integration')}
                 >
@@ -186,21 +220,24 @@ function PermissionsStep({ onNext, onPrev }: StepProps) {
     { scope: 'read_orders', description: 'Import order data' },
     { scope: 'read_customers', description: 'Access customer information' },
     { scope: 'read_price_rules', description: 'Read pricing rules' },
-    { scope: 'write_price_rules', description: 'Manage pricing rules' }
+    { scope: 'write_price_rules', description: 'Manage pricing rules' },
   ]
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Configure API Permissions</h3>
-        
+
         <ol className="space-y-4">
           <li className="flex gap-3">
             <span className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
               1
             </span>
             <div className="space-y-2">
-              <p className="text-sm">In your app configuration, click <strong>"Configure Admin API scopes"</strong></p>
+              <p className="text-sm">
+                In your app configuration, click{' '}
+                <strong>"Configure Admin API scopes"</strong>
+              </p>
             </div>
           </li>
 
@@ -212,7 +249,10 @@ function PermissionsStep({ onNext, onPrev }: StepProps) {
               <p className="text-sm">Enable the following scopes:</p>
               <div className="grid grid-cols-2 gap-2 mt-2">
                 {requiredScopes.map((item) => (
-                  <div key={item.scope} className="flex items-center gap-2 text-xs">
+                  <div
+                    key={item.scope}
+                    className="flex items-center gap-2 text-xs"
+                  >
                     <CheckCircle className="h-3 w-3 text-green-500" />
                     <code className="font-mono">{item.scope}</code>
                   </div>
@@ -226,7 +266,9 @@ function PermissionsStep({ onNext, onPrev }: StepProps) {
               3
             </span>
             <div className="space-y-2">
-              <p className="text-sm">Click <strong>"Save"</strong> to apply the permissions</p>
+              <p className="text-sm">
+                Click <strong>"Save"</strong> to apply the permissions
+              </p>
             </div>
           </li>
         </ol>
@@ -235,7 +277,8 @@ function PermissionsStep({ onNext, onPrev }: StepProps) {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <strong>Note:</strong> These permissions allow TruthSource to read and update your store data securely.
+          <strong>Note:</strong> These permissions allow TruthSource to read and
+          update your store data securely.
         </AlertDescription>
       </Alert>
 
@@ -261,11 +304,13 @@ function PermissionsStep({ onNext, onPrev }: StepProps) {
 function WebhooksStep({ onNext, onPrev }: StepProps) {
   const { copyToClipboard } = useCopyToClipboard({
     successMessage: 'The webhook URL has been copied to your clipboard.',
-    errorMessage: 'Could not copy to clipboard. Please copy manually.'
+    errorMessage: 'Could not copy to clipboard. Please copy manually.',
   })
-  
+
   // Fix webhook URL validation - ensure it's a valid URL
-  const baseUrl = process.env.NEXT_PUBLIC_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+  const baseUrl =
+    process.env.NEXT_PUBLIC_URL ||
+    (typeof window !== 'undefined' ? window.location.origin : '')
   const webhookUrl = baseUrl ? `${baseUrl}/api/webhooks/shopify` : ''
   const isValidWebhookUrl = webhookUrl && webhookUrl.startsWith('http')
 
@@ -277,21 +322,24 @@ function WebhooksStep({ onNext, onPrev }: StepProps) {
     'orders/create',
     'orders/updated',
     'customers/create',
-    'customers/update'
+    'customers/update',
   ]
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Configure Webhooks</h3>
-        
+
         <ol className="space-y-4">
           <li className="flex gap-3">
             <span className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
               1
             </span>
             <div className="space-y-2">
-              <p className="text-sm">In your app, navigate to <strong>"Webhooks"</strong> configuration</p>
+              <p className="text-sm">
+                In your app, navigate to <strong>"Webhooks"</strong>{' '}
+                configuration
+              </p>
             </div>
           </li>
 
@@ -306,8 +354,8 @@ function WebhooksStep({ onNext, onPrev }: StepProps) {
                   <code className="px-2 py-1 bg-muted rounded text-xs flex-1 overflow-x-auto">
                     {webhookUrl}
                   </code>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="ghost"
                     onClick={() => copyToClipboard(webhookUrl)}
                   >
@@ -318,8 +366,9 @@ function WebhooksStep({ onNext, onPrev }: StepProps) {
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Configuration Required:</strong> The NEXT_PUBLIC_URL environment variable is not set. 
-                    Please configure it in your deployment settings to enable webhooks.
+                    <strong>Configuration Required:</strong> The NEXT_PUBLIC_URL
+                    environment variable is not set. Please configure it in your
+                    deployment settings to enable webhooks.
                   </AlertDescription>
                 </Alert>
               )}
@@ -334,7 +383,10 @@ function WebhooksStep({ onNext, onPrev }: StepProps) {
               <p className="text-sm">Subscribe to these webhook topics:</p>
               <div className="grid grid-cols-2 gap-1 mt-2">
                 {webhookTopics.map((topic) => (
-                  <code key={topic} className="text-xs bg-muted px-2 py-1 rounded">
+                  <code
+                    key={topic}
+                    className="text-xs bg-muted px-2 py-1 rounded"
+                  >
                     {topic}
                   </code>
                 ))}
@@ -347,7 +399,10 @@ function WebhooksStep({ onNext, onPrev }: StepProps) {
               4
             </span>
             <div className="space-y-2">
-              <p className="text-sm">Copy the <strong>webhook signing secret</strong> - you'll need it in the next step</p>
+              <p className="text-sm">
+                Copy the <strong>webhook signing secret</strong> - you'll need
+                it in the next step
+              </p>
             </div>
           </li>
         </ol>
@@ -381,7 +436,12 @@ interface CredentialsStepProps extends StepProps {
  * @param organizationId - The ID of the organization for which the integration is being set up.
  * @param onIntegrationCreated - Callback invoked with the new integration ID upon successful credential submission.
  */
-function CredentialsStep({ onNext, onPrev, organizationId, onIntegrationCreated }: CredentialsStepProps) {
+function CredentialsStep({
+  onNext,
+  onPrev,
+  organizationId,
+  onIntegrationCreated,
+}: CredentialsStepProps) {
   const handleFormSubmit = (newIntegrationId: string) => {
     onIntegrationCreated(newIntegrationId)
     onNext()
@@ -392,7 +452,8 @@ function CredentialsStep({ onNext, onPrev, organizationId, onIntegrationCreated 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Connect Your Store</h3>
         <p className="text-sm text-muted-foreground">
-          Now let's connect your Shopify store using the credentials from your custom app.
+          Now let's connect your Shopify store using the credentials from your
+          custom app.
         </p>
       </div>
 
@@ -408,16 +469,12 @@ function CredentialsStep({ onNext, onPrev, organizationId, onIntegrationCreated 
         </AlertDescription>
       </Alert>
 
-      <ShopifyConfigForm 
+      <ShopifyConfigForm
         organizationId={organizationId}
         onSuccess={handleFormSubmit}
       />
 
-      <Button 
-        onClick={onPrev} 
-        variant="outline" 
-        className="w-full"
-      >
+      <Button onClick={onPrev} variant="outline" className="w-full">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Previous
       </Button>
@@ -445,29 +502,29 @@ function TestStep({ onNext, onPrev, integrationId }: TestStepProps) {
     connection: null,
     products: null,
     inventory: null,
-    webhooks: null
+    webhooks: null,
   })
 
   const runTests = async () => {
     setTesting(true)
-    
+
     try {
       // Test API connection
       const testResponse = await fetch('/api/integrations/shopify/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ integrationId })
+        body: JSON.stringify({ integrationId }),
       })
-      
+
       const testData = await testResponse.json()
-      
+
       if (testResponse.ok && testData.tests) {
         // Update test results based on actual test responses
         setTestResults({
           connection: testData.tests.connection || false,
           products: testData.tests.products || false,
           inventory: testData.tests.inventory || false,
-          webhooks: testData.tests.webhooks || false
+          webhooks: testData.tests.webhooks || false,
         })
       } else {
         // If test endpoint fails, mark all as failed
@@ -475,7 +532,7 @@ function TestStep({ onNext, onPrev, integrationId }: TestStepProps) {
           connection: false,
           products: false,
           inventory: false,
-          webhooks: false
+          webhooks: false,
         })
       }
     } catch (error) {
@@ -484,14 +541,16 @@ function TestStep({ onNext, onPrev, integrationId }: TestStepProps) {
         connection: false,
         products: false,
         inventory: false,
-        webhooks: false
+        webhooks: false,
       })
     } finally {
       setTesting(false)
     }
   }
 
-  const allTestsPassed = Object.values(testResults).every(result => result === true)
+  const allTestsPassed = Object.values(testResults).every(
+    (result) => result === true
+  )
 
   return (
     <div className="space-y-6">
@@ -507,14 +566,19 @@ function TestStep({ onNext, onPrev, integrationId }: TestStepProps) {
           { key: 'connection', label: 'API Connection' },
           { key: 'products', label: 'Product Access' },
           { key: 'inventory', label: 'Inventory Access' },
-          { key: 'webhooks', label: 'Webhook Configuration' }
+          { key: 'webhooks', label: 'Webhook Configuration' },
         ].map(({ key, label }) => {
           const status = testResults[key as keyof typeof testResults]
           return (
-            <div key={key} className="flex items-center justify-between p-3 border rounded">
+            <div
+              key={key}
+              className="flex items-center justify-between p-3 border rounded"
+            >
               <span className="text-sm">{label}</span>
               {status === null ? (
-                <span className="text-sm text-muted-foreground">Not tested</span>
+                <span className="text-sm text-muted-foreground">
+                  Not tested
+                </span>
               ) : status === true ? (
                 <CheckCircle className="h-5 w-5 text-green-500" />
               ) : (
@@ -552,11 +616,7 @@ function TestStep({ onNext, onPrev, integrationId }: TestStepProps) {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Previous
         </Button>
-        <Button 
-          onClick={onNext} 
-          className="flex-1"
-          disabled={!allTestsPassed}
-        >
+        <Button onClick={onNext} className="flex-1" disabled={!allTestsPassed}>
           Complete Setup
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
@@ -572,14 +632,14 @@ function TestStep({ onNext, onPrev, integrationId }: TestStepProps) {
  */
 function CompleteStep({ organizationId }: StepProps) {
   const router = useRouter()
-  
+
   return (
     <div className="space-y-6">
       <div className="text-center space-y-4">
         <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
           <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
         </div>
-        
+
         <h3 className="text-lg font-semibold">Setup Complete!</h3>
         <p className="text-sm text-muted-foreground">
           Your Shopify integration is now active and will begin syncing data.
@@ -609,14 +669,14 @@ function CompleteStep({ organizationId }: StepProps) {
       </div>
 
       <div className="flex gap-3">
-        <Button 
+        <Button
           onClick={() => router.push('/integrations')}
           variant="outline"
           className="flex-1"
         >
           View All Integrations
         </Button>
-        <Button 
+        <Button
           onClick={() => router.push('/integrations/shopify')}
           className="flex-1"
         >
@@ -634,7 +694,9 @@ function CompleteStep({ organizationId }: StepProps) {
  *
  * @param organizationId - The ID of the organization for which the Shopify integration is being set up.
  */
-export function ShopifySetupWizard({ organizationId }: ShopifySetupWizardProps) {
+export function ShopifySetupWizard({
+  organizationId,
+}: ShopifySetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [integrationId, setIntegrationId] = useState<string | null>(null)
   const progress = ((currentStep + 1) / steps.length) * 100
@@ -655,7 +717,7 @@ export function ShopifySetupWizard({ organizationId }: ShopifySetupWizardProps) 
     const stepProps = {
       onNext: handleNext,
       onPrev: currentStep > 0 ? handlePrev : undefined,
-      organizationId
+      organizationId,
     }
 
     switch (steps[currentStep].id) {
@@ -668,7 +730,12 @@ export function ShopifySetupWizard({ organizationId }: ShopifySetupWizardProps) 
       case 'webhooks':
         return <WebhooksStep {...stepProps} />
       case 'credentials':
-        return <CredentialsStep {...stepProps} onIntegrationCreated={setIntegrationId} />
+        return (
+          <CredentialsStep
+            {...stepProps}
+            onIntegrationCreated={setIntegrationId}
+          />
+        )
       case 'test':
         return <TestStep {...stepProps} integrationId={integrationId} />
       case 'complete':
@@ -690,9 +757,7 @@ export function ShopifySetupWizard({ organizationId }: ShopifySetupWizardProps) 
         <Progress value={progress} className="h-2" />
       </div>
 
-      <div className="py-6">
-        {renderStep()}
-      </div>
+      <div className="py-6">{renderStep()}</div>
     </div>
   )
 }

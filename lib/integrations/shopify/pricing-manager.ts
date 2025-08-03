@@ -1,15 +1,15 @@
 // PRP-014: Shopify B2B Pricing Manager
+import { createClient } from '@/lib/supabase/server'
+import type {
+  ShopifyCatalog,
+  ShopifyCatalogGroup,
+  ShopifyPrice,
+  ShopifyPriceList,
+  SyncOptions,
+  SyncResult,
+} from '@/types/shopify.types'
 import { ShopifyApiClient } from './api-client'
 import { ShopifyTransformers } from './transformers'
-import type { 
-  ShopifyCatalog,
-  ShopifyPriceList,
-  ShopifyPrice,
-  ShopifyCatalogGroup,
-  SyncResult,
-  SyncOptions
-} from '@/types/shopify.types'
-import { createClient } from '@/lib/supabase/server'
 
 export class PricingManager {
   private transformers: ShopifyTransformers
@@ -37,18 +37,18 @@ export class PricingManager {
     try {
       // Fetch catalogs
       const catalogs = await this.fetchCatalogs()
-      
+
       // Process each catalog
       for (const catalog of catalogs) {
         try {
           if (options?.dryRun) {
             console.log('Dry run: Would sync catalog', {
               id: catalog.id,
-              title: catalog.title
+              title: catalog.title,
             })
           } else {
             await this.saveCatalog(catalog)
-            
+
             // Sync associated price list if exists
             if (catalog.priceList) {
               await this.syncPriceList(catalog.priceList)
@@ -82,10 +82,15 @@ export class PricingManager {
         items_processed: totalProcessed,
         items_failed: totalFailed,
         duration_ms: duration,
-        errors: errors.map(e => ({ message: e.message, code: 'PRICING_SYNC_ERROR' }))
+        errors: errors.map((e) => ({
+          message: e.message,
+          code: 'PRICING_SYNC_ERROR',
+        })),
       }
     } catch (error) {
-      throw new Error(`Catalog sync failed: ${error instanceof Error ? error.message : String(error)}`)
+      throw new Error(
+        `Catalog sync failed: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
   }
 
@@ -118,20 +123,24 @@ export class PricingManager {
     const response = await this.client.mutation(mutation, {
       input: {
         title: name,
-        status: 'ACTIVE'
-      }
+        status: 'ACTIVE',
+      },
     })
 
     if (response.data?.catalogCreate.userErrors.length > 0) {
-      throw new Error(`Failed to create catalog: ${response.data.catalogCreate.userErrors[0].message}`)
+      throw new Error(
+        `Failed to create catalog: ${response.data.catalogCreate.userErrors[0].message}`
+      )
     }
 
     const catalog = response.data?.catalogCreate?.catalog
-    
+
     if (!catalog) {
-      throw new Error('Failed to create catalog: No catalog returned in response')
+      throw new Error(
+        'Failed to create catalog: No catalog returned in response'
+      )
     }
-    
+
     // Associate with customer groups
     if (customerTierIds.length > 0) {
       await this.assignCatalogToCustomers(catalog.id, customerTierIds)
@@ -178,35 +187,36 @@ export class PricingManager {
     const priceListId = await this.getOrCreatePriceList(catalogId)
 
     // Transform prices to Shopify format
-    const shopifyPrices = prices.map(p => ({
+    const shopifyPrices = prices.map((p) => ({
       variantId: p.variantId,
       price: {
         amount: p.price.toString(),
-        currencyCode: this.settings.currency || 'USD'
+        currencyCode: this.settings.currency || 'USD',
       },
-      compareAtPrice: p.compareAtPrice ? {
-        amount: p.compareAtPrice.toString(),
-        currencyCode: this.settings.currency || 'USD'
-      } : null
+      compareAtPrice: p.compareAtPrice
+        ? {
+            amount: p.compareAtPrice.toString(),
+            currencyCode: this.settings.currency || 'USD',
+          }
+        : null,
     }))
 
     const response = await this.client.mutation(mutation, {
       priceListId,
-      prices: shopifyPrices
+      prices: shopifyPrices,
     })
 
     if (response.data?.priceListFixedPricesAdd.userErrors.length > 0) {
-      throw new Error(`Failed to update prices: ${response.data.priceListFixedPricesAdd.userErrors[0].message}`)
+      throw new Error(
+        `Failed to update prices: ${response.data.priceListFixedPricesAdd.userErrors[0].message}`
+      )
     }
   }
 
   /**
    * Delete prices from a price list
    */
-  async deletePrices(
-    priceListId: string,
-    variantIds: string[]
-  ): Promise<void> {
+  async deletePrices(priceListId: string, variantIds: string[]): Promise<void> {
     const mutation = `
       mutation deletePrices($priceListId: ID!, $variantIds: [ID!]!) {
         priceListFixedPricesDelete(
@@ -224,11 +234,13 @@ export class PricingManager {
 
     const response = await this.client.mutation(mutation, {
       priceListId,
-      variantIds
+      variantIds,
     })
 
     if (response.data?.priceListFixedPricesDelete.userErrors.length > 0) {
-      throw new Error(`Failed to delete prices: ${response.data.priceListFixedPricesDelete.userErrors[0].message}`)
+      throw new Error(
+        `Failed to delete prices: ${response.data.priceListFixedPricesDelete.userErrors[0].message}`
+      )
     }
   }
 
@@ -260,11 +272,13 @@ export class PricingManager {
 
     const response = await this.client.mutation(mutation, {
       catalogId,
-      customerIds
+      customerIds,
     })
 
     if (response.data?.catalogContextUpdate.userErrors.length > 0) {
-      throw new Error(`Failed to assign customers: ${response.data.catalogContextUpdate.userErrors[0].message}`)
+      throw new Error(
+        `Failed to assign customers: ${response.data.catalogContextUpdate.userErrors[0].message}`
+      )
     }
   }
 
@@ -273,17 +287,19 @@ export class PricingManager {
    */
   async pushCustomerPricing(customerId: string): Promise<void> {
     const supabase = await createClient()
-    
+
     // Get customer pricing from TruthSource
     const { data: customerPrices } = await supabase
       .from('customer_pricing')
-      .select(`
+      .select(
+        `
         *,
         product:products(
           external_id,
           sku
         )
-      `)
+      `
+      )
       .eq('customer_id', customerId)
       .eq('organization_id', this.organizationId)
       .eq('is_active', true)
@@ -295,7 +311,7 @@ export class PricingManager {
 
     // Group prices by catalog/tier
     const pricesByTier = new Map<string, typeof customerPrices>()
-    
+
     for (const price of customerPrices) {
       const tierKey = price.contract_id || 'default'
       if (!pricesByTier.has(tierKey)) {
@@ -307,11 +323,14 @@ export class PricingManager {
     // Update each price list
     for (const [tierKey, prices] of pricesByTier) {
       // Get or create catalog for this customer tier
-      const catalogId = await this.getOrCreateCustomerCatalog(customerId, tierKey)
-      
+      const catalogId = await this.getOrCreateCustomerCatalog(
+        customerId,
+        tierKey
+      )
+
       // Map prices to Shopify variant IDs
       const shopifyPrices = await this.mapPricesToVariants(prices)
-      
+
       // Update price list
       await this.upsertPriceList(catalogId, shopifyPrices)
     }
@@ -418,29 +437,30 @@ export class PricingManager {
         for (const edge of data.edges) {
           const company = edge?.node
           if (!company) continue
-          
+
           // Add company as a group
           groups.push({
             id: company.id,
             name: company.name,
             external_id: company.externalId,
             type: 'company',
-            catalog_ids: []
+            catalog_ids: [],
           })
 
           // Add company locations as groups
           if (company.locations?.edges) {
             for (const locEdge of company.locations.edges) {
               const location = locEdge.node
-              const catalogIds = location.catalogs?.edges.map((e: any) => e.node.id) || []
-              
+              const catalogIds =
+                location.catalogs?.edges.map((e: any) => e.node.id) || []
+
               groups.push({
                 id: location.id,
                 name: `${company.name} - ${location.name}`,
                 external_id: location.externalId,
                 type: 'company_location',
                 parent_id: company.id,
-                catalog_ids: catalogIds
+                catalog_ids: catalogIds,
               })
             }
           }
@@ -453,13 +473,13 @@ export class PricingManager {
       console.error('Failed to fetch catalog groups:', error)
       // Return partial results on error
     }
-    
+
     return groups
   }
 
   private async syncPriceList(priceList: ShopifyPriceList): Promise<void> {
     const supabase = await createClient()
-    
+
     // Fetch all prices in the price list
     let cursor: string | null = null
     let hasNextPage = true
@@ -496,7 +516,7 @@ export class PricingManager {
 
       const response = await this.client.query(query, {
         priceListId: priceList.id,
-        cursor
+        cursor,
       })
 
       const prices = response.data?.priceList?.prices
@@ -515,33 +535,29 @@ export class PricingManager {
 
   private async saveCatalog(catalog: ShopifyCatalog): Promise<void> {
     const supabase = await createClient()
-    
-    await supabase
-      .from('shopify_b2b_catalogs')
-      .upsert({
-        integration_id: this.integrationId,
-        organization_id: this.organizationId,
-        shopify_catalog_id: catalog.id,
-        name: catalog.title,
-        status: catalog.status.toLowerCase(),
-        price_list_id: catalog.priceList?.id,
-        updated_at: new Date().toISOString()
-      })
+
+    await supabase.from('shopify_b2b_catalogs').upsert({
+      integration_id: this.integrationId,
+      organization_id: this.organizationId,
+      shopify_catalog_id: catalog.id,
+      name: catalog.title,
+      status: catalog.status.toLowerCase(),
+      price_list_id: catalog.priceList?.id,
+      updated_at: new Date().toISOString(),
+    })
   }
 
   private async saveCatalogGroup(group: ShopifyCatalogGroup): Promise<void> {
     const supabase = await createClient()
-    
-    await supabase
-      .from('shopify_catalog_groups')
-      .upsert({
-        integration_id: this.integrationId,
-        organization_id: this.organizationId,
-        shopify_group_id: group.id,
-        catalog_id: group.catalogId,
-        name: group.name,
-        updated_at: new Date().toISOString()
-      })
+
+    await supabase.from('shopify_catalog_groups').upsert({
+      integration_id: this.integrationId,
+      organization_id: this.organizationId,
+      shopify_group_id: group.id,
+      catalog_id: group.catalogId,
+      name: group.name,
+      updated_at: new Date().toISOString(),
+    })
   }
 
   private async getOrCreatePriceList(catalogId: string): Promise<string> {
@@ -557,7 +573,7 @@ export class PricingManager {
     `
 
     const response = await this.client.query(query, { id: catalogId })
-    
+
     if (response.data?.catalog?.priceList?.id) {
       return response.data.catalog.priceList.id
     }
@@ -584,25 +600,27 @@ export class PricingManager {
         parent: {
           adjustment: {
             type: 'PERCENTAGE_DECREASE',
-            value: 0
-          }
-        }
-      }
+            value: 0,
+          },
+        },
+      },
     })
 
     if (createResponse.data?.priceListCreate.userErrors.length > 0) {
-      throw new Error(`Failed to create price list: ${createResponse.data.priceListCreate.userErrors[0].message}`)
+      throw new Error(
+        `Failed to create price list: ${createResponse.data.priceListCreate.userErrors[0].message}`
+      )
     }
 
     return createResponse.data.priceListCreate.priceList.id
   }
 
   private async getOrCreateCustomerCatalog(
-    customerId: string, 
+    customerId: string,
     tierKey: string
   ): Promise<string> {
     const supabase = await createClient()
-    
+
     // Check if catalog exists for this customer/tier (fix-57: correct JSON path syntax)
     const { data: existing } = await supabase
       .from('shopify_b2b_catalogs')
@@ -624,33 +642,33 @@ export class PricingManager {
     )
 
     // Save mapping
-    await supabase
-      .from('shopify_b2b_catalogs')
-      .insert({
-        integration_id: this.integrationId,
-        organization_id: this.organizationId,
-        shopify_catalog_id: catalog.id,
-        name: catalog.title,
-        status: catalog.status.toLowerCase(),
-        metadata: {
-          customer_id: customerId,
-          tier_key: tierKey
-        }
-      })
+    await supabase.from('shopify_b2b_catalogs').insert({
+      integration_id: this.integrationId,
+      organization_id: this.organizationId,
+      shopify_catalog_id: catalog.id,
+      name: catalog.title,
+      status: catalog.status.toLowerCase(),
+      metadata: {
+        customer_id: customerId,
+        tier_key: tierKey,
+      },
+    })
 
     return catalog.id
   }
 
   private async mapPricesToVariants(
     prices: any[]
-  ): Promise<Array<{ variantId: string; price: number; compareAtPrice?: number }>> {
+  ): Promise<
+    Array<{ variantId: string; price: number; compareAtPrice?: number }>
+  > {
     const supabase = await createClient()
     const mapped = []
 
     // Get all product IDs that need mapping
     const productIds = prices
-      .filter(price => price.product?.external_id)
-      .map(price => price.product_id)
+      .filter((price) => price.product?.external_id)
+      .map((price) => price.product_id)
 
     if (productIds.length === 0) return mapped
 
@@ -664,7 +682,7 @@ export class PricingManager {
 
     // Create a map for quick lookup
     const mappingMap = new Map(
-      (mappings || []).map(m => [m.internal_product_id, m.shopify_variant_id])
+      (mappings || []).map((m) => [m.internal_product_id, m.shopify_variant_id])
     )
 
     // Map prices using the lookup map
@@ -676,7 +694,9 @@ export class PricingManager {
         mapped.push({
           variantId,
           price: parseFloat(price.price),
-          compareAtPrice: price.original_price ? parseFloat(price.original_price) : undefined
+          compareAtPrice: price.original_price
+            ? parseFloat(price.original_price)
+            : undefined,
         })
       }
     }

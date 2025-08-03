@@ -1,9 +1,9 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { Plus, Upload } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ProductsTable } from '@/components/features/products/products-table'
 import { BulkImportDialog } from '@/components/features/products/bulk-import-dialog'
+import { ProductsTable } from '@/components/features/products/products-table'
+import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
 // import { generateProductCSVTemplate } from '@/lib/csv/product-import'
 import { Product } from '@/types/product.types'
@@ -48,16 +48,18 @@ export default async function ProductsPage() {
   // Fetch products with inventory stats
   const { data, error } = await supabase
     .from('products')
-    .select(`
+    .select(
+      `
       *,
       inventory:inventory!left(
         quantity,
         reserved_quantity
       )
-    `)
+    `
+    )
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
-  
+
   const products = data as ProductWithInventory[] | null
 
   if (error) {
@@ -66,26 +68,35 @@ export default async function ProductsPage() {
   }
 
   // Transform products to include stats
-  const productsWithStats = products?.map((product: ProductWithInventory) => {
-    const inventoryItems = product.inventory || []
-    const totalQuantity = inventoryItems.reduce((sum: number, item: InventoryItem) => sum + (item.quantity || 0), 0)
-    const totalReserved = inventoryItems.reduce((sum: number, item: InventoryItem) => sum + (item.reserved_quantity || 0), 0)
-    const availableQuantity = totalQuantity - totalReserved
-    
-    return {
-      ...product,
-      inventory_count: inventoryItems.length,
-      total_quantity: totalQuantity,
-      available_quantity: availableQuantity,
-      low_stock: totalQuantity < 10, // Simple low stock logic
-    }
-  }) || []
+  const productsWithStats =
+    products?.map((product: ProductWithInventory) => {
+      const inventoryItems = product.inventory || []
+      const totalQuantity = inventoryItems.reduce(
+        (sum: number, item: InventoryItem) => sum + (item.quantity || 0),
+        0
+      )
+      const totalReserved = inventoryItems.reduce(
+        (sum: number, item: InventoryItem) =>
+          sum + (item.reserved_quantity || 0),
+        0
+      )
+      const availableQuantity = totalQuantity - totalReserved
+
+      return {
+        ...product,
+        inventory_count: inventoryItems.length,
+        total_quantity: totalQuantity,
+        available_quantity: availableQuantity,
+        low_stock: totalQuantity < 10, // Simple low stock logic
+      }
+    }) || []
 
   // Get unique categories for filter
-  const rawCategories = products
-    ?.map((p) => p.category)
-    .filter((c): c is string => typeof c === 'string' && c.length > 0) || []
-  
+  const rawCategories =
+    products
+      ?.map((p) => p.category)
+      .filter((c): c is string => typeof c === 'string' && c.length > 0) || []
+
   const categories = Array.from(new Set(rawCategories)).sort()
 
   return (

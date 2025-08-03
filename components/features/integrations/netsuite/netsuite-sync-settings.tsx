@@ -3,9 +3,18 @@
 
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Info, Loader2, RefreshCw, Save } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -16,13 +25,16 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/use-toast'
-import { Loader2, Save, RefreshCw, Info } from 'lucide-react'
-import { updateIntegration, triggerSync } from '@/app/actions/integrations'
+import { triggerSync, updateIntegration } from '@/app/actions/integrations'
 
 const syncSettingsSchema = z.object({
   sync_enabled: z.boolean(),
@@ -57,7 +69,10 @@ interface NetSuiteSyncSettingsProps {
   config?: NetSuiteSyncConfig
 }
 
-export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSettingsProps) {
+export function NetSuiteSyncSettings({
+  integrationId,
+  config,
+}: NetSuiteSyncSettingsProps) {
   const queryClient = useQueryClient()
   const [isSyncing, setIsSyncing] = useState(false)
 
@@ -71,8 +86,12 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
       sync_pricing: config?.sync_pricing ?? true,
       sync_customers: config?.sync_customers ?? false,
       sync_orders: config?.sync_orders ?? false,
-      inventory_locations: Array.isArray(config?.inventory_locations) ? config.inventory_locations.join(',') : '',
-      price_levels: Array.isArray(config?.price_levels) ? config.price_levels.join(',') : '',
+      inventory_locations: Array.isArray(config?.inventory_locations)
+        ? config.inventory_locations.join(',')
+        : '',
+      price_levels: Array.isArray(config?.price_levels)
+        ? config.price_levels.join(',')
+        : '',
       batch_size: config?.batch_size || 100,
     },
   })
@@ -82,7 +101,7 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
     mutationFn: async (values: SyncSettingsFormValues) => {
       const formData = new FormData()
       formData.append('id', integrationId)
-      
+
       const syncSettings = {
         sync_enabled: values.sync_enabled,
         sync_frequency: values.sync_frequency,
@@ -92,16 +111,22 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
         sync_customers: values.sync_customers,
         sync_orders: values.sync_orders,
         inventory_locations: values.inventory_locations
-          ? values.inventory_locations.split(',').map(s => s.trim()).filter(Boolean)
+          ? values.inventory_locations
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
           : [],
         price_levels: values.price_levels
-          ? values.price_levels.split(',').map(s => s.trim()).filter(Boolean)
+          ? values.price_levels
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean)
           : [],
         batch_size: values.batch_size,
       }
-      
+
       formData.append('sync_settings', JSON.stringify(syncSettings))
-      
+
       return await updateIntegration(formData)
     },
     onSuccess: () => {
@@ -109,16 +134,19 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
         title: 'Settings saved',
         description: 'Sync settings have been updated successfully.',
       })
-      
+
       // Invalidate integration cache to refetch updated data
-      queryClient.invalidateQueries({ queryKey: ['integration', integrationId] })
+      queryClient.invalidateQueries({
+        queryKey: ['integration', integrationId],
+      })
       queryClient.invalidateQueries({ queryKey: ['integrations'] })
     },
     onError: (error) => {
       console.error('Failed to save sync settings:', error)
       toast({
         title: 'Save failed',
-        description: error instanceof Error ? error.message : 'Failed to save settings',
+        description:
+          error instanceof Error ? error.message : 'Failed to save settings',
         variant: 'destructive',
       })
     },
@@ -138,9 +166,9 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
       const formData = new FormData()
       formData.append('integrationId', integrationId)
       formData.append('entityType', entityType)
-      
+
       await triggerSync(formData)
-      
+
       toast({
         title: 'Sync started',
         description: `${entityType} sync has been initiated.`,
@@ -149,7 +177,8 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
       console.error('Failed to trigger sync:', error)
       toast({
         title: 'Sync failed',
-        description: error instanceof Error ? error.message : 'Failed to start sync',
+        description:
+          error instanceof Error ? error.message : 'Failed to start sync',
         variant: 'destructive',
       })
     } finally {
@@ -179,7 +208,8 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
                         Enable Automatic Sync
                       </FormLabel>
                       <FormDescription>
-                        Automatically sync data based on the configured frequency
+                        Automatically sync data based on the configured
+                        frequency
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -198,7 +228,10 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sync Frequency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select sync frequency" />
@@ -237,7 +270,8 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">Products</FormLabel>
                       <FormDescription>
-                        Sync product catalog including SKUs, descriptions, and attributes
+                        Sync product catalog including SKUs, descriptions, and
+                        attributes
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -351,13 +385,14 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
                   <FormItem>
                     <FormLabel>Inventory Locations</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="e.g., Main Warehouse, East Coast DC" 
-                        {...field} 
+                      <Input
+                        placeholder="e.g., Main Warehouse, East Coast DC"
+                        {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Comma-separated list of location names to sync (leave empty for all)
+                      Comma-separated list of location names to sync (leave
+                      empty for all)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -371,13 +406,14 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
                   <FormItem>
                     <FormLabel>Price Levels</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="e.g., Base Price, Wholesale, Distributor" 
-                        {...field} 
+                      <Input
+                        placeholder="e.g., Base Price, Wholesale, Distributor"
+                        {...field}
                       />
                     </FormControl>
                     <FormDescription>
-                      Comma-separated list of price levels to sync (leave empty for all)
+                      Comma-separated list of price levels to sync (leave empty
+                      for all)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -391,10 +427,14 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
                   <FormItem>
                     <FormLabel>Batch Size</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         type="number"
                         {...field}
-                        onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === '' ? '' : Number(e.target.value)
+                          )
+                        }
                       />
                     </FormControl>
                     <FormDescription>
@@ -409,7 +449,9 @@ export function NetSuiteSyncSettings({ integrationId, config }: NetSuiteSyncSett
 
           <div className="flex justify-end">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               <Save className="mr-2 h-4 w-4" />
               Save Settings
             </Button>

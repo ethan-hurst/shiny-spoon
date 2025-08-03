@@ -172,7 +172,7 @@ Tests use consistent mock data from `setup.ts`:
 const mockLog = global.auditTestUtils.createMockAuditLog({
   action: 'create',
   entity_type: 'product',
-  user_email: 'test@example.com'
+  user_email: 'test@example.com',
 })
 ```
 
@@ -198,13 +198,13 @@ Each test runs in isolation with:
 
 ### Coverage Targets
 
-| Component | Target | Current |
-|-----------|--------|---------|
-| Audit Logger Core | 90% | ✅ |
-| Server Actions | 85% | ✅ |
-| UI Components | 80% | ✅ |
-| Database Schema | 100% | ✅ |
-| Overall | 80% | ✅ |
+| Component         | Target | Current |
+| ----------------- | ------ | ------- |
+| Audit Logger Core | 90%    | ✅      |
+| Server Actions    | 85%    | ✅      |
+| UI Components     | 80%    | ✅      |
+| Database Schema   | 100%   | ✅      |
+| Overall           | 80%    | ✅      |
 
 ### Reports Generated
 
@@ -256,28 +256,31 @@ Tests validate performance requirements:
 ### Common Issues
 
 1. **Database Connection Errors**
+
    ```bash
    # Check PostgreSQL is running
    pg_isready
-   
+
    # Verify test database exists
    psql -l | grep audit_test_db
    ```
 
 2. **Playwright Browser Issues**
+
    ```bash
    # Reinstall browsers
    npx playwright install --force
-   
+
    # Run with debug mode
    PWDEBUG=1 npx playwright test
    ```
 
 3. **Coverage Report Missing**
+
    ```bash
    # Ensure coverage directory exists
    mkdir -p coverage
-   
+
    # Run with explicit coverage flag
    npx jest --coverage --coverageDirectory=coverage
    ```

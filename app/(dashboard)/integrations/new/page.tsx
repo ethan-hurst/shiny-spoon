@@ -1,7 +1,7 @@
-import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 import { IntegrationForm } from '@/components/features/integrations/integration-form'
+import { Button } from '@/components/ui/button'
 
 export const metadata = {
   title: 'Add Integration | TruthSource',

@@ -1,18 +1,30 @@
 // PRP-021: AI-Powered Insights - Insights Dashboard
 import { Suspense } from 'react'
-import { Brain, TrendingUp, AlertTriangle, Lightbulb, RefreshCw } from 'lucide-react'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  AlertTriangle,
+  Brain,
+  Lightbulb,
+  RefreshCw,
+  TrendingUp,
+} from 'lucide-react'
+import { AIInsightsList } from '@/components/features/insights/ai-insights-list'
+import { AnomalyAlerts } from '@/components/features/insights/anomaly-alerts'
+import { DemandForecastChart } from '@/components/features/insights/demand-forecast-chart'
+import { RefreshInsightsButton } from '@/components/features/insights/refresh-insights-button'
+import { ReorderSuggestions } from '@/components/features/insights/reorder-suggestions'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AIInsightsList } from '@/components/features/insights/ai-insights-list'
-import { DemandForecastChart } from '@/components/features/insights/demand-forecast-chart'
-import { ReorderSuggestions } from '@/components/features/insights/reorder-suggestions'
-import { AnomalyAlerts } from '@/components/features/insights/anomaly-alerts'
-import { RefreshInsightsButton } from '@/components/features/insights/refresh-insights-button'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata = {
   title: 'AI Insights | TruthSource',
@@ -30,7 +42,7 @@ function InsightsPageSkeleton() {
         </div>
         <Skeleton className="h-10 w-32" />
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="p-6 border rounded-lg space-y-3">
@@ -58,7 +70,9 @@ async function InsightsContent() {
   const supabase = await createClient()
 
   // Get user's organization
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -92,14 +106,19 @@ async function InsightsContent() {
 
   // Calculate summary stats
   const totalInsights = insights?.length || 0
-  const unreadInsights = insights?.filter(i => !i.is_read).length || 0
-  const criticalAlerts = insights?.filter(i => i.severity === 'critical').length || 0
-  const recommendations = insights?.filter(i => i.insight_type === 'recommendation').length || 0
+  const unreadInsights = insights?.filter((i) => !i.is_read).length || 0
+  const criticalAlerts =
+    insights?.filter((i) => i.severity === 'critical').length || 0
+  const recommendations =
+    insights?.filter((i) => i.insight_type === 'recommendation').length || 0
 
   // Group insights by type
-  const alertInsights = insights?.filter(i => i.insight_type === 'alert') || []
-  const recommendationInsights = insights?.filter(i => i.insight_type === 'recommendation') || []
-  const trendInsights = insights?.filter(i => i.insight_type === 'trend') || []
+  const alertInsights =
+    insights?.filter((i) => i.insight_type === 'alert') || []
+  const recommendationInsights =
+    insights?.filter((i) => i.insight_type === 'recommendation') || []
+  const trendInsights =
+    insights?.filter((i) => i.insight_type === 'trend') || []
 
   return (
     <div className="space-y-6">
@@ -117,7 +136,9 @@ async function InsightsContent() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Insights</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Insights
+            </CardTitle>
             <Brain className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -130,27 +151,29 @@ async function InsightsContent() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Critical Alerts</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Critical Alerts
+            </CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{criticalAlerts}</div>
-            <p className="text-xs text-muted-foreground">
-              Require attention
-            </p>
+            <div className="text-2xl font-bold text-red-600">
+              {criticalAlerts}
+            </div>
+            <p className="text-xs text-muted-foreground">Require attention</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recommendations</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Recommendations
+            </CardTitle>
             <Lightbulb className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{recommendations}</div>
-            <p className="text-xs text-muted-foreground">
-              Action items
-            </p>
+            <p className="text-xs text-muted-foreground">Action items</p>
           </CardContent>
         </Card>
 
@@ -161,9 +184,7 @@ async function InsightsContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{predictions?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Active forecasts
-            </p>
+            <p className="text-xs text-muted-foreground">Active forecasts</p>
           </CardContent>
         </Card>
       </div>
@@ -174,12 +195,15 @@ async function InsightsContent() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
-              <CardTitle className="text-red-800">Critical Issues Detected</CardTitle>
+              <CardTitle className="text-red-800">
+                Critical Issues Detected
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-red-700">
-              {criticalAlerts} critical issue{criticalAlerts !== 1 ? 's' : ''} require{criticalAlerts === 1 ? 's' : ''} immediate attention. 
+              {criticalAlerts} critical issue{criticalAlerts !== 1 ? 's' : ''}{' '}
+              require{criticalAlerts === 1 ? 's' : ''} immediate attention.
               Check the alerts tab for details.
             </p>
           </CardContent>
@@ -193,7 +217,10 @@ async function InsightsContent() {
           <TabsTrigger value="alerts">
             Alerts
             {alertInsights.length > 0 && (
-              <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 text-xs">
+              <Badge
+                variant="destructive"
+                className="ml-2 h-5 w-5 rounded-full p-0 text-xs"
+              >
                 {alertInsights.length}
               </Badge>
             )}
@@ -204,7 +231,7 @@ async function InsightsContent() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <AIInsightsList 
+          <AIInsightsList
             insights={insights?.slice(0, 10) || []}
             showAllTypes={true}
           />
@@ -232,10 +259,7 @@ async function InsightsContent() {
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-4">
-          <AIInsightsList 
-            insights={trendInsights}
-            showAllTypes={false}
-          />
+          <AIInsightsList insights={trendInsights} showAllTypes={false} />
         </TabsContent>
       </Tabs>
 
@@ -245,7 +269,8 @@ async function InsightsContent() {
             <Brain className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No insights yet</h3>
             <p className="text-muted-foreground mb-4">
-              AI insights will appear here as your data is analyzed. Click refresh to generate initial insights.
+              AI insights will appear here as your data is analyzed. Click
+              refresh to generate initial insights.
             </p>
             <RefreshInsightsButton organizationId={profile.organization_id} />
           </CardContent>

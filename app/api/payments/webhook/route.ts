@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  
+
   if (!supabaseUrl || !supabaseServiceKey) {
     console.warn('Supabase environment variables not set for webhook')
     return NextResponse.json({
@@ -18,18 +18,14 @@ export async function POST(req: NextRequest) {
       error: 'Service temporarily unavailable',
     })
   }
-  
-  const supabase = await createServerClient(
-    supabaseUrl,
-    supabaseServiceKey,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
+
+  const supabase = await createServerClient(supabaseUrl, supabaseServiceKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
       },
-    }
-  )
+    },
+  })
   const reqText = await req.text()
   return webhooksHandler(reqText, req, supabase)
 }

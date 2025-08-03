@@ -132,7 +132,10 @@ export function ContactDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]" aria-describedby="contact-dialog-description">
+      <DialogContent
+        className="sm:max-w-[500px]"
+        aria-describedby="contact-dialog-description"
+      >
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>
@@ -242,7 +245,10 @@ export function ContactDialog({
                     form.setValue('preferred_contact_method', value as any)
                   }
                 >
-                  <SelectTrigger id="preferred_contact_method" aria-label="Select preferred contact method">
+                  <SelectTrigger
+                    id="preferred_contact_method"
+                    aria-label="Select preferred contact method"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

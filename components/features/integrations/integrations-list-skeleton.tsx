@@ -4,7 +4,9 @@ interface IntegrationsListSkeletonProps {
   count?: number
 }
 
-export function IntegrationsListSkeleton({ count = 5 }: IntegrationsListSkeletonProps = {}) {
+export function IntegrationsListSkeleton({
+  count = 5,
+}: IntegrationsListSkeletonProps = {}) {
   return (
     <div className="divide-y">
       {[...Array(count)].map((_, i) => (

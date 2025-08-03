@@ -2,14 +2,20 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
+import { AlertTriangle, Brain, Lightbulb, TrendingUp, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertTriangle, Brain, Lightbulb, TrendingUp, X } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { dismissInsight, markInsightAsRead } from '@/app/actions/ai-insights'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 import type { AIInsight } from '@/types/ai.types'
 
 interface AIInsightsListProps {
@@ -30,13 +36,16 @@ const severityColors = {
   critical: 'bg-red-100 text-red-800',
 }
 
-export function AIInsightsList({ insights, showAllTypes = true }: AIInsightsListProps) {
+export function AIInsightsList({
+  insights,
+  showAllTypes = true,
+}: AIInsightsListProps) {
   const router = useRouter()
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set())
 
   const handleDismiss = async (insightId: string) => {
-    setDismissingIds(prev => new Set(prev).add(insightId))
-    
+    setDismissingIds((prev) => new Set(prev).add(insightId))
+
     try {
       const result = await dismissInsight(insightId)
       if (result.success) {
@@ -48,7 +57,7 @@ export function AIInsightsList({ insights, showAllTypes = true }: AIInsightsList
     } catch (error) {
       toast.error('Failed to dismiss insight')
     } finally {
-      setDismissingIds(prev => {
+      setDismissingIds((prev) => {
         const newSet = new Set(prev)
         newSet.delete(insightId)
         return newSet
@@ -57,8 +66,8 @@ export function AIInsightsList({ insights, showAllTypes = true }: AIInsightsList
   }
 
   const handleMarkAsRead = async (insightId: string) => {
-    if (insights.find(i => i.id === insightId)?.is_read) return
-    
+    if (insights.find((i) => i.id === insightId)?.is_read) return
+
     try {
       await markInsightAsRead(insightId)
       router.refresh()
@@ -86,10 +95,10 @@ export function AIInsightsList({ insights, showAllTypes = true }: AIInsightsList
       {insights.map((insight) => {
         const Icon = insightIcons[insight.insight_type] || Brain
         const isDismissing = dismissingIds.has(insight.id)
-        
+
         return (
-          <Card 
-            key={insight.id} 
+          <Card
+            key={insight.id}
             className={`relative ${!insight.is_read ? 'border-l-4 border-l-blue-500' : ''}`}
             onClick={() => handleMarkAsRead(insight.id)}
           >
@@ -100,22 +109,23 @@ export function AIInsightsList({ insights, showAllTypes = true }: AIInsightsList
                   <div>
                     <CardTitle className="text-lg">{insight.title}</CardTitle>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge 
-                        variant="secondary" 
-                        className={severityColors[insight.severity] || severityColors.info}
+                      <Badge
+                        variant="secondary"
+                        className={
+                          severityColors[insight.severity] ||
+                          severityColors.info
+                        }
                       >
                         {insight.severity}
                       </Badge>
-                      <Badge variant="outline">
-                        {insight.insight_type}
-                      </Badge>
+                      <Badge variant="outline">{insight.insight_type}</Badge>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(insight.created_at), 'MMM d, h:mm a')}
                       </span>
                     </div>
                   </div>
                 </div>
-                
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -129,7 +139,7 @@ export function AIInsightsList({ insights, showAllTypes = true }: AIInsightsList
                 </Button>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               <CardDescription className="text-sm">
                 {insight.content}
@@ -150,7 +160,9 @@ export function AIInsightsList({ insights, showAllTypes = true }: AIInsightsList
 
               {insight.recommended_actions.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mb-2">Recommended Actions:</h4>
+                  <h4 className="text-sm font-medium mb-2">
+                    Recommended Actions:
+                  </h4>
                   <ul className="text-sm space-y-1">
                     {insight.recommended_actions.map((action, index) => (
                       <li key={index} className="flex items-start gap-2">

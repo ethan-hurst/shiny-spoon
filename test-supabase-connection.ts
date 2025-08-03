@@ -64,7 +64,10 @@ async function testConnection() {
     ]
 
     for (const table of tables) {
-      const { error } = await supabase.from(table as keyof Database['public']['Tables']).select('*').limit(0)
+      const { error } = await supabase
+        .from(table as keyof Database['public']['Tables'])
+        .select('*')
+        .limit(0)
       if (error) {
         console.error(`❌ Table '${table}' check failed:`, error.message)
       } else {

@@ -4,25 +4,36 @@ import type { Database } from '@/supabase/types/database-extended'
 
 // Database types
 export type Integration = Database['public']['Tables']['integrations']['Row']
-export type IntegrationInsert = Database['public']['Tables']['integrations']['Insert']
-export type IntegrationUpdate = Database['public']['Tables']['integrations']['Update']
+export type IntegrationInsert =
+  Database['public']['Tables']['integrations']['Insert']
+export type IntegrationUpdate =
+  Database['public']['Tables']['integrations']['Update']
 
-export type IntegrationCredential = Database['public']['Tables']['integration_credentials']['Row']
-export type IntegrationCredentialInsert = Database['public']['Tables']['integration_credentials']['Insert']
-export type IntegrationCredentialUpdate = Database['public']['Tables']['integration_credentials']['Update']
+export type IntegrationCredential =
+  Database['public']['Tables']['integration_credentials']['Row']
+export type IntegrationCredentialInsert =
+  Database['public']['Tables']['integration_credentials']['Insert']
+export type IntegrationCredentialUpdate =
+  Database['public']['Tables']['integration_credentials']['Update']
 
-export type WebhookEndpoint = Database['public']['Tables']['webhook_endpoints']['Row']
-export type WebhookEndpointInsert = Database['public']['Tables']['webhook_endpoints']['Insert']
-export type WebhookEndpointUpdate = Database['public']['Tables']['webhook_endpoints']['Update']
+export type WebhookEndpoint =
+  Database['public']['Tables']['webhook_endpoints']['Row']
+export type WebhookEndpointInsert =
+  Database['public']['Tables']['webhook_endpoints']['Insert']
+export type WebhookEndpointUpdate =
+  Database['public']['Tables']['webhook_endpoints']['Update']
 
-export type IntegrationLog = Database['public']['Tables']['integration_logs']['Row']
-export type IntegrationLogInsert = Database['public']['Tables']['integration_logs']['Insert']
+export type IntegrationLog =
+  Database['public']['Tables']['integration_logs']['Row']
+export type IntegrationLogInsert =
+  Database['public']['Tables']['integration_logs']['Insert']
 
 export type SyncJob = Database['public']['Tables']['sync_jobs']['Row']
 export type SyncJobInsert = Database['public']['Tables']['sync_jobs']['Insert']
 export type SyncJobUpdate = Database['public']['Tables']['sync_jobs']['Update']
 
-export type RateLimitBucket = Database['public']['Tables']['rate_limit_buckets']['Row']
+export type RateLimitBucket =
+  Database['public']['Tables']['rate_limit_buckets']['Row']
 
 // Enums
 export const IntegrationPlatform = {
@@ -34,7 +45,8 @@ export const IntegrationPlatform = {
   CUSTOM: 'custom',
 } as const
 
-export type IntegrationPlatformType = typeof IntegrationPlatform[keyof typeof IntegrationPlatform]
+export type IntegrationPlatformType =
+  (typeof IntegrationPlatform)[keyof typeof IntegrationPlatform]
 
 export const IntegrationStatus = {
   ACTIVE: 'active',
@@ -44,7 +56,8 @@ export const IntegrationStatus = {
   SUSPENDED: 'suspended',
 } as const
 
-export type IntegrationStatusType = typeof IntegrationStatus[keyof typeof IntegrationStatus]
+export type IntegrationStatusType =
+  (typeof IntegrationStatus)[keyof typeof IntegrationStatus]
 
 export const CredentialType = {
   OAUTH2: 'oauth2',
@@ -53,7 +66,8 @@ export const CredentialType = {
   CUSTOM: 'custom',
 } as const
 
-export type CredentialTypeEnum = typeof CredentialType[keyof typeof CredentialType]
+export type CredentialTypeEnum =
+  (typeof CredentialType)[keyof typeof CredentialType]
 
 export const LogType = {
   SYNC: 'sync',
@@ -63,7 +77,7 @@ export const LogType = {
   CONFIG: 'config',
 } as const
 
-export type LogTypeEnum = typeof LogType[keyof typeof LogType]
+export type LogTypeEnum = (typeof LogType)[keyof typeof LogType]
 
 export const LogSeverity = {
   DEBUG: 'debug',
@@ -73,7 +87,7 @@ export const LogSeverity = {
   CRITICAL: 'critical',
 } as const
 
-export type LogSeverityEnum = typeof LogSeverity[keyof typeof LogSeverity]
+export type LogSeverityEnum = (typeof LogSeverity)[keyof typeof LogSeverity]
 
 export const JobType = {
   FULL_SYNC: 'full_sync',
@@ -82,7 +96,7 @@ export const JobType = {
   MANUAL: 'manual',
 } as const
 
-export type JobTypeEnum = typeof JobType[keyof typeof JobType]
+export type JobTypeEnum = (typeof JobType)[keyof typeof JobType]
 
 export const JobStatus = {
   PENDING: 'pending',
@@ -92,7 +106,7 @@ export const JobStatus = {
   CANCELLED: 'cancelled',
 } as const
 
-export type JobStatusEnum = typeof JobStatus[keyof typeof JobStatus]
+export type JobStatusEnum = (typeof JobStatus)[keyof typeof JobStatus]
 
 // Extended types with relations
 export interface IntegrationWithCredentials extends Integration {
@@ -228,7 +242,10 @@ export interface WebhookJobPayload {
   received_at: string
 }
 
-export type JobPayload = SyncJobPayload | WebhookJobPayload | Record<string, any>
+export type JobPayload =
+  | SyncJobPayload
+  | WebhookJobPayload
+  | Record<string, any>
 
 // Result types
 export interface SyncResult {
@@ -257,20 +274,26 @@ export const integrationSchema = z.object({
     'custom',
   ]),
   description: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'error', 'configuring', 'suspended']).optional(),
+  status: z
+    .enum(['active', 'inactive', 'error', 'configuring', 'suspended'])
+    .optional(),
   config: z.record(z.any()).optional(),
-  sync_settings: z.object({
-    sync_products: z.boolean().default(true),
-    sync_inventory: z.boolean().default(true),
-    sync_pricing: z.boolean().default(true),
-    sync_customers: z.boolean().default(false),
-    sync_orders: z.boolean().default(false),
-    sync_direction: z.enum(['push', 'pull', 'bidirectional']).default('bidirectional'),
-    sync_frequency_minutes: z.number().min(5).max(1440).optional(),
-    batch_size: z.number().min(1).max(1000).optional(),
-    field_mappings: z.record(z.string()).optional(),
-    filters: z.record(z.any()).optional(),
-  }).optional(),
+  sync_settings: z
+    .object({
+      sync_products: z.boolean().default(true),
+      sync_inventory: z.boolean().default(true),
+      sync_pricing: z.boolean().default(true),
+      sync_customers: z.boolean().default(false),
+      sync_orders: z.boolean().default(false),
+      sync_direction: z
+        .enum(['push', 'pull', 'bidirectional'])
+        .default('bidirectional'),
+      sync_frequency_minutes: z.number().min(5).max(1440).optional(),
+      batch_size: z.number().min(1).max(1000).optional(),
+      field_mappings: z.record(z.string()).optional(),
+      filters: z.record(z.any()).optional(),
+    })
+    .optional(),
 })
 
 export const credentialSchema = z.object({

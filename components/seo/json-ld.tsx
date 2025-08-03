@@ -83,7 +83,8 @@ export function JsonLd() {
     name: 'TruthSource',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
-    description: 'B2B e-commerce data synchronization platform that prevents costly order errors by syncing inventory, pricing, and customer data across NetSuite, Shopify, and more.',
+    description:
+      'B2B e-commerce data synchronization platform that prevents costly order errors by syncing inventory, pricing, and customer data across NetSuite, Shopify, and more.',
     offers: {
       '@type': 'Offer',
       price: '0',
@@ -95,16 +96,16 @@ export function JsonLd() {
         eligibleQuantity: {
           '@type': 'QuantitativeValue',
           value: '14',
-          unitText: 'DAY'
-        }
-      }
+          unitText: 'DAY',
+        },
+      },
     },
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: '4.8',
       reviewCount: '127',
       bestRating: '5',
-      worstRating: '1'
+      worstRating: '1',
     },
     featureList: [
       'Real-time inventory synchronization',
@@ -112,15 +113,15 @@ export function JsonLd() {
       'Customer self-service portal',
       'Analytics and reporting',
       'Multi-platform integration',
-      'API access'
+      'API access',
     ],
     screenshot: 'https://truthsource.io/images/dashboard-preview.png',
     softwareVersion: '2.0',
     author: {
       '@type': 'Organization',
       name: 'TruthSource Inc.',
-      url: 'https://truthsource.io'
-    }
+      url: 'https://truthsource.io',
+    },
   }
 
   const organizationData: OrganizationSchema = {
@@ -132,7 +133,7 @@ export function JsonLd() {
     sameAs: [
       'https://twitter.com/truthsource',
       'https://linkedin.com/company/truthsource',
-      'https://github.com/truthsource'
+      'https://github.com/truthsource',
     ],
     contactPoint: {
       '@type': 'ContactPoint',
@@ -140,7 +141,7 @@ export function JsonLd() {
       contactType: 'sales',
       email: 'sales@truthsource.io',
       areaServed: 'US',
-      availableLanguage: ['English']
+      availableLanguage: ['English'],
     },
     address: {
       '@type': 'PostalAddress',
@@ -148,8 +149,8 @@ export function JsonLd() {
       addressLocality: 'San Francisco',
       addressRegion: 'CA',
       postalCode: '94105',
-      addressCountry: 'US'
-    }
+      addressCountry: 'US',
+    },
   }
 
   return (

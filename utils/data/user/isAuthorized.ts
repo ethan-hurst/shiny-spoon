@@ -30,8 +30,9 @@ export const isAuthorized = async (
 
   try {
     // First check if user exists
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId)
-    
+    const { data: userData, error: userError } =
+      await supabase.auth.admin.getUserById(userId)
+
     if (userError || !userData.user) {
       return {
         authorized: false,

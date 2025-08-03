@@ -1,7 +1,7 @@
 // PRP-013: NetSuite Integration Health Check
+import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { timingSafeEqual } from 'crypto'
 
 interface HealthMetrics {
   integration_id: string
@@ -39,15 +39,20 @@ interface HealthMetrics {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // Get integration ID from query params
     const integrationId = request.nextUrl.searchParams.get('integration_id')
     if (!integrationId) {
-      return NextResponse.json({ error: 'Integration ID required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Integration ID required' },
+        { status: 400 }
+      )
     }
 
     // Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -61,7 +66,10 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!integration) {
-      return NextResponse.json({ error: 'Integration not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Integration not found' },
+        { status: 404 }
+      )
     }
 
     // Verify user has access
@@ -113,18 +121,24 @@ export async function GET(request: NextRequest) {
         message: 'No authentication credentials configured',
         timestamp: new Date().toISOString(),
       })
-      healthMetrics.recommendations.push('Configure OAuth 2.0 credentials to enable sync')
+      healthMetrics.recommendations.push(
+        'Configure OAuth 2.0 credentials to enable sync'
+      )
     }
 
     // Analyze sync health
     const syncStates = integration.netsuite_sync_state || []
-    
+
     for (const state of syncStates) {
       if (state.last_successful_sync_at) {
         const lastSync = new Date(state.last_successful_sync_at)
-        if (!healthMetrics.metrics.sync_health.last_successful_sync || 
-            lastSync > new Date(healthMetrics.metrics.sync_health.last_successful_sync)) {
-          healthMetrics.metrics.sync_health.last_successful_sync = state.last_successful_sync_at
+        if (
+          !healthMetrics.metrics.sync_health.last_successful_sync ||
+          lastSync >
+            new Date(healthMetrics.metrics.sync_health.last_successful_sync)
+        ) {
+          healthMetrics.metrics.sync_health.last_successful_sync =
+            state.last_successful_sync_at
         }
       }
 
@@ -147,7 +161,8 @@ export async function GET(request: NextRequest) {
 
       // Add sync duration to average
       if (state.sync_duration) {
-        healthMetrics.metrics.sync_health.avg_sync_duration += state.sync_duration
+        healthMetrics.metrics.sync_health.avg_sync_duration +=
+          state.sync_duration
       }
     }
 
@@ -158,7 +173,7 @@ export async function GET(request: NextRequest) {
 
     // Get error logs from last 24 hours
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    
+
     const { data: errorLogs } = await supabase
       .from('integration_logs')
       .select('*')
@@ -168,10 +183,10 @@ export async function GET(request: NextRequest) {
 
     if (errorLogs) {
       healthMetrics.metrics.sync_health.error_rate_24h = errorLogs.length
-      
+
       // Group errors by type
       const errorTypes: Record<string, number> = {}
-      errorLogs.forEach(log => {
+      errorLogs.forEach((log) => {
         const type = log.details?.error_type || 'unknown'
         errorTypes[type] = (errorTypes[type] || 0) + 1
       })
@@ -191,8 +206,13 @@ export async function GET(request: NextRequest) {
 
     // Check sync frequency
     if (healthMetrics.metrics.sync_health.last_successful_sync) {
-      const hoursSinceSync = (Date.now() - new Date(healthMetrics.metrics.sync_health.last_successful_sync).getTime()) / (1000 * 60 * 60)
-      
+      const hoursSinceSync =
+        (Date.now() -
+          new Date(
+            healthMetrics.metrics.sync_health.last_successful_sync
+          ).getTime()) /
+        (1000 * 60 * 60)
+
       if (hoursSinceSync > 24) {
         healthMetrics.issues.push({
           severity: 'warning',
@@ -235,8 +255,10 @@ export async function GET(request: NextRequest) {
     if (rateLimitLogs && rateLimitLogs.length > 0) {
       const remaining = rateLimitLogs[0].details?.rate_limit_remaining || 100
       const limit = rateLimitLogs[0].details?.rate_limit_total || 100
-      healthMetrics.metrics.performance.rate_limit_usage = Math.round((1 - remaining / limit) * 100)
-      
+      healthMetrics.metrics.performance.rate_limit_usage = Math.round(
+        (1 - remaining / limit) * 100
+      )
+
       if (healthMetrics.metrics.performance.rate_limit_usage > 80) {
         healthMetrics.issues.push({
           severity: 'warning',
@@ -244,13 +266,19 @@ export async function GET(request: NextRequest) {
           message: `Rate limit usage at ${healthMetrics.metrics.performance.rate_limit_usage}%`,
           timestamp: new Date().toISOString(),
         })
-        healthMetrics.recommendations.push('Consider reducing sync frequency or batch size')
+        healthMetrics.recommendations.push(
+          'Consider reducing sync frequency or batch size'
+        )
       }
     }
 
     // Determine overall health status
-    const criticalIssues = healthMetrics.issues.filter(i => i.severity === 'critical').length
-    const warningIssues = healthMetrics.issues.filter(i => i.severity === 'warning').length
+    const criticalIssues = healthMetrics.issues.filter(
+      (i) => i.severity === 'critical'
+    ).length
+    const warningIssues = healthMetrics.issues.filter(
+      (i) => i.severity === 'warning'
+    ).length
 
     if (criticalIssues > 0) {
       healthMetrics.status = 'unhealthy'
@@ -259,12 +287,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Add general recommendations
-    if (healthMetrics.metrics.sync_health.avg_sync_duration > 300000) { // 5 minutes
-      healthMetrics.recommendations.push('Consider optimizing sync queries or reducing batch size')
+    if (healthMetrics.metrics.sync_health.avg_sync_duration > 300000) {
+      // 5 minutes
+      healthMetrics.recommendations.push(
+        'Consider optimizing sync queries or reducing batch size'
+      )
     }
 
     if (healthMetrics.metrics.sync_health.consecutive_failures > 3) {
-      healthMetrics.recommendations.push('Review error logs and verify NetSuite permissions')
+      healthMetrics.recommendations.push(
+        'Review error logs and verify NetSuite permissions'
+      )
     }
 
     // Store health check result
@@ -278,13 +311,12 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json(healthMetrics)
-
   } catch (error) {
     console.error('Health check error:', error)
     return NextResponse.json(
-      { 
+      {
         error: 'Health check failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
@@ -301,11 +333,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // Authentication required - verify API key or user session
     const authHeader = request.headers.get('authorization')
     const apiKey = request.headers.get('x-api-key')
-    
+
     // Method 1: API Key authentication for monitoring systems
     if (apiKey) {
       const validApiKey = process.env.MONITORING_API_KEY
@@ -315,44 +347,40 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         )
       }
-      
+
       // Use timing-safe comparison to prevent timing attacks
       const apiKeyBuffer = Buffer.from(apiKey)
       const validApiKeyBuffer = Buffer.from(validApiKey)
-      
+
       // Ensure buffers are same length for timingSafeEqual
       if (apiKeyBuffer.length !== validApiKeyBuffer.length) {
-        return NextResponse.json(
-          { error: 'Invalid API key' },
-          { status: 401 }
-        )
+        return NextResponse.json({ error: 'Invalid API key' }, { status: 401 })
       }
-      
+
       const isValid = timingSafeEqual(apiKeyBuffer, validApiKeyBuffer)
       if (!isValid) {
-        return NextResponse.json(
-          { error: 'Invalid API key' },
-          { status: 401 }
-        )
+        return NextResponse.json({ error: 'Invalid API key' }, { status: 401 })
       }
     }
     // Method 2: Bearer token authentication for authenticated users
     else if (authHeader?.startsWith('Bearer ')) {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         return NextResponse.json(
           { error: 'Invalid or expired token' },
           { status: 401 }
         )
       }
-      
+
       // Verify user has monitoring permissions (admin role)
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('role')
         .eq('user_id', user.id)
         .single()
-      
+
       if (!profile || profile.role !== 'admin') {
         return NextResponse.json(
           { error: 'Insufficient permissions' },
@@ -363,11 +391,14 @@ export async function POST(request: NextRequest) {
     // No authentication provided
     else {
       return NextResponse.json(
-        { error: 'Authentication required. Provide X-API-Key or Authorization header.' },
+        {
+          error:
+            'Authentication required. Provide X-API-Key or Authorization header.',
+        },
         { status: 401 }
       )
     }
-    
+
     // This endpoint is meant to be called by monitoring systems
     // It checks all active NetSuite integrations
     const { data: integrations } = await supabase
@@ -377,9 +408,9 @@ export async function POST(request: NextRequest) {
       .eq('status', 'active')
 
     if (!integrations || integrations.length === 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         status: 'ok',
-        message: 'No active NetSuite integrations to monitor'
+        message: 'No active NetSuite integrations to monitor',
       })
     }
 
@@ -393,11 +424,19 @@ export async function POST(request: NextRequest) {
           .from('integration_logs')
           .select('severity')
           .eq('integration_id', integration.id)
-          .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Last hour
+          .gte(
+            'created_at',
+            new Date(Date.now() - 60 * 60 * 1000).toISOString()
+          ) // Last hour
           .eq('severity', 'error')
 
         const errorCount = recentLogs?.length || 0
-        const status = errorCount > 10 ? 'unhealthy' : errorCount > 5 ? 'degraded' : 'healthy'
+        const status =
+          errorCount > 10
+            ? 'unhealthy'
+            : errorCount > 5
+              ? 'degraded'
+              : 'healthy'
 
         // Alert if unhealthy
         if (status === 'unhealthy') {
@@ -436,13 +475,12 @@ export async function POST(request: NextRequest) {
       results,
       timestamp: new Date().toISOString(),
     })
-
   } catch (error) {
     console.error('Monitor error:', error)
     return NextResponse.json(
-      { 
+      {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Monitor failed'
+        message: error instanceof Error ? error.message : 'Monitor failed',
       },
       { status: 500 }
     )

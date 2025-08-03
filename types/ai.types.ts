@@ -80,7 +80,15 @@ export interface PriceRecommendation {
 
 export interface AnomalyAlert {
   id: string
-  type: 'inventory_spike' | 'adjustment_pattern' | 'stock_out' | 'excess_inventory' | 'order_spike' | 'large_order' | 'price_volatility' | 'large_price_change'
+  type:
+    | 'inventory_spike'
+    | 'adjustment_pattern'
+    | 'stock_out'
+    | 'excess_inventory'
+    | 'order_spike'
+    | 'large_order'
+    | 'price_volatility'
+    | 'large_price_change'
   severity: 'info' | 'warning' | 'critical'
   title: string
   description: string

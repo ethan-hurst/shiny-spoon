@@ -1,6 +1,6 @@
-import { DataSyncService } from '@/lib/sync/services/data-sync-service'
 import { createBrowserClient } from '@/lib/supabase/client'
-import { SyncType, SyncStatus, SyncOperation } from '@/lib/sync/types'
+import { DataSyncService } from '@/lib/sync/services/data-sync-service'
+import { SyncOperation, SyncStatus, SyncType } from '@/lib/sync/types'
 
 // Mock dependencies
 jest.mock('@/lib/supabase/client')
@@ -8,7 +8,7 @@ jest.mock('@/lib/supabase/client')
 describe('DataSyncService', () => {
   let dataSyncService: DataSyncService
   let mockSupabase: ReturnType<typeof createMockSupabase>
-  
+
   const mockIntegration = {
     id: 'integration-123',
     organization_id: 'org-123',
@@ -16,8 +16,8 @@ describe('DataSyncService', () => {
     status: 'active',
     config: {
       api_url: 'https://api.netsuite.com',
-      credentials: { token: 'test-token' }
-    }
+      credentials: { token: 'test-token' },
+    },
   }
 
   const mockSyncOperation: SyncOperation = {
@@ -26,26 +26,26 @@ describe('DataSyncService', () => {
     integrationId: 'integration-123',
     options: {
       batchSize: 100,
-      includeDeleted: false
-    }
+      includeDeleted: false,
+    },
   }
 
   const mockInventoryData = [
     {
       sku: 'ITEM-001',
       quantity: 100,
-      warehouse_id: 'warehouse-1'
+      warehouse_id: 'warehouse-1',
     },
     {
       sku: 'ITEM-002',
       quantity: 50,
-      warehouse_id: 'warehouse-1'
+      warehouse_id: 'warehouse-1',
     },
     {
       sku: 'ITEM-003',
       quantity: 75,
-      warehouse_id: 'warehouse-2'
-    }
+      warehouse_id: 'warehouse-2',
+    },
   ]
 
   const mockSyncLog = {
@@ -53,35 +53,40 @@ describe('DataSyncService', () => {
     status: SyncStatus.IN_PROGRESS,
     progress: 50,
     records_synced: 10,
-    records_failed: 2
+    records_failed: 2,
   }
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     mockSupabase = createMockSupabase()
     ;(createBrowserClient as jest.Mock).mockReturnValue(mockSupabase)
-    
+
     dataSyncService = new DataSyncService()
   })
 
   describe('syncData', () => {
     it('should route to syncInventory for INVENTORY type', async () => {
-      const inventoryOperation = { ...mockSyncOperation, syncType: SyncType.INVENTORY }
-      
+      const inventoryOperation = {
+        ...mockSyncOperation,
+        syncType: SyncType.INVENTORY,
+      }
+
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: mockIntegration,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
-      jest.spyOn(dataSyncService as any, 'fetchExternalInventory').mockResolvedValue([])
-      
+      jest
+        .spyOn(dataSyncService as any, 'fetchExternalInventory')
+        .mockResolvedValue([])
+
       const result = await dataSyncService.syncData(inventoryOperation)
 
       expect(result.success).toBe(true)
@@ -89,19 +94,22 @@ describe('DataSyncService', () => {
     })
 
     it('should route to syncPricing for PRICING type', async () => {
-      const pricingOperation = { ...mockSyncOperation, syncType: SyncType.PRICING }
-      
+      const pricingOperation = {
+        ...mockSyncOperation,
+        syncType: SyncType.PRICING,
+      }
+
       mockSupabase.from.mockReturnValue({
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: mockIntegration,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
-      
+
       const result = await dataSyncService.syncData(pricingOperation)
 
       expect(result.success).toBe(true)
@@ -109,8 +117,11 @@ describe('DataSyncService', () => {
     })
 
     it('should route to syncProducts for PRODUCTS type', async () => {
-      const productsOperation = { ...mockSyncOperation, syncType: SyncType.PRODUCTS }
-      
+      const productsOperation = {
+        ...mockSyncOperation,
+        syncType: SyncType.PRODUCTS,
+      }
+
       const result = await dataSyncService.syncData(productsOperation)
 
       expect(result.success).toBe(true)
@@ -118,8 +129,11 @@ describe('DataSyncService', () => {
     })
 
     it('should route to syncOrders for ORDERS type', async () => {
-      const ordersOperation = { ...mockSyncOperation, syncType: SyncType.ORDERS }
-      
+      const ordersOperation = {
+        ...mockSyncOperation,
+        syncType: SyncType.ORDERS,
+      }
+
       const result = await dataSyncService.syncData(ordersOperation)
 
       expect(result.success).toBe(true)
@@ -127,8 +141,11 @@ describe('DataSyncService', () => {
     })
 
     it('should route to syncCustomers for CUSTOMERS type', async () => {
-      const customersOperation = { ...mockSyncOperation, syncType: SyncType.CUSTOMERS }
-      
+      const customersOperation = {
+        ...mockSyncOperation,
+        syncType: SyncType.CUSTOMERS,
+      }
+
       const result = await dataSyncService.syncData(customersOperation)
 
       expect(result.success).toBe(true)
@@ -136,8 +153,11 @@ describe('DataSyncService', () => {
     })
 
     it('should handle unsupported sync type', async () => {
-      const unsupportedOperation = { ...mockSyncOperation, syncType: 'UNSUPPORTED' as any }
-      
+      const unsupportedOperation = {
+        ...mockSyncOperation,
+        syncType: 'UNSUPPORTED' as any,
+      }
+
       const result = await dataSyncService.syncData(unsupportedOperation)
 
       expect(result.success).toBe(false)
@@ -145,12 +165,15 @@ describe('DataSyncService', () => {
     })
 
     it('should handle exceptions gracefully', async () => {
-      const inventoryOperation = { ...mockSyncOperation, syncType: SyncType.INVENTORY }
-      
+      const inventoryOperation = {
+        ...mockSyncOperation,
+        syncType: SyncType.INVENTORY,
+      }
+
       mockSupabase.from.mockImplementation(() => {
         throw new Error('Database connection failed')
       })
-      
+
       const result = await dataSyncService.syncData(inventoryOperation)
 
       expect(result.success).toBe(false)
@@ -158,12 +181,15 @@ describe('DataSyncService', () => {
     })
 
     it('should handle non-Error exceptions', async () => {
-      const inventoryOperation = { ...mockSyncOperation, syncType: SyncType.INVENTORY }
-      
+      const inventoryOperation = {
+        ...mockSyncOperation,
+        syncType: SyncType.INVENTORY,
+      }
+
       mockSupabase.from.mockImplementation(() => {
         throw 'String error'
       })
-      
+
       const result = await dataSyncService.syncData(inventoryOperation)
 
       expect(result.success).toBe(false)
@@ -178,21 +204,28 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: mockIntegration,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
     })
 
     it('should sync inventory data successfully', async () => {
-      jest.spyOn(dataSyncService as any, 'fetchExternalInventory').mockResolvedValue(mockInventoryData)
-      jest.spyOn(dataSyncService as any, 'processInventoryData').mockResolvedValue({
-        synced: 3,
-        failed: 0
-      })
+      jest
+        .spyOn(dataSyncService as any, 'fetchExternalInventory')
+        .mockResolvedValue(mockInventoryData)
+      jest
+        .spyOn(dataSyncService as any, 'processInventoryData')
+        .mockResolvedValue({
+          synced: 3,
+          failed: 0,
+        })
 
-      const result = await (dataSyncService as any).syncInventory('integration-123', {})
+      const result = await (dataSyncService as any).syncInventory(
+        'integration-123',
+        {}
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.records_synced).toBe(3)
@@ -201,13 +234,20 @@ describe('DataSyncService', () => {
     })
 
     it('should handle sync with errors', async () => {
-      jest.spyOn(dataSyncService as any, 'fetchExternalInventory').mockResolvedValue(mockInventoryData)
-      jest.spyOn(dataSyncService as any, 'processInventoryData').mockResolvedValue({
-        synced: 2,
-        failed: 1
-      })
+      jest
+        .spyOn(dataSyncService as any, 'fetchExternalInventory')
+        .mockResolvedValue(mockInventoryData)
+      jest
+        .spyOn(dataSyncService as any, 'processInventoryData')
+        .mockResolvedValue({
+          synced: 2,
+          failed: 1,
+        })
 
-      const result = await (dataSyncService as any).syncInventory('integration-123', {})
+      const result = await (dataSyncService as any).syncInventory(
+        'integration-123',
+        {}
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.records_synced).toBe(2)
@@ -221,10 +261,10 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: null,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       await expect(
@@ -238,10 +278,10 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: null,
-              error: { message: 'Database error' }
-            })
-          })
-        })
+              error: { message: 'Database error' },
+            }),
+          }),
+        }),
       } as any)
 
       await expect(
@@ -257,13 +297,16 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: mockIntegration,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
-      const result = await (dataSyncService as any).syncPricing('integration-123', {})
+      const result = await (dataSyncService as any).syncPricing(
+        'integration-123',
+        {}
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.records_synced).toBe(0)
@@ -277,10 +320,10 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: null,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       await expect(
@@ -291,7 +334,10 @@ describe('DataSyncService', () => {
 
   describe('syncProducts', () => {
     it('should return successful result with zero records', async () => {
-      const result = await (dataSyncService as any).syncProducts('integration-123', {})
+      const result = await (dataSyncService as any).syncProducts(
+        'integration-123',
+        {}
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.records_synced).toBe(0)
@@ -302,7 +348,10 @@ describe('DataSyncService', () => {
 
   describe('syncOrders', () => {
     it('should return successful result with zero records', async () => {
-      const result = await (dataSyncService as any).syncOrders('integration-123', {})
+      const result = await (dataSyncService as any).syncOrders(
+        'integration-123',
+        {}
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.records_synced).toBe(0)
@@ -313,7 +362,10 @@ describe('DataSyncService', () => {
 
   describe('syncCustomers', () => {
     it('should return successful result with zero records', async () => {
-      const result = await (dataSyncService as any).syncCustomers('integration-123', {})
+      const result = await (dataSyncService as any).syncCustomers(
+        'integration-123',
+        {}
+      )
 
       expect(result.success).toBe(true)
       expect(result.data.records_synced).toBe(0)
@@ -324,7 +376,9 @@ describe('DataSyncService', () => {
 
   describe('fetchExternalInventory', () => {
     it('should return empty array for mock implementation', async () => {
-      const result = await (dataSyncService as any).fetchExternalInventory(mockIntegration)
+      const result = await (dataSyncService as any).fetchExternalInventory(
+        mockIntegration
+      )
 
       expect(result).toEqual([])
     })
@@ -333,7 +387,7 @@ describe('DataSyncService', () => {
   describe('processInventoryData', () => {
     it('should process inventory data successfully', async () => {
       mockSupabase.from.mockReturnValue({
-        upsert: jest.fn().mockResolvedValue({ data: null, error: null })
+        upsert: jest.fn().mockResolvedValue({ data: null, error: null }),
       } as any)
 
       const result = await (dataSyncService as any).processInventoryData(
@@ -347,12 +401,17 @@ describe('DataSyncService', () => {
     })
 
     it('should handle upsert operations with correct data structure', async () => {
-      const mockUpsert = jest.fn().mockResolvedValue({ data: null, error: null })
+      const mockUpsert = jest
+        .fn()
+        .mockResolvedValue({ data: null, error: null })
       mockSupabase.from.mockReturnValue({
-        upsert: mockUpsert
+        upsert: mockUpsert,
       } as any)
 
-      await (dataSyncService as any).processInventoryData(mockInventoryData, 'org-123')
+      await (dataSyncService as any).processInventoryData(
+        mockInventoryData,
+        'org-123'
+      )
 
       expect(mockUpsert).toHaveBeenCalledTimes(3)
       expect(mockUpsert).toHaveBeenCalledWith({
@@ -360,13 +419,13 @@ describe('DataSyncService', () => {
         sku: 'ITEM-001',
         quantity: 100,
         warehouse_id: 'warehouse-1',
-        updated_at: expect.any(String)
+        updated_at: expect.any(String),
       })
     })
 
     it('should handle database errors during upsert', async () => {
       mockSupabase.from.mockReturnValue({
-        upsert: jest.fn().mockRejectedValue(new Error('Database error'))
+        upsert: jest.fn().mockRejectedValue(new Error('Database error')),
       } as any)
 
       const result = await (dataSyncService as any).processInventoryData(
@@ -379,13 +438,14 @@ describe('DataSyncService', () => {
     })
 
     it('should handle mixed success and failure scenarios', async () => {
-      const mockUpsert = jest.fn()
+      const mockUpsert = jest
+        .fn()
         .mockResolvedValueOnce({ data: null, error: null }) // First item succeeds
         .mockRejectedValueOnce(new Error('Database error')) // Second item fails
         .mockResolvedValueOnce({ data: null, error: null }) // Third item succeeds
 
       mockSupabase.from.mockReturnValue({
-        upsert: mockUpsert
+        upsert: mockUpsert,
       } as any)
 
       const result = await (dataSyncService as any).processInventoryData(
@@ -398,7 +458,10 @@ describe('DataSyncService', () => {
     })
 
     it('should handle empty inventory data', async () => {
-      const result = await (dataSyncService as any).processInventoryData([], 'org-123')
+      const result = await (dataSyncService as any).processInventoryData(
+        [],
+        'org-123'
+      )
 
       expect(result.synced).toBe(0)
       expect(result.failed).toBe(0)
@@ -408,16 +471,21 @@ describe('DataSyncService', () => {
       const mockDate = '2024-01-15T10:00:00Z'
       jest.spyOn(Date.prototype, 'toISOString').mockReturnValue(mockDate)
 
-      const mockUpsert = jest.fn().mockResolvedValue({ data: null, error: null })
+      const mockUpsert = jest
+        .fn()
+        .mockResolvedValue({ data: null, error: null })
       mockSupabase.from.mockReturnValue({
-        upsert: mockUpsert
+        upsert: mockUpsert,
       } as any)
 
-      await (dataSyncService as any).processInventoryData([mockInventoryData[0]], 'org-123')
+      await (dataSyncService as any).processInventoryData(
+        [mockInventoryData[0]],
+        'org-123'
+      )
 
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          updated_at: mockDate
+          updated_at: mockDate,
         })
       )
     })
@@ -430,10 +498,10 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: mockSyncLog,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const result = await dataSyncService.getProgress('sync-123')
@@ -451,10 +519,10 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: null,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const result = await dataSyncService.getProgress('nonexistent-sync')
@@ -466,7 +534,7 @@ describe('DataSyncService', () => {
     it('should handle sync log with missing optional fields', async () => {
       const minimalSyncLog = {
         id: 'sync-123',
-        status: SyncStatus.PENDING
+        status: SyncStatus.PENDING,
         // progress, records_synced, records_failed are missing
       }
 
@@ -475,10 +543,10 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: minimalSyncLog,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       const result = await dataSyncService.getProgress('sync-123')
@@ -495,13 +563,13 @@ describe('DataSyncService', () => {
         eq: jest.fn().mockReturnValue({
           single: jest.fn().mockResolvedValue({
             data: mockSyncLog,
-            error: null
-          })
-        })
+            error: null,
+          }),
+        }),
       })
 
       mockSupabase.from.mockReturnValue({
-        select: mockSelect
+        select: mockSelect,
       } as any)
 
       await dataSyncService.getProgress('sync-123')
@@ -516,10 +584,10 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: null,
-              error: { message: 'Database connection failed' }
-            })
-          })
-        })
+              error: { message: 'Database connection failed' },
+            }),
+          }),
+        }),
       } as any)
 
       const result = await dataSyncService.getProgress('sync-123')
@@ -537,14 +605,15 @@ describe('DataSyncService', () => {
           eq: jest.fn().mockReturnValue({
             single: jest.fn().mockResolvedValue({
               data: mockIntegration,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
       // Mock inventory upsert with mixed success/failure
-      const mockUpsert = jest.fn()
+      const mockUpsert = jest
+        .fn()
         .mockResolvedValueOnce({ data: null, error: null }) // First item succeeds
         .mockResolvedValueOnce({ data: null, error: null }) // Second item succeeds
         .mockRejectedValueOnce(new Error('Constraint violation')) // Third item fails
@@ -553,7 +622,7 @@ describe('DataSyncService', () => {
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'inventory') {
           return {
-            upsert: mockUpsert
+            upsert: mockUpsert,
           } as any
         }
         return {
@@ -561,20 +630,22 @@ describe('DataSyncService', () => {
             eq: jest.fn().mockReturnValue({
               single: jest.fn().mockResolvedValue({
                 data: mockIntegration,
-                error: null
-              })
-            })
-          })
+                error: null,
+              }),
+            }),
+          }),
         } as any
       })
 
       // Mock external data fetch
-      jest.spyOn(dataSyncService as any, 'fetchExternalInventory').mockResolvedValue(mockInventoryData)
+      jest
+        .spyOn(dataSyncService as any, 'fetchExternalInventory')
+        .mockResolvedValue(mockInventoryData)
 
       const operation: SyncOperation = {
         syncType: SyncType.INVENTORY,
         integrationId: 'integration-123',
-        options: { batchSize: 100 }
+        options: { batchSize: 100 },
       }
 
       const result = await dataSyncService.syncData(operation)
@@ -589,14 +660,14 @@ describe('DataSyncService', () => {
       const operations = [
         { ...mockSyncOperation, syncType: SyncType.PRODUCTS },
         { ...mockSyncOperation, syncType: SyncType.ORDERS },
-        { ...mockSyncOperation, syncType: SyncType.CUSTOMERS }
+        { ...mockSyncOperation, syncType: SyncType.CUSTOMERS },
       ]
 
       const results = await Promise.all(
-        operations.map(op => dataSyncService.syncData(op))
+        operations.map((op) => dataSyncService.syncData(op))
       )
 
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.success).toBe(true)
         expect(result.data.status).toBe(SyncStatus.COMPLETED)
       })
@@ -610,10 +681,10 @@ function createMockSupabase() {
     from: jest.fn().mockReturnValue({
       select: jest.fn().mockReturnValue({
         eq: jest.fn().mockReturnValue({
-          single: jest.fn()
-        })
+          single: jest.fn(),
+        }),
       }),
-      upsert: jest.fn()
-    })
+      upsert: jest.fn(),
+    }),
   }
 }

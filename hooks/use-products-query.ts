@@ -33,7 +33,7 @@ export function useProductsQuery() {
         id: product.id,
         sku: product.sku,
         name: product.name,
-        base_price: product.product_pricing?.[0]?.base_price || 0
+        base_price: product.product_pricing?.[0]?.base_price || 0,
       }))
     },
     staleTime: 5 * 60 * 1000, // Consider data stale after 5 minutes

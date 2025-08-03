@@ -1,9 +1,15 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Package, Building2, Zap, Calendar } from 'lucide-react'
-import { UsageStats, SubscriptionData } from '@/lib/billing'
 import { format } from 'date-fns'
+import { Building2, Calendar, Package, Zap } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { SubscriptionData, UsageStats } from '@/lib/billing'
 
 interface UsageOverviewProps {
   usage: UsageStats
@@ -11,8 +17,12 @@ interface UsageOverviewProps {
 }
 
 export function UsageOverview({ usage, subscription }: UsageOverviewProps) {
-  const billingPeriodEnd = subscription?.currentPeriodEnd || new Date(new Date().setMonth(new Date().getMonth() + 1, 0))
-  const daysRemaining = Math.ceil((billingPeriodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  const billingPeriodEnd =
+    subscription?.currentPeriodEnd ||
+    new Date(new Date().setMonth(new Date().getMonth() + 1, 0))
+  const daysRemaining = Math.ceil(
+    (billingPeriodEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  )
 
   const items = [
     {
@@ -58,9 +68,14 @@ export function UsageOverview({ usage, subscription }: UsageOverviewProps) {
       return <Badge variant="destructive">Limit Reached</Badge>
     }
     if (percentage >= 80) {
-      return <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-        {(100 - percentage).toFixed(0)}% remaining
-      </Badge>
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+        >
+          {(100 - percentage).toFixed(0)}% remaining
+        </Badge>
+      )
     }
     return null
   }
@@ -73,7 +88,8 @@ export function UsageOverview({ usage, subscription }: UsageOverviewProps) {
             <div>
               <CardTitle>Usage Overview</CardTitle>
               <CardDescription>
-                Current billing period ends {format(billingPeriodEnd, 'MMM d, yyyy')}
+                Current billing period ends{' '}
+                {format(billingPeriodEnd, 'MMM d, yyyy')}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -93,7 +109,9 @@ export function UsageOverview({ usage, subscription }: UsageOverviewProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <item.icon className="h-4 w-4 text-muted-foreground" />
-                        <CardTitle className="text-base">{item.title}</CardTitle>
+                        <CardTitle className="text-base">
+                          {item.title}
+                        </CardTitle>
                       </div>
                       {getStatusBadge(item.percentage, item.limit)}
                     </div>
@@ -111,7 +129,9 @@ export function UsageOverview({ usage, subscription }: UsageOverviewProps) {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{item.unit}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.unit}
+                        </p>
                       </div>
 
                       {!isUnlimited && (
@@ -122,8 +142,8 @@ export function UsageOverview({ usage, subscription }: UsageOverviewProps) {
                               {Math.min(item.percentage, 100).toFixed(0)}%
                             </span>
                           </div>
-                          <Progress 
-                            value={Math.min(item.percentage, 100)} 
+                          <Progress
+                            value={Math.min(item.percentage, 100)}
                             className={getProgressColor(item.percentage)}
                           />
                         </div>
@@ -132,9 +152,13 @@ export function UsageOverview({ usage, subscription }: UsageOverviewProps) {
                       {item.title === 'API Calls' && (
                         <div className="pt-2 border-t">
                           <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Daily average</span>
+                            <span className="text-muted-foreground">
+                              Daily average
+                            </span>
                             <span className="font-medium">
-                              {Math.round(item.current / new Date().getDate()).toLocaleString()}
+                              {Math.round(
+                                item.current / new Date().getDate()
+                              ).toLocaleString()}
                             </span>
                           </div>
                         </div>
@@ -156,15 +180,26 @@ export function UsageOverview({ usage, subscription }: UsageOverviewProps) {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-sm font-medium">
-                {subscription?.plan ? subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1) : 'Free'} Plan
+                {subscription?.plan
+                  ? subscription.plan.charAt(0).toUpperCase() +
+                    subscription.plan.slice(1)
+                  : 'Free'}{' '}
+                Plan
               </p>
               <p className="text-xs text-muted-foreground">
-                {subscription?.interval === 'year' ? 'Billed annually' : 'Billed monthly'}
+                {subscription?.interval === 'year'
+                  ? 'Billed annually'
+                  : 'Billed monthly'}
               </p>
             </div>
             {subscription?.status && (
-              <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-                {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+              <Badge
+                variant={
+                  subscription.status === 'active' ? 'default' : 'secondary'
+                }
+              >
+                {subscription.status.charAt(0).toUpperCase() +
+                  subscription.status.slice(1)}
               </Badge>
             )}
           </div>

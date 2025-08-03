@@ -10,11 +10,7 @@ import {
   startOfMonth,
   subMonths,
 } from 'date-fns'
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-} from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -33,10 +29,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import {
-  formatDiscountDisplay,
-  PricingRuleRecord,
-} from '@/types/pricing.types'
+import { formatDiscountDisplay, PricingRuleRecord } from '@/types/pricing.types'
 
 export function PromotionCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date())

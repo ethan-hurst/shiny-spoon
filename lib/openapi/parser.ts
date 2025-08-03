@@ -85,14 +85,14 @@ export function generateCodeExample(
       let curlCommand = `curl -X ${method} "${baseUrl}${path}"`
       curlCommand += ` \\\n  -H "X-API-Key: your_api_key_here"`
       curlCommand += ` \\\n  -H "Content-Type: application/json"`
-      
+
       if (requestBody?.content?.['application/json']?.schema) {
         const exampleData = generateExampleFromSchema(
           requestBody.content['application/json'].schema
         )
         curlCommand += ` \\\n  -d '${JSON.stringify(exampleData, null, 2)}'`
       }
-      
+
       return curlCommand
 
     case 'nodejs':
@@ -100,7 +100,7 @@ export function generateCodeExample(
       nodeCode += `const client = new TruthSourceClient({\n`
       nodeCode += `  apiKey: 'your_api_key_here'\n`
       nodeCode += `});\n\n`
-      
+
       // Generate method call based on path
       const pathParts = path.split('/').filter(Boolean)
       if (pathParts.length > 0) {
@@ -113,13 +113,13 @@ export function generateCodeExample(
         }
         nodeCode += `);\n\nconsole.log(result);`
       }
-      
+
       return nodeCode
 
     case 'python':
       let pythonCode = `from truthsource import TruthSourceClient\n\n`
       pythonCode += `client = TruthSourceClient(api_key="your_api_key_here")\n\n`
-      
+
       const pyPathParts = path.split('/').filter(Boolean)
       if (pyPathParts.length > 0) {
         pythonCode += `result = client.${pyPathParts[0]}.${method.toLowerCase()}(`
@@ -131,7 +131,7 @@ export function generateCodeExample(
         }
         pythonCode += `)\n\nprint(result)`
       }
-      
+
       return pythonCode
 
     case 'php':
@@ -139,7 +139,7 @@ export function generateCodeExample(
       phpCode += `require 'vendor/autoload.php';\n\n`
       phpCode += `use TruthSource\\Client;\n\n`
       phpCode += `$client = new Client('your_api_key_here');\n\n`
-      
+
       const phpPathParts = path.split('/').filter(Boolean)
       if (phpPathParts.length > 0) {
         phpCode += `$result = $client->${phpPathParts[0]}->${method.toLowerCase()}(`
@@ -151,7 +151,7 @@ export function generateCodeExample(
         }
         phpCode += `);\n\nprint_r($result);`
       }
-      
+
       return phpCode
 
     default:
@@ -170,21 +170,24 @@ function generateExampleFromSchema(schema: any): any {
   if (schema.type === 'object') {
     const example: any = {}
     if (schema.properties) {
-      Object.entries(schema.properties).forEach(([key, prop]: [string, any]) => {
-        if (prop.example !== undefined) {
-          example[key] = prop.example
-        } else if (prop.type === 'string') {
-          example[key] = prop.format === 'uuid' ? 'abc123-def456-ghi789' : 'example'
-        } else if (prop.type === 'number' || prop.type === 'integer') {
-          example[key] = prop.minimum || 1
-        } else if (prop.type === 'boolean') {
-          example[key] = true
-        } else if (prop.type === 'array') {
-          example[key] = []
-        } else if (prop.type === 'object') {
-          example[key] = generateExampleFromSchema(prop)
+      Object.entries(schema.properties).forEach(
+        ([key, prop]: [string, any]) => {
+          if (prop.example !== undefined) {
+            example[key] = prop.example
+          } else if (prop.type === 'string') {
+            example[key] =
+              prop.format === 'uuid' ? 'abc123-def456-ghi789' : 'example'
+          } else if (prop.type === 'number' || prop.type === 'integer') {
+            example[key] = prop.minimum || 1
+          } else if (prop.type === 'boolean') {
+            example[key] = true
+          } else if (prop.type === 'array') {
+            example[key] = []
+          } else if (prop.type === 'object') {
+            example[key] = generateExampleFromSchema(prop)
+          }
         }
-      })
+      )
     }
     return example
   }
@@ -194,14 +197,14 @@ function generateExampleFromSchema(schema: any): any {
 
 export function resolveRef(spec: OpenAPISpec, ref: string): any {
   if (!ref.startsWith('#/')) return null
-  
+
   const path = ref.substring(2).split('/')
   let current: any = spec
-  
+
   for (const segment of path) {
     current = current[segment]
     if (!current) return null
   }
-  
+
   return current
 }

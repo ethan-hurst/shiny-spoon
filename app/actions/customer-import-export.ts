@@ -163,7 +163,9 @@ export async function importCustomers(
       existingCustomers?.map((c: any) => c.company_name.toLowerCase()) || []
     )
     const existingTaxIds = new Set(
-      existingCustomers?.filter((c: any) => c.tax_id).map((c: any) => c.tax_id) || []
+      existingCustomers
+        ?.filter((c: any) => c.tax_id)
+        .map((c: any) => c.tax_id) || []
     )
 
     let imported = 0

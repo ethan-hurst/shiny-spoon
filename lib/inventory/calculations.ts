@@ -3,7 +3,9 @@ import type { Inventory, InventoryWithRelations } from '@/types/inventory.types'
 /**
  * Calculate available inventory (on_hand - reserved)
  */
-export function calculateAvailableQuantity(inventory: Pick<Inventory, 'quantity' | 'reserved_quantity'>): number {
+export function calculateAvailableQuantity(
+  inventory: Pick<Inventory, 'quantity' | 'reserved_quantity'>
+): number {
   const onHand = inventory.quantity || 0
   const reserved = inventory.reserved_quantity || 0
   return Math.max(0, onHand - reserved)
@@ -50,7 +52,10 @@ export function calculateDaysOfStock(
  * Calculate reorder quantity based on reorder point and lead time
  */
 export function calculateReorderQuantity(
-  currentInventory: Pick<Inventory, 'quantity' | 'reserved_quantity' | 'reorder_point' | 'reorder_quantity'>,
+  currentInventory: Pick<
+    Inventory,
+    'quantity' | 'reserved_quantity' | 'reorder_point' | 'reorder_quantity'
+  >,
   leadTimeDays: number = 7,
   averageDailyUsage: number = 0
 ): number {
@@ -62,11 +67,14 @@ export function calculateReorderQuantity(
   if (available <= reorderPoint) {
     // Account for usage during lead time
     const usageDuringLeadTime = leadTimeDays * averageDailyUsage
-    
+
     // Order enough to cover lead time usage plus the base reorder quantity
     // Ensure we never get a negative quantity
-    const suggestedQuantity = Math.max(0, baseReorderQuantity + usageDuringLeadTime - available)
-    
+    const suggestedQuantity = Math.max(
+      0,
+      baseReorderQuantity + usageDuringLeadTime - available
+    )
+
     // Round up to nearest 10 for cleaner ordering
     return Math.ceil(suggestedQuantity / 10) * 10
   }
@@ -89,7 +97,9 @@ export function calculateTurnoverRatio(
  * Group inventory by status for dashboard stats
  */
 export function groupInventoryByStatus(
-  inventoryItems: Array<Pick<Inventory, 'quantity' | 'reserved_quantity' | 'reorder_point'>>
+  inventoryItems: Array<
+    Pick<Inventory, 'quantity' | 'reserved_quantity' | 'reorder_point'>
+  >
 ): {
   outOfStock: number
   critical: number
@@ -103,7 +113,7 @@ export function groupInventoryByStatus(
     normal: 0,
   }
 
-  inventoryItems.forEach(item => {
+  inventoryItems.forEach((item) => {
     const status = getStockStatus(item)
     switch (status) {
       case 'out_of_stock':
@@ -157,7 +167,10 @@ export function validateInventoryAdjustment(
   }
 
   if (newQuantity === currentQuantity) {
-    return { valid: false, error: 'New quantity must be different from current quantity' }
+    return {
+      valid: false,
+      error: 'New quantity must be different from current quantity',
+    }
   }
 
   return { valid: true }

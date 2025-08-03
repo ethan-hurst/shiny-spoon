@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { createBrowserClient } from '@/lib/supabase/client'
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
 
 interface UseCustomerPricingRealtimeProps {
   customerId: string
@@ -28,72 +31,72 @@ export function useCustomerPricingRealtime({
         channel = supabase
           .channel(`customer-pricing-${customerId}`)
           .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'customer_pricing',
-            filter: `customer_id=eq.${customerId}`,
-          },
-          (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
-            // Invalidate customer pricing queries
-            queryClient.invalidateQueries({
-              queryKey: ['customer-pricing', customerId],
-            })
-            queryClient.invalidateQueries({
-              queryKey: ['customer-prices', customerId],
-            })
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'customer_contracts',
-            filter: `customer_id=eq.${customerId}`,
-          },
-          (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
-            // Invalidate contract queries
-            queryClient.invalidateQueries({
-              queryKey: ['customer-contracts', customerId],
-            })
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'price_approvals',
-            filter: `customer_id=eq.${customerId}`,
-          },
-          (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
-            // Invalidate approval queries
-            queryClient.invalidateQueries({
-              queryKey: ['price-approvals', customerId],
-            })
-            queryClient.invalidateQueries({
-              queryKey: ['pending-approvals'],
-            })
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'customer_price_history',
-            filter: `customer_id=eq.${customerId}`,
-          },
-          (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
-            // Invalidate price history queries
-            queryClient.invalidateQueries({
-              queryKey: ['price-history', customerId],
-            })
-          }
-        )
-        .subscribe()
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'customer_pricing',
+              filter: `customer_id=eq.${customerId}`,
+            },
+            (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+              // Invalidate customer pricing queries
+              queryClient.invalidateQueries({
+                queryKey: ['customer-pricing', customerId],
+              })
+              queryClient.invalidateQueries({
+                queryKey: ['customer-prices', customerId],
+              })
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'customer_contracts',
+              filter: `customer_id=eq.${customerId}`,
+            },
+            (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+              // Invalidate contract queries
+              queryClient.invalidateQueries({
+                queryKey: ['customer-contracts', customerId],
+              })
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'price_approvals',
+              filter: `customer_id=eq.${customerId}`,
+            },
+            (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+              // Invalidate approval queries
+              queryClient.invalidateQueries({
+                queryKey: ['price-approvals', customerId],
+              })
+              queryClient.invalidateQueries({
+                queryKey: ['pending-approvals'],
+              })
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'customer_price_history',
+              filter: `customer_id=eq.${customerId}`,
+            },
+            (_payload: RealtimePostgresChangesPayload<Record<string, any>>) => {
+              // Invalidate price history queries
+              queryClient.invalidateQueries({
+                queryKey: ['price-history', customerId],
+              })
+            }
+          )
+          .subscribe()
       } catch (error) {
         console.error('Failed to setup realtime subscription:', error)
       }
@@ -136,10 +139,13 @@ export function useContractExpiryNotifications({
       if (expiringContracts && expiringContracts.length > 0) {
         // Trigger proper notification instead of console.log
         // This could emit an event, update state, or call a notification service
-        queryClient.setQueryData(['contract-expiry-notifications', customerId], {
-          count: expiringContracts.length,
-          contracts: expiringContracts,
-        })
+        queryClient.setQueryData(
+          ['contract-expiry-notifications', customerId],
+          {
+            count: expiringContracts.length,
+            contracts: expiringContracts,
+          }
+        )
       }
     }
 
@@ -177,7 +183,7 @@ export function usePriceApprovalNotifications(organizationId?: string) {
           queryClient.invalidateQueries({
             queryKey: ['pending-approvals'],
           })
-          
+
           // Show toast notification for new approval request
           const approval = payload.new
           toast.info(`New price approval request for ${approval.product_id}`, {

@@ -4,8 +4,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2, Play } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -15,6 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -22,11 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { toast } from '@/components/ui/use-toast'
-import { Loader2, Play } from 'lucide-react'
 import { createManualSyncJob } from '@/app/actions/sync-engine'
 
 const formSchema = z.object({
@@ -82,7 +82,7 @@ export function ManualSyncTrigger({ integrations }: ManualSyncTriggerProps) {
     try {
       const formData = new FormData()
       formData.append('integration_id', values.integration_id)
-      values.entity_types.forEach(type => {
+      values.entity_types.forEach((type) => {
         formData.append('entity_types', type)
       })
       formData.append('sync_mode', values.sync_mode)
@@ -92,18 +92,20 @@ export function ManualSyncTrigger({ integrations }: ManualSyncTriggerProps) {
 
       toast({
         title: 'Sync started',
-        description: 'Your sync job has been queued and will start processing shortly.',
+        description:
+          'Your sync job has been queued and will start processing shortly.',
       })
 
       // Reset form
       form.reset()
-      
+
       // Refresh the page to show the new job
       router.refresh()
     } catch (error) {
       toast({
         title: 'Sync failed',
-        description: error instanceof Error ? error.message : 'Failed to start sync',
+        description:
+          error instanceof Error ? error.message : 'Failed to start sync',
         variant: 'destructive',
       })
     } finally {
@@ -121,7 +123,10 @@ export function ManualSyncTrigger({ integrations }: ManualSyncTriggerProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Integration</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select an integration" />
@@ -154,7 +159,10 @@ export function ManualSyncTrigger({ integrations }: ManualSyncTriggerProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Priority</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />

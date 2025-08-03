@@ -1,26 +1,30 @@
+import { Shield, Target, Users, Zap } from 'lucide-react'
 import { Card } from '@/components/ui/card'
-import { Target, Users, Zap, Shield } from 'lucide-react'
 
 const values = [
   {
     icon: Target,
     title: 'Accuracy First',
-    description: 'We obsess over data accuracy because we know every error costs our customers money.',
+    description:
+      'We obsess over data accuracy because we know every error costs our customers money.',
   },
   {
     icon: Users,
     title: 'Customer Success',
-    description: 'Your success is our success. We go above and beyond to ensure you achieve your goals.',
+    description:
+      'Your success is our success. We go above and beyond to ensure you achieve your goals.',
   },
   {
     icon: Zap,
     title: 'Speed Matters',
-    description: 'In B2B, every second counts. We build for performance and reliability at scale.',
+    description:
+      'In B2B, every second counts. We build for performance and reliability at scale.',
   },
   {
     icon: Shield,
     title: 'Trust & Security',
-    description: 'We handle your business data with bank-level security and complete transparency.',
+    description:
+      'We handle your business data with bank-level security and complete transparency.',
   },
 ]
 

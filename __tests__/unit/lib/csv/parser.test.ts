@@ -1,12 +1,12 @@
 import { z } from 'zod'
 import {
+  COLUMN_MAPPINGS,
+  generateCSV,
   parseCSV,
   parseInventoryCSV,
-  generateCSV,
   validateCSVFile,
-  COLUMN_MAPPINGS,
+  type ParseError,
   type ParseResult,
-  type ParseError
 } from '@/lib/csv/parser'
 import type { InventoryImportRow } from '@/types/inventory.types'
 
@@ -15,7 +15,7 @@ describe('CSV Parser', () => {
     const testSchema = z.object({
       sku: z.string().min(1),
       quantity: z.number().int().min(0),
-      notes: z.string().optional()
+      notes: z.string().optional(),
     })
 
     it('should parse valid CSV data', () => {
@@ -30,7 +30,7 @@ SKU002,50,Restock`
       expect(result.data[0]).toEqual({
         sku: 'SKU001',
         quantity: 100,
-        notes: 'Initial stock'
+        notes: 'Initial stock',
       })
     })
 
@@ -44,7 +44,7 @@ SKU001,100,Test note`
       expect(result.data[0]).toEqual({
         sku: 'SKU001',
         quantity: 100,
-        notes: 'Test note'
+        notes: 'Test note',
       })
     })
 
@@ -55,7 +55,7 @@ SKU001,100,Test`
       const mappings = {
         sku: ['product_sku'],
         quantity: ['quantity_on_hand'],
-        notes: ['additional_notes']
+        notes: ['additional_notes'],
       }
 
       const result = parseCSV(csvContent, testSchema, mappings)
@@ -75,7 +75,11 @@ SKU003,75`
       const result = parseCSV(csvContent, testSchema)
 
       expect(result.data).toHaveLength(3)
-      expect(result.data.map(d => d.sku)).toEqual(['SKU001', 'SKU002', 'SKU003'])
+      expect(result.data.map((d) => d.sku)).toEqual([
+        'SKU001',
+        'SKU002',
+        'SKU003',
+      ])
     })
 
     it('should handle quoted values', () => {
@@ -112,7 +116,7 @@ SKU003,-5`
 
       expect(result.data).toHaveLength(0)
       expect(result.errors).toHaveLength(3)
-      
+
       // Check specific errors
       const errors = result.errors
       expect(errors[0].message).toContain('Required')
@@ -133,7 +137,7 @@ SKU003,-5`
   describe('security features', () => {
     const testSchema = z.object({
       sku: z.string(),
-      quantity: z.number()
+      quantity: z.number(),
     })
 
     it('should sanitize formula injection attempts', () => {
@@ -194,7 +198,7 @@ SKU002,WH002,50,adjustment,Damage`
         warehouse_code: 'WH001',
         quantity: 100,
         reason: 'cycle_count',
-        notes: 'Regular count'
+        notes: 'Regular count',
       })
     })
 
@@ -220,7 +224,7 @@ SKU001,WH001,100,adjustment,Test`
         warehouse_code: 'WH001',
         quantity: 100,
         reason: 'adjustment',
-        notes: 'Test'
+        notes: 'Test',
       })
     })
   })
@@ -229,53 +233,53 @@ SKU001,WH001,100,adjustment,Test`
     it('should generate CSV from data', () => {
       const data = [
         { sku: 'SKU001', name: 'Product 1', price: 99.99 },
-        { sku: 'SKU002', name: 'Product 2', price: 149.99 }
+        { sku: 'SKU002', name: 'Product 2', price: 149.99 },
       ]
 
       const columns = [
         { key: 'sku' as const, header: 'SKU' },
         { key: 'name' as const, header: 'Product Name' },
-        { key: 'price' as const, header: 'Price' }
+        { key: 'price' as const, header: 'Price' },
       ]
 
       const csv = generateCSV(data, columns)
 
       expect(csv).toBe(
         '"SKU","Product Name","Price"\n' +
-        '"SKU001","Product 1","99.99"\n' +
-        '"SKU002","Product 2","149.99"'
+          '"SKU001","Product 1","99.99"\n' +
+          '"SKU002","Product 2","149.99"'
       )
     })
 
     it('should handle special characters and quotes', () => {
       const data = [
         { name: 'Product with, comma', desc: 'Has "quotes"' },
-        { name: 'Normal product', desc: null }
+        { name: 'Normal product', desc: null },
       ]
 
       const columns = [
         { key: 'name' as const, header: 'Name' },
-        { key: 'desc' as const, header: 'Description' }
+        { key: 'desc' as const, header: 'Description' },
       ]
 
       const csv = generateCSV(data, columns)
 
       expect(csv).toBe(
         '"Name","Description"\n' +
-        '"Product with, comma","Has ""quotes"""\n' +
-        '"Normal product",""'
+          '"Product with, comma","Has ""quotes"""\n' +
+          '"Normal product",""'
       )
     })
 
     it('should sanitize formula injection in output', () => {
       const data = [
         { sku: '=1+1', name: '+SUM(A1:A10)' },
-        { sku: '-1+1', name: '@command' }
+        { sku: '-1+1', name: '@command' },
       ]
 
       const columns = [
         { key: 'sku' as const, header: 'SKU' },
-        { key: 'name' as const, header: 'Name' }
+        { key: 'name' as const, header: 'Name' },
       ]
 
       const csv = generateCSV(data, columns)
@@ -302,7 +306,9 @@ SKU001,WH001,100,adjustment,Test`
     })
 
     it('should reject non-CSV extensions', () => {
-      const file = new File(['test'], 'test.xlsx', { type: 'application/vnd.ms-excel' })
+      const file = new File(['test'], 'test.xlsx', {
+        type: 'application/vnd.ms-excel',
+      })
       const result = validateCSVFile(file)
 
       expect(result.valid).toBe(false)
@@ -311,8 +317,8 @@ SKU001,WH001,100,adjustment,Test`
 
     it('should accept various CSV MIME types', () => {
       const mimeTypes = ['text/csv', 'application/csv', 'text/plain']
-      
-      mimeTypes.forEach(type => {
+
+      mimeTypes.forEach((type) => {
         const file = new File(['test'], 'test.csv', { type })
         const result = validateCSVFile(file)
         expect(result.valid).toBe(true)
@@ -348,7 +354,7 @@ SKU001,WH001,100,adjustment,Test`
   describe('error reporting', () => {
     const testSchema = z.object({
       sku: z.string().min(1),
-      quantity: z.number().int().min(0)
+      quantity: z.number().int().min(0),
     })
 
     it('should provide detailed error information', () => {
@@ -360,17 +366,17 @@ SKU003,-10`
       const result = parseCSV(csvContent, testSchema)
 
       expect(result.errors).toHaveLength(3)
-      
+
       // Check error details
       const error1 = result.errors[0]
       expect(error1.row).toBe(2)
       expect(error1.column).toBe('quantity')
       expect(error1.value).toBe('invalid')
-      
+
       const error2 = result.errors[1]
       expect(error2.row).toBe(3)
       expect(error2.column).toBe('sku')
-      
+
       const error3 = result.errors[2]
       expect(error3.row).toBe(4)
       expect(error3.message).toContain('non-negative')
@@ -396,7 +402,7 @@ SKU003,0`
 
       const schema = z.object({
         sku: z.string(),
-        quantity: z.number()
+        quantity: z.number(),
       })
 
       const result = parseCSV(csvContent, schema)
@@ -415,7 +421,7 @@ SKU002,`
 
       const schema = z.object({
         sku: z.string(),
-        quantity: z.number()
+        quantity: z.number(),
       })
 
       const result = parseCSV(csvContent, schema)

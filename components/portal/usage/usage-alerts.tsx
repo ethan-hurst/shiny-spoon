@@ -1,8 +1,8 @@
+import Link from 'next/link'
+import { AlertCircle, AlertTriangle, TrendingUp } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, TrendingUp, AlertCircle } from 'lucide-react'
-import { UsageStats, SubscriptionData } from '@/lib/billing'
-import Link from 'next/link'
+import { SubscriptionData, UsageStats } from '@/lib/billing'
 
 interface UsageAlertsProps {
   usage: UsageStats
@@ -45,7 +45,8 @@ export function UsageAlerts({ usage, subscription }: UsageAlertsProps) {
     alerts.push({
       type: 'error',
       title: 'API call limit exceeded',
-      description: 'You\'ve exceeded your monthly API call limit. Additional calls may be rate limited or blocked.',
+      description:
+        "You've exceeded your monthly API call limit. Additional calls may be rate limited or blocked.",
       action: 'Upgrade Plan',
       actionHref: '/portal/subscription',
     })
@@ -66,7 +67,8 @@ export function UsageAlerts({ usage, subscription }: UsageAlertsProps) {
     alerts.push({
       type: 'info',
       title: 'Usage trending high',
-      description: 'Your API usage is higher than expected for this point in the month. You may exceed your limit before the month ends.',
+      description:
+        'Your API usage is higher than expected for this point in the month. You may exceed your limit before the month ends.',
       action: 'View Trends',
       actionHref: '#usage-chart',
     })
@@ -81,7 +83,7 @@ export function UsageAlerts({ usage, subscription }: UsageAlertsProps) {
       case 'error':
         return 'destructive'
       case 'warning':
-        return 'default' 
+        return 'default'
       default:
         return 'default'
     }

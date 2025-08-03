@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
 import { PerformanceMonitor } from '@/lib/monitoring/performance-monitor'
+import { createServerClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerClient()
-    
+
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -20,7 +22,10 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!profile?.organization_id) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'No organization found' },
+        { status: 400 }
+      )
     }
 
     // Get performance analytics
@@ -40,15 +45,24 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerClient()
-    
+
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    const { metric_type, metric_name, duration_ms, success, error_message, metadata } = body
+    const {
+      metric_type,
+      metric_name,
+      duration_ms,
+      success,
+      error_message,
+      metadata,
+    } = body
 
     // Validate required fields
     if (!metric_type || !metric_name || typeof duration_ms !== 'number') {
@@ -66,12 +80,15 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!profile?.organization_id) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'No organization found' },
+        { status: 400 }
+      )
     }
 
     // Save metric
     const monitor = PerformanceMonitor.getInstance()
-    
+
     if (metric_type === 'database_query') {
       await monitor.trackQuery(
         metadata?.query || metric_name,
@@ -108,4 +125,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

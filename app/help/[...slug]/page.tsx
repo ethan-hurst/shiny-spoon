@@ -1,12 +1,12 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { allHelpArticles } from 'contentlayer2/generated'
-import { getMDXComponent } from 'next-contentlayer2/hooks'
-import Link from 'next/link'
 import { ArrowLeft, Clock } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { MDXComponents } from '@/components/mdx'
-import { RelatedArticles } from '@/components/help/related-articles'
+import { getMDXComponent } from 'next-contentlayer2/hooks'
 import { ArticleFeedback } from '@/components/help/article-feedback'
+import { RelatedArticles } from '@/components/help/related-articles'
+import { MDXComponents } from '@/components/mdx'
+import { Button } from '@/components/ui/button'
 
 export async function generateStaticParams() {
   return allHelpArticles.map((article) => ({
@@ -14,7 +14,9 @@ export async function generateStaticParams() {
   }))
 }
 
-export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string[] }>
+}) {
   const params = await props.params
   const article = allHelpArticles.find(
     (article) => article.slug === params.slug.join('/')
@@ -27,7 +29,9 @@ export async function generateMetadata(props: { params: Promise<{ slug: string[]
   }
 }
 
-export default async function HelpArticlePage(props: { params: Promise<{ slug: string[] }> }) {
+export default async function HelpArticlePage(props: {
+  params: Promise<{ slug: string[] }>
+}) {
   const params = await props.params
   const article = allHelpArticles.find(
     (article) => article.slug === params.slug.join('/')
@@ -61,7 +65,9 @@ export default async function HelpArticlePage(props: { params: Promise<{ slug: s
               </div>
             </div>
             <h1 className="text-3xl font-bold mb-4">{article.title}</h1>
-            <p className="text-lg text-muted-foreground">{article.description}</p>
+            <p className="text-lg text-muted-foreground">
+              {article.description}
+            </p>
           </header>
 
           <div className="prose prose-gray max-w-none dark:prose-invert">

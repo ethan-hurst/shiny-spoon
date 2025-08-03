@@ -1,13 +1,19 @@
 // components/features/insights/reorder-suggestions.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect, useState } from 'react'
+import { Package, RefreshCw, TrendingUp } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Package, RefreshCw, TrendingUp } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { generateReorderSuggestions } from '@/app/actions/ai-insights'
-import { toast } from 'sonner'
 import type { AIInsight } from '@/types/ai.types'
 
 interface ReorderSuggestionsProps {
@@ -15,7 +21,10 @@ interface ReorderSuggestionsProps {
   insights: AIInsight[]
 }
 
-export function ReorderSuggestions({ organizationId, insights }: ReorderSuggestionsProps) {
+export function ReorderSuggestions({
+  organizationId,
+  insights,
+}: ReorderSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
@@ -39,11 +48,33 @@ export function ReorderSuggestions({ organizationId, insights }: ReorderSuggesti
     loadSuggestions()
   }, [organizationId])
 
-  const getPriorityLevel = (currentQuantity: number, suggestedReorderPoint: number) => {
-    if (currentQuantity <= 0) return { level: 'critical', color: 'bg-red-100 text-red-800', label: 'Out of Stock' }
-    if (currentQuantity <= suggestedReorderPoint * 0.5) return { level: 'high', color: 'bg-orange-100 text-orange-800', label: 'Urgent' }
-    if (currentQuantity <= suggestedReorderPoint) return { level: 'medium', color: 'bg-yellow-100 text-yellow-800', label: 'Soon' }
-    return { level: 'low', color: 'bg-green-100 text-green-800', label: 'Normal' }
+  const getPriorityLevel = (
+    currentQuantity: number,
+    suggestedReorderPoint: number
+  ) => {
+    if (currentQuantity <= 0)
+      return {
+        level: 'critical',
+        color: 'bg-red-100 text-red-800',
+        label: 'Out of Stock',
+      }
+    if (currentQuantity <= suggestedReorderPoint * 0.5)
+      return {
+        level: 'high',
+        color: 'bg-orange-100 text-orange-800',
+        label: 'Urgent',
+      }
+    if (currentQuantity <= suggestedReorderPoint)
+      return {
+        level: 'medium',
+        color: 'bg-yellow-100 text-yellow-800',
+        label: 'Soon',
+      }
+    return {
+      level: 'low',
+      color: 'bg-green-100 text-green-800',
+      label: 'Normal',
+    }
   }
 
   return (
@@ -55,12 +86,14 @@ export function ReorderSuggestions({ organizationId, insights }: ReorderSuggesti
             AI-powered recommendations for optimal inventory levels
           </p>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={loadSuggestions}
           disabled={isLoading}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+          />
           Refresh
         </Button>
       </div>
@@ -117,48 +150,73 @@ export function ReorderSuggestions({ organizationId, insights }: ReorderSuggesti
           <Card>
             <CardContent className="p-8 text-center">
               <Package className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-green-700 mb-2">Inventory Optimized</h3>
-              <p className="text-muted-foreground">All products are at optimal stock levels</p>
+              <h3 className="text-lg font-semibold text-green-700 mb-2">
+                Inventory Optimized
+              </h3>
+              <p className="text-muted-foreground">
+                All products are at optimal stock levels
+              </p>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
             {suggestions.map((suggestion, index) => {
-              const priority = getPriorityLevel(suggestion.current_quantity, suggestion.suggested_reorder_point)
-              
+              const priority = getPriorityLevel(
+                suggestion.current_quantity,
+                suggestion.suggested_reorder_point
+              )
+
               return (
                 <Card key={index}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-lg">{suggestion.product_name}</CardTitle>
-                        <CardDescription>{suggestion.warehouse_name}</CardDescription>
+                        <CardTitle className="text-lg">
+                          {suggestion.product_name}
+                        </CardTitle>
+                        <CardDescription>
+                          {suggestion.warehouse_name}
+                        </CardDescription>
                       </div>
-                      <Badge className={priority.color}>
-                        {priority.label}
-                      </Badge>
+                      <Badge className={priority.color}>{priority.label}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Current Stock</p>
-                        <p className="text-2xl font-bold">{suggestion.current_quantity}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Current Stock
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {suggestion.current_quantity}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Suggested Reorder Point</p>
-                        <p className="text-2xl font-bold text-orange-600">{suggestion.suggested_reorder_point}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Suggested Reorder Point
+                        </p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {suggestion.suggested_reorder_point}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Order Quantity</p>
-                        <p className="text-2xl font-bold text-blue-600">{suggestion.suggested_order_quantity}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Order Quantity
+                        </p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {suggestion.suggested_order_quantity}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Lead Time</p>
-                        <p className="text-2xl font-bold">{suggestion.lead_time_days} days</p>
+                        <p className="text-sm text-muted-foreground">
+                          Lead Time
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {suggestion.lead_time_days} days
+                        </p>
                       </div>
                     </div>
-                    
+
                     <div className="bg-muted/50 p-3 rounded text-sm">
                       <p className="font-medium mb-1">AI Reasoning:</p>
                       <p>{suggestion.reasoning}</p>

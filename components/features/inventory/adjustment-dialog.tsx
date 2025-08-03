@@ -295,7 +295,10 @@ export function AdjustmentDialog({
                   disabled={isSubmitting || adjustment === 0}
                 >
                   {isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                    <Loader2
+                      className="mr-2 h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
                   )}
                   Update Inventory
                 </Button>

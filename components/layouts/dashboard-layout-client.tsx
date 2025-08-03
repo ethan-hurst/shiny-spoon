@@ -1,18 +1,18 @@
 'use client'
 
-import { ReactNode, Suspense, lazy } from 'react'
-import { usePathname } from 'next/navigation'
+import { lazy, ReactNode, Suspense } from 'react'
 import dynamic from 'next/dynamic'
-
+import { usePathname } from 'next/navigation'
 import { DashboardHeader } from '@/components/layouts/dashboard-header'
 import { DashboardSidebar } from '@/components/layouts/dashboard-sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 
 // Dynamically import RealtimeIndicatorWrapper for code splitting
 const RealtimeIndicatorWrapper = dynamic(
-  () => import('@/components/features/inventory/realtime-indicator-wrapper').then(
-    (mod) => ({ default: mod.RealtimeIndicatorWrapper })
-  ),
+  () =>
+    import('@/components/features/inventory/realtime-indicator-wrapper').then(
+      (mod) => ({ default: mod.RealtimeIndicatorWrapper })
+    ),
   {
     loading: () => <Skeleton className="h-8 w-8 rounded-full" />,
     ssr: false,

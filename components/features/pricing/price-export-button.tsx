@@ -28,23 +28,23 @@ export function PriceExportButton({
     try {
       if (format === 'csv') {
         const csvContent = await exportCustomerPrices(customerId)
-        
+
         // Create blob and download
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
         const link = document.createElement('a')
         const url = URL.createObjectURL(blob)
-        
+
         link.setAttribute('href', url)
         link.setAttribute(
           'download',
           `${customerName.replace(/\s+/g, '_')}_prices_${new Date().toISOString().split('T')[0]}.csv`
         )
         link.style.visibility = 'hidden'
-        
+
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-        
+
         toast.success('Price sheet exported successfully')
       } else {
         toast.info(`${format.toUpperCase()} export coming soon`)

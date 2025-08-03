@@ -3,7 +3,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useMutation } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
+import { AlertCircle, Calendar, Clock, Settings, Trash2 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import {
   Table,
   TableBody,
@@ -12,21 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/use-toast'
-import { 
-  Clock, 
-  Settings,
-  Calendar,
-  AlertCircle,
-  Trash2
-} from 'lucide-react'
-import { useMutation } from '@tanstack/react-query'
-import { updateSyncSchedule, deleteSyncSchedule } from '@/app/actions/sync-engine'
-import { SyncScheduleDialog } from './sync-schedule-dialog'
+import {
+  deleteSyncSchedule,
+  updateSyncSchedule,
+} from '@/app/actions/sync-engine'
 import type { SyncSchedule } from '@/types/sync-engine.types'
+import { SyncScheduleDialog } from './sync-schedule-dialog'
 
 interface SyncSchedulesListProps {
   schedules: (SyncSchedule & {
@@ -73,7 +70,9 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
       schedule,
       enabled,
     }: {
-      schedule: SyncSchedule & { integrations: { id: string; name: string; platform: string } }
+      schedule: SyncSchedule & {
+        integrations: { id: string; name: string; platform: string }
+      }
       enabled: boolean
     }) => {
       const formData = new FormData()
@@ -86,13 +85,13 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
           formData.append('entity_types', type)
         })
       }
-      
+
       if (schedule.active_hours) {
         formData.append('active_hours_enabled', 'true')
         formData.append('active_hours_start', schedule.active_hours.start)
         formData.append('active_hours_end', schedule.active_hours.end)
       }
-      
+
       return updateSyncSchedule(formData)
     },
     onSuccess: (_, { enabled }) => {
@@ -105,7 +104,8 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
     onError: (error) => {
       toast({
         title: 'Update failed',
-        description: error instanceof Error ? error.message : 'Failed to update schedule',
+        description:
+          error instanceof Error ? error.message : 'Failed to update schedule',
         variant: 'destructive',
       })
     },
@@ -127,7 +127,8 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
     onError: (error) => {
       toast({
         title: 'Delete failed',
-        description: error instanceof Error ? error.message : 'Failed to delete schedule',
+        description:
+          error instanceof Error ? error.message : 'Failed to delete schedule',
         variant: 'destructive',
       })
     },
@@ -157,9 +158,10 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
         </TableHeader>
         <TableBody>
           {schedules.map((schedule) => {
-            const isOverdue = schedule.next_run_at && 
+            const isOverdue =
+              schedule.next_run_at &&
               new Date(schedule.next_run_at) < new Date()
-            
+
             return (
               <TableRow key={schedule.id}>
                 <TableCell className="font-medium">
@@ -185,14 +187,17 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
                         </Badge>
                       ))
                     ) : (
-                      <span className="text-xs text-muted-foreground">No entities</span>
+                      <span className="text-xs text-muted-foreground">
+                        No entities
+                      </span>
                     )}
                   </div>
                 </TableCell>
                 <TableCell>
                   {schedule.active_hours ? (
                     <div className="text-sm">
-                      {schedule.active_hours.start} - {schedule.active_hours.end}
+                      {schedule.active_hours.start} -{' '}
+                      {schedule.active_hours.end}
                     </div>
                   ) : (
                     <span className="text-muted-foreground">Always</span>
@@ -201,7 +206,9 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
                 <TableCell>
                   {schedule.last_run_at ? (
                     <div className="text-sm">
-                      {formatDistanceToNow(new Date(schedule.last_run_at), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(schedule.last_run_at), {
+                        addSuffix: true,
+                      })}
                     </div>
                   ) : (
                     <span className="text-muted-foreground">Never</span>
@@ -213,8 +220,12 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
                       {isOverdue && schedule.enabled && (
                         <AlertCircle className="h-4 w-4 text-yellow-600" />
                       )}
-                      <span className={`text-sm ${isOverdue && schedule.enabled ? 'text-yellow-600' : ''}`}>
-                        {formatDistanceToNow(new Date(schedule.next_run_at), { addSuffix: true })}
+                      <span
+                        className={`text-sm ${isOverdue && schedule.enabled ? 'text-yellow-600' : ''}`}
+                      >
+                        {formatDistanceToNow(new Date(schedule.next_run_at), {
+                          addSuffix: true,
+                        })}
                       </span>
                     </div>
                   ) : (
@@ -224,8 +235,11 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
                 <TableCell>
                   <Switch
                     checked={schedule.enabled}
-                    onCheckedChange={(checked) => 
-                      updateScheduleMutation.mutate({ schedule, enabled: checked })
+                    onCheckedChange={(checked) =>
+                      updateScheduleMutation.mutate({
+                        schedule,
+                        enabled: checked,
+                      })
                     }
                     disabled={updateScheduleMutation.isPending}
                   />
@@ -235,7 +249,9 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setEditingSchedule(schedule.integration_id)}
+                      onClick={() =>
+                        setEditingSchedule(schedule.integration_id)
+                      }
                     >
                       <Settings className="h-4 w-4" />
                     </Button>
@@ -255,7 +271,7 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
           })}
         </TableBody>
       </Table>
-      
+
       {schedules.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
           No sync schedules configured
@@ -265,7 +281,7 @@ export function SyncSchedulesList({ schedules }: SyncSchedulesListProps) {
       {editingSchedule && (
         <SyncScheduleDialog
           integrationId={editingSchedule}
-          schedule={schedules.find(s => s.integration_id === editingSchedule)}
+          schedule={schedules.find((s) => s.integration_id === editingSchedule)}
           onClose={() => setEditingSchedule(null)}
         />
       )}

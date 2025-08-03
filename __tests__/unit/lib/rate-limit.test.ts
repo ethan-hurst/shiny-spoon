@@ -8,7 +8,7 @@ jest.mock('@upstash/redis')
 // Mock environment variables
 const mockEnv = {
   UPSTASH_REDIS_REST_URL: 'https://mock-redis.upstash.io',
-  UPSTASH_REDIS_REST_TOKEN: 'mock-token'
+  UPSTASH_REDIS_REST_TOKEN: 'mock-token',
 }
 
 describe('Rate Limit', () => {
@@ -20,7 +20,7 @@ describe('Rate Limit', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     // Save original environment
     originalEnv = process.env
 
@@ -32,23 +32,27 @@ describe('Rate Limit', () => {
       exists: jest.fn(),
       expire: jest.fn(),
       incr: jest.fn(),
-      decr: jest.fn()
+      decr: jest.fn(),
     } as any
-
-    ;(Redis as jest.MockedClass<typeof Redis>).mockImplementation(() => mockRedis)
+    ;(Redis as jest.MockedClass<typeof Redis>).mockImplementation(
+      () => mockRedis
+    )
 
     // Mock Ratelimit constructor and methods
     mockRatelimit = {
       limit: jest.fn(),
       reset: jest.fn(),
       blockUntilReady: jest.fn(),
-      getRemaining: jest.fn()
+      getRemaining: jest.fn(),
     } as any
-
-    ;(Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(() => mockRatelimit)
+    ;(Ratelimit as jest.MockedClass<typeof Ratelimit>).mockImplementation(
+      () => mockRatelimit
+    )
 
     // Mock static methods
-    ;(Ratelimit.slidingWindow as jest.Mock) = jest.fn().mockReturnValue('sliding-window-limiter')
+    ;(Ratelimit.slidingWindow as jest.Mock) = jest
+      .fn()
+      .mockReturnValue('sliding-window-limiter')
 
     // Mock console.error to avoid noise in test output
     jest.spyOn(console, 'error').mockImplementation(() => {})
@@ -71,7 +75,10 @@ describe('Rate Limit', () => {
         TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
         URL_EXISTS: !!process.env.UPSTASH_REDIS_REST_URL,
         TOKEN_EXISTS: !!process.env.UPSTASH_REDIS_REST_TOKEN,
-        CONDITION: !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+        CONDITION: !!(
+          process.env.UPSTASH_REDIS_REST_URL &&
+          process.env.UPSTASH_REDIS_REST_TOKEN
+        ),
       })
 
       // Clear module cache and re-import to trigger initialization
@@ -80,11 +87,14 @@ describe('Rate Limit', () => {
       withRateLimit = rateLimitModule.withRateLimit
       checkRateLimit = rateLimitModule.checkRateLimit
 
-      console.log('Redis constructor calls:', (Redis as jest.MockedClass<typeof Redis>).mock.calls)
+      console.log(
+        'Redis constructor calls:',
+        (Redis as jest.MockedClass<typeof Redis>).mock.calls
+      )
 
       expect(Redis).toHaveBeenCalledWith({
         url: mockEnv.UPSTASH_REDIS_REST_URL,
-        token: mockEnv.UPSTASH_REDIS_REST_TOKEN
+        token: mockEnv.UPSTASH_REDIS_REST_TOKEN,
       })
     })
 
@@ -120,7 +130,7 @@ describe('Rate Limit', () => {
         redis: mockRedis,
         limiter: 'sliding-window-limiter',
         analytics: true,
-        prefix: 'rl:order:create'
+        prefix: 'rl:order:create',
       })
 
       expect(Ratelimit.slidingWindow).toHaveBeenCalledWith(10, '1 m')
@@ -133,7 +143,7 @@ describe('Rate Limit', () => {
       expect(Ratelimit.slidingWindow).toHaveBeenCalledWith(100, '1 m')
       expect(Ratelimit).toHaveBeenCalledWith(
         expect.objectContaining({
-          prefix: 'rl:api'
+          prefix: 'rl:api',
         })
       )
     })
@@ -145,7 +155,7 @@ describe('Rate Limit', () => {
       expect(Ratelimit.slidingWindow).toHaveBeenCalledWith(5, '1 h')
       expect(Ratelimit).toHaveBeenCalledWith(
         expect.objectContaining({
-          prefix: 'rl:bulk'
+          prefix: 'rl:bulk',
         })
       )
     })
@@ -157,7 +167,7 @@ describe('Rate Limit', () => {
       expect(Ratelimit.slidingWindow).toHaveBeenCalledWith(20, '1 h')
       expect(Ratelimit).toHaveBeenCalledWith(
         expect.objectContaining({
-          prefix: 'rl:export'
+          prefix: 'rl:export',
         })
       )
     })
@@ -169,7 +179,7 @@ describe('Rate Limit', () => {
       expect(Ratelimit.slidingWindow).toHaveBeenCalledWith(5, '15 m')
       expect(Ratelimit).toHaveBeenCalledWith(
         expect.objectContaining({
-          prefix: 'rl:auth'
+          prefix: 'rl:auth',
         })
       )
     })
@@ -180,10 +190,10 @@ describe('Rate Limit', () => {
 
       // Check that all Ratelimit instances were created with analytics: true
       const calls = (Ratelimit as jest.MockedClass<typeof Ratelimit>).mock.calls
-      calls.forEach(call => {
+      calls.forEach((call) => {
         expect(call[0]).toEqual(
           expect.objectContaining({
-            analytics: true
+            analytics: true,
           })
         )
       })
@@ -208,7 +218,7 @@ describe('Rate Limit', () => {
         limit: 10,
         remaining: 5,
         reset: Date.now() + 60000,
-        pending: false
+        pending: false,
       })
 
       const result = await checkRateLimit(mockRatelimit, 'test-identifier')
@@ -227,7 +237,7 @@ describe('Rate Limit', () => {
         limit: 10,
         remaining: 0,
         reset: Date.now() + 60000,
-        pending: false
+        pending: false,
       })
 
       const result = await checkRateLimit(mockRatelimit, 'test-identifier')
@@ -240,12 +250,12 @@ describe('Rate Limit', () => {
 
     it('should handle different identifier formats', async () => {
       const { checkRateLimit } = require('@/lib/rate-limit')
-      mockRatelimit.limit.mockResolvedValue({ 
+      mockRatelimit.limit.mockResolvedValue({
         success: true,
         limit: 10,
         remaining: 5,
         reset: Date.now() + 60000,
-        pending: false
+        pending: false,
       })
 
       await checkRateLimit(mockRatelimit, '192.168.1.1')
@@ -263,7 +273,9 @@ describe('Rate Limit', () => {
       const error = new Error('Redis connection failed')
       mockRatelimit.limit.mockRejectedValue(error)
 
-      await expect(checkRateLimit(mockRatelimit, 'test-identifier')).rejects.toThrow(error)
+      await expect(
+        checkRateLimit(mockRatelimit, 'test-identifier')
+      ).rejects.toThrow(error)
     })
   })
 
@@ -282,14 +294,18 @@ describe('Rate Limit', () => {
         limit: 100,
         remaining: 95,
         reset: Date.now() + 60000,
-        pending: Promise.resolve()
+        pending: Promise.resolve(),
       }
 
       mockRatelimit.limit.mockResolvedValue(mockResult)
       mockGetIdentifier.mockReturnValue('test-identifier')
       mockAction.mockResolvedValue('action-result')
 
-      const wrappedAction = await withRateLimit(mockAction, mockRatelimit, mockGetIdentifier)
+      const wrappedAction = await withRateLimit(
+        mockAction,
+        mockRatelimit,
+        mockGetIdentifier
+      )
       const result = await wrappedAction('test-arg1', 'test-arg2')
 
       expect(mockGetIdentifier).toHaveBeenCalledWith('test-arg1', 'test-arg2')
@@ -305,15 +321,21 @@ describe('Rate Limit', () => {
         limit: 100,
         remaining: 0,
         reset: resetTime,
-        pending: Promise.resolve()
+        pending: Promise.resolve(),
       }
 
       mockRatelimit.limit.mockResolvedValue(mockResult)
       mockGetIdentifier.mockReturnValue('test-identifier')
 
-      const wrappedAction = await withRateLimit(mockAction, mockRatelimit, mockGetIdentifier)
+      const wrappedAction = await withRateLimit(
+        mockAction,
+        mockRatelimit,
+        mockGetIdentifier
+      )
 
-      await expect(wrappedAction('test-arg')).rejects.toThrow(/Rate limit exceeded/)
+      await expect(wrappedAction('test-arg')).rejects.toThrow(
+        /Rate limit exceeded/
+      )
       expect(mockAction).not.toHaveBeenCalled()
     })
 
@@ -323,16 +345,22 @@ describe('Rate Limit', () => {
         success: false,
         limit: 10,
         remaining: 0,
-        reset: resetTime
+        reset: resetTime,
       }
 
       mockRatelimit.limit.mockResolvedValue(mockResult)
       mockGetIdentifier.mockReturnValue('test-identifier')
 
-      const wrappedAction = await withRateLimit(mockAction, mockRatelimit, mockGetIdentifier)
+      const wrappedAction = await withRateLimit(
+        mockAction,
+        mockRatelimit,
+        mockGetIdentifier
+      )
 
       await expect(wrappedAction('test-arg')).rejects.toThrow(
-        expect.stringMatching(/Rate limit exceeded.*45.*seconds.*Limit: 10.*Remaining: 0/)
+        expect.stringMatching(
+          /Rate limit exceeded.*45.*seconds.*Limit: 10.*Remaining: 0/
+        )
       )
     })
 
@@ -340,7 +368,11 @@ describe('Rate Limit', () => {
       mockGetIdentifier.mockReturnValue('test-identifier')
       mockAction.mockResolvedValue('action-result')
 
-      const wrappedAction = await withRateLimit(mockAction, null, mockGetIdentifier)
+      const wrappedAction = await withRateLimit(
+        mockAction,
+        null,
+        mockGetIdentifier
+      )
       const result = await wrappedAction('test-arg')
 
       expect(mockAction).toHaveBeenCalledWith('test-arg')
@@ -358,10 +390,14 @@ describe('Rate Limit', () => {
         success: true,
         limit: 100,
         remaining: 95,
-        reset: Date.now() + 60000
+        reset: Date.now() + 60000,
       })
 
-      const wrappedAction = await withRateLimit(typedAction, mockRatelimit, getIdentifier)
+      const wrappedAction = await withRateLimit(
+        typedAction,
+        mockRatelimit,
+        getIdentifier
+      )
       const result = await wrappedAction('test', 123)
 
       expect(result).toBe('test-123')
@@ -375,10 +411,14 @@ describe('Rate Limit', () => {
         success: true,
         limit: 100,
         remaining: 95,
-        reset: Date.now() + 60000
+        reset: Date.now() + 60000,
       })
 
-      const wrappedAction = await withRateLimit(syncAction, mockRatelimit, getIdentifier)
+      const wrappedAction = await withRateLimit(
+        syncAction,
+        mockRatelimit,
+        getIdentifier
+      )
       const result = await wrappedAction(5)
 
       expect(result).toBe(10)
@@ -395,10 +435,14 @@ describe('Rate Limit', () => {
         success: true,
         limit: 100,
         remaining: 95,
-        reset: Date.now() + 60000
+        reset: Date.now() + 60000,
       })
 
-      const wrappedAction = await withRateLimit(errorAction, mockRatelimit, getIdentifier)
+      const wrappedAction = await withRateLimit(
+        errorAction,
+        mockRatelimit,
+        getIdentifier
+      )
 
       await expect(wrappedAction()).rejects.toThrow('Action failed')
     })
@@ -409,13 +453,17 @@ describe('Rate Limit', () => {
         success: false,
         limit: 5,
         remaining: 0,
-        reset: resetTime
+        reset: resetTime,
       }
 
       mockRatelimit.limit.mockResolvedValue(mockResult)
       mockGetIdentifier.mockReturnValue('test-identifier')
 
-      const wrappedAction = await withRateLimit(mockAction, mockRatelimit, mockGetIdentifier)
+      const wrappedAction = await withRateLimit(
+        mockAction,
+        mockRatelimit,
+        mockGetIdentifier
+      )
 
       await expect(wrappedAction('test-arg')).rejects.toThrow(
         expect.stringMatching(/120.*seconds/)
@@ -429,16 +477,22 @@ describe('Rate Limit', () => {
         success: false,
         limit: 10,
         remaining: 0,
-        reset: resetTime
+        reset: resetTime,
       }
 
       mockRatelimit.limit.mockResolvedValue(mockResult)
       mockGetIdentifier.mockReturnValue('test-identifier')
 
-      const wrappedAction = await withRateLimit(mockAction, mockRatelimit, mockGetIdentifier)
+      const wrappedAction = await withRateLimit(
+        mockAction,
+        mockRatelimit,
+        mockGetIdentifier
+      )
 
       await expect(wrappedAction('test-arg')).rejects.toThrow(
-        expect.stringMatching(new RegExp(`Reset: ${expectedResetDate.toLocaleTimeString()}`))
+        expect.stringMatching(
+          new RegExp(`Reset: ${expectedResetDate.toLocaleTimeString()}`)
+        )
       )
     })
   })
@@ -459,7 +513,7 @@ describe('Rate Limit', () => {
         success: true,
         limit: 100,
         remaining: 99,
-        reset: Date.now() + 60000
+        reset: Date.now() + 60000,
       })
 
       const result = await checkRateLimit(rateLimiters.api, '192.168.1.1')
@@ -477,10 +531,14 @@ describe('Rate Limit', () => {
         success: true,
         limit: 10,
         remaining: 5,
-        reset: Date.now() + 60000
+        reset: Date.now() + 60000,
       })
 
-      const wrappedAction = await withRateLimit(testAction, mockRatelimit, getIdentifier)
+      const wrappedAction = await withRateLimit(
+        testAction,
+        mockRatelimit,
+        getIdentifier
+      )
       const result = await wrappedAction('user123')
 
       expect(result).toBe('success')
@@ -493,7 +551,11 @@ describe('Rate Limit', () => {
       delete process.env.UPSTASH_REDIS_REST_TOKEN
 
       jest.resetModules()
-      const { rateLimiters, checkRateLimit, withRateLimit } = require('@/lib/rate-limit')
+      const {
+        rateLimiters,
+        checkRateLimit,
+        withRateLimit,
+      } = require('@/lib/rate-limit')
 
       // All rate limiters should be null
       expect(rateLimiters.api).toBeNull()
@@ -507,7 +569,11 @@ describe('Rate Limit', () => {
       const testAction = jest.fn().mockResolvedValue('no-redis-result')
       const getIdentifier = (): string => 'test'
 
-      const wrappedAction = await withRateLimit(testAction, rateLimiters.api, getIdentifier)
+      const wrappedAction = await withRateLimit(
+        testAction,
+        rateLimiters.api,
+        getIdentifier
+      )
       const result = await wrappedAction()
 
       expect(result).toBe('no-redis-result')
@@ -521,14 +587,18 @@ describe('Rate Limit', () => {
         success: false,
         limit: 10,
         remaining: 0,
-        reset: undefined // Malformed reset time
+        reset: undefined, // Malformed reset time
       }
 
       mockRatelimit.limit.mockResolvedValue(mockResult as any)
       mockGetIdentifier.mockReturnValue('test-identifier')
 
       const mockAction = jest.fn()
-      const wrappedAction = await withRateLimit(mockAction, mockRatelimit, mockGetIdentifier)
+      const wrappedAction = await withRateLimit(
+        mockAction,
+        mockRatelimit,
+        mockGetIdentifier
+      )
 
       // Should still throw error but handle undefined reset gracefully
       await expect(wrappedAction('test')).rejects.toThrow(/Rate limit exceeded/)
@@ -540,9 +610,15 @@ describe('Rate Limit', () => {
         throw new Error('Identifier extraction failed')
       })
 
-      const wrappedAction = await withRateLimit(errorAction, mockRatelimit, errorGetIdentifier)
+      const wrappedAction = await withRateLimit(
+        errorAction,
+        mockRatelimit,
+        errorGetIdentifier
+      )
 
-      await expect(wrappedAction('test')).rejects.toThrow('Identifier extraction failed')
+      await expect(wrappedAction('test')).rejects.toThrow(
+        'Identifier extraction failed'
+      )
       expect(mockRatelimit.limit).not.toHaveBeenCalled()
       expect(errorAction).not.toHaveBeenCalled()
     })

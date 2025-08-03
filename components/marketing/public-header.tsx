@@ -1,8 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
+import { ChevronRight, Menu } from 'lucide-react'
+import ModeToggle from '@/components/mode-toggle'
 import { Button } from '@/components/ui/button'
 import {
   NavigationMenu,
@@ -12,32 +16,74 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
-import { Menu, ChevronRight } from 'lucide-react'
-import { createBrowserClient } from '@/lib/supabase/client'
-import type { User } from '@supabase/supabase-js'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
 import { UserProfile } from '@/components/user-profile'
-import ModeToggle from '@/components/mode-toggle'
-import * as React from 'react'
+import { createBrowserClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
 const navigation = {
   features: [
-    { name: 'Inventory Sync', href: '/features/inventory-sync', description: 'Real-time inventory synchronization' },
-    { name: 'Pricing Rules', href: '/features/pricing-rules', description: 'Dynamic B2B pricing management' },
-    { name: 'Customer Portal', href: '/features/customer-portal', description: 'Self-service for your customers' },
-    { name: 'Analytics', href: '/features/analytics', description: 'Data insights and reporting' },
+    {
+      name: 'Inventory Sync',
+      href: '/features/inventory-sync',
+      description: 'Real-time inventory synchronization',
+    },
+    {
+      name: 'Pricing Rules',
+      href: '/features/pricing-rules',
+      description: 'Dynamic B2B pricing management',
+    },
+    {
+      name: 'Customer Portal',
+      href: '/features/customer-portal',
+      description: 'Self-service for your customers',
+    },
+    {
+      name: 'Analytics',
+      href: '/features/analytics',
+      description: 'Data insights and reporting',
+    },
   ],
   solutions: [
-    { name: 'For Distributors', href: '/solutions/distributors', description: 'Streamline distribution operations' },
-    { name: 'For Manufacturers', href: '/solutions/manufacturers', description: 'Connect with your supply chain' },
-    { name: 'For Retailers', href: '/solutions/retailers', description: 'Manage multi-channel inventory' },
+    {
+      name: 'For Distributors',
+      href: '/solutions/distributors',
+      description: 'Streamline distribution operations',
+    },
+    {
+      name: 'For Manufacturers',
+      href: '/solutions/manufacturers',
+      description: 'Connect with your supply chain',
+    },
+    {
+      name: 'For Retailers',
+      href: '/solutions/retailers',
+      description: 'Manage multi-channel inventory',
+    },
   ],
   resources: [
-    { name: 'Documentation', href: '/docs', description: 'Guides and API reference' },
-    { name: 'API Reference', href: '/developers', description: 'Developer documentation' },
+    {
+      name: 'Documentation',
+      href: '/docs',
+      description: 'Guides and API reference',
+    },
+    {
+      name: 'API Reference',
+      href: '/developers',
+      description: 'Developer documentation',
+    },
     { name: 'Blog', href: '/blog', description: 'Latest news and insights' },
-    { name: 'Case Studies', href: '/case-studies', description: 'Customer success stories' },
+    {
+      name: 'Case Studies',
+      href: '/case-studies',
+      description: 'Customer success stories',
+    },
   ],
   company: [
     { name: 'About', href: '/about', description: 'Our mission and team' },
@@ -76,10 +122,14 @@ export function PublicHeader() {
   }, [supabase])
 
   return (
-    <header className={cn(
-      'fixed top-0 w-full z-50 transition-all duration-200',
-      scrolled ? 'bg-white/95 dark:bg-black/95 backdrop-blur-sm shadow-sm' : 'bg-transparent'
-    )}>
+    <header
+      className={cn(
+        'fixed top-0 w-full z-50 transition-all duration-200',
+        scrolled
+          ? 'bg-white/95 dark:bg-black/95 backdrop-blur-sm shadow-sm'
+          : 'bg-transparent'
+      )}
+    >
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center space-x-2">
@@ -158,9 +208,11 @@ export function PublicHeader() {
 
               <NavigationMenuItem>
                 <Link href="/pricing" legacyBehavior passHref>
-                  <NavigationMenuLink className={cn(
-                    'group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50'
-                  )}>
+                  <NavigationMenuLink
+                    className={cn(
+                      'group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50'
+                    )}
+                  >
                     Pricing
                   </NavigationMenuLink>
                 </Link>
@@ -173,23 +225,27 @@ export function PublicHeader() {
           {user ? (
             <>
               <Link href="/dashboard" className="hidden lg:block">
-                <Button variant="ghost" size="sm">Dashboard</Button>
+                <Button variant="ghost" size="sm">
+                  Dashboard
+                </Button>
               </Link>
               <UserProfile />
             </>
           ) : (
             <>
               <Link href="/login" className="hidden lg:block">
-                <Button variant="ghost" size="sm">Log in</Button>
+                <Button variant="ghost" size="sm">
+                  Log in
+                </Button>
               </Link>
               <Link href="/signup" className="hidden lg:block">
                 <Button size="sm">Start free trial</Button>
               </Link>
             </>
           )}
-          
+
           <ModeToggle />
-          
+
           {/* Mobile menu */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="lg:hidden">
@@ -197,8 +253,8 @@ export function PublicHeader() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent 
-              side="left" 
+            <SheetContent
+              side="left"
               className="w-[300px]"
               aria-describedby="mobile-menu-description"
             >
@@ -209,7 +265,11 @@ export function PublicHeader() {
                 </p>
               </SheetHeader>
               <div role="navigation" aria-label="Mobile navigation">
-                <MobileNav navigation={navigation} user={user} onItemClick={() => setMobileMenuOpen(false)} />
+                <MobileNav
+                  navigation={navigation}
+                  user={user}
+                  onItemClick={() => setMobileMenuOpen(false)}
+                />
               </div>
             </SheetContent>
           </Sheet>
@@ -245,10 +305,14 @@ const ListItem = React.forwardRef<
 })
 ListItem.displayName = 'ListItem'
 
-function MobileNav({ navigation, user, onItemClick }: { 
-  navigation: typeof navigation, 
-  user: User | null,
-  onItemClick: () => void 
+function MobileNav({
+  navigation,
+  user,
+  onItemClick,
+}: {
+  navigation: typeof navigation
+  user: User | null
+  onItemClick: () => void
 }) {
   return (
     <div className="flex flex-col space-y-4 mt-8">
@@ -262,14 +326,16 @@ function MobileNav({ navigation, user, onItemClick }: {
       ) : (
         <>
           <Link href="/login" onClick={onItemClick}>
-            <Button variant="outline" className="w-full">Log in</Button>
+            <Button variant="outline" className="w-full">
+              Log in
+            </Button>
           </Link>
           <Link href="/signup" onClick={onItemClick}>
             <Button className="w-full">Start free trial</Button>
           </Link>
         </>
       )}
-      
+
       <div className="border-t pt-4">
         <h3 className="font-semibold mb-2">Features</h3>
         {navigation.features.map((item) => (

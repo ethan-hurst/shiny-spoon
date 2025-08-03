@@ -1,39 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react'
+import { LinearGradient } from 'expo-linear-gradient'
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   RefreshControl,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 interface DashboardMetrics {
-  totalProducts: number;
-  totalOrders: number;
-  totalCustomers: number;
-  syncAccuracy: number;
-  activeAlerts: number;
+  totalProducts: number
+  totalOrders: number
+  totalCustomers: number
+  syncAccuracy: number
+  activeAlerts: number
   recentActivity: Array<{
-    id: string;
-    type: string;
-    description: string;
-    timestamp: string;
-  }>;
+    id: string
+    type: string
+    description: string
+    timestamp: string
+  }>
 }
 
 export default function DashboardScreen({ navigation }: any) {
-  const { user } = useAuth();
-  const { theme } = useTheme();
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const { user } = useAuth()
+  const { theme } = useTheme()
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    loadDashboardData()
+  }, [])
 
   const loadDashboardData = async () => {
     try {
@@ -64,31 +64,31 @@ export default function DashboardScreen({ navigation }: any) {
             timestamp: '10 minutes ago',
           },
         ],
-      };
-      setMetrics(mockData);
+      }
+      setMetrics(mockData)
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error('Error loading dashboard data:', error)
     }
-  };
+  }
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
-  };
+    setRefreshing(true)
+    await loadDashboardData()
+    setRefreshing(false)
+  }
 
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'order':
-        return '📦';
+        return '📦'
       case 'sync':
-        return '🔄';
+        return '🔄'
       case 'alert':
-        return '⚠️';
+        return '⚠️'
       default:
-        return '📋';
+        return '📋'
     }
-  };
+  }
 
   const styles = StyleSheet.create({
     container: {
@@ -189,16 +189,22 @@ export default function DashboardScreen({ navigation }: any) {
       fontWeight: '600',
       textAlign: 'center',
     },
-  });
+  })
 
   if (!metrics) {
     return (
       <View style={styles.container}>
-        <Text style={{ color: theme.colors.text, textAlign: 'center', marginTop: 50 }}>
+        <Text
+          style={{
+            color: theme.colors.text,
+            textAlign: 'center',
+            marginTop: 50,
+          }}
+        >
           Loading dashboard...
         </Text>
       </View>
-    );
+    )
   }
 
   return (
@@ -298,5 +304,5 @@ export default function DashboardScreen({ navigation }: any) {
         )}
       </View>
     </ScrollView>
-  );
-} 
+  )
+}

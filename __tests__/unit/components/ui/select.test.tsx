@@ -7,33 +7,60 @@ import {
   SelectGroup,
   SelectItem,
   SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-  SelectScrollUpButton,
-  SelectScrollDownButton,
 } from '@/components/ui/select'
 
 // Mock Radix UI Select components
 jest.mock('@radix-ui/react-select', () => ({
-  Root: ({ children, ...props }: any) => <div data-testid="select-root" {...props}>{children}</div>,
-  Group: ({ children, ...props }: any) => <div data-testid="select-group" {...props}>{children}</div>,
-  Value: ({ children, ...props }: any) => <span data-testid="select-value" {...props}>{children}</span>,
+  Root: ({ children, ...props }: any) => (
+    <div data-testid="select-root" {...props}>
+      {children}
+    </div>
+  ),
+  Group: ({ children, ...props }: any) => (
+    <div data-testid="select-group" {...props}>
+      {children}
+    </div>
+  ),
+  Value: ({ children, ...props }: any) => (
+    <span data-testid="select-value" {...props}>
+      {children}
+    </span>
+  ),
   Trigger: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <button ref={ref} data-testid="select-trigger" className={className} {...props}>
+    <button
+      ref={ref}
+      data-testid="select-trigger"
+      className={className}
+      {...props}
+    >
       {children}
       <div data-testid="select-icon">▼</div>
     </button>
   )),
-  Content: React.forwardRef(({ children, className, position, ...props }: any, ref) => (
-    <div ref={ref} data-testid="select-content" className={className} data-position={position} {...props}>
-      <div data-testid="scroll-up-button">▲</div>
-      <div data-testid="select-viewport">{children}</div>
-      <div data-testid="scroll-down-button">▼</div>
-    </div>
-  )),
+  Content: React.forwardRef(
+    ({ children, className, position, ...props }: any, ref) => (
+      <div
+        ref={ref}
+        data-testid="select-content"
+        className={className}
+        data-position={position}
+        {...props}
+      >
+        <div data-testid="scroll-up-button">▲</div>
+        <div data-testid="select-viewport">{children}</div>
+        <div data-testid="scroll-down-button">▼</div>
+      </div>
+    )
+  ),
   Label: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <div ref={ref} data-testid="select-label" className={className} {...props}>{children}</div>
+    <div ref={ref} data-testid="select-label" className={className} {...props}>
+      {children}
+    </div>
   )),
   Item: React.forwardRef(({ children, className, ...props }: any, ref) => (
     <div ref={ref} data-testid="select-item" className={className} {...props}>
@@ -42,21 +69,48 @@ jest.mock('@radix-ui/react-select', () => ({
     </div>
   )),
   Separator: React.forwardRef(({ className, ...props }: any, ref) => (
-    <div ref={ref} data-testid="select-separator" className={className} {...props} />
+    <div
+      ref={ref}
+      data-testid="select-separator"
+      className={className}
+      {...props}
+    />
   )),
   ScrollUpButton: React.forwardRef(({ className, ...props }: any, ref) => (
-    <button ref={ref} data-testid="scroll-up-button" className={className} {...props}>▲</button>
+    <button
+      ref={ref}
+      data-testid="scroll-up-button"
+      className={className}
+      {...props}
+    >
+      ▲
+    </button>
   )),
   ScrollDownButton: React.forwardRef(({ className, ...props }: any, ref) => (
-    <button ref={ref} data-testid="scroll-down-button" className={className} {...props}>▼</button>
+    <button
+      ref={ref}
+      data-testid="scroll-down-button"
+      className={className}
+      {...props}
+    >
+      ▼
+    </button>
   )),
-  Icon: ({ asChild, children }: any) => asChild ? children : <div>▼</div>,
-  Portal: ({ children }: any) => <div data-testid="select-portal">{children}</div>,
-  Viewport: ({ children, className }: any) => (
-    <div data-testid="select-viewport" className={className}>{children}</div>
+  Icon: ({ asChild, children }: any) => (asChild ? children : <div>▼</div>),
+  Portal: ({ children }: any) => (
+    <div data-testid="select-portal">{children}</div>
   ),
-  ItemIndicator: ({ children }: any) => <span data-testid="item-indicator">{children}</span>,
-  ItemText: ({ children }: any) => <span data-testid="item-text">{children}</span>,
+  Viewport: ({ children, className }: any) => (
+    <div data-testid="select-viewport" className={className}>
+      {children}
+    </div>
+  ),
+  ItemIndicator: ({ children }: any) => (
+    <span data-testid="item-indicator">{children}</span>
+  ),
+  ItemText: ({ children }: any) => (
+    <span data-testid="item-text">{children}</span>
+  ),
 }))
 
 describe('Select Components', () => {
@@ -226,7 +280,11 @@ describe('Select Components', () => {
 
   describe('SelectItem', () => {
     it('should render item with correct structure', () => {
-      render(<SelectItem value="option1" data-testid="item">Option 1</SelectItem>)
+      render(
+        <SelectItem value="option1" data-testid="item">
+          Option 1
+        </SelectItem>
+      )
 
       const item = screen.getByTestId('item')
       expect(item).toBeInTheDocument()
@@ -274,7 +332,13 @@ describe('Select Components', () => {
 
       const label = screen.getByTestId('label')
       expect(label).toBeInTheDocument()
-      expect(label).toHaveClass('py-1.5', 'pl-8', 'pr-2', 'text-sm', 'font-semibold')
+      expect(label).toHaveClass(
+        'py-1.5',
+        'pl-8',
+        'pr-2',
+        'text-sm',
+        'font-semibold'
+      )
     })
 
     it('should apply custom className', () => {
@@ -323,7 +387,9 @@ describe('Select Components', () => {
     })
 
     it('should apply custom className', () => {
-      render(<SelectSeparator className="custom-separator" data-testid="separator" />)
+      render(
+        <SelectSeparator className="custom-separator" data-testid="separator" />
+      )
 
       const separator = screen.getByTestId('separator')
       expect(separator).toHaveClass('custom-separator')
@@ -345,7 +411,12 @@ describe('Select Components', () => {
     })
 
     it('should apply custom className', () => {
-      render(<SelectScrollUpButton className="custom-scroll" data-testid="scroll-up" />)
+      render(
+        <SelectScrollUpButton
+          className="custom-scroll"
+          data-testid="scroll-up"
+        />
+      )
 
       const button = screen.getByTestId('scroll-up')
       expect(button).toHaveClass('custom-scroll')
@@ -367,7 +438,12 @@ describe('Select Components', () => {
     })
 
     it('should apply custom className', () => {
-      render(<SelectScrollDownButton className="custom-scroll" data-testid="scroll-down" />)
+      render(
+        <SelectScrollDownButton
+          className="custom-scroll"
+          data-testid="scroll-down"
+        />
+      )
 
       const button = screen.getByTestId('scroll-down')
       expect(button).toHaveClass('custom-scroll')
@@ -391,11 +467,17 @@ describe('Select Components', () => {
           <SelectContent data-testid="content">
             <SelectGroup data-testid="group">
               <SelectLabel>Options</SelectLabel>
-              <SelectItem value="option1" data-testid="item1">Option 1</SelectItem>
-              <SelectItem value="option2" data-testid="item2">Option 2</SelectItem>
+              <SelectItem value="option1" data-testid="item1">
+                Option 1
+              </SelectItem>
+              <SelectItem value="option2" data-testid="item2">
+                Option 2
+              </SelectItem>
             </SelectGroup>
             <SelectSeparator data-testid="separator" />
-            <SelectItem value="option3" data-testid="item3">Option 3</SelectItem>
+            <SelectItem value="option3" data-testid="item3">
+              Option 3
+            </SelectItem>
           </SelectContent>
         </Select>
       )

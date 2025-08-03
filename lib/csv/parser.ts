@@ -116,7 +116,10 @@ export function parseCSV<T>(
 
   // Get schema keys to know which columns we need
   const schemaShape = (schema as any)._def?.shape
-  const schemaKeys = typeof schemaShape === 'function' ? Object.keys(schemaShape()) : Object.keys(schemaShape || {})
+  const schemaKeys =
+    typeof schemaShape === 'function'
+      ? Object.keys(schemaShape())
+      : Object.keys(schemaShape || {})
 
   // Process each row
   parseResult.data.forEach((row: any, index: number) => {
@@ -132,7 +135,7 @@ export function parseCSV<T>(
     for (const schemaKey of schemaKeys) {
       const possibleHeaders = columnMappings[schemaKey] || [schemaKey]
       let found = false
-      
+
       for (const header of possibleHeaders) {
         if (row.hasOwnProperty(header)) {
           // Sanitize content to prevent formula injection
@@ -157,7 +160,7 @@ export function parseCSV<T>(
           break
         }
       }
-      
+
       if (!found && schemaKey !== 'notes' && schemaKey !== 'reason') {
         // notes and reason are optional
         errors.push({
@@ -229,7 +232,11 @@ export function parseInventoryCSV(
     notes: z.string().optional(),
   })
 
-  return parseCSV(csvContent, inventorySchema, COLUMN_MAPPINGS) as ParseResult<InventoryImportRow>
+  return parseCSV(
+    csvContent,
+    inventorySchema,
+    COLUMN_MAPPINGS
+  ) as ParseResult<InventoryImportRow>
 }
 
 // CSV generation utilities

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProductsTable } from '@/components/features/products/products-table'
 import { Product } from '@/types/product.types'
@@ -117,7 +117,9 @@ describe('ProductsTable', () => {
     it('should render search input', () => {
       render(<ProductsTable {...defaultProps} />)
 
-      expect(screen.getByPlaceholderText('Search products...')).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('Search products...')
+      ).toBeInTheDocument()
     })
 
     it('should render category and status filters', () => {

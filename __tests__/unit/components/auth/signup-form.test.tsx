@@ -1,9 +1,9 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { SignupForm } from '@/components/auth/signup-form'
 import { signUp } from '@/app/actions/auth'
-import { toast } from 'sonner'
 
 // Mock dependencies
 jest.mock('@/app/actions/auth', () => ({
@@ -20,7 +20,9 @@ jest.mock('sonner', () => ({
 describe('SignupForm', () => {
   const mockSignUp = signUp as jest.MockedFunction<typeof signUp>
   const mockToastError = toast.error as jest.MockedFunction<typeof toast.error>
-  const mockToastSuccess = toast.success as jest.MockedFunction<typeof toast.success>
+  const mockToastSuccess = toast.success as jest.MockedFunction<
+    typeof toast.success
+  >
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -35,7 +37,9 @@ describe('SignupForm', () => {
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(screen.getByLabelText('Confirm Password')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Create account' })
+      ).toBeInTheDocument()
     })
 
     it('should have proper form labels and placeholders', () => {
@@ -50,7 +54,10 @@ describe('SignupForm', () => {
       expect(fullNameInput).toHaveAttribute('placeholder', 'John Doe')
       expect(fullNameInput).toHaveAttribute('autoComplete', 'name')
 
-      expect(organizationInput).toHaveAttribute('placeholder', 'Acme Corporation')
+      expect(organizationInput).toHaveAttribute(
+        'placeholder',
+        'Acme Corporation'
+      )
       expect(organizationInput).toHaveAttribute('autoComplete', 'organization')
 
       expect(emailInput).toHaveAttribute('type', 'email')
@@ -58,18 +65,29 @@ describe('SignupForm', () => {
       expect(emailInput).toHaveAttribute('autoComplete', 'email')
 
       expect(passwordInput).toHaveAttribute('type', 'password')
-      expect(passwordInput).toHaveAttribute('placeholder', 'Create a strong password')
+      expect(passwordInput).toHaveAttribute(
+        'placeholder',
+        'Create a strong password'
+      )
       expect(passwordInput).toHaveAttribute('autoComplete', 'new-password')
 
       expect(confirmPasswordInput).toHaveAttribute('type', 'password')
-      expect(confirmPasswordInput).toHaveAttribute('placeholder', 'Confirm your password')
-      expect(confirmPasswordInput).toHaveAttribute('autoComplete', 'new-password')
+      expect(confirmPasswordInput).toHaveAttribute(
+        'placeholder',
+        'Confirm your password'
+      )
+      expect(confirmPasswordInput).toHaveAttribute(
+        'autoComplete',
+        'new-password'
+      )
     })
 
     it('should have proper accessibility attributes', () => {
       render(<SignupForm />)
 
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
       expect(submitButton).toBeInTheDocument()
       expect(submitButton).toHaveAttribute('type', 'submit')
     })
@@ -81,7 +99,9 @@ describe('SignupForm', () => {
       render(<SignupForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(emailInput, 'invalid-email')
       await user.click(submitButton)
@@ -96,7 +116,9 @@ describe('SignupForm', () => {
 
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.type(passwordInput, 'weak')
@@ -113,7 +135,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.type(passwordInput, 'StrongPass123')
@@ -128,7 +152,9 @@ describe('SignupForm', () => {
       const user = userEvent.setup()
       render(<SignupForm />)
 
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
       await user.click(submitButton)
 
       // Form should not submit with empty required fields
@@ -140,7 +166,9 @@ describe('SignupForm', () => {
       render(<SignupForm />)
 
       const fullNameInput = screen.getByLabelText('Full Name')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'A') // Too short
       await user.click(submitButton)
@@ -154,7 +182,9 @@ describe('SignupForm', () => {
       render(<SignupForm />)
 
       const organizationInput = screen.getByLabelText('Organization Name')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(organizationInput, 'A') // Too short
       await user.click(submitButton)
@@ -175,7 +205,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'John Doe')
       await user.type(organizationInput, 'Acme Corporation')
@@ -198,7 +230,9 @@ describe('SignupForm', () => {
 
     it('should show loading state during submission', async () => {
       const user = userEvent.setup()
-      mockSignUp.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockSignUp.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(<SignupForm />)
 
       const fullNameInput = screen.getByLabelText('Full Name')
@@ -206,7 +240,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'John Doe')
       await user.type(organizationInput, 'Acme Corporation')
@@ -216,8 +252,12 @@ describe('SignupForm', () => {
       await user.click(submitButton)
 
       // Should show loading state
-      expect(screen.getByRole('button', { name: 'Creating account...' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Creating account...' })).toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: 'Creating account...' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Creating account...' })
+      ).toBeDisabled()
     })
 
     it('should handle signUp error', async () => {
@@ -231,7 +271,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'John Doe')
       await user.type(organizationInput, 'Acme Corporation')
@@ -255,7 +297,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'John Doe')
       await user.type(organizationInput, 'Acme Corporation')
@@ -265,7 +309,9 @@ describe('SignupForm', () => {
       await user.click(submitButton)
 
       await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalledWith('An unexpected error occurred')
+        expect(mockToastError).toHaveBeenCalledWith(
+          'An unexpected error occurred'
+        )
       })
     })
 
@@ -279,7 +325,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'John Doe')
       await user.type(organizationInput, 'Acme Corporation')
@@ -294,8 +342,12 @@ describe('SignupForm', () => {
       })
 
       // Should be back to normal state
-      expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Create account' })).not.toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: 'Create account' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Create account' })
+      ).not.toBeDisabled()
     })
   })
 
@@ -310,7 +362,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'John Doe')
       await user.type(organizationInput, 'Acme Corporation')
@@ -320,15 +374,17 @@ describe('SignupForm', () => {
       await user.click(submitButton)
 
       await waitFor(() => {
-        expect(mockToastSuccess).toHaveBeenCalledWith('Account created successfully!')
+        expect(mockToastSuccess).toHaveBeenCalledWith(
+          'Account created successfully!'
+        )
       })
     })
 
     it('should show email confirmation screen when email confirmation is required', async () => {
       const user = userEvent.setup()
-      mockSignUp.mockResolvedValue({ 
-        success: true, 
-        requiresEmailConfirmation: true 
+      mockSignUp.mockResolvedValue({
+        success: true,
+        requiresEmailConfirmation: true,
       })
       render(<SignupForm />)
 
@@ -337,7 +393,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'John Doe')
       await user.type(organizationInput, 'Acme Corporation')
@@ -348,7 +406,9 @@ describe('SignupForm', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Check your email')).toBeInTheDocument()
-        expect(screen.getByText(/We've sent a confirmation link to john@acme.com/)).toBeInTheDocument()
+        expect(
+          screen.getByText(/We've sent a confirmation link to john@acme.com/)
+        ).toBeInTheDocument()
         expect(screen.getByText(/Didn't receive the email/)).toBeInTheDocument()
       })
     })
@@ -364,7 +424,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       // Tab through form elements
       await user.tab()
@@ -413,7 +475,9 @@ describe('SignupForm', () => {
       const user = userEvent.setup()
       render(<SignupForm />)
 
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
       await user.click(submitButton)
 
       expect(mockSignUp).not.toHaveBeenCalled()
@@ -488,7 +552,9 @@ describe('SignupForm', () => {
 
     it('should disable submit button during loading', async () => {
       const user = userEvent.setup()
-      mockSignUp.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockSignUp.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(<SignupForm />)
 
       const fullNameInput = screen.getByLabelText('Full Name')
@@ -496,7 +562,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       await user.type(fullNameInput, 'John Doe')
       await user.type(organizationInput, 'Acme Corporation')
@@ -505,13 +573,19 @@ describe('SignupForm', () => {
       await user.type(confirmPasswordInput, 'StrongPass123')
       await user.click(submitButton)
 
-      expect(screen.getByRole('button', { name: 'Creating account...' })).toBeDisabled()
+      expect(
+        screen.getByRole('button', { name: 'Creating account...' })
+      ).toBeDisabled()
     })
 
     it('should show terms of service text', () => {
       render(<SignupForm />)
 
-      expect(screen.getByText(/By creating an account, you agree to our Terms of Service and Privacy Policy/)).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          /By creating an account, you agree to our Terms of Service and Privacy Policy/
+        )
+      ).toBeInTheDocument()
     })
   })
 
@@ -526,7 +600,9 @@ describe('SignupForm', () => {
       const emailInput = screen.getByLabelText('Email')
       const passwordInput = screen.getByLabelText('Password')
       const confirmPasswordInput = screen.getByLabelText('Confirm Password')
-      const submitButton = screen.getByRole('button', { name: 'Create account' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Create account',
+      })
 
       // This should compile without TypeScript errors
       await user.type(fullNameInput, 'John Doe')

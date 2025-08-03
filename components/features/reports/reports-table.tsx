@@ -26,6 +26,7 @@ import {
   Share,
   Trash2,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,8 +45,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { toast } from 'sonner'
-import { duplicateReport, deleteReport, runReport } from '@/app/actions/reports'
+import { deleteReport, duplicateReport, runReport } from '@/app/actions/reports'
 import type { Report } from '@/types/reports.types'
 
 interface ReportsTableProps {
@@ -53,10 +53,15 @@ interface ReportsTableProps {
   showSchedule?: boolean
 }
 
-export function ReportsTable({ reports, showSchedule = false }: ReportsTableProps) {
+export function ReportsTable({
+  reports,
+  showSchedule = false,
+}: ReportsTableProps) {
   const router = useRouter()
   const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  )
   const [globalFilter, setGlobalFilter] = React.useState('')
   const [isRunning, setIsRunning] = React.useState<string | null>(null)
 
@@ -195,7 +200,10 @@ export function ReportsTable({ reports, showSchedule = false }: ReportsTableProp
           organization: 'bg-green-100 text-green-800',
         }
         return (
-          <Badge variant="secondary" className={colors[level as keyof typeof colors]}>
+          <Badge
+            variant="secondary"
+            className={colors[level as keyof typeof colors]}
+          >
             {level}
           </Badge>
         )
@@ -237,9 +245,7 @@ export function ReportsTable({ reports, showSchedule = false }: ReportsTableProp
                   Edit
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleDuplicate(report.id)}
-              >
+              <DropdownMenuItem onClick={() => handleDuplicate(report.id)}>
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicate
               </DropdownMenuItem>

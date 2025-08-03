@@ -2,7 +2,7 @@ module.exports = {
   GeistSans: {
     className: 'GeistSans',
     style: {
-      fontFamily: 'GeistSans, sans-serif'
-    }
-  }
+      fontFamily: 'GeistSans, sans-serif',
+    },
+  },
 }

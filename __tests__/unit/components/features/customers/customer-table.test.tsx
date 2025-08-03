@@ -1,9 +1,9 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { CustomerTable } from '@/components/features/customers/customer-table'
 import { deleteCustomer } from '@/app/actions/customers'
-import { toast } from 'sonner'
 import { CustomerWithStats } from '@/types/customer.types'
 
 // Mock dependencies
@@ -47,9 +47,13 @@ Object.defineProperty(window, 'confirm', {
 })
 
 describe('CustomerTable', () => {
-  const mockDeleteCustomer = deleteCustomer as jest.MockedFunction<typeof deleteCustomer>
+  const mockDeleteCustomer = deleteCustomer as jest.MockedFunction<
+    typeof deleteCustomer
+  >
   const mockToastError = toast.error as jest.MockedFunction<typeof toast.error>
-  const mockToastSuccess = toast.success as jest.MockedFunction<typeof toast.success>
+  const mockToastSuccess = toast.success as jest.MockedFunction<
+    typeof toast.success
+  >
 
   const mockCustomers: CustomerWithStats[] = [
     {
@@ -168,7 +172,11 @@ describe('CustomerTable', () => {
         />
       )
 
-      expect(screen.getByText('No customers found. Try adjusting your filters or add a new customer.')).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          'No customers found. Try adjusting your filters or add a new customer.'
+        )
+      ).toBeInTheDocument()
     })
 
     it('should render customer avatars with initials', () => {
@@ -245,8 +253,12 @@ describe('CustomerTable', () => {
         />
       )
 
-      expect(screen.getByLabelText('View details for Acme Corp')).toBeInTheDocument()
-      expect(screen.getByLabelText('View details for Tech Solutions')).toBeInTheDocument()
+      expect(
+        screen.getByLabelText('View details for Acme Corp')
+      ).toBeInTheDocument()
+      expect(
+        screen.getByLabelText('View details for Tech Solutions')
+      ).toBeInTheDocument()
     })
   })
 
@@ -278,7 +290,9 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
       expect(screen.getAllByText('Actions')).toHaveLength(2) // Table header + dropdown menu
@@ -302,14 +316,24 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
-      const viewDetailsLink = screen.getByRole('menuitem', { name: /view details for acme corp/i })
+      const viewDetailsLink = screen.getByRole('menuitem', {
+        name: /view details for acme corp/i,
+      })
       const editLink = screen.getByRole('menuitem', { name: /edit acme corp/i })
-      const contactsLink = screen.getByRole('menuitem', { name: /manage contacts for acme corp/i })
-      const pricingLink = screen.getByRole('menuitem', { name: /manage custom pricing for acme corp/i })
-      const ordersLink = screen.getByRole('menuitem', { name: /view orders for acme corp/i })
+      const contactsLink = screen.getByRole('menuitem', {
+        name: /manage contacts for acme corp/i,
+      })
+      const pricingLink = screen.getByRole('menuitem', {
+        name: /manage custom pricing for acme corp/i,
+      })
+      const ordersLink = screen.getByRole('menuitem', {
+        name: /view orders for acme corp/i,
+      })
 
       expect(viewDetailsLink).toHaveAttribute('href', '/customers/1')
       expect(editLink).toHaveAttribute('href', '/customers/1/edit')
@@ -332,7 +356,9 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
       const deleteButton = screen.getByText('Delete')
@@ -356,7 +382,9 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
       const deleteButton = screen.getByText('Delete')
@@ -380,14 +408,18 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
       const deleteButton = screen.getByText('Delete')
       await user.click(deleteButton)
 
       await waitFor(() => {
-        expect(mockToastSuccess).toHaveBeenCalledWith('Customer deleted successfully')
+        expect(mockToastSuccess).toHaveBeenCalledWith(
+          'Customer deleted successfully'
+        )
       })
     })
 
@@ -405,7 +437,9 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
       const deleteButton = screen.getByText('Delete')
@@ -429,7 +463,9 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
       const deleteButton = screen.getByText('Delete')
@@ -453,7 +489,9 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
       const deleteButton = screen.getByText('Delete')
@@ -464,7 +502,9 @@ describe('CustomerTable', () => {
 
     it('should disable delete button while deleting', async () => {
       const user = userEvent.setup()
-      mockDeleteCustomer.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockDeleteCustomer.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(
         <CustomerTable
           customers={mockCustomers}
@@ -475,7 +515,9 @@ describe('CustomerTable', () => {
         />
       )
 
-      const menuButton = screen.getAllByRole('button', { name: /open menu/i })[0]
+      const menuButton = screen.getAllByRole('button', {
+        name: /open menu/i,
+      })[0]
       await user.click(menuButton)
 
       const deleteButton = screen.getByText('Delete')
@@ -499,8 +541,12 @@ describe('CustomerTable', () => {
       )
 
       // Check for pagination buttons
-      expect(screen.getByRole('button', { name: 'Go to previous page' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Go to next page' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Go to previous page' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Go to next page' })
+      ).toBeInTheDocument()
     })
 
     it('should not render pagination when there is only one page', () => {
@@ -515,8 +561,12 @@ describe('CustomerTable', () => {
       )
 
       expect(screen.queryByText(/Showing/)).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Go to previous page' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'Go to next page' })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Go to previous page' })
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Go to next page' })
+      ).not.toBeInTheDocument()
     })
 
     it('should disable previous button on first page', () => {
@@ -530,7 +580,9 @@ describe('CustomerTable', () => {
         />
       )
 
-      const prevButton = screen.getByRole('button', { name: 'Go to previous page' })
+      const prevButton = screen.getByRole('button', {
+        name: 'Go to previous page',
+      })
       expect(prevButton).toBeDisabled()
     })
 
@@ -580,8 +632,12 @@ describe('CustomerTable', () => {
         />
       )
 
-      expect(screen.getByRole('region', { name: 'Customer table' })).toBeInTheDocument()
-      expect(screen.getAllByRole('button', { name: /open menu/i })).toHaveLength(2)
+      expect(
+        screen.getByRole('region', { name: 'Customer table' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getAllByRole('button', { name: /open menu/i })
+      ).toHaveLength(2)
     })
 
     it('should have proper table structure', () => {

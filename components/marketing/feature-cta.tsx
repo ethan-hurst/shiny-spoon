@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { ArrowRight, Calendar } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function FeatureCTA() {
   return (
@@ -11,9 +11,10 @@ export function FeatureCTA() {
             Ready to eliminate data errors?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Join hundreds of B2B companies already using TruthSource to keep their data accurate.
+            Join hundreds of B2B companies already using TruthSource to keep
+            their data accurate.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup">
               <Button size="lg" variant="secondary" className="group">
@@ -22,9 +23,9 @@ export function FeatureCTA() {
               </Button>
             </Link>
             <Link href="/contact">
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="bg-transparent text-white border-white hover:bg-white hover:text-primary"
               >
                 <Calendar className="mr-2 h-4 w-4" />

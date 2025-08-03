@@ -1,16 +1,21 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { validateCSVFile } from '@/lib/csv/parser'
 import { createServerClient } from '@/lib/supabase/server'
-import { isFile } from '@/lib/utils/file'
 import { escapeCSVField } from '@/lib/utils/csv'
-import { z } from 'zod'
+import { isFile } from '@/lib/utils/file'
 
 // Define valid types
 const VALID_OPERATION_TYPES = ['import', 'export', 'update', 'delete'] as const
-const VALID_ENTITY_TYPES = ['products', 'inventory', 'pricing', 'customers'] as const
+const VALID_ENTITY_TYPES = [
+  'products',
+  'inventory',
+  'pricing',
+  'customers',
+] as const
 
 // Define the schema for operation ID validation
 const operationIdSchema = z.string().uuid('Invalid operation ID format')
@@ -30,19 +35,20 @@ const bulkOperationSchema = z.object({
 })
 
 // File validation schema
-const fileSchema = z.custom<File>(
-  (val) => val instanceof File,
-  { message: 'Invalid file input' }
-).refine(
-  (file) => file.size > 0 && file.name.length > 0,
-  { message: 'File is empty or invalid' }
-).refine(
-  (file) => file.name.toLowerCase().endsWith('.csv'),
-  { message: 'File must be a CSV file' }
-).refine(
-  (file) => !file.type || ['text/csv', 'application/csv', 'text/plain'].includes(file.type),
-  { message: 'Invalid file type. Please upload a CSV file' }
-)
+const fileSchema = z
+  .custom<File>((val) => val instanceof File, { message: 'Invalid file input' })
+  .refine((file) => file.size > 0 && file.name.length > 0, {
+    message: 'File is empty or invalid',
+  })
+  .refine((file) => file.name.toLowerCase().endsWith('.csv'), {
+    message: 'File must be a CSV file',
+  })
+  .refine(
+    (file) =>
+      !file.type ||
+      ['text/csv', 'application/csv', 'text/plain'].includes(file.type),
+    { message: 'Invalid file type. Please upload a CSV file' }
+  )
 
 /**
  * Initiates a new bulk operation for the authenticated user using the provided CSV file and operation parameters.
@@ -70,12 +76,20 @@ export async function startBulkOperation(formData: FormData) {
 
     // Parse and validate operation parameters
     const rawParams = {
-      operationType: formData.get('operationType') ? String(formData.get('operationType')) : undefined,
-      entityType: formData.get('entityType') ? String(formData.get('entityType')) : undefined,
+      operationType: formData.get('operationType')
+        ? String(formData.get('operationType'))
+        : undefined,
+      entityType: formData.get('entityType')
+        ? String(formData.get('entityType'))
+        : undefined,
       validateOnly: formData.get('validateOnly') === 'true',
       rollbackOnError: formData.get('rollbackOnError') === 'true',
-      chunkSize: formData.get('chunkSize') ? parseInt(String(formData.get('chunkSize'))) : undefined,
-      maxConcurrent: formData.get('maxConcurrent') ? parseInt(String(formData.get('maxConcurrent'))) : undefined,
+      chunkSize: formData.get('chunkSize')
+        ? parseInt(String(formData.get('chunkSize')))
+        : undefined,
+      maxConcurrent: formData.get('maxConcurrent')
+        ? parseInt(String(formData.get('maxConcurrent')))
+        : undefined,
     }
 
     const validatedParams = bulkOperationSchema.parse(rawParams)
@@ -108,7 +122,9 @@ export async function startBulkOperation(formData: FormData) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       // Format Zod errors into a readable message
-      const errorMessages = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+      const errorMessages = error.errors
+        .map((e) => `${e.path.join('.')}: ${e.message}`)
+        .join(', ')
       throw new Error(`Validation error: ${errorMessages}`)
     }
     throw error
@@ -310,7 +326,9 @@ export async function getBulkOperationStats() {
 
   const { data, error } = await supabase
     .from('bulk_operations')
-    .select('status, operation_type, entity_type, successful_records, failed_records, created_at')
+    .select(
+      'status, operation_type, entity_type, successful_records, failed_records, created_at'
+    )
     .eq('organization_id', userProfile.organization_id)
     .gte('created_at', thirtyDaysAgo.toISOString())
 
@@ -319,20 +337,32 @@ export async function getBulkOperationStats() {
   // Calculate stats
   const stats = {
     totalOperations: data.length,
-    completedOperations: data.filter(op => op.status === 'completed').length,
-    failedOperations: data.filter(op => op.status === 'failed').length,
-    totalRecordsProcessed: data.reduce((sum, op) => sum + (op.successful_records || 0), 0),
-    totalRecordsFailed: data.reduce((sum, op) => sum + (op.failed_records || 0), 0),
-    operationsByType: data.reduce((acc, op) => {
-      const key = `${op.operation_type}_${op.entity_type}`
-      acc[key] = (acc[key] || 0) + 1
-      return acc
-    }, {} as Record<string, number>),
-    operationsByDay: data.reduce((acc, op) => {
-      const day = new Date(op.created_at).toISOString().split('T')[0]
-      acc[day] = (acc[day] || 0) + 1
-      return acc
-    }, {} as Record<string, number>),
+    completedOperations: data.filter((op) => op.status === 'completed').length,
+    failedOperations: data.filter((op) => op.status === 'failed').length,
+    totalRecordsProcessed: data.reduce(
+      (sum, op) => sum + (op.successful_records || 0),
+      0
+    ),
+    totalRecordsFailed: data.reduce(
+      (sum, op) => sum + (op.failed_records || 0),
+      0
+    ),
+    operationsByType: data.reduce(
+      (acc, op) => {
+        const key = `${op.operation_type}_${op.entity_type}`
+        acc[key] = (acc[key] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    ),
+    operationsByDay: data.reduce(
+      (acc, op) => {
+        const day = new Date(op.created_at).toISOString().split('T')[0]
+        acc[day] = (acc[day] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    ),
   }
 
   return stats
@@ -358,10 +388,10 @@ export async function downloadBulkOperationReport(operationId: string) {
   if (!user) throw new Error('Unauthorized')
 
   const details = await getBulkOperationDetails(validatedId)
-  
+
   // Generate CSV report
   const headers = ['Record Index', 'Action', 'Status', 'Error', 'Processed At']
-  const rows = details.records.map(record => [
+  const rows = details.records.map((record) => [
     record.record_index,
     record.action,
     record.status,
@@ -369,15 +399,14 @@ export async function downloadBulkOperationReport(operationId: string) {
     record.processed_at || '',
   ])
 
-
   const csvContent = [
-    headers.map(h => escapeCSVField(h)).join(','),
-    ...rows.map(row => row.map(cell => escapeCSVField(cell)).join(','))
+    headers.map((h) => escapeCSVField(h)).join(','),
+    ...rows.map((row) => row.map((cell) => escapeCSVField(cell)).join(',')),
   ].join('\n')
 
   return {
     content: csvContent,
     filename: `bulk-operation-${validatedId}-report.csv`,
-    mimeType: 'text/csv'
+    mimeType: 'text/csv',
   }
 }

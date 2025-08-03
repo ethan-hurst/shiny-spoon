@@ -11,7 +11,9 @@ async function generateRssFeed() {
 
   try {
     // Import the RSS generation function from the built lib
-    const { generateRssFeed: generate } = require('../.next/server/chunks/lib_rss.js')
+    const {
+      generateRssFeed: generate,
+    } = require('../.next/server/chunks/lib_rss.js')
     await generate()
     console.log('✅ RSS feed generated successfully')
   } catch (error) {

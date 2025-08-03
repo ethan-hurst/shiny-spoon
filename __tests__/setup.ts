@@ -63,14 +63,14 @@ global.auditTestUtils = {
     created_at: mockDate.toISOString(),
     ...overrides,
   }),
-  
+
   createMockUser: (overrides = {}) => ({
     id: 'test-user',
     email: 'test@example.com',
     user_metadata: { full_name: 'Test User' },
     ...overrides,
   }),
-  
+
   createMockSupabaseClient: () => ({
     auth: {
       getUser: jest.fn(),

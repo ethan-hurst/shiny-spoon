@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { PortalSidebar } from '@/components/portal/portal-sidebar'
 import { PortalHeader } from '@/components/portal/portal-header'
+import { PortalSidebar } from '@/components/portal/portal-sidebar'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function PortalLayout({
   children,

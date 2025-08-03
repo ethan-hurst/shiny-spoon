@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { PriceHistoryTimeline } from '@/components/features/pricing/price-history-timeline'
 import { PriceExportButton } from '@/components/features/pricing/price-export-button'
+import { PriceHistoryTimeline } from '@/components/features/pricing/price-history-timeline'
 import {
   Card,
   CardContent,
@@ -67,34 +67,34 @@ async function getHistoryData(customerId: string) {
     return { customer, history }
   } catch (error) {
     console.error('Error fetching price history:', error)
-    
+
     // Check if it's an authentication/authorization error
     if (error instanceof Error) {
       // Check for Supabase auth errors or HTTP status errors
-      const isAuthError = (
+      const isAuthError =
         error.message.includes('JWT') ||
         error.message.includes('token') ||
         error.message.includes('session') ||
         error.message.includes('Row level security') ||
         error.message.includes('RLS')
-      )
-      
+
       // Check if error has status code (from fetch errors)
       const errorWithStatus = error as Error & { status?: number }
-      const isHttpAuthError = errorWithStatus.status === 401 || errorWithStatus.status === 403
-      
+      const isHttpAuthError =
+        errorWithStatus.status === 401 || errorWithStatus.status === 403
+
       if (isAuthError || isHttpAuthError) {
         // Re-throw auth errors to be handled by the app's auth middleware
         throw error
       }
     }
-    
+
     // Log non-auth errors for debugging
     console.error('Non-auth error in price history fetch:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      type: error?.constructor?.name
+      type: error?.constructor?.name,
     })
-    
+
     // For other errors, return empty history to allow page to render
     return { customer, history: [] }
   }
@@ -121,8 +121,8 @@ export default async function PriceHistoryPage(props: PriceHistoryPageProps) {
             Track all price changes and approvals over time
           </p>
         </div>
-        <PriceExportButton 
-          customerId={params.id} 
+        <PriceExportButton
+          customerId={params.id}
           customerName={customer.display_name || customer.company_name}
         />
       </div>

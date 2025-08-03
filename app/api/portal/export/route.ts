@@ -4,9 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // Authentication check
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return new NextResponse('Unauthorized', { status: 401 })
     }
@@ -23,29 +25,30 @@ export async function GET(_request: NextRequest) {
     }
 
     // Gather all user data
-    const [profileData, apiKeysData, activityData, organizationData] = await Promise.all([
-      supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single(),
-      supabase
-        .from('api_keys')
-        .select('name, created_at, last_used_at, permissions, is_active')
-        .eq('created_by', user.id)
-        .eq('organization_id', profile.organization_id),
-      supabase
-        .from('api_call_logs')
-        .select('endpoint, method, created_at, status_code')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(100),
-      supabase
-        .from('organizations')
-        .select('name, created_at')
-        .eq('id', profile.organization_id)
-        .single(),
-    ])
+    const [profileData, apiKeysData, activityData, organizationData] =
+      await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single(),
+        supabase
+          .from('api_keys')
+          .select('name, created_at, last_used_at, permissions, is_active')
+          .eq('created_by', user.id)
+          .eq('organization_id', profile.organization_id),
+        supabase
+          .from('api_call_logs')
+          .select('endpoint, method, created_at, status_code')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('organizations')
+          .select('name, created_at')
+          .eq('id', profile.organization_id)
+          .single(),
+      ])
 
     const userData = {
       user: {

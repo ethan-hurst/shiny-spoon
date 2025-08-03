@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Check, CreditCard, Plus, Trash2 } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,8 +12,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { removePaymentMethod } from '@/app/actions/billing'
-import { CreditCard, Plus, Trash2, Check } from 'lucide-react'
 import type { PaymentMethod } from '@/types/billing.types'
 
 interface PaymentMethodsProps {
@@ -23,7 +29,10 @@ interface PaymentMethodsProps {
   hasActiveSubscription: boolean
 }
 
-export function PaymentMethods({ paymentMethods, hasActiveSubscription }: PaymentMethodsProps) {
+export function PaymentMethods({
+  paymentMethods,
+  hasActiveSubscription,
+}: PaymentMethodsProps) {
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null)
@@ -96,17 +105,25 @@ export function PaymentMethods({ paymentMethods, hasActiveSubscription }: Paymen
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">
-                          {method.brand ? method.brand.charAt(0).toUpperCase() + method.brand.slice(1) : 'Card'} •••• {method.last4 || '****'}
+                          {method.brand
+                            ? method.brand.charAt(0).toUpperCase() +
+                              method.brand.slice(1)
+                            : 'Card'}{' '}
+                          •••• {method.last4 || '****'}
                         </span>
                         {index === 0 && (
-                          <Badge variant="secondary" className="flex items-center gap-1">
+                          <Badge
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
                             <Check className="h-3 w-3" />
                             Default
                           </Badge>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Expires {method.exp_month?.toString().padStart(2, '0')}/{method.exp_year}
+                        Expires {method.exp_month?.toString().padStart(2, '0')}/
+                        {method.exp_year}
                       </p>
                     </div>
                   </div>
@@ -114,7 +131,10 @@ export function PaymentMethods({ paymentMethods, hasActiveSubscription }: Paymen
                     variant="ghost"
                     size="sm"
                     onClick={() => openDeleteDialog(method.id)}
-                    disabled={removingId === method.id || (paymentMethods.length === 1 && hasActiveSubscription)}
+                    disabled={
+                      removingId === method.id ||
+                      (paymentMethods.length === 1 && hasActiveSubscription)
+                    }
                   >
                     {removingId === method.id ? (
                       <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
@@ -129,7 +149,8 @@ export function PaymentMethods({ paymentMethods, hasActiveSubscription }: Paymen
 
           {hasActiveSubscription && paymentMethods.length === 1 && (
             <p className="text-xs text-muted-foreground mt-4">
-              You must have at least one payment method while you have an active subscription
+              You must have at least one payment method while you have an active
+              subscription
             </p>
           )}
         </CardContent>
@@ -140,7 +161,8 @@ export function PaymentMethods({ paymentMethods, hasActiveSubscription }: Paymen
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Payment Method</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this payment method? This action cannot be undone.
+              Are you sure you want to remove this payment method? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

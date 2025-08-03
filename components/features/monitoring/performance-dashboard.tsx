@@ -1,26 +1,32 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Activity,
+  AlertTriangle,
+  Clock,
+  Database,
+  Gauge,
+  RefreshCw,
+  Shield,
+  TrendingDown,
+  TrendingUp,
+  Zap,
+} from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Activity, 
-  AlertTriangle, 
-  Clock, 
-  Database, 
-  Gauge, 
-  TrendingUp, 
-  TrendingDown,
-  RefreshCw,
-  Zap,
-  Shield
-} from 'lucide-react'
-import { getPerformanceMonitor } from '@/lib/monitoring/performance-monitor'
 import { getQueryCache } from '@/lib/cache/query-cache'
+import { getPerformanceMonitor } from '@/lib/monitoring/performance-monitor'
 import { createClient } from '@/lib/supabase/client'
 
 interface PerformanceSummary {
@@ -91,8 +97,10 @@ export function PerformanceDashboard() {
       setCacheStats(cacheData)
 
       // Get slow queries
-      const { data: slowQueriesData } = await supabase
-        .rpc('get_slow_queries', { org_id: 'current', limit_count: 10 })
+      const { data: slowQueriesData } = await supabase.rpc('get_slow_queries', {
+        org_id: 'current',
+        limit_count: 10,
+      })
       setSlowQueries(slowQueriesData || [])
 
       setLastUpdated(new Date())
@@ -139,7 +147,9 @@ export function PerformanceDashboard() {
         </div>
         <div className="flex items-center space-x-2">
           <Button onClick={loadPerformanceData} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
           <Badge variant="outline">
@@ -157,7 +167,9 @@ export function PerformanceDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={getResponseTimeColor(summary?.avgResponseTime || 0)}>
+              <span
+                className={getResponseTimeColor(summary?.avgResponseTime || 0)}
+              >
                 {summary?.avgResponseTime.toFixed(0) || 0}ms
               </span>
             </div>
@@ -174,13 +186,17 @@ export function PerformanceDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={summary?.errorRate && summary.errorRate > 5 ? 'text-red-600' : 'text-green-600'}>
+              <span
+                className={
+                  summary?.errorRate && summary.errorRate > 5
+                    ? 'text-red-600'
+                    : 'text-green-600'
+                }
+              >
                 {summary?.errorRate.toFixed(2) || 0}%
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              API error rate
-            </p>
+            <p className="text-xs text-muted-foreground">API error rate</p>
           </CardContent>
         </Card>
 
@@ -195,9 +211,7 @@ export function PerformanceDashboard() {
                 {summary?.uptime.toFixed(2) || 0}%
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              System uptime
-            </p>
+            <p className="text-xs text-muted-foreground">System uptime</p>
           </CardContent>
         </Card>
 
@@ -208,13 +222,17 @@ export function PerformanceDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={summary?.activeAlerts && summary.activeAlerts > 0 ? 'text-red-600' : 'text-green-600'}>
+              <span
+                className={
+                  summary?.activeAlerts && summary.activeAlerts > 0
+                    ? 'text-red-600'
+                    : 'text-green-600'
+                }
+              >
                 {summary?.activeAlerts || 0}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Performance alerts
-            </p>
+            <p className="text-xs text-muted-foreground">Performance alerts</p>
           </CardContent>
         </Card>
       </div>
@@ -244,7 +262,10 @@ export function PerformanceDashboard() {
               ) : (
                 <div className="space-y-4">
                   {alerts.map((alert) => (
-                    <Alert key={alert.id} variant={getSeverityColor(alert.severity)}>
+                    <Alert
+                      key={alert.id}
+                      variant={getSeverityColor(alert.severity)}
+                    >
                       <AlertTriangle className="h-4 w-4" />
                       <AlertTitle className="flex items-center justify-between">
                         {alert.metric}
@@ -255,11 +276,14 @@ export function PerformanceDashboard() {
                       <AlertDescription>
                         {alert.message}
                         <div className="mt-2 text-sm">
-                          <span className="font-medium">Current:</span> {alert.currentValue}
+                          <span className="font-medium">Current:</span>{' '}
+                          {alert.currentValue}
                           <span className="mx-2">|</span>
-                          <span className="font-medium">Threshold:</span> {alert.threshold}
+                          <span className="font-medium">Threshold:</span>{' '}
+                          {alert.threshold}
                           <span className="mx-2">|</span>
-                          <span className="font-medium">Time:</span> {alert.timestamp.toLocaleString()}
+                          <span className="font-medium">Time:</span>{' '}
+                          {alert.timestamp.toLocaleString()}
                         </div>
                       </AlertDescription>
                     </Alert>
@@ -285,31 +309,46 @@ export function PerformanceDashboard() {
                     <div>
                       <p className="text-sm font-medium">Hit Rate</p>
                       <div className="flex items-center space-x-2">
-                        <Progress value={cacheStats.hitRate} className="flex-1" />
-                        <span className="text-sm font-medium">{cacheStats.hitRate.toFixed(1)}%</span>
+                        <Progress
+                          value={cacheStats.hitRate}
+                          className="flex-1"
+                        />
+                        <span className="text-sm font-medium">
+                          {cacheStats.hitRate.toFixed(1)}%
+                        </span>
                       </div>
                     </div>
                     <div>
                       <p className="text-sm font-medium">Cache Size</p>
-                      <p className="text-2xl font-bold">{cacheStats.size} items</p>
+                      <p className="text-2xl font-bold">
+                        {cacheStats.size} items
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium">Cache Hits</p>
-                      <p className="text-2xl font-bold text-green-600">{cacheStats.hits.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {cacheStats.hits.toLocaleString()}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium">Cache Misses</p>
-                      <p className="text-2xl font-bold text-red-600">{cacheStats.misses.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-red-600">
+                        {cacheStats.misses.toLocaleString()}
+                      </p>
                     </div>
                   </div>
 
                   <div>
                     <p className="text-sm font-medium">Average Response Time</p>
                     <p className="text-2xl font-bold">
-                      <span className={getResponseTimeColor(cacheStats.avgResponseTime)}>
+                      <span
+                        className={getResponseTimeColor(
+                          cacheStats.avgResponseTime
+                        )}
+                      >
                         {cacheStats.avgResponseTime.toFixed(0)}ms
                       </span>
                     </p>
@@ -318,7 +357,9 @@ export function PerformanceDashboard() {
               ) : (
                 <div className="text-center py-8">
                   <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No cache statistics available</p>
+                  <p className="text-muted-foreground">
+                    No cache statistics available
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -337,7 +378,9 @@ export function PerformanceDashboard() {
               {slowQueries.length === 0 ? (
                 <div className="text-center py-8">
                   <Gauge className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <p className="text-muted-foreground">No slow queries detected</p>
+                  <p className="text-muted-foreground">
+                    No slow queries detected
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -364,4 +407,4 @@ export function PerformanceDashboard() {
       </Tabs>
     </div>
   )
-} 
+}

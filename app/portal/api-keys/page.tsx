@@ -1,16 +1,18 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getSubscription } from '@/lib/billing'
-import { ApiKeysList } from '@/components/portal/api-keys/api-keys-list'
-import { ApiKeyStats } from '@/components/portal/api-keys/api-key-stats'
-import { ApiDocumentation } from '@/components/portal/api-keys/api-documentation'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { InfoIcon } from 'lucide-react'
+import { ApiDocumentation } from '@/components/portal/api-keys/api-documentation'
+import { ApiKeyStats } from '@/components/portal/api-keys/api-key-stats'
+import { ApiKeysList } from '@/components/portal/api-keys/api-keys-list'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { getSubscription } from '@/lib/billing'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function ApiKeysPage() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -30,14 +32,14 @@ export default async function ApiKeysPage() {
 
   // Get subscription for limits
   const subscription = await getSubscription(profile.organization_id)
-  
+
   // Get API key limits based on plan
   const keyLimits: Record<string, number> = {
     starter: 3,
     growth: 10,
     scale: -1, // unlimited
   }
-  
+
   const keyLimit = keyLimits[subscription?.plan || 'starter'] || 3
   const activeKeys = apiKeys?.filter((key: any) => key.is_active) || []
 
@@ -56,9 +58,14 @@ export default async function ApiKeysPage() {
     totalKeys: apiKeys?.length || 0,
     activeKeys: activeKeys.length,
     totalCalls: apiStats?.length || 0,
-    successRate: apiStats && apiStats.length > 0 
-      ? (apiStats.filter((s: any) => s.status_code >= 200 && s.status_code < 300).length / apiStats.length) * 100
-      : 100,
+    successRate:
+      apiStats && apiStats.length > 0
+        ? (apiStats.filter(
+            (s: any) => s.status_code >= 200 && s.status_code < 300
+          ).length /
+            apiStats.length) *
+          100
+        : 100,
   }
 
   return (
@@ -73,13 +80,14 @@ export default async function ApiKeysPage() {
       <Alert>
         <InfoIcon className="h-4 w-4" />
         <AlertDescription>
-          API keys provide programmatic access to your TruthSource data. Keep them secure and never share them publicly.
+          API keys provide programmatic access to your TruthSource data. Keep
+          them secure and never share them publicly.
         </AlertDescription>
       </Alert>
 
       <ApiKeyStats stats={stats} />
 
-      <ApiKeysList 
+      <ApiKeysList
         apiKeys={apiKeys || []}
         keyLimit={keyLimit}
         activeKeyCount={activeKeys.length}

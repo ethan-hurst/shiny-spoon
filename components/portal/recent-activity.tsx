@@ -1,17 +1,23 @@
 import { format, formatDistanceToNow } from 'date-fns'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Activity, 
-  Key, 
-  UserPlus, 
-  CreditCard, 
-  Package, 
+import {
+  Activity,
   AlertTriangle,
   CheckCircle,
+  Clock,
+  CreditCard,
+  Key,
+  Package,
+  UserPlus,
   XCircle,
-  Clock
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 interface ActivityItem {
   id: string
@@ -55,9 +61,17 @@ export function RecentActivity({ activity }: RecentActivityProps) {
     if (type === 'api_call' && metadata?.status_code) {
       const status = metadata.status_code
       if (status >= 200 && status < 300) {
-        return <Badge variant="outline" className="text-green-600">Success</Badge>
+        return (
+          <Badge variant="outline" className="text-green-600">
+            Success
+          </Badge>
+        )
       } else if (status >= 400 && status < 500) {
-        return <Badge variant="outline" className="text-amber-600">Client Error</Badge>
+        return (
+          <Badge variant="outline" className="text-amber-600">
+            Client Error
+          </Badge>
+        )
       } else if (status >= 500) {
         return <Badge variant="destructive">Server Error</Badge>
       }
@@ -118,11 +132,17 @@ export function RecentActivity({ activity }: RecentActivityProps) {
                   {getActivityBadge(item.type, item.metadata)}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}</span>
+                  <span>
+                    {formatDistanceToNow(new Date(item.timestamp), {
+                      addSuffix: true,
+                    })}
+                  </span>
                   {item.metadata?.response_time_ms && (
                     <>
                       <span>•</span>
-                      <span>{formatResponseTime(item.metadata.response_time_ms)}</span>
+                      <span>
+                        {formatResponseTime(item.metadata.response_time_ms)}
+                      </span>
                     </>
                   )}
                 </div>
@@ -130,7 +150,7 @@ export function RecentActivity({ activity }: RecentActivityProps) {
             </div>
           ))}
         </div>
-        
+
         {activity.length >= 10 && (
           <div className="mt-4 pt-4 border-t">
             <p className="text-xs text-muted-foreground text-center">

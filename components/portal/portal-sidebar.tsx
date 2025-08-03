@@ -2,17 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import {
+  BarChart3,
+  Bell,
   Building2,
   CreditCard,
+  FileText,
   Key,
   LayoutDashboard,
-  Bell,
   Users,
-  BarChart3,
-  FileText,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const navigation = [
   {

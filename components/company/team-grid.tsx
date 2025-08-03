@@ -1,6 +1,6 @@
-import { Card } from '@/components/ui/card'
-import { Linkedin } from 'lucide-react'
 import Link from 'next/link'
+import { Linkedin } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 
 interface TeamMember {
   name: string

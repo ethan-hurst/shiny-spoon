@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Cloud, CloudOff, Loader2 } from 'lucide-react'
+import { ConflictResolutionDialog } from '@/components/features/sync/conflict-resolution-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,7 +15,6 @@ import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
 import { OfflineQueue } from '@/lib/realtime/offline-queue'
 import { ConnectionStatus } from '@/lib/realtime/types'
 import { cn } from '@/lib/utils'
-import { ConflictResolutionDialog } from '@/components/features/sync/conflict-resolution-dialog'
 import { resolveConflict } from '@/app/actions/sync-engine'
 import type { SyncConflict } from '@/types/sync-engine.types'
 
@@ -66,8 +66,11 @@ export function OfflineQueueIndicator() {
     }
   }
 
-  const handleConflictResolve = async (conflictId: string, resolution: 'source' | 'target' | 'merge') => {
-    const conflict = conflicts.find(c => c.id === conflictId)
+  const handleConflictResolve = async (
+    conflictId: string,
+    resolution: 'source' | 'target' | 'merge'
+  ) => {
+    const conflict = conflicts.find((c) => c.id === conflictId)
     if (!conflict) return
 
     const resolutionMap = {
@@ -78,7 +81,8 @@ export function OfflineQueueIndicator() {
 
     await resolveConflict(conflictId, {
       resolution_strategy: resolutionMap[resolution],
-      resolved_value: resolution === 'merge' ? conflict.resolved_value : undefined,
+      resolved_value:
+        resolution === 'merge' ? conflict.resolved_value : undefined,
       resolved_by: 'user',
     })
   }
@@ -90,55 +94,55 @@ export function OfflineQueueIndicator() {
   return (
     <>
       <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant={isOffline ? 'destructive' : 'secondary'}
-              className={cn(
-                'flex items-center gap-1.5',
-                !isOffline && 'animate-pulse'
-              )}
-            >
-              {isOffline ? (
-                <CloudOff className="h-3 w-3" />
-              ) : isSyncing ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Cloud className="h-3 w-3" />
-              )}
-              <span>{queueSize} pending</span>
-            </Badge>
-            {!isOffline && !isSyncing && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleManualSync}
-                className="h-7 px-2 text-xs"
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={isOffline ? 'destructive' : 'secondary'}
+                className={cn(
+                  'flex items-center gap-1.5',
+                  !isOffline && 'animate-pulse'
+                )}
               >
-                Sync Now
-              </Button>
-            )}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <div className="space-y-1">
-            <p className="font-semibold">
-              {isOffline ? 'Working Offline' : 'Syncing Changes'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {queueSize} operation{queueSize !== 1 ? 's' : ''} will sync when
-              connected
-            </p>
-            {isOffline && (
-              <p className="text-xs text-muted-foreground">
-                Changes are saved locally and will sync automatically
+                {isOffline ? (
+                  <CloudOff className="h-3 w-3" />
+                ) : isSyncing ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Cloud className="h-3 w-3" />
+                )}
+                <span>{queueSize} pending</span>
+              </Badge>
+              {!isOffline && !isSyncing && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleManualSync}
+                  className="h-7 px-2 text-xs"
+                >
+                  Sync Now
+                </Button>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="space-y-1">
+              <p className="font-semibold">
+                {isOffline ? 'Working Offline' : 'Syncing Changes'}
               </p>
-            )}
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+              <p className="text-sm text-muted-foreground">
+                {queueSize} operation{queueSize !== 1 ? 's' : ''} will sync when
+                connected
+              </p>
+              {isOffline && (
+                <p className="text-xs text-muted-foreground">
+                  Changes are saved locally and will sync automatically
+                </p>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <ConflictResolutionDialog
         open={showConflictDialog}

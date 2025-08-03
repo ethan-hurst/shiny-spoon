@@ -1,10 +1,10 @@
 'use client'
 
+import { Loader2 } from 'lucide-react'
 import { UseFormReturn } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -12,8 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { ContactFormData, subjectOptions } from '@/lib/schemas/contact'
-import { Loader2 } from 'lucide-react'
 
 interface ContactFormProps {
   form: UseFormReturn<ContactFormData>
@@ -73,7 +73,9 @@ export function ContactForm({ form, onSubmit, loading }: ContactFormProps) {
             className={errors.company ? 'border-red-500' : ''}
           />
           {errors.company && (
-            <p className="text-sm text-red-500 mt-1">{errors.company.message}</p>
+            <p className="text-sm text-red-500 mt-1">
+              {errors.company.message}
+            </p>
           )}
         </div>
 
@@ -92,7 +94,9 @@ export function ContactForm({ form, onSubmit, loading }: ContactFormProps) {
         <Label htmlFor="subject">Subject *</Label>
         <Select
           value={subject}
-          onValueChange={(value) => setValue('subject', value as ContactFormData['subject'])}
+          onValueChange={(value) =>
+            setValue('subject', value as ContactFormData['subject'])
+          }
         >
           <SelectTrigger className={errors.subject ? 'border-red-500' : ''}>
             <SelectValue placeholder="Select a subject" />

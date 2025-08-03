@@ -1,13 +1,19 @@
 // PRP-013: NetSuite OAuth Callback Page
 import { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Loader2, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
+import { createClient } from '@/lib/supabase/server'
 
 // Sanitize error messages to remove sensitive information
 function sanitizeErrorMessage(error: string): string {
@@ -16,49 +22,73 @@ function sanitizeErrorMessage(error: string): string {
     /https?:\/\/[a-zA-Z0-9-._~:/?#[\]@!$&'()*+,;=%]+/g,
     '[URL]'
   )
-  
+
   // Remove various token patterns (OAuth, JWT, API keys, etc.)
   // Handles base64, hex, and alphanumeric tokens of various lengths
   sanitized = sanitized
     .replace(/[a-zA-Z0-9_\-+/=]{32,}/g, '[TOKEN]') // Long tokens including base64
     .replace(/[a-fA-F0-9]{32,}/g, '[TOKEN]') // Hex tokens (MD5, SHA, etc.)
     .replace(/[a-zA-Z0-9]{16,}[-_][a-zA-Z0-9]{16,}/g, '[TOKEN]') // UUID-like tokens
-  
+
   // Remove Bearer tokens and other authorization headers
   sanitized = sanitized
     .replace(/Bearer\s+[a-zA-Z0-9_\-+/=.]+/gi, 'Bearer [TOKEN]')
     .replace(/Basic\s+[a-zA-Z0-9_\-+/=.]+/gi, 'Basic [TOKEN]')
     .replace(/Token\s+[a-zA-Z0-9_\-+/=.]+/gi, 'Token [TOKEN]')
-  
+
   // Remove account IDs with various delimiters and formats
   sanitized = sanitized
-    .replace(/account[_-]?id\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/gi, 'account_id=[REDACTED]')
-    .replace(/account\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/gi, 'account=[REDACTED]')
-    .replace(/accountId\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/g, 'accountId=[REDACTED]')
-  
+    .replace(
+      /account[_-]?id\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/gi,
+      'account_id=[REDACTED]'
+    )
+    .replace(
+      /account\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/gi,
+      'account=[REDACTED]'
+    )
+    .replace(
+      /accountId\s*[=:]\s*["']?[a-zA-Z0-9_\-]+["']?/g,
+      'accountId=[REDACTED]'
+    )
+
   // Remove consumer keys and client IDs with various formats
   sanitized = sanitized
-    .replace(/consumer[_-]?key\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi, 'consumer_key=[REDACTED]')
-    .replace(/client[_-]?id\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi, 'client_id=[REDACTED]')
-    .replace(/api[_-]?key\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi, 'api_key=[REDACTED]')
-  
+    .replace(
+      /consumer[_-]?key\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi,
+      'consumer_key=[REDACTED]'
+    )
+    .replace(
+      /client[_-]?id\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi,
+      'client_id=[REDACTED]'
+    )
+    .replace(
+      /api[_-]?key\s*[=:]\s*["']?[a-zA-Z0-9_\-+/=]+["']?/gi,
+      'api_key=[REDACTED]'
+    )
+
   // Remove secrets and passwords
   sanitized = sanitized
-    .replace(/client[_-]?secret\s*[=:]\s*["']?[^\s"']+["']?/gi, 'client_secret=[REDACTED]')
-    .replace(/consumer[_-]?secret\s*[=:]\s*["']?[^\s"']+["']?/gi, 'consumer_secret=[REDACTED]')
+    .replace(
+      /client[_-]?secret\s*[=:]\s*["']?[^\s"']+["']?/gi,
+      'client_secret=[REDACTED]'
+    )
+    .replace(
+      /consumer[_-]?secret\s*[=:]\s*["']?[^\s"']+["']?/gi,
+      'consumer_secret=[REDACTED]'
+    )
     .replace(/password\s*[=:]\s*["']?[^\s"']+["']?/gi, 'password=[REDACTED]')
-  
+
   // Remove email addresses
   sanitized = sanitized.replace(
     /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
     '[EMAIL]'
   )
-  
+
   // Remove IP addresses (IPv4 and IPv6)
   sanitized = sanitized
     .replace(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g, '[IP]')
     .replace(/\b(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}\b/g, '[IP]')
-  
+
   return sanitized
 }
 
@@ -76,11 +106,15 @@ interface PageProps {
   }
 }
 
-export default async function NetSuiteCallbackPage({ searchParams }: PageProps) {
+export default async function NetSuiteCallbackPage({
+  searchParams,
+}: PageProps) {
   const supabase = await createClient()
-  
+
   // Get authenticated user
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -104,14 +138,17 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
 
   // Check for OAuth errors
   if (searchParams.error) {
-    errorMessage = sanitizeErrorMessage(searchParams.error_description || 'Authentication failed')
+    errorMessage = sanitizeErrorMessage(
+      searchParams.error_description || 'Authentication failed'
+    )
   } else if (!searchParams.code || !searchParams.state) {
     errorMessage = 'Missing authorization code or state parameter'
   } else {
     try {
       // Verify state parameter
-      integrationId = await NetSuiteAuth.verifyOAuthState(searchParams.state) || ''
-      
+      integrationId =
+        (await NetSuiteAuth.verifyOAuthState(searchParams.state)) || ''
+
       if (!integrationId) {
         throw new Error('Invalid or expired state parameter')
       }
@@ -145,19 +182,25 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
       )
 
       const tokenResult = await auth.exchangeCodeForTokens(searchParams.code)
-      
+
       // Only update integration status if token exchange succeeded
-      if (tokenResult && tokenResult.access_token && tokenResult.refresh_token) {
+      if (
+        tokenResult &&
+        tokenResult.access_token &&
+        tokenResult.refresh_token
+      ) {
         // Update integration status
         await supabase
           .from('integrations')
-          .update({ 
+          .update({
             status: 'active',
             credential_type: 'oauth2',
           })
           .eq('id', integrationId)
       } else {
-        throw new Error('Failed to exchange code for tokens - invalid token response')
+        throw new Error(
+          'Failed to exchange code for tokens - invalid token response'
+        )
       }
 
       // Log successful authentication
@@ -171,8 +214,9 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
 
       success = true
     } catch (error) {
-      errorMessage = error instanceof Error ? error.message : 'Authentication failed'
-      
+      errorMessage =
+        error instanceof Error ? error.message : 'Authentication failed'
+
       // Log authentication failure
       if (integrationId) {
         await supabase.rpc('log_integration_activity', {
@@ -210,12 +254,11 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
             )}
           </CardTitle>
           <CardDescription>
-            {success 
+            {success
               ? 'Your NetSuite account has been successfully connected'
-              : errorMessage 
-              ? 'There was a problem connecting your NetSuite account'
-              : 'Please wait while we complete the authentication process'
-            }
+              : errorMessage
+                ? 'There was a problem connecting your NetSuite account'
+                : 'Please wait while we complete the authentication process'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -225,16 +268,14 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
                 <CheckCircle2 className="h-4 w-4" />
                 <AlertTitle>Connection Established</AlertTitle>
                 <AlertDescription>
-                  Your NetSuite integration is now active. You can start syncing data
-                  or configure additional settings.
+                  Your NetSuite integration is now active. You can start syncing
+                  data or configure additional settings.
                 </AlertDescription>
               </Alert>
-              
+
               <div className="flex gap-2">
                 <Link href={`/integrations/netsuite?id=${integrationId}`}>
-                  <Button>
-                    Continue to Configuration
-                  </Button>
+                  <Button>Continue to Configuration</Button>
                 </Link>
                 <Link href="/integrations">
                   <Button variant="outline">
@@ -251,24 +292,28 @@ export default async function NetSuiteCallbackPage({ searchParams }: PageProps) 
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{errorMessage}</AlertDescription>
               </Alert>
-              
+
               <div className="space-y-4">
                 <div className="text-sm text-muted-foreground">
                   <p className="font-medium mb-2">Troubleshooting tips:</p>
                   <ul className="list-disc list-inside space-y-1">
                     <li>Ensure you have the correct permissions in NetSuite</li>
-                    <li>Verify that OAuth 2.0 is enabled for your integration</li>
-                    <li>Check that the redirect URI matches your configuration</li>
-                    <li>Try clearing your browser cookies and attempting again</li>
+                    <li>
+                      Verify that OAuth 2.0 is enabled for your integration
+                    </li>
+                    <li>
+                      Check that the redirect URI matches your configuration
+                    </li>
+                    <li>
+                      Try clearing your browser cookies and attempting again
+                    </li>
                   </ul>
                 </div>
-                
+
                 <div className="flex gap-2">
                   {integrationId && (
                     <Link href={`/integrations/netsuite?id=${integrationId}`}>
-                      <Button variant="outline">
-                        Try Again
-                      </Button>
+                      <Button variant="outline">Try Again</Button>
                     </Link>
                   )}
                   <Link href="/integrations">

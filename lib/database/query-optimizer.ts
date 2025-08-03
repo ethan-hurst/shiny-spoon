@@ -35,11 +35,13 @@ export class QueryOptimizer {
    */
   async analyzeQuery(query: string): Promise<QueryPlan> {
     const startTime = Date.now()
-    
+
     try {
       // Execute EXPLAIN ANALYZE
-      const { data: explainData, error } = await this.supabase
-        .rpc('explain_analyze', { query_text: query })
+      const { data: explainData, error } = await this.supabase.rpc(
+        'explain_analyze',
+        { query_text: query }
+      )
 
       if (error) {
         throw new Error(`Query analysis failed: ${error.message}`)
@@ -126,20 +128,33 @@ export class QueryOptimizer {
 
     // Compare costs
     if (optimizedPlan.estimatedCost < originalPlan.estimatedCost) {
-      const costImprovement = ((originalPlan.estimatedCost - optimizedPlan.estimatedCost) / originalPlan.estimatedCost) * 100
-      improvements.push(`Reduced estimated cost by ${costImprovement.toFixed(1)}%`)
+      const costImprovement =
+        ((originalPlan.estimatedCost - optimizedPlan.estimatedCost) /
+          originalPlan.estimatedCost) *
+        100
+      improvements.push(
+        `Reduced estimated cost by ${costImprovement.toFixed(1)}%`
+      )
       estimatedImprovement += costImprovement
     }
 
     // Compare execution times
     if (optimizedPlan.executionTime && originalPlan.executionTime) {
-      const timeImprovement = ((originalPlan.executionTime - optimizedPlan.executionTime) / originalPlan.executionTime) * 100
-      improvements.push(`Reduced execution time by ${timeImprovement.toFixed(1)}%`)
+      const timeImprovement =
+        ((originalPlan.executionTime - optimizedPlan.executionTime) /
+          originalPlan.executionTime) *
+        100
+      improvements.push(
+        `Reduced execution time by ${timeImprovement.toFixed(1)}%`
+      )
       estimatedImprovement += timeImprovement
     }
 
     // Check for index usage improvements
-    if (optimizedPlan.indexUsage && optimizedPlan.indexUsage.length > originalPlan.indexUsage?.length) {
+    if (
+      optimizedPlan.indexUsage &&
+      optimizedPlan.indexUsage.length > originalPlan.indexUsage?.length
+    ) {
       improvements.push('Improved index usage')
       estimatedImprovement += 10
     }
@@ -159,14 +174,20 @@ export class QueryOptimizer {
     let optimized = query
 
     // Add LIMIT to prevent large result sets
-    if (!optimized.toLowerCase().includes('limit') && !optimized.toLowerCase().includes('count(')) {
+    if (
+      !optimized.toLowerCase().includes('limit') &&
+      !optimized.toLowerCase().includes('count(')
+    ) {
       optimized += ' LIMIT 1000'
     }
 
     // Use specific columns instead of *
     if (optimized.includes('SELECT *')) {
       // This is a simplified optimization - in practice you'd need to know the table structure
-      optimized = optimized.replace('SELECT *', 'SELECT id, created_at, updated_at')
+      optimized = optimized.replace(
+        'SELECT *',
+        'SELECT id, created_at, updated_at'
+      )
     }
 
     // Add ORDER BY for consistent results
@@ -185,14 +206,14 @@ export class QueryOptimizer {
 
     // Analyze slow queries
     const slowQueries = await this.getSlowQueries()
-    
+
     for (const query of slowQueries) {
       const plan = await this.analyzeQuery(query.query)
-      
+
       if (plan.estimatedCost > 1000) {
         const table = this.extractTableFromQuery(query.query)
         const columns = this.extractWhereColumns(query.query)
-        
+
         if (table && columns.length > 0) {
           recommendations.push({
             table,
@@ -211,7 +232,9 @@ export class QueryOptimizer {
   /**
    * Get slow queries from performance metrics
    */
-  private async getSlowQueries(): Promise<Array<{ query: string; avgDuration: number }>> {
+  private async getSlowQueries(): Promise<
+    Array<{ query: string; avgDuration: number }>
+  > {
     const { data } = await this.supabase
       .from('performance_metrics')
       .select('name, value, tags')
@@ -220,10 +243,12 @@ export class QueryOptimizer {
       .order('value', { ascending: false })
       .limit(10)
 
-    return data?.map(row => ({
-      query: row.tags?.query || 'Unknown query',
-      avgDuration: row.value,
-    })) || []
+    return (
+      data?.map((row) => ({
+        query: row.tags?.query || 'Unknown query',
+        avgDuration: row.value,
+      })) || []
+    )
   }
 
   /**
@@ -238,13 +263,15 @@ export class QueryOptimizer {
    * Extract columns used in WHERE clause
    */
   private extractWhereColumns(query: string): string[] {
-    const whereMatch = query.match(/WHERE\s+(.+?)(?:ORDER BY|GROUP BY|LIMIT|$)/i)
+    const whereMatch = query.match(
+      /WHERE\s+(.+?)(?:ORDER BY|GROUP BY|LIMIT|$)/i
+    )
     if (!whereMatch) return []
 
     const whereClause = whereMatch[1]
     const columnMatches = whereClause.match(/(\w+)\s*[=<>]/g)
-    
-    return columnMatches?.map(match => match.split(/\s*[=<>]/)[0]) || []
+
+    return columnMatches?.map((match) => match.split(/\s*[=<>]/)[0]) || []
   }
 
   /**
@@ -252,13 +279,13 @@ export class QueryOptimizer {
    */
   async createRecommendedIndexes(): Promise<void> {
     const recommendations = await this.generateIndexRecommendations()
-    
+
     for (const rec of recommendations) {
       if (rec.estimatedImpact === 'high') {
         try {
           const indexName = `idx_${rec.table}_${rec.columns.join('_')}`
           const columns = rec.columns.join(', ')
-          
+
           await this.supabase.rpc('create_index', {
             index_name: indexName,
             table_name: rec.table,
@@ -287,7 +314,10 @@ export class QueryOptimizer {
       .from('performance_metrics')
       .select('value, tags')
       .eq('name', 'database.query_time')
-      .gte('timestamp', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .gte(
+        'timestamp',
+        new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      )
 
     if (!metrics || metrics.length === 0) {
       return {
@@ -298,20 +328,21 @@ export class QueryOptimizer {
       }
     }
 
-    const avgResponseTime = metrics.reduce((sum, m) => sum + m.value, 0) / metrics.length
-    const slowQueries = metrics.filter(m => m.value > 1000).length
-    const indexUsage = metrics.filter(m => m.tags?.index_used).length
+    const avgResponseTime =
+      metrics.reduce((sum, m) => sum + m.value, 0) / metrics.length
+    const slowQueries = metrics.filter((m) => m.value > 1000).length
+    const indexUsage = metrics.filter((m) => m.tags?.index_used).length
 
     const recommendations: string[] = []
-    
+
     if (avgResponseTime > 500) {
       recommendations.push('Consider adding database indexes')
     }
-    
+
     if (slowQueries > 10) {
       recommendations.push('Review and optimize slow queries')
     }
-    
+
     if (indexUsage < metrics.length * 0.5) {
       recommendations.push('Consider adding more indexes')
     }
@@ -332,17 +363,19 @@ export function withQueryOptimization<T extends (...args: any[]) => any>(
 ): T {
   return (async (...args: Parameters<T>) => {
     const query = args[0]
-    
+
     if (typeof query === 'string') {
       // Analyze query performance
       const plan = await optimizer.analyzeQuery(query)
-      
+
       // Log slow queries
       if (plan.estimatedCost > 1000) {
-        console.warn(`Slow query detected: ${query} (cost: ${plan.estimatedCost})`)
+        console.warn(
+          `Slow query detected: ${query} (cost: ${plan.estimatedCost})`
+        )
       }
     }
 
     return fn(...args)
   }) as T
-} 
+}

@@ -1,6 +1,6 @@
 // PRP-012: Dynamic webhook handler for all platforms
-import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 import { WebhookHandler } from '@/lib/integrations/webhook-handler'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { IntegrationPlatformType } from '@/types/integration.types'
@@ -37,7 +37,7 @@ async function getIntegrationContext(
       case 'shopify': {
         const shopifyShop = headersList.get('x-shopify-shop-domain')
         if (!shopifyShop) return null
-        
+
         // Validate shop domain format
         const shopDomainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*\.myshopify\.com$/
         if (!shopDomainRegex.test(shopifyShop)) {
@@ -54,7 +54,7 @@ async function getIntegrationContext(
 
         return integration
       }
-      
+
       case 'netsuite': {
         const accountId = headersList.get('x-netsuite-account-id')
         if (!accountId) return null
@@ -68,7 +68,7 @@ async function getIntegrationContext(
 
         return integration
       }
-      
+
       case 'quickbooks': {
         const realmId = headersList.get('x-intuit-realm-id')
         if (!realmId) return null
@@ -82,7 +82,7 @@ async function getIntegrationContext(
 
         return integration
       }
-      
+
       // Add more platform-specific logic as needed
       default:
         return null
@@ -99,13 +99,10 @@ export async function POST(
 ) {
   try {
     const platform = params.platform
-    
+
     // Validate platform
     if (!VALID_PLATFORMS.includes(platform as IntegrationPlatformType)) {
-      return NextResponse.json(
-        { error: 'Invalid platform' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid platform' }, { status: 400 })
     }
 
     // Get request headers and body
@@ -172,19 +169,22 @@ export async function POST(
     }
 
     // Create sync job for processing
-    const { data: job, error: jobError } = await supabase.rpc('create_sync_job', {
-      p_integration_id: webhookConfig.integration_id,
-      p_organization_id: webhookConfig.organization_id,
-      p_job_type: 'webhook',
-      p_payload: {
-        webhook_id: webhookConfig.id,
-        event_type: payload.event_type,
-        payload: payload.payload,
-        received_at: new Date().toISOString(),
-        platform,
-      },
-      p_priority: PRIORITY_LEVELS.HIGH, // High priority for webhooks
-    })
+    const { data: job, error: jobError } = await supabase.rpc(
+      'create_sync_job',
+      {
+        p_integration_id: webhookConfig.integration_id,
+        p_organization_id: webhookConfig.organization_id,
+        p_job_type: 'webhook',
+        p_payload: {
+          webhook_id: webhookConfig.id,
+          event_type: payload.event_type,
+          payload: payload.payload,
+          received_at: new Date().toISOString(),
+          platform,
+        },
+        p_priority: PRIORITY_LEVELS.HIGH, // High priority for webhooks
+      }
+    )
 
     if (jobError) {
       throw jobError
@@ -220,9 +220,13 @@ export async function POST(
       const supabase = createAdminClient()
       const platform = params.platform
       const headersList = headers()
-      
+
       // Get integration context using helper function
-      const integration = await getIntegrationContext(platform, headersList, supabase)
+      const integration = await getIntegrationContext(
+        platform,
+        headersList,
+        supabase
+      )
 
       if (integration) {
         await supabase.rpc('log_integration_activity', {
@@ -255,16 +259,13 @@ export async function GET(
 ) {
   // Some platforms use GET for webhook verification
   const platform = params.platform
-  
+
   if (platform === 'shopify') {
     // Shopify webhook verification
     return NextResponse.json({ message: 'OK' }, { status: 200 })
   }
 
-  return NextResponse.json(
-    { error: 'Method not allowed' },
-    { status: 405 }
-  )
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
 }
 
 // List of allowed webhook origins - configure based on your needs
@@ -278,18 +279,18 @@ const ALLOWED_WEBHOOK_ORIGINS = [
 
 function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false
-  
+
   // Check exact matches
   const allowedOrigins: readonly string[] = ALLOWED_WEBHOOK_ORIGINS
   if (allowedOrigins.includes(origin)) {
     return true
   }
-  
+
   // Check pattern matches (e.g., Shopify subdomains)
   if (origin.endsWith('.myshopify.com')) {
     return true
   }
-  
+
   return false
 }
 
@@ -298,19 +299,20 @@ export async function OPTIONS(
   { params }: { params: { platform: string } }
 ) {
   const origin = request.headers.get('origin')
-  
+
   // Only set CORS headers if origin is allowed
   if (!isAllowedOrigin(origin)) {
     return new NextResponse(null, { status: 403 })
   }
-  
+
   // Handle CORS preflight
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': origin!,
       'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Shopify-Topic, X-Shopify-Hmac-Sha256, X-Shopify-Shop-Domain, X-Shopify-Webhook-Id',
+      'Access-Control-Allow-Headers':
+        'Content-Type, Authorization, X-Shopify-Topic, X-Shopify-Hmac-Sha256, X-Shopify-Shop-Domain, X-Shopify-Webhook-Id',
       'Access-Control-Max-Age': '86400', // 24 hours
     },
   })

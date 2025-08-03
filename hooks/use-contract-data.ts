@@ -19,15 +19,17 @@ interface UseContractDataReturn {
 
 async function fetchProducts() {
   const supabase = createBrowserClient()
-  
+
   const { data, error } = await supabase
     .from('products')
-    .select(`
+    .select(
+      `
       *,
       product_pricing (
         base_price
       )
-    `)
+    `
+    )
     .eq('is_active', true)
     .order('name')
 
@@ -39,7 +41,12 @@ async function fetchProducts() {
 }
 
 export function useContractData(): UseContractDataReturn {
-  const { data: products = [], isLoading: loading, error, refetch } = useQuery({
+  const {
+    data: products = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['contract-products'],
     queryFn: fetchProducts,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -48,10 +55,12 @@ export function useContractData(): UseContractDataReturn {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
 
-  return { 
-    products, 
-    loading, 
+  return {
+    products,
+    loading,
     error: error instanceof Error ? error : null,
-    refetch: () => { refetch() }
+    refetch: () => {
+      refetch()
+    },
   }
 }

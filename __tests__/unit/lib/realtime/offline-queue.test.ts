@@ -1,8 +1,12 @@
-import { OfflineQueue } from '@/lib/realtime/offline-queue'
 import { RealtimeConnectionManager } from '@/lib/realtime/connection-manager'
+import { OfflineQueue } from '@/lib/realtime/offline-queue'
+import {
+  ConnectionStatus,
+  ProcessResult,
+  QueuedOperation,
+} from '@/lib/realtime/types'
 import { IndexedDBWrapper } from '@/lib/storage/indexed-db'
 import { createClient } from '@/lib/supabase/client'
-import { ConnectionStatus, QueuedOperation, ProcessResult } from '@/lib/realtime/types'
 
 // Mock dependencies
 jest.mock('@/lib/realtime/connection-manager')
@@ -20,7 +24,7 @@ describe('OfflineQueue', () => {
     table: 'inventory',
     type: 'update',
     data: { id: '123', quantity: 50 },
-    organization_id: 'org-123'
+    organization_id: 'org-123',
   }
 
   beforeEach(() => {
@@ -29,9 +33,9 @@ describe('OfflineQueue', () => {
     // Mock crypto.randomUUID
     Object.defineProperty(global, 'crypto', {
       value: {
-        randomUUID: jest.fn().mockReturnValue('test-uuid-123')
+        randomUUID: jest.fn().mockReturnValue('test-uuid-123'),
       },
-      writable: true
+      writable: true,
     })
 
     // Mock connection manager
@@ -41,11 +45,13 @@ describe('OfflineQueue', () => {
         latency: 50,
         lastConnected: new Date(),
         reconnectAttempts: 0,
-        quality: 'good'
+        quality: 'good',
       }),
-      subscribe: jest.fn().mockReturnValue(jest.fn())
+      subscribe: jest.fn().mockReturnValue(jest.fn()),
     } as any
-    ;(RealtimeConnectionManager.getInstance as jest.Mock).mockReturnValue(mockConnectionManager)
+    ;(RealtimeConnectionManager.getInstance as jest.Mock).mockReturnValue(
+      mockConnectionManager
+    )
 
     // Mock IndexedDB
     mockIndexedDB = {
@@ -53,7 +59,7 @@ describe('OfflineQueue', () => {
       getAll: jest.fn().mockResolvedValue([]),
       delete: jest.fn().mockResolvedValue(undefined),
       update: jest.fn().mockResolvedValue(undefined),
-      get: jest.fn().mockResolvedValue(null)
+      get: jest.fn().mockResolvedValue(null),
     } as any
     ;(IndexedDBWrapper as jest.Mock).mockImplementation(() => mockIndexedDB)
 
@@ -65,7 +71,7 @@ describe('OfflineQueue', () => {
       update: jest.fn().mockReturnThis(),
       upsert: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: null })
+      single: jest.fn().mockResolvedValue({ data: null, error: null }),
     }
     ;(createClient as jest.Mock).mockReturnValue(mockSupabase)
 
@@ -82,13 +88,16 @@ describe('OfflineQueue', () => {
     it('should return singleton instance', () => {
       const instance1 = OfflineQueue.getInstance()
       const instance2 = OfflineQueue.getInstance()
-      
+
       expect(instance1).toBe(instance2)
     })
 
     it('should initialize with connection manager subscription', () => {
       expect(RealtimeConnectionManager.getInstance).toHaveBeenCalled()
-      expect(mockConnectionManager.subscribe).toHaveBeenCalledWith('offline-queue', expect.any(Function))
+      expect(mockConnectionManager.subscribe).toHaveBeenCalledWith(
+        'offline-queue',
+        expect.any(Function)
+      )
     })
   })
 
@@ -100,7 +109,7 @@ describe('OfflineQueue', () => {
         ...mockOperation,
         id: 'test-uuid-123',
         timestamp: expect.any(Number),
-        retries: 0
+        retries: 0,
       })
     })
 
@@ -117,15 +126,17 @@ describe('OfflineQueue', () => {
         latency: 50,
         lastConnected: new Date(),
         reconnectAttempts: 0,
-        quality: 'good'
+        quality: 'good',
       })
 
       // Mock processQueue to avoid infinite recursion
-      const processQueueSpy = jest.spyOn(queue as any, 'processQueue').mockResolvedValue({
-        successful: [],
-        failed: [],
-        conflicts: []
-      })
+      const processQueueSpy = jest
+        .spyOn(queue as any, 'processQueue')
+        .mockResolvedValue({
+          successful: [],
+          failed: [],
+          conflicts: [],
+        })
 
       await queue.addToQueue(mockOperation)
 
@@ -138,14 +149,16 @@ describe('OfflineQueue', () => {
         latency: 0,
         lastConnected: null,
         reconnectAttempts: 0,
-        quality: 'poor'
+        quality: 'poor',
       })
 
-      const processQueueSpy = jest.spyOn(queue as any, 'processQueue').mockResolvedValue({
-        successful: [],
-        failed: [],
-        conflicts: []
-      })
+      const processQueueSpy = jest
+        .spyOn(queue as any, 'processQueue')
+        .mockResolvedValue({
+          successful: [],
+          failed: [],
+          conflicts: [],
+        })
 
       await queue.addToQueue(mockOperation)
 
@@ -162,7 +175,7 @@ describe('OfflineQueue', () => {
         data: { id: '123', quantity: 50 },
         organization_id: 'org-123',
         timestamp: Date.now() - 1000,
-        retries: 0
+        retries: 0,
       },
       {
         id: 'op-2',
@@ -171,8 +184,8 @@ describe('OfflineQueue', () => {
         data: { name: 'Test Product', sku: 'TEST-123' },
         organization_id: 'org-123',
         timestamp: Date.now() - 500,
-        retries: 0
-      }
+        retries: 0,
+      },
     ]
 
     beforeEach(() => {
@@ -180,7 +193,9 @@ describe('OfflineQueue', () => {
     })
 
     it('should process all operations in order', async () => {
-      const executeOperationSpy = jest.spyOn(queue as any, 'executeOperation').mockResolvedValue(undefined)
+      const executeOperationSpy = jest
+        .spyOn(queue as any, 'executeOperation')
+        .mockResolvedValue(undefined)
 
       const result = await queue.processQueue()
 
@@ -199,12 +214,13 @@ describe('OfflineQueue', () => {
       expect(result).toEqual({
         successful: [],
         failed: [],
-        conflicts: []
+        conflicts: [],
       })
     })
 
     it('should handle operation execution errors', async () => {
-      const executeOperationSpy = jest.spyOn(queue as any, 'executeOperation')
+      const executeOperationSpy = jest
+        .spyOn(queue as any, 'executeOperation')
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce(undefined)
 
@@ -217,7 +233,8 @@ describe('OfflineQueue', () => {
     })
 
     it('should handle conflict errors', async () => {
-      const executeOperationSpy = jest.spyOn(queue as any, 'executeOperation')
+      const executeOperationSpy = jest
+        .spyOn(queue as any, 'executeOperation')
         .mockRejectedValueOnce(new Error('Version conflict detected'))
         .mockResolvedValueOnce(undefined)
 
@@ -229,7 +246,8 @@ describe('OfflineQueue', () => {
     })
 
     it('should retry failed operations with backoff', async () => {
-      const executeOperationSpy = jest.spyOn(queue as any, 'executeOperation')
+      const executeOperationSpy = jest
+        .spyOn(queue as any, 'executeOperation')
         .mockRejectedValueOnce(new Error('Temporary error'))
         .mockResolvedValueOnce(undefined)
 
@@ -237,15 +255,17 @@ describe('OfflineQueue', () => {
 
       expect(executeOperationSpy).toHaveBeenCalledTimes(2)
       expect(result.failed).toEqual(['op-1'])
-      
+
       // Verify retry count was incremented
       expect(mockIndexedDB.update).toHaveBeenCalledWith('operations', 'op-1', {
-        retries: 1
+        retries: 1,
       })
     })
 
     it('should remove successful operations from queue', async () => {
-      const executeOperationSpy = jest.spyOn(queue as any, 'executeOperation').mockResolvedValue(undefined)
+      const executeOperationSpy = jest
+        .spyOn(queue as any, 'executeOperation')
+        .mockResolvedValue(undefined)
 
       await queue.processQueue()
 
@@ -261,7 +281,7 @@ describe('OfflineQueue', () => {
       expect(result).toEqual({
         successful: [],
         failed: [],
-        conflicts: []
+        conflicts: [],
       })
     })
   })
@@ -274,7 +294,7 @@ describe('OfflineQueue', () => {
       data: { id: '123', quantity: 50 },
       organization_id: 'org-123',
       timestamp: Date.now(),
-      retries: 0
+      retries: 0,
     }
 
     it('should execute insert operation', async () => {
@@ -309,18 +329,20 @@ describe('OfflineQueue', () => {
     it('should handle unknown operation types', async () => {
       mockOperation.type = 'unknown' as any
 
-      await expect((queue as any).executeOperation(mockOperation))
-        .rejects.toThrow('Unknown operation type: unknown')
+      await expect(
+        (queue as any).executeOperation(mockOperation)
+      ).rejects.toThrow('Unknown operation type: unknown')
     })
 
     it('should handle Supabase errors', async () => {
       mockSupabase.insert.mockResolvedValue({
         data: null,
-        error: { message: 'Database error' }
+        error: { message: 'Database error' },
       })
 
-      await expect((queue as any).executeOperation(mockOperation))
-        .rejects.toThrow('Database error')
+      await expect(
+        (queue as any).executeOperation(mockOperation)
+      ).rejects.toThrow('Database error')
     })
   })
 
@@ -329,7 +351,7 @@ describe('OfflineQueue', () => {
       const mockServerData = { id: '123', quantity: 100, version: 2 }
       mockSupabase.single.mockResolvedValue({
         data: mockServerData,
-        error: null
+        error: null,
       })
 
       const result = await (queue as any).fetchServerValue('inventory', '123')
@@ -343,7 +365,7 @@ describe('OfflineQueue', () => {
     it('should handle fetch errors', async () => {
       mockSupabase.single.mockResolvedValue({
         data: null,
-        error: { message: 'Not found' }
+        error: { message: 'Not found' },
       })
 
       const result = await (queue as any).fetchServerValue('inventory', '123')
@@ -355,8 +377,24 @@ describe('OfflineQueue', () => {
   describe('getQueuedOperations', () => {
     it('should return all queued operations', async () => {
       const mockOperations = [
-        { id: 'op-1', table: 'inventory', type: 'update', data: {}, organization_id: 'org-123', timestamp: Date.now(), retries: 0 },
-        { id: 'op-2', table: 'products', type: 'insert', data: {}, organization_id: 'org-123', timestamp: Date.now(), retries: 0 }
+        {
+          id: 'op-1',
+          table: 'inventory',
+          type: 'update',
+          data: {},
+          organization_id: 'org-123',
+          timestamp: Date.now(),
+          retries: 0,
+        },
+        {
+          id: 'op-2',
+          table: 'products',
+          type: 'insert',
+          data: {},
+          organization_id: 'org-123',
+          timestamp: Date.now(),
+          retries: 0,
+        },
       ]
       mockIndexedDB.getAll.mockResolvedValue(mockOperations)
 
@@ -369,11 +407,7 @@ describe('OfflineQueue', () => {
 
   describe('getQueueSize', () => {
     it('should return number of queued operations', async () => {
-      const mockOperations = [
-        { id: 'op-1' },
-        { id: 'op-2' },
-        { id: 'op-3' }
-      ]
+      const mockOperations = [{ id: 'op-1' }, { id: 'op-2' }, { id: 'op-3' }]
       mockIndexedDB.getAll.mockResolvedValue(mockOperations)
 
       const result = await queue.getQueueSize()
@@ -419,20 +453,23 @@ describe('OfflineQueue', () => {
 
   describe('connection state handling', () => {
     it('should process queue when connection is restored', async () => {
-      const processQueueSpy = jest.spyOn(queue as any, 'processQueue').mockResolvedValue({
-        successful: [],
-        failed: [],
-        conflicts: []
-      })
+      const processQueueSpy = jest
+        .spyOn(queue as any, 'processQueue')
+        .mockResolvedValue({
+          successful: [],
+          failed: [],
+          conflicts: [],
+        })
 
       // Simulate connection restoration
-      const connectionCallback = mockConnectionManager.subscribe.mock.calls[0][1]
+      const connectionCallback =
+        mockConnectionManager.subscribe.mock.calls[0][1]
       connectionCallback({
         state: 'connected',
         latency: 50,
         lastConnected: new Date(),
         reconnectAttempts: 0,
-        quality: 'good'
+        quality: 'good',
       })
 
       expect(processQueueSpy).toHaveBeenCalled()
@@ -441,20 +478,23 @@ describe('OfflineQueue', () => {
     it('should not process queue when already processing', async () => {
       ;(queue as any).processing = true
 
-      const processQueueSpy = jest.spyOn(queue as any, 'processQueue').mockResolvedValue({
-        successful: [],
-        failed: [],
-        conflicts: []
-      })
+      const processQueueSpy = jest
+        .spyOn(queue as any, 'processQueue')
+        .mockResolvedValue({
+          successful: [],
+          failed: [],
+          conflicts: [],
+        })
 
       // Simulate connection restoration
-      const connectionCallback = mockConnectionManager.subscribe.mock.calls[0][1]
+      const connectionCallback =
+        mockConnectionManager.subscribe.mock.calls[0][1]
       connectionCallback({
         state: 'connected',
         latency: 50,
         lastConnected: new Date(),
         reconnectAttempts: 0,
-        quality: 'good'
+        quality: 'good',
       })
 
       expect(processQueueSpy).not.toHaveBeenCalled()
@@ -465,23 +505,27 @@ describe('OfflineQueue', () => {
     it('should handle IndexedDB errors gracefully', async () => {
       mockIndexedDB.add.mockRejectedValue(new Error('IndexedDB error'))
 
-      await expect(queue.addToQueue(mockOperation)).rejects.toThrow('IndexedDB error')
+      await expect(queue.addToQueue(mockOperation)).rejects.toThrow(
+        'IndexedDB error'
+      )
     })
 
     it('should handle network errors during processing', async () => {
-      mockIndexedDB.getAll.mockResolvedValue([{
-        id: 'op-1',
-        table: 'inventory',
-        type: 'update',
-        data: { id: '123', quantity: 50 },
-        organization_id: 'org-123',
-        timestamp: Date.now(),
-        retries: 0
-      }])
+      mockIndexedDB.getAll.mockResolvedValue([
+        {
+          id: 'op-1',
+          table: 'inventory',
+          type: 'update',
+          data: { id: '123', quantity: 50 },
+          organization_id: 'org-123',
+          timestamp: Date.now(),
+          retries: 0,
+        },
+      ])
 
       mockSupabase.update.mockResolvedValue({
         data: null,
-        error: { message: 'Network error' }
+        error: { message: 'Network error' },
       })
 
       const result = await queue.processQueue()
@@ -498,7 +542,7 @@ describe('OfflineQueue', () => {
         data: null,
         organization_id: 'org-123',
         timestamp: Date.now(),
-        retries: 0
+        retries: 0,
       }
 
       mockIndexedDB.getAll.mockResolvedValue([malformedOperation])
@@ -518,19 +562,19 @@ describe('OfflineQueue', () => {
         data: { id: '123', quantity: 50 },
         organization_id: 'org-123',
         timestamp: Date.now(),
-        retries: 0
+        retries: 0,
       }
 
       mockIndexedDB.getAll.mockResolvedValue([operation])
       mockSupabase.update.mockResolvedValue({
         data: null,
-        error: { message: 'Temporary error' }
+        error: { message: 'Temporary error' },
       })
 
       await queue.processQueue()
 
       expect(mockIndexedDB.update).toHaveBeenCalledWith('operations', 'op-1', {
-        retries: 1
+        retries: 1,
       })
     })
 
@@ -542,13 +586,13 @@ describe('OfflineQueue', () => {
         data: { id: '123', quantity: 50 },
         organization_id: 'org-123',
         timestamp: Date.now(),
-        retries: 5 // Max retries exceeded
+        retries: 5, // Max retries exceeded
       }
 
       mockIndexedDB.getAll.mockResolvedValue([operation])
       mockSupabase.update.mockResolvedValue({
         data: null,
-        error: { message: 'Permanent error' }
+        error: { message: 'Permanent error' },
       })
 
       const result = await queue.processQueue()
@@ -569,4 +613,4 @@ describe('OfflineQueue', () => {
       expect(queue).toBeDefined()
     })
   })
-}) 
+})

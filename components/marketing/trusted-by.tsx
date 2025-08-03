@@ -18,7 +18,10 @@ export function TrustedBy() {
         </div>
         <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-60">
           {companies.map((company) => (
-            <div key={company.name} className="h-12 w-32 relative grayscale hover:grayscale-0 transition-all">
+            <div
+              key={company.name}
+              className="h-12 w-32 relative grayscale hover:grayscale-0 transition-all"
+            >
               <img
                 src={company.logo}
                 alt={`${company.name} logo`}

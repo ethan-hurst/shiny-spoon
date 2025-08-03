@@ -1,11 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ThumbsUp, ThumbsDown } from 'lucide-react'
+import { ThumbsDown, ThumbsUp } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
 
 interface ArticleFeedbackProps {
   articleId: string
@@ -24,7 +30,7 @@ export function ArticleFeedback({ articleId }: ArticleFeedbackProps) {
     } else {
       // Track positive feedback
       toast.success('Thanks for your feedback!')
-      
+
       // Track analytics
       if (typeof window !== 'undefined' && window.gtag) {
         window.gtag('event', 'article_feedback', {
@@ -43,7 +49,7 @@ export function ArticleFeedback({ articleId }: ArticleFeedbackProps) {
     }
 
     setIsSubmitting(true)
-    
+
     try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
@@ -56,15 +62,17 @@ export function ArticleFeedback({ articleId }: ArticleFeedbackProps) {
           feedback,
         }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to submit feedback')
       }
-      
-      toast.success('Thank you for your feedback! We\'ll use it to improve our help content.')
+
+      toast.success(
+        "Thank you for your feedback! We'll use it to improve our help content."
+      )
       setShowFeedbackForm(false)
       setFeedback('')
-      
+
       // Track analytics
       if (typeof window !== 'undefined' && window.gtag) {
         window.gtag('event', 'article_feedback_detailed', {
@@ -128,10 +136,7 @@ export function ArticleFeedback({ articleId }: ArticleFeedbackProps) {
             rows={4}
           />
           <div className="flex gap-4">
-            <Button
-              onClick={handleSubmitFeedback}
-              disabled={isSubmitting}
-            >
+            <Button onClick={handleSubmitFeedback} disabled={isSubmitting}>
               {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
             </Button>
             <Button

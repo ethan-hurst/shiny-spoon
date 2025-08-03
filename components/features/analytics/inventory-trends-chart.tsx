@@ -58,7 +58,11 @@ export function InventoryTrendsChart({ data }: InventoryTrendsChartProps) {
                 tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
-                label={{ value: 'Value ($M)', angle: -90, position: 'insideLeft' }}
+                label={{
+                  value: 'Value ($M)',
+                  angle: -90,
+                  position: 'insideLeft',
+                }}
               />
               <YAxis
                 yAxisId="right"
@@ -66,9 +70,13 @@ export function InventoryTrendsChart({ data }: InventoryTrendsChartProps) {
                 tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
-                label={{ value: 'Item Count', angle: 90, position: 'insideRight' }}
+                label={{
+                  value: 'Item Count',
+                  angle: 90,
+                  position: 'insideRight',
+                }}
               />
-              <Tooltip 
+              <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (

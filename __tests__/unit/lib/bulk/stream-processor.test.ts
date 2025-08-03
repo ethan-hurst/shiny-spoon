@@ -1,10 +1,13 @@
-import { CSVStreamProcessor, processLargeCSV } from '@/lib/bulk/stream-processor'
 import { Readable, Writable } from 'stream'
 import { pipeline } from 'stream/promises'
+import {
+  CSVStreamProcessor,
+  processLargeCSV,
+} from '@/lib/bulk/stream-processor'
 
 // Mock dependencies
 jest.mock('papaparse', () => ({
-  parse: jest.fn()
+  parse: jest.fn(),
 }))
 
 describe('CSVStreamProcessor', () => {
@@ -20,7 +23,7 @@ describe('CSVStreamProcessor', () => {
   describe('constructor', () => {
     it('should use default options when none provided', () => {
       const processor = new CSVStreamProcessor()
-      
+
       expect((processor as any).chunkSize).toBe(1000)
       expect((processor as any).concurrency).toBe(5)
     })
@@ -28,33 +31,39 @@ describe('CSVStreamProcessor', () => {
     it('should accept custom chunk size and concurrency', () => {
       const processor = new CSVStreamProcessor({
         chunkSize: 500,
-        concurrency: 3
+        concurrency: 3,
       })
-      
+
       expect((processor as any).chunkSize).toBe(500)
       expect((processor as any).concurrency).toBe(3)
     })
 
     it('should validate chunk size', () => {
-      expect(() => new CSVStreamProcessor({ chunkSize: 0 }))
-        .toThrow('chunkSize must be a positive integer')
-      
-      expect(() => new CSVStreamProcessor({ chunkSize: -1 }))
-        .toThrow('chunkSize must be a positive integer')
-      
-      expect(() => new CSVStreamProcessor({ chunkSize: 1.5 }))
-        .toThrow('chunkSize must be a positive integer')
+      expect(() => new CSVStreamProcessor({ chunkSize: 0 })).toThrow(
+        'chunkSize must be a positive integer'
+      )
+
+      expect(() => new CSVStreamProcessor({ chunkSize: -1 })).toThrow(
+        'chunkSize must be a positive integer'
+      )
+
+      expect(() => new CSVStreamProcessor({ chunkSize: 1.5 })).toThrow(
+        'chunkSize must be a positive integer'
+      )
     })
 
     it('should validate concurrency', () => {
-      expect(() => new CSVStreamProcessor({ concurrency: 0 }))
-        .toThrow('concurrency must be a positive integer')
-      
-      expect(() => new CSVStreamProcessor({ concurrency: -1 }))
-        .toThrow('concurrency must be a positive integer')
-      
-      expect(() => new CSVStreamProcessor({ concurrency: 2.5 }))
-        .toThrow('concurrency must be a positive integer')
+      expect(() => new CSVStreamProcessor({ concurrency: 0 })).toThrow(
+        'concurrency must be a positive integer'
+      )
+
+      expect(() => new CSVStreamProcessor({ concurrency: -1 })).toThrow(
+        'concurrency must be a positive integer'
+      )
+
+      expect(() => new CSVStreamProcessor({ concurrency: 2.5 })).toThrow(
+        'concurrency must be a positive integer'
+      )
     })
   })
 
@@ -62,7 +71,7 @@ describe('CSVStreamProcessor', () => {
     it('should parse CSV headers and emit headers event', (done) => {
       const parseStream = streamProcessor.createParseStream()
       const csvData = 'name,age,city\nJohn,25,NYC\nJane,30,LA\n'
-      
+
       mockParse
         .mockReturnValueOnce({ data: [['name', 'age', 'city']], errors: [] })
         .mockReturnValueOnce({ data: [['John', '25', 'NYC']], errors: [] })
@@ -82,7 +91,11 @@ describe('CSVStreamProcessor', () => {
       parseStream.on('end', () => {
         expect(headers).toEqual(['name', 'age', 'city'])
         expect(results).toHaveLength(2)
-        expect(results[0].data).toEqual({ name: 'John', age: '25', city: 'NYC' })
+        expect(results[0].data).toEqual({
+          name: 'John',
+          age: '25',
+          city: 'NYC',
+        })
         expect(results[1].data).toEqual({ name: 'Jane', age: '30', city: 'LA' })
         done()
       })
@@ -93,12 +106,12 @@ describe('CSVStreamProcessor', () => {
 
     it('should handle CSV parsing errors', (done) => {
       const parseStream = streamProcessor.createParseStream()
-      
+
       mockParse
         .mockReturnValueOnce({ data: [['name', 'age']], errors: [] })
-        .mockReturnValueOnce({ 
-          data: null, 
-          errors: [{ message: 'Unexpected quote', row: 1, type: 'Quotes' }] 
+        .mockReturnValueOnce({
+          data: null,
+          errors: [{ message: 'Unexpected quote', row: 1, type: 'Quotes' }],
         })
 
       parseStream.on('error', (error) => {
@@ -112,7 +125,7 @@ describe('CSVStreamProcessor', () => {
 
     it.skip('should handle invalid header rows', (done) => {
       const parseStream = streamProcessor.createParseStream()
-      
+
       // Mock Papa.parse to return data that will trigger the error condition
       // The error is triggered when parsed.data is empty or parsed.data[0] is falsy
       mockParse.mockReturnValueOnce({ data: [null], errors: [] })
@@ -140,7 +153,7 @@ describe('CSVStreamProcessor', () => {
     it('should handle empty lines and whitespace', (done) => {
       const parseStream = streamProcessor.createParseStream()
       const csvData = 'name,age\n\n  \nJohn,25\n\n'
-      
+
       // Mock Papa.parse to handle the actual parsing behavior
       mockParse.mockImplementation((data: string, options: any) => {
         if (data.includes('name,age')) {
@@ -170,7 +183,7 @@ describe('CSVStreamProcessor', () => {
 
     it('should process remaining buffer in flush', (done) => {
       const parseStream = streamProcessor.createParseStream()
-      
+
       // Mock Papa.parse to handle the actual parsing behavior
       mockParse.mockImplementation((data: string, options: any) => {
         if (data.includes('name,age')) {
@@ -200,15 +213,15 @@ describe('CSVStreamProcessor', () => {
 
     it('should handle parsing errors in flush', (done) => {
       const parseStream = streamProcessor.createParseStream()
-      
+
       // Mock Papa.parse to handle the actual parsing behavior
       mockParse.mockImplementation((data: string, options: any) => {
         if (data.includes('name,age')) {
           return { data: [['name', 'age']], errors: [] }
         } else if (data.includes('"invalid')) {
-          return { 
-            data: null, 
-            errors: [{ message: 'Parse error', row: 1 }] 
+          return {
+            data: null,
+            errors: [{ message: 'Parse error', row: 1 }],
           }
         } else {
           return { data: [], errors: [] }
@@ -227,7 +240,7 @@ describe('CSVStreamProcessor', () => {
 
     it('should include row index and raw data', (done) => {
       const parseStream = streamProcessor.createParseStream()
-      
+
       // Mock Papa.parse to handle the actual parsing behavior
       mockParse.mockImplementation((data: string, options: any) => {
         if (data.includes('name')) {
@@ -251,12 +264,12 @@ describe('CSVStreamProcessor', () => {
         expect(results[0]).toEqual({
           index: 0,
           data: { name: 'John' },
-          raw: 'John'
+          raw: 'John',
         })
         expect(results[1]).toEqual({
           index: 1,
           data: { name: 'Jane' },
-          raw: 'Jane'
+          raw: 'Jane',
         })
         done()
       })
@@ -270,7 +283,7 @@ describe('CSVStreamProcessor', () => {
     it('should batch records according to chunk size', (done) => {
       const processor = new CSVStreamProcessor({ chunkSize: 2 })
       const batchStream = processor.createBatchStream()
-      
+
       const batches: any[] = []
 
       batchStream.on('data', (batch) => {
@@ -293,7 +306,7 @@ describe('CSVStreamProcessor', () => {
     it('should handle remaining records in flush', (done) => {
       const processor = new CSVStreamProcessor({ chunkSize: 3 })
       const batchStream = processor.createBatchStream()
-      
+
       const batches: any[] = []
 
       batchStream.on('data', (batch) => {
@@ -313,7 +326,7 @@ describe('CSVStreamProcessor', () => {
 
     it('should handle empty input', (done) => {
       const batchStream = streamProcessor.createBatchStream()
-      
+
       const batches: any[] = []
 
       batchStream.on('data', (batch) => {
@@ -333,11 +346,12 @@ describe('CSVStreamProcessor', () => {
     it('should process batches concurrently', async () => {
       const processor = new CSVStreamProcessor({ concurrency: 2 })
       const processFunc = jest.fn().mockImplementation(async (batch: any[]) => {
-        await new Promise(resolve => setTimeout(resolve, 10))
-        return batch.map(item => ({ ...item, processed: true }))
+        await new Promise((resolve) => setTimeout(resolve, 10))
+        return batch.map((item) => ({ ...item, processed: true }))
       })
-      
-      const concurrentProcessor = processor.createConcurrentProcessor(processFunc)
+
+      const concurrentProcessor =
+        processor.createConcurrentProcessor(processFunc)
       const results: any[] = []
 
       concurrentProcessor.on('data', (result) => {
@@ -348,7 +362,7 @@ describe('CSVStreamProcessor', () => {
         concurrentProcessor.on('end', () => {
           expect(results).toHaveLength(3)
           expect(processFunc).toHaveBeenCalledTimes(3)
-          results.forEach(result => {
+          results.forEach((result) => {
             expect(result.results).toBeDefined()
             expect(result.error).toBeUndefined()
           })
@@ -364,9 +378,12 @@ describe('CSVStreamProcessor', () => {
 
     it('should handle processing errors', async () => {
       const processor = new CSVStreamProcessor({ concurrency: 1 })
-      const processFunc = jest.fn().mockRejectedValue(new Error('Processing failed'))
-      
-      const concurrentProcessor = processor.createConcurrentProcessor(processFunc)
+      const processFunc = jest
+        .fn()
+        .mockRejectedValue(new Error('Processing failed'))
+
+      const concurrentProcessor =
+        processor.createConcurrentProcessor(processFunc)
       const results: any[] = []
 
       concurrentProcessor.on('data', (result) => {
@@ -394,12 +411,13 @@ describe('CSVStreamProcessor', () => {
       const processFunc = jest.fn().mockImplementation(async (batch: any[]) => {
         concurrentCount++
         maxConcurrent = Math.max(maxConcurrent, concurrentCount)
-        await new Promise(resolve => setTimeout(resolve, 20))
+        await new Promise((resolve) => setTimeout(resolve, 20))
         concurrentCount--
         return batch
       })
-      
-      const concurrentProcessor = processor.createConcurrentProcessor(processFunc)
+
+      const concurrentProcessor =
+        processor.createConcurrentProcessor(processFunc)
       const results: any[] = []
 
       concurrentProcessor.on('data', (result) => {
@@ -424,15 +442,16 @@ describe('CSVStreamProcessor', () => {
     it('should wait for all processing to complete in flush', async () => {
       const processor = new CSVStreamProcessor({ concurrency: 3 })
       const processPromises: Promise<any>[] = []
-      
+
       const processFunc = jest.fn().mockImplementation(async (batch: any[]) => {
-        const promise = new Promise(resolve => setTimeout(resolve, 50))
+        const promise = new Promise((resolve) => setTimeout(resolve, 50))
         processPromises.push(promise)
         await promise
         return batch
       })
-      
-      const concurrentProcessor = processor.createConcurrentProcessor(processFunc)
+
+      const concurrentProcessor =
+        processor.createConcurrentProcessor(processFunc)
       const results: any[] = []
 
       concurrentProcessor.on('data', (result) => {
@@ -463,9 +482,9 @@ describe('CSVStreamProcessor', () => {
       const onProgress = jest.fn((progress) => {
         progressUpdates.push(progress)
       })
-      
+
       const progressStream = streamProcessor.createProgressStream(onProgress)
-      
+
       // Use a timeout to ensure the test completes
       const timeout = setTimeout(() => {
         expect(progressUpdates.length).toBeGreaterThan(0)
@@ -485,7 +504,7 @@ describe('CSVStreamProcessor', () => {
     it('should throttle progress updates', (done) => {
       const onProgress = jest.fn()
       const progressStream = streamProcessor.createProgressStream(onProgress)
-      
+
       // Mock Date.now to control timing
       const originalDateNow = Date.now
       let mockTime = 1000
@@ -533,7 +552,7 @@ describe('CSVStreamProcessor', () => {
     it('should process CSV end-to-end', async () => {
       const processor = new CSVStreamProcessor({ chunkSize: 2, concurrency: 2 })
       const csvData = 'name,age\nJohn,25\nJane,30\nBob,35\n'
-      
+
       // Mock Papa.parse to handle the actual parsing behavior
       mockParse.mockImplementation((data: string, options: any) => {
         if (data.includes('name,age')) {
@@ -550,7 +569,7 @@ describe('CSVStreamProcessor', () => {
       })
 
       const processFunc = jest.fn().mockImplementation(async (batch: any[]) => {
-        return batch.map(item => ({ ...item, processed: true }))
+        return batch.map((item) => ({ ...item, processed: true }))
       })
 
       const results: any[] = []
@@ -558,7 +577,8 @@ describe('CSVStreamProcessor', () => {
 
       const parseStream = processor.createParseStream()
       const batchStream = processor.createBatchStream()
-      const concurrentProcessor = processor.createConcurrentProcessor(processFunc)
+      const concurrentProcessor =
+        processor.createConcurrentProcessor(processFunc)
 
       parseStream.on('headers', (h) => {
         headers = h
@@ -574,7 +594,7 @@ describe('CSVStreamProcessor', () => {
           write(result, encoding, callback) {
             results.push(result)
             callback()
-          }
+          },
         })
       )
 
@@ -596,7 +616,7 @@ describe('processLargeCSV', () => {
   it('should process CSV file and return statistics', async () => {
     const csvData = 'name,age\nJohn,25\nJane,30\nBob,35\n'
     const fileStream = Readable.from([csvData])
-    
+
     // Mock Papa.parse to handle the actual parsing behavior
     mockParse.mockImplementation((data: string, options: any) => {
       if (data.includes('name,age')) {
@@ -629,7 +649,7 @@ describe('processLargeCSV', () => {
   it('should handle processing failures', async () => {
     const csvData = 'name,age\nJohn,25\nJane,30\n'
     const fileStream = Readable.from([csvData])
-    
+
     mockParse
       .mockReturnValueOnce({ data: [['name', 'age']], errors: [] })
       .mockReturnValueOnce({ data: [['John', '25']], errors: [] })
@@ -637,7 +657,7 @@ describe('processLargeCSV', () => {
 
     const processor = jest.fn().mockImplementation(async (batch: any[]) => {
       return batch.map((item, index) => ({
-        success: index === 0 // First item succeeds, second fails
+        success: index === 0, // First item succeeds, second fails
       }))
     })
 
@@ -653,13 +673,15 @@ describe('processLargeCSV', () => {
   it('should handle batch processing errors', async () => {
     const csvData = 'name,age\nJohn,25\nJane,30\n'
     const fileStream = Readable.from([csvData])
-    
+
     mockParse
       .mockReturnValueOnce({ data: [['name', 'age']], errors: [] })
       .mockReturnValueOnce({ data: [['John', '25']], errors: [] })
       .mockReturnValueOnce({ data: [['Jane', '30']], errors: [] })
 
-    const processor = jest.fn().mockRejectedValue(new Error('Batch processing failed'))
+    const processor = jest
+      .fn()
+      .mockRejectedValue(new Error('Batch processing failed'))
     const onProgress = jest.fn()
 
     // Mock console.error to avoid noise in test output
@@ -670,7 +692,10 @@ describe('processLargeCSV', () => {
     expect(stats.total).toBe(2)
     expect(stats.successful).toBe(0)
     expect(stats.failed).toBe(2)
-    expect(consoleSpy).toHaveBeenCalledWith('Batch processing error:', expect.any(Error))
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Batch processing error:',
+      expect.any(Error)
+    )
 
     consoleSpy.mockRestore()
   })
@@ -678,7 +703,7 @@ describe('processLargeCSV', () => {
   it('should handle empty CSV files', async () => {
     const csvData = 'name,age\n'
     const fileStream = Readable.from([csvData])
-    
+
     mockParse.mockReturnValueOnce({ data: [['name', 'age']], errors: [] })
 
     const processor = jest.fn()
@@ -695,7 +720,7 @@ describe('processLargeCSV', () => {
   it('should provide progress updates during processing', async () => {
     const csvData = 'name,age\nJohn,25\nJane,30\nBob,35\n'
     const fileStream = Readable.from([csvData])
-    
+
     mockParse
       .mockReturnValueOnce({ data: [['name', 'age']], errors: [] })
       .mockReturnValueOnce({ data: [['John', '25']], errors: [] })
@@ -714,16 +739,17 @@ describe('processLargeCSV', () => {
     await processLargeCSV(fileStream, processor, onProgress)
 
     expect(progressUpdates.length).toBeGreaterThan(0)
-    progressUpdates.forEach(update => {
+    progressUpdates.forEach((update) => {
       expect(update.processed).toBeGreaterThan(0)
       expect(update.rate).toBeGreaterThan(0)
     })
   })
 
   it('should handle CSV with mixed batch results', async () => {
-    const csvData = 'name,status\nJohn,active\nJane,inactive\nBob,active\nAlice,error\n'
+    const csvData =
+      'name,status\nJohn,active\nJane,inactive\nBob,active\nAlice,error\n'
     const fileStream = Readable.from([csvData])
-    
+
     mockParse
       .mockReturnValueOnce({ data: [['name', 'status']], errors: [] })
       .mockReturnValueOnce({ data: [['John', 'active']], errors: [] })
@@ -733,7 +759,7 @@ describe('processLargeCSV', () => {
 
     const processor = jest.fn().mockImplementation(async (batch: any[]) => {
       return batch.map((item) => ({
-        success: item.data.status !== 'error'
+        success: item.data.status !== 'error',
       }))
     })
 

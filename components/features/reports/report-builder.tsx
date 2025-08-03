@@ -2,16 +2,36 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  Activity,
+  BarChart3,
+  Plus,
+  Save,
+  Table,
+  Trash2,
+  Type,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Save, Plus, Trash2, BarChart3, Table, Activity, Type } from 'lucide-react'
-import { toast } from 'sonner'
-import type { ReportConfig, ReportComponent } from '@/types/reports.types'
+import type { ReportComponent, ReportConfig } from '@/types/reports.types'
 
 interface ReportBuilderProps {
   initialConfig?: ReportConfig
@@ -20,16 +40,31 @@ interface ReportBuilderProps {
 }
 
 const componentTypes = [
-  { id: 'chart', name: 'Chart', icon: BarChart3, description: 'Bar, line, or pie charts' },
-  { id: 'table', name: 'Table', icon: Table, description: 'Data tables with sorting' },
-  { id: 'metric', name: 'Metric', icon: Activity, description: 'KPI cards and metrics' },
+  {
+    id: 'chart',
+    name: 'Chart',
+    icon: BarChart3,
+    description: 'Bar, line, or pie charts',
+  },
+  {
+    id: 'table',
+    name: 'Table',
+    icon: Table,
+    description: 'Data tables with sorting',
+  },
+  {
+    id: 'metric',
+    name: 'Metric',
+    icon: Activity,
+    description: 'KPI cards and metrics',
+  },
   { id: 'text', name: 'Text', icon: Type, description: 'Rich text content' },
 ]
 
 export function ReportBuilder({
   initialConfig,
   templateId,
-  onSave
+  onSave,
 }: ReportBuilderProps) {
   const [config, setConfig] = useState<ReportConfig>(
     initialConfig || {
@@ -40,8 +75,8 @@ export function ReportBuilder({
       filters: [],
       style: {
         theme: 'light',
-        spacing: 'normal'
-      }
+        spacing: 'normal',
+      },
     }
   )
   const [isSaving, setIsSaving] = useState(false)
@@ -52,28 +87,31 @@ export function ReportBuilder({
       type: type as any,
       config: getDefaultConfig(type),
       position: { x: 0, y: config.components.length },
-      size: { width: 12, height: 4 }
+      size: { width: 12, height: 4 },
     }
 
-    setConfig(prev => ({
+    setConfig((prev) => ({
       ...prev,
-      components: [...prev.components, newComponent]
+      components: [...prev.components, newComponent],
     }))
   }
 
   const removeComponent = (componentId: string) => {
-    setConfig(prev => ({
+    setConfig((prev) => ({
       ...prev,
-      components: prev.components.filter(c => c.id !== componentId)
+      components: prev.components.filter((c) => c.id !== componentId),
     }))
   }
 
-  const updateComponent = (componentId: string, updates: Partial<ReportComponent>) => {
-    setConfig(prev => ({
+  const updateComponent = (
+    componentId: string,
+    updates: Partial<ReportComponent>
+  ) => {
+    setConfig((prev) => ({
       ...prev,
-      components: prev.components.map(c =>
+      components: prev.components.map((c) =>
         c.id === componentId ? { ...c, ...updates } : c
-      )
+      ),
     }))
   }
 
@@ -103,8 +141,8 @@ export function ReportBuilder({
           {componentTypes.map((type) => {
             const Icon = type.icon
             return (
-              <Card 
-                key={type.id} 
+              <Card
+                key={type.id}
                 className="cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={() => addComponent(type.id)}
               >
@@ -133,16 +171,15 @@ export function ReportBuilder({
             <Input
               type="text"
               value={config.name}
-              onChange={(e) => setConfig(prev => ({ ...prev, name: e.target.value }))}
+              onChange={(e) =>
+                setConfig((prev) => ({ ...prev, name: e.target.value }))
+              }
               className="text-lg font-semibold w-64"
               placeholder="Report Name"
             />
           </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-          >
+          <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>Saving...</>
             ) : (
@@ -166,7 +203,8 @@ export function ReportBuilder({
             <TabsContent value="design" className="h-full p-4">
               <div className="space-y-4">
                 <div className="text-sm text-muted-foreground">
-                  Click components on the left to add them to your report. You can configure each component after adding it.
+                  Click components on the left to add them to your report. You
+                  can configure each component after adding it.
                 </div>
 
                 {config.components.length === 0 ? (
@@ -174,7 +212,9 @@ export function ReportBuilder({
                     <div className="text-muted-foreground">
                       <Plus className="mx-auto h-8 w-8 mb-2" />
                       <p>No components added yet</p>
-                      <p className="text-sm">Choose from the component library on the left</p>
+                      <p className="text-sm">
+                        Choose from the component library on the left
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -184,7 +224,9 @@ export function ReportBuilder({
                         key={component.id}
                         component={component}
                         index={index}
-                        onUpdate={(updates) => updateComponent(component.id, updates)}
+                        onUpdate={(updates) =>
+                          updateComponent(component.id, updates)
+                        }
                         onRemove={() => removeComponent(component.id)}
                       />
                     ))}
@@ -197,7 +239,8 @@ export function ReportBuilder({
               <div className="space-y-4">
                 <h3 className="font-semibold">Data Sources</h3>
                 <p className="text-sm text-muted-foreground">
-                  Configure data sources for your report components. This will be expanded in future versions.
+                  Configure data sources for your report components. This will
+                  be expanded in future versions.
                 </p>
                 <Card>
                   <CardContent className="p-4">
@@ -212,26 +255,31 @@ export function ReportBuilder({
             <TabsContent value="settings" className="p-4">
               <div className="space-y-4">
                 <h3 className="font-semibold">Report Settings</h3>
-                
+
                 <div className="grid gap-4">
                   <div>
                     <Label htmlFor="description">Description</Label>
                     <Textarea
                       id="description"
                       value={config.name}
-                      onChange={(e) => setConfig(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setConfig((prev) => ({ ...prev, name: e.target.value }))
+                      }
                       placeholder="Describe what this report shows..."
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="theme">Theme</Label>
-                    <Select 
-                      value={config.style.theme} 
-                      onValueChange={(value) => 
-                        setConfig(prev => ({ 
-                          ...prev, 
-                          style: { ...prev.style, theme: value as 'light' | 'dark' }
+                    <Select
+                      value={config.style.theme}
+                      onValueChange={(value) =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          style: {
+                            ...prev.style,
+                            theme: value as 'light' | 'dark',
+                          },
                         }))
                       }
                     >
@@ -247,12 +295,18 @@ export function ReportBuilder({
 
                   <div>
                     <Label htmlFor="spacing">Spacing</Label>
-                    <Select 
-                      value={config.style.spacing} 
-                      onValueChange={(value) => 
-                        setConfig(prev => ({ 
-                          ...prev, 
-                          style: { ...prev.style, spacing: value as 'compact' | 'normal' | 'comfortable' }
+                    <Select
+                      value={config.style.spacing}
+                      onValueChange={(value) =>
+                        setConfig((prev) => ({
+                          ...prev,
+                          style: {
+                            ...prev.style,
+                            spacing: value as
+                              | 'compact'
+                              | 'normal'
+                              | 'comfortable',
+                          },
                         }))
                       }
                     >
@@ -276,18 +330,19 @@ export function ReportBuilder({
   )
 }
 
-function ComponentEditor({ 
-  component, 
-  index, 
-  onUpdate, 
-  onRemove 
-}: { 
+function ComponentEditor({
+  component,
+  index,
+  onUpdate,
+  onRemove,
+}: {
   component: ReportComponent
   index: number
   onUpdate: (updates: Partial<ReportComponent>) => void
   onRemove: () => void
 }) {
-  const Icon = componentTypes.find(t => t.id === component.type)?.icon || BarChart3
+  const Icon =
+    componentTypes.find((t) => t.id === component.type)?.icon || BarChart3
 
   return (
     <Card>
@@ -296,28 +351,28 @@ function ComponentEditor({
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4" />
             <CardTitle className="text-base">
-              {componentTypes.find(t => t.id === component.type)?.name || component.type} #{index + 1}
+              {componentTypes.find((t) => t.id === component.type)?.name ||
+                component.type}{' '}
+              #{index + 1}
             </CardTitle>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={onRemove}
-          >
+          <Button variant="ghost" size="sm" onClick={onRemove}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-3">
         <div>
           <Label htmlFor={`title-${component.id}`}>Title</Label>
           <Input
             id={`title-${component.id}`}
             value={component.config.title || ''}
-            onChange={(e) => onUpdate({
-              config: { ...component.config, title: e.target.value }
-            })}
+            onChange={(e) =>
+              onUpdate({
+                config: { ...component.config, title: e.target.value },
+              })
+            }
             placeholder="Component title"
           />
         </div>
@@ -328,9 +383,11 @@ function ComponentEditor({
             <Textarea
               id={`content-${component.id}`}
               value={component.config.content || ''}
-              onChange={(e) => onUpdate({
-                config: { ...component.config, content: e.target.value }
-              })}
+              onChange={(e) =>
+                onUpdate({
+                  config: { ...component.config, content: e.target.value },
+                })
+              }
               placeholder="Enter text content..."
             />
           </div>
@@ -354,25 +411,25 @@ function getDefaultConfig(type: string): Record<string, any> {
         chartType: 'bar',
         xAxis: '',
         yAxis: '',
-        color: 'hsl(var(--chart-1))'
+        color: 'hsl(var(--chart-1))',
       }
     case 'table':
       return {
         title: 'Data Table',
         columns: [],
-        pageSize: 25
+        pageSize: 25,
       }
     case 'metric':
       return {
         title: 'Metric',
         aggregation: 'sum',
         format: 'number',
-        comparison: false
+        comparison: false,
       }
     case 'text':
       return {
         content: 'Enter your text here...',
-        alignment: 'left'
+        alignment: 'left',
       }
     default:
       return {}

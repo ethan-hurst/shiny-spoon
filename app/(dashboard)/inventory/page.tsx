@@ -39,7 +39,11 @@ interface WarehouseResult {
 }
 
 export default async function InventoryPage(props: {
-  searchParams: Promise<{ warehouse_id?: string; search?: string; low_stock?: string }>
+  searchParams: Promise<{
+    warehouse_id?: string
+    search?: string
+    low_stock?: string
+  }>
 }) {
   const searchParams = await props.searchParams
   const supabase = await createClient()
@@ -138,22 +142,21 @@ export default async function InventoryPage(props: {
   // No need for client-side filtering anymore as it's handled by the database
 
   // Transform to InventoryWithRelations type
-  const inventoryWithRelations: InventoryWithRelations[] =
-    inventory.map(
-      (item) =>
-        ({
-          ...item,
-          product_id: item.product.id,
-          warehouse_id: item.warehouse.id,
-          reorder_quantity: 0, // Default value, should be in database
-          last_counted_at: null, // Default value, should be in database
-          last_counted_by: null, // Default value, should be in database
-          created_at: new Date().toISOString(), // Default value, should be in database
-          updated_at: new Date().toISOString(), // Default value, should be in database
-          product: item.product,
-          warehouse: item.warehouse,
-        }) as unknown as InventoryWithRelations
-    )
+  const inventoryWithRelations: InventoryWithRelations[] = inventory.map(
+    (item) =>
+      ({
+        ...item,
+        product_id: item.product.id,
+        warehouse_id: item.warehouse.id,
+        reorder_quantity: 0, // Default value, should be in database
+        last_counted_at: null, // Default value, should be in database
+        last_counted_by: null, // Default value, should be in database
+        created_at: new Date().toISOString(), // Default value, should be in database
+        updated_at: new Date().toISOString(), // Default value, should be in database
+        product: item.product,
+        warehouse: item.warehouse,
+      }) as unknown as InventoryWithRelations
+  )
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -187,7 +190,9 @@ export default async function InventoryPage(props: {
           <InventoryFilters
             warehouses={warehouses || []}
             currentFilters={{
-              ...(searchParams.warehouse_id && { warehouse_id: searchParams.warehouse_id }),
+              ...(searchParams.warehouse_id && {
+                warehouse_id: searchParams.warehouse_id,
+              }),
               ...(searchParams.search && { search: searchParams.search }),
               low_stock_only: searchParams.low_stock === 'true',
             }}

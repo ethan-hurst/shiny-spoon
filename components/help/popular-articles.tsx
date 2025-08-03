@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { allHelpArticles } from 'contentlayer2/generated'
+import { ArrowRight, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { TrendingUp, ArrowRight } from 'lucide-react'
 
 export function PopularArticles() {
   // In a real app, you'd track article views and sort by popularity

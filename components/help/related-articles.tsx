@@ -1,14 +1,23 @@
 import Link from 'next/link'
 import { allHelpArticles, type HelpArticle } from 'contentlayer2/generated'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowRight } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 interface RelatedArticlesProps {
   currentArticle: HelpArticle
   relatedSlugs: string[]
 }
 
-export function RelatedArticles({ currentArticle, relatedSlugs }: RelatedArticlesProps) {
+export function RelatedArticles({
+  currentArticle,
+  relatedSlugs,
+}: RelatedArticlesProps) {
   // Get related articles by slug
   let relatedArticles = allHelpArticles.filter((article) =>
     relatedSlugs.includes(article.slug)

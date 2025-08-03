@@ -1,6 +1,6 @@
 import { AccuracyScorer } from '@/lib/monitoring/accuracy-scorer'
-import { createAdminClient } from '@/lib/supabase/admin'
 import type { DiscrepancyResult } from '@/lib/monitoring/types'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // Mock dependencies
 jest.mock('@/lib/supabase/admin')
@@ -8,7 +8,7 @@ jest.mock('@/lib/supabase/admin')
 describe('AccuracyScorer', () => {
   let accuracyScorer: AccuracyScorer
   let mockSupabase: ReturnType<typeof createMockSupabase>
-  
+
   const mockDiscrepancy: DiscrepancyResult = {
     id: 'disc-123',
     entityType: 'inventory',
@@ -19,7 +19,7 @@ describe('AccuracyScorer', () => {
     sourceValue: 100,
     targetValue: 95,
     description: 'Quantity mismatch detected',
-    createdAt: new Date('2024-01-15T10:00:00Z')
+    createdAt: new Date('2024-01-15T10:00:00Z'),
   }
 
   const mockScoringConfig = {
@@ -27,7 +27,7 @@ describe('AccuracyScorer', () => {
     integrationId: 'integration-123',
     startDate: new Date('2024-01-01T00:00:00Z'),
     endDate: new Date('2024-01-31T23:59:59Z'),
-    bucketDuration: 300
+    bucketDuration: 300,
   }
 
   const mockAccuracyCheck = {
@@ -38,28 +38,28 @@ describe('AccuracyScorer', () => {
     accuracy_score: 95.5,
     records_checked: 1000,
     discrepancy_count: 15,
-    completed_at: '2024-01-15T10:00:00Z'
+    completed_at: '2024-01-15T10:00:00Z',
   }
 
   beforeEach(() => {
     jest.clearAllMocks()
-    
+
     mockSupabase = createMockSupabase()
     ;(createAdminClient as jest.Mock).mockReturnValue(mockSupabase)
-    
+
     accuracyScorer = new AccuracyScorer()
   })
 
   describe('calculateScore', () => {
     it('should return 100 for zero total records', async () => {
       const score = await accuracyScorer.calculateScore(0, [])
-      
+
       expect(score).toBe(100)
     })
 
     it('should calculate score with single discrepancy', async () => {
       const score = await accuracyScorer.calculateScore(1000, [mockDiscrepancy])
-      
+
       // Expected calculation:
       // severity weight (high) = 0.7
       // entity weight (inventory) = 1.0
@@ -78,61 +78,76 @@ describe('AccuracyScorer', () => {
           ...mockDiscrepancy,
           id: 'disc-124',
           severity: 'critical',
-          confidence: 0.9
+          confidence: 0.9,
         },
         {
           ...mockDiscrepancy,
           id: 'disc-125',
           severity: 'medium',
           entityType: 'pricing',
-          confidence: 0.8
-        }
+          confidence: 0.8,
+        },
       ]
 
       const score = await accuracyScorer.calculateScore(1000, discrepancies)
-      
+
       expect(score).toBeGreaterThan(0)
       expect(score).toBeLessThanOrEqual(100)
     })
 
     it('should apply critical issue penalty', async () => {
-      const criticalDiscrepancies = Array(20).fill(null).map((_, i) => ({
-        ...mockDiscrepancy,
-        id: `disc-${i}`,
-        severity: 'critical',
-        confidence: 0.95
-      }))
+      const criticalDiscrepancies = Array(20)
+        .fill(null)
+        .map((_, i) => ({
+          ...mockDiscrepancy,
+          id: `disc-${i}`,
+          severity: 'critical',
+          confidence: 0.95,
+        }))
 
-      const score = await accuracyScorer.calculateScore(1000, criticalDiscrepancies)
-      
+      const score = await accuracyScorer.calculateScore(
+        1000,
+        criticalDiscrepancies
+      )
+
       // Should have penalty for >1% critical issues
       expect(score).toBeLessThan(90)
     })
 
     it('should apply low discrepancy rate bonus', async () => {
-      const singleDiscrepancy = [{
-        ...mockDiscrepancy,
-        severity: 'low',
-        confidence: 0.5
-      }]
+      const singleDiscrepancy = [
+        {
+          ...mockDiscrepancy,
+          severity: 'low',
+          confidence: 0.5,
+        },
+      ]
 
-      const score = await accuracyScorer.calculateScore(10000, singleDiscrepancy)
-      
+      const score = await accuracyScorer.calculateScore(
+        10000,
+        singleDiscrepancy
+      )
+
       // Should get bonus for <1% discrepancy rate
       expect(score).toBeGreaterThan(99)
     })
 
     it('should apply stale data penalty', async () => {
-      const staleDiscrepancies = Array(60).fill(null).map((_, i) => ({
-        ...mockDiscrepancy,
-        id: `disc-${i}`,
-        discrepancyType: 'stale',
-        severity: 'medium',
-        confidence: 0.8
-      }))
+      const staleDiscrepancies = Array(60)
+        .fill(null)
+        .map((_, i) => ({
+          ...mockDiscrepancy,
+          id: `disc-${i}`,
+          discrepancyType: 'stale',
+          severity: 'medium',
+          confidence: 0.8,
+        }))
 
-      const score = await accuracyScorer.calculateScore(1000, staleDiscrepancies)
-      
+      const score = await accuracyScorer.calculateScore(
+        1000,
+        staleDiscrepancies
+      )
+
       // Should have penalty for >5% stale data
       expect(score).toBeLessThan(95)
     })
@@ -142,11 +157,13 @@ describe('AccuracyScorer', () => {
         ...mockDiscrepancy,
         severity: 'unknown' as any,
         entityType: 'unknown' as any,
-        confidence: 0.9
+        confidence: 0.9,
       }
 
-      const score = await accuracyScorer.calculateScore(1000, [unknownDiscrepancy])
-      
+      const score = await accuracyScorer.calculateScore(1000, [
+        unknownDiscrepancy,
+      ])
+
       // Should use default weights (0.5) for unknown types
       expect(score).toBeGreaterThan(99)
       expect(score).toBeLessThanOrEqual(100)
@@ -154,15 +171,20 @@ describe('AccuracyScorer', () => {
 
     it('should ensure score is between 0 and 100', async () => {
       // Extreme case with many critical discrepancies
-      const extremeDiscrepancies = Array(1000).fill(null).map((_, i) => ({
-        ...mockDiscrepancy,
-        id: `disc-${i}`,
-        severity: 'critical',
-        confidence: 1.0
-      }))
+      const extremeDiscrepancies = Array(1000)
+        .fill(null)
+        .map((_, i) => ({
+          ...mockDiscrepancy,
+          id: `disc-${i}`,
+          severity: 'critical',
+          confidence: 1.0,
+        }))
 
-      const score = await accuracyScorer.calculateScore(1000, extremeDiscrepancies)
-      
+      const score = await accuracyScorer.calculateScore(
+        1000,
+        extremeDiscrepancies
+      )
+
       expect(score).toBeGreaterThanOrEqual(0)
       expect(score).toBeLessThanOrEqual(100)
     })
@@ -177,8 +199,8 @@ describe('AccuracyScorer', () => {
           id: 'disc-124',
           entity_type: 'pricing',
           severity: 'critical',
-          discrepancy_type: 'missing'
-        }
+          discrepancy_type: 'missing',
+        },
       ]
 
       mockSupabase.from.mockImplementation((table: string) => {
@@ -191,13 +213,13 @@ describe('AccuracyScorer', () => {
                     limit: jest.fn().mockReturnValue({
                       single: jest.fn().mockResolvedValue({
                         data: mockAccuracyCheck,
-                        error: null
-                      })
-                    })
-                  })
-                })
-              })
-            })
+                        error: null,
+                      }),
+                    }),
+                  }),
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'discrepancies') {
@@ -205,24 +227,30 @@ describe('AccuracyScorer', () => {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockResolvedValue({
                 data: mockDiscrepancies,
-                error: null
-              })
-            })
+                error: null,
+              }),
+            }),
           } as any
         }
-        if (table === 'products' || table === 'inventory' || table === 'customers' || table === 'pricing_rules') {
+        if (
+          table === 'products' ||
+          table === 'inventory' ||
+          table === 'customers' ||
+          table === 'pricing_rules'
+        ) {
           return {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockResolvedValue({
-                count: 100
-              })
-            })
+                count: 100,
+              }),
+            }),
           } as any
         }
         return {} as any
       })
 
-      const breakdown = await accuracyScorer.getAccuracyBreakdown(mockScoringConfig)
+      const breakdown =
+        await accuracyScorer.getAccuracyBreakdown(mockScoringConfig)
 
       expect(breakdown.overall).toBe(95.5)
       expect(breakdown.byEntityType).toBeDefined()
@@ -239,16 +267,17 @@ describe('AccuracyScorer', () => {
                 limit: jest.fn().mockReturnValue({
                   single: jest.fn().mockResolvedValue({
                     data: null,
-                    error: null
-                  })
-                })
-              })
-            })
-          })
-        })
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
-      const breakdown = await accuracyScorer.getAccuracyBreakdown(mockScoringConfig)
+      const breakdown =
+        await accuracyScorer.getAccuracyBreakdown(mockScoringConfig)
 
       expect(breakdown.overall).toBe(100)
       expect(breakdown.byEntityType).toEqual({})
@@ -267,13 +296,13 @@ describe('AccuracyScorer', () => {
                     limit: jest.fn().mockReturnValue({
                       single: jest.fn().mockResolvedValue({
                         data: mockAccuracyCheck,
-                        error: null
-                      })
-                    })
-                  })
-                })
-              })
-            })
+                        error: null,
+                      }),
+                    }),
+                  }),
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'discrepancies') {
@@ -281,15 +310,16 @@ describe('AccuracyScorer', () => {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockResolvedValue({
                 data: [],
-                error: null
-              })
-            })
+                error: null,
+              }),
+            }),
           } as any
         }
         return {} as any
       })
 
-      const breakdown = await accuracyScorer.getAccuracyBreakdown(mockScoringConfig)
+      const breakdown =
+        await accuracyScorer.getAccuracyBreakdown(mockScoringConfig)
 
       expect(breakdown.overall).toBe(95.5)
       expect(breakdown.byEntityType).toEqual({})
@@ -310,13 +340,13 @@ describe('AccuracyScorer', () => {
                     limit: jest.fn().mockReturnValue({
                       single: jest.fn().mockResolvedValue({
                         data: mockAccuracyCheck,
-                        error: null
-                      })
-                    })
-                  })
-                })
-              })
-            })
+                        error: null,
+                      }),
+                    }),
+                  }),
+                }),
+              }),
+            }),
           } as any
         }
         if (table === 'discrepancies') {
@@ -324,19 +354,25 @@ describe('AccuracyScorer', () => {
             select: jest.fn().mockReturnValue({
               eq: jest.fn().mockResolvedValue({
                 data: mockDiscrepancies,
-                error: null
-              })
-            })
+                error: null,
+              }),
+            }),
           } as any
         }
         // Mock error for entity count queries
-        if (table === 'products' || table === 'inventory' || table === 'customers' || table === 'pricing_rules') {
+        if (
+          table === 'products' ||
+          table === 'inventory' ||
+          table === 'customers' ||
+          table === 'pricing_rules'
+        ) {
           throw new Error('Database error')
         }
         return {} as any
       })
 
-      const breakdown = await accuracyScorer.getAccuracyBreakdown(mockScoringConfig)
+      const breakdown =
+        await accuracyScorer.getAccuracyBreakdown(mockScoringConfig)
 
       expect(breakdown.overall).toBe(95.5)
       expect(breakdown.byEntityType).toBeDefined()
@@ -350,7 +386,7 @@ describe('AccuracyScorer', () => {
         { accuracy_score: 96.0, metric_timestamp: '2024-01-02T00:00:00Z' },
         { accuracy_score: 97.0, metric_timestamp: '2024-01-03T00:00:00Z' },
         { accuracy_score: 98.0, metric_timestamp: '2024-01-04T00:00:00Z' },
-        { accuracy_score: 99.0, metric_timestamp: '2024-01-05T00:00:00Z' }
+        { accuracy_score: 99.0, metric_timestamp: '2024-01-05T00:00:00Z' },
       ]
 
       mockSupabase.from.mockReturnValue({
@@ -361,13 +397,13 @@ describe('AccuracyScorer', () => {
                 gte: jest.fn().mockReturnValue({
                   lte: jest.fn().mockResolvedValue({
                     data: mockMetrics,
-                    error: null
-                  })
-                })
-              })
-            })
-          })
-        })
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const trend = await accuracyScorer.getTrendAnalysis(mockScoringConfig)
@@ -385,11 +421,11 @@ describe('AccuracyScorer', () => {
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
                 data: [{ accuracy_score: 95.0 }],
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const trend = await accuracyScorer.getTrendAnalysis(mockScoringConfig)
@@ -406,7 +442,7 @@ describe('AccuracyScorer', () => {
         { accuracy_score: 97.0, metric_timestamp: '2024-01-02T00:00:00Z' },
         { accuracy_score: 95.0, metric_timestamp: '2024-01-03T00:00:00Z' },
         { accuracy_score: 93.0, metric_timestamp: '2024-01-04T00:00:00Z' },
-        { accuracy_score: 91.0, metric_timestamp: '2024-01-05T00:00:00Z' }
+        { accuracy_score: 91.0, metric_timestamp: '2024-01-05T00:00:00Z' },
       ]
 
       mockSupabase.from.mockReturnValue({
@@ -415,11 +451,11 @@ describe('AccuracyScorer', () => {
             order: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue({
                 data: mockMetrics,
-                error: null
-              })
-            })
-          })
-        })
+                error: null,
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const trend = await accuracyScorer.getTrendAnalysis(mockScoringConfig)
@@ -433,7 +469,8 @@ describe('AccuracyScorer', () => {
         select: jest.fn().mockReturnValue({
           eq: jest.fn().mockImplementation((field: string, value: string) => {
             if (field === 'organization_id') expect(value).toBe('org-123')
-            if (field === 'integration_id') expect(value).toBe('integration-123')
+            if (field === 'integration_id')
+              expect(value).toBe('integration-123')
             return {
               eq: jest.fn().mockReturnValue({
                 order: jest.fn().mockReturnValue({
@@ -441,15 +478,15 @@ describe('AccuracyScorer', () => {
                     gte: jest.fn().mockReturnValue({
                       lte: jest.fn().mockResolvedValue({
                         data: [],
-                        error: null
-                      })
-                    })
-                  })
-                })
-              })
+                        error: null,
+                      }),
+                    }),
+                  }),
+                }),
+              }),
             }
-          })
-        })
+          }),
+        }),
       } as any)
 
       await accuracyScorer.getTrendAnalysis(mockScoringConfig)
@@ -466,15 +503,15 @@ describe('AccuracyScorer', () => {
           accuracy_score: 95.0,
           total_records: 1000,
           discrepancy_count: 50,
-          integration_id: 'integration-123'
+          integration_id: 'integration-123',
         },
         {
           metric_timestamp: '2024-01-02T00:00:00Z',
           accuracy_score: 96.0,
           total_records: 1100,
           discrepancy_count: 40,
-          integration_id: 'integration-123'
-        }
+          integration_id: 'integration-123',
+        },
       ]
 
       mockSupabase.from.mockReturnValue({
@@ -485,16 +522,17 @@ describe('AccuracyScorer', () => {
                 gte: jest.fn().mockReturnValue({
                   lte: jest.fn().mockResolvedValue({
                     data: mockMetrics,
-                    error: null
-                  })
-                })
-              })
-            })
-          })
-        })
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
-      const trendPoints = await accuracyScorer.getHistoricalTrend(mockScoringConfig)
+      const trendPoints =
+        await accuracyScorer.getHistoricalTrend(mockScoringConfig)
 
       expect(trendPoints).toHaveLength(2)
       expect(trendPoints[0].timestamp).toBeInstanceOf(Date)
@@ -510,13 +548,14 @@ describe('AccuracyScorer', () => {
           eq: jest.fn().mockReturnValue({
             order: jest.fn().mockResolvedValue({
               data: null,
-              error: null
-            })
-          })
-        })
+              error: null,
+            }),
+          }),
+        }),
       } as any)
 
-      const trendPoints = await accuracyScorer.getHistoricalTrend(mockScoringConfig)
+      const trendPoints =
+        await accuracyScorer.getHistoricalTrend(mockScoringConfig)
 
       expect(trendPoints).toEqual([])
     })
@@ -525,7 +564,7 @@ describe('AccuracyScorer', () => {
   describe('storeMetrics', () => {
     it('should store metrics successfully', async () => {
       mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ data: null, error: null })
+        insert: jest.fn().mockResolvedValue({ data: null, error: null }),
       } as any)
 
       await accuracyScorer.storeMetrics(
@@ -546,20 +585,20 @@ describe('AccuracyScorer', () => {
         discrepancy_count: 45,
         metrics_by_type: { inventory: 94.0, pricing: 97.0 },
         metric_timestamp: expect.any(String),
-        bucket_duration: 300
+        bucket_duration: 300,
       })
     })
 
     it('should store metrics without integration ID', async () => {
       mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockResolvedValue({ data: null, error: null })
+        insert: jest.fn().mockResolvedValue({ data: null, error: null }),
       } as any)
 
       await accuracyScorer.storeMetrics('org-123', undefined, 95.5, 1000, 45)
 
       expect(mockSupabase.from().insert).toHaveBeenCalledWith(
         expect.objectContaining({
-          integration_id: undefined
+          integration_id: undefined,
         })
       )
     })
@@ -574,12 +613,12 @@ describe('AccuracyScorer', () => {
               limit: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: { accuracy_score: 97.0 },
-                  error: null
-                })
-              })
-            })
-          })
-        })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const benchmark = await accuracyScorer.getBenchmarkComparison('org-123')
@@ -598,12 +637,12 @@ describe('AccuracyScorer', () => {
               limit: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: null,
-                  error: null
-                })
-              })
-            })
-          })
-        })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const benchmark = await accuracyScorer.getBenchmarkComparison('org-123')
@@ -620,12 +659,12 @@ describe('AccuracyScorer', () => {
               limit: jest.fn().mockReturnValue({
                 single: jest.fn().mockResolvedValue({
                   data: { accuracy_score: 90.0 },
-                  error: null
-                })
-              })
-            })
-          })
-        })
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
       } as any)
 
       const benchmark = await accuracyScorer.getBenchmarkComparison('org-123')
@@ -641,25 +680,36 @@ describe('AccuracyScorer', () => {
         overall: 95.0,
         byEntityType: { inventory: 94.0, pricing: 96.0 },
         bySeverity: { critical: 98.0, high: 95.0, medium: 97.0, low: 99.0 },
-        byDiscrepancyType: { missing: 96.0, mismatch: 94.0, stale: 97.0, duplicate: 99.0 }
+        byDiscrepancyType: {
+          missing: 96.0,
+          mismatch: 94.0,
+          stale: 97.0,
+          duplicate: 99.0,
+        },
       }
 
       const mockTrend = {
         trend: 'declining' as const,
         changeRate: -2.5,
         volatility: 8.0,
-        forecast: 92.0
+        forecast: 92.0,
       }
 
       const mockBenchmark = {
         organizationScore: 95.0,
         industryAverage: 95.5,
-        percentile: 45.0
+        percentile: 45.0,
       }
 
-      jest.spyOn(accuracyScorer, 'getAccuracyBreakdown').mockResolvedValue(mockBreakdown)
-      jest.spyOn(accuracyScorer, 'getTrendAnalysis').mockResolvedValue(mockTrend)
-      jest.spyOn(accuracyScorer, 'getBenchmarkComparison').mockResolvedValue(mockBenchmark)
+      jest
+        .spyOn(accuracyScorer, 'getAccuracyBreakdown')
+        .mockResolvedValue(mockBreakdown)
+      jest
+        .spyOn(accuracyScorer, 'getTrendAnalysis')
+        .mockResolvedValue(mockTrend)
+      jest
+        .spyOn(accuracyScorer, 'getBenchmarkComparison')
+        .mockResolvedValue(mockBenchmark)
 
       const report = await accuracyScorer.getAccuracyReport(mockScoringConfig)
 
@@ -675,25 +725,36 @@ describe('AccuracyScorer', () => {
         overall: 90.0, // Below 95%
         byEntityType: { inventory: 85.0 }, // Below 90%
         bySeverity: { critical: 95.0, high: 92.0, medium: 88.0, low: 98.0 },
-        byDiscrepancyType: { missing: 92.0, mismatch: 89.0, stale: 91.0, duplicate: 96.0 }
+        byDiscrepancyType: {
+          missing: 92.0,
+          mismatch: 89.0,
+          stale: 91.0,
+          duplicate: 96.0,
+        },
       }
 
       const mockTrend = {
         trend: 'declining' as const,
         changeRate: -5.0,
         volatility: 12.0, // High volatility
-        forecast: 85.0
+        forecast: 85.0,
       }
 
       const mockBenchmark = {
         organizationScore: 90.0,
         industryAverage: 95.5,
-        percentile: 25.0 // Below 50th percentile
+        percentile: 25.0, // Below 50th percentile
       }
 
-      jest.spyOn(accuracyScorer, 'getAccuracyBreakdown').mockResolvedValue(mockBreakdown)
-      jest.spyOn(accuracyScorer, 'getTrendAnalysis').mockResolvedValue(mockTrend)
-      jest.spyOn(accuracyScorer, 'getBenchmarkComparison').mockResolvedValue(mockBenchmark)
+      jest
+        .spyOn(accuracyScorer, 'getAccuracyBreakdown')
+        .mockResolvedValue(mockBreakdown)
+      jest
+        .spyOn(accuracyScorer, 'getTrendAnalysis')
+        .mockResolvedValue(mockTrend)
+      jest
+        .spyOn(accuracyScorer, 'getBenchmarkComparison')
+        .mockResolvedValue(mockBenchmark)
 
       const report = await accuracyScorer.getAccuracyReport(mockScoringConfig)
 
@@ -719,15 +780,30 @@ describe('AccuracyScorer', () => {
         overall: 98.0,
         byEntityType: {},
         bySeverity: { critical: 90.0, high: 98.0, medium: 99.0, low: 100.0 }, // Critical issues present
-        byDiscrepancyType: {}
+        byDiscrepancyType: {},
       }
 
-      const mockTrend = { trend: 'stable' as const, changeRate: 0, volatility: 1.0, forecast: 98.0 }
-      const mockBenchmark = { organizationScore: 98.0, industryAverage: 95.5, percentile: 75.0 }
+      const mockTrend = {
+        trend: 'stable' as const,
+        changeRate: 0,
+        volatility: 1.0,
+        forecast: 98.0,
+      }
+      const mockBenchmark = {
+        organizationScore: 98.0,
+        industryAverage: 95.5,
+        percentile: 75.0,
+      }
 
-      jest.spyOn(accuracyScorer, 'getAccuracyBreakdown').mockResolvedValue(mockBreakdown)
-      jest.spyOn(accuracyScorer, 'getTrendAnalysis').mockResolvedValue(mockTrend)
-      jest.spyOn(accuracyScorer, 'getBenchmarkComparison').mockResolvedValue(mockBenchmark)
+      jest
+        .spyOn(accuracyScorer, 'getAccuracyBreakdown')
+        .mockResolvedValue(mockBreakdown)
+      jest
+        .spyOn(accuracyScorer, 'getTrendAnalysis')
+        .mockResolvedValue(mockTrend)
+      jest
+        .spyOn(accuracyScorer, 'getBenchmarkComparison')
+        .mockResolvedValue(mockBenchmark)
 
       const report = await accuracyScorer.getAccuracyReport(mockScoringConfig)
 
@@ -739,8 +815,11 @@ describe('AccuracyScorer', () => {
 
   describe('Edge cases and error handling', () => {
     it('should handle empty severity breakdown', () => {
-      const result = (accuracyScorer as any).calculateSeverityBreakdown([], 1000)
-      
+      const result = (accuracyScorer as any).calculateSeverityBreakdown(
+        [],
+        1000
+      )
+
       expect(result.critical).toBe(100)
       expect(result.high).toBe(100)
       expect(result.medium).toBe(100)
@@ -749,7 +828,7 @@ describe('AccuracyScorer', () => {
 
     it('should handle empty type breakdown', () => {
       const result = (accuracyScorer as any).calculateTypeBreakdown([], 1000)
-      
+
       expect(result.missing).toBe(100)
       expect(result.mismatch).toBe(100)
       expect(result.stale).toBe(100)
@@ -758,19 +837,19 @@ describe('AccuracyScorer', () => {
 
     it('should handle single score trend calculation', () => {
       const trend = (accuracyScorer as any).calculateTrend([95.0])
-      
+
       expect(trend).toBe(0)
     })
 
     it('should handle forecast with empty scores', () => {
       const forecast = (accuracyScorer as any).forecastNextScore([])
-      
+
       expect(forecast).toBe(100)
     })
 
     it('should handle forecast with single score', () => {
       const forecast = (accuracyScorer as any).forecastNextScore([95.0])
-      
+
       expect(forecast).toBe(95.0)
     })
 
@@ -778,7 +857,7 @@ describe('AccuracyScorer', () => {
       const positiveZ = (accuracyScorer as any).zScoreToPercentile(2.0)
       const negativeZ = (accuracyScorer as any).zScoreToPercentile(-2.0)
       const zeroZ = (accuracyScorer as any).zScoreToPercentile(0.0)
-      
+
       expect(positiveZ).toBeGreaterThan(95)
       expect(negativeZ).toBeLessThan(5)
       expect(zeroZ).toBeCloseTo(50, 1)
@@ -788,7 +867,7 @@ describe('AccuracyScorer', () => {
       // Create scores with same values (no variance)
       const sameScores = [95.0, 95.0, 95.0, 95.0, 95.0]
       const trend = (accuracyScorer as any).calculateTrend(sameScores)
-      
+
       expect(trend).toBe(0)
     })
   })
@@ -804,10 +883,10 @@ function createMockSupabase() {
           order: jest.fn(),
           limit: jest.fn(),
           gte: jest.fn(),
-          lte: jest.fn()
+          lte: jest.fn(),
         }),
-        insert: jest.fn()
-      })
-    })
+        insert: jest.fn(),
+      }),
+    }),
   }
 }

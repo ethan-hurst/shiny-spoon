@@ -19,7 +19,13 @@ export interface ExtendedDatabase extends BaseDatabase {
           id: string
           organization_id: string
           name: string
-          platform: 'netsuite' | 'shopify' | 'quickbooks' | 'sap' | 'dynamics365' | 'custom'
+          platform:
+            | 'netsuite'
+            | 'shopify'
+            | 'quickbooks'
+            | 'sap'
+            | 'dynamics365'
+            | 'custom'
           description: string | null
           status: 'active' | 'inactive' | 'error' | 'configuring' | 'suspended'
           last_sync_at: string | null
@@ -35,7 +41,13 @@ export interface ExtendedDatabase extends BaseDatabase {
           id?: string
           organization_id: string
           name: string
-          platform: 'netsuite' | 'shopify' | 'quickbooks' | 'sap' | 'dynamics365' | 'custom'
+          platform:
+            | 'netsuite'
+            | 'shopify'
+            | 'quickbooks'
+            | 'sap'
+            | 'dynamics365'
+            | 'custom'
           description?: string | null
           status?: 'active' | 'inactive' | 'error' | 'configuring' | 'suspended'
           last_sync_at?: string | null
@@ -51,7 +63,13 @@ export interface ExtendedDatabase extends BaseDatabase {
           id?: string
           organization_id?: string
           name?: string
-          platform?: 'netsuite' | 'shopify' | 'quickbooks' | 'sap' | 'dynamics365' | 'custom'
+          platform?:
+            | 'netsuite'
+            | 'shopify'
+            | 'quickbooks'
+            | 'sap'
+            | 'dynamics365'
+            | 'custom'
           description?: string | null
           status?: 'active' | 'inactive' | 'error' | 'configuring' | 'suspended'
           last_sync_at?: string | null
@@ -65,17 +83,17 @@ export interface ExtendedDatabase extends BaseDatabase {
         }
         Relationships: [
           {
-            foreignKeyName: "integrations_organization_id_fkey"
-            columns: ["organization_id"]
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
+            foreignKeyName: 'integrations_organization_id_fkey'
+            columns: ['organization_id']
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "integrations_created_by_fkey"
-            columns: ["created_by"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
+            foreignKeyName: 'integrations_created_by_fkey'
+            columns: ['created_by']
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
         ]
       }
       integration_credentials: {
@@ -114,11 +132,11 @@ export interface ExtendedDatabase extends BaseDatabase {
         }
         Relationships: [
           {
-            foreignKeyName: "integration_credentials_integration_id_fkey"
-            columns: ["integration_id"]
-            referencedRelation: "integrations"
-            referencedColumns: ["id"]
-          }
+            foreignKeyName: 'integration_credentials_integration_id_fkey'
+            columns: ['integration_id']
+            referencedRelation: 'integrations'
+            referencedColumns: ['id']
+          },
         ]
       }
       webhook_endpoints: {
@@ -157,11 +175,11 @@ export interface ExtendedDatabase extends BaseDatabase {
         }
         Relationships: [
           {
-            foreignKeyName: "webhook_endpoints_integration_id_fkey"
-            columns: ["integration_id"]
-            referencedRelation: "integrations"
-            referencedColumns: ["id"]
-          }
+            foreignKeyName: 'webhook_endpoints_integration_id_fkey'
+            columns: ['integration_id']
+            referencedRelation: 'integrations'
+            referencedColumns: ['id']
+          },
         ]
       }
       integration_logs: {
@@ -215,23 +233,23 @@ export interface ExtendedDatabase extends BaseDatabase {
         }
         Relationships: [
           {
-            foreignKeyName: "integration_logs_integration_id_fkey"
-            columns: ["integration_id"]
-            referencedRelation: "integrations"
-            referencedColumns: ["id"]
+            foreignKeyName: 'integration_logs_integration_id_fkey'
+            columns: ['integration_id']
+            referencedRelation: 'integrations'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "integration_logs_organization_id_fkey"
-            columns: ["organization_id"]
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
+            foreignKeyName: 'integration_logs_organization_id_fkey'
+            columns: ['organization_id']
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "integration_logs_created_by_fkey"
-            columns: ["created_by"]
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
+            foreignKeyName: 'integration_logs_created_by_fkey'
+            columns: ['created_by']
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
         ]
       }
       sync_jobs: {
@@ -300,17 +318,17 @@ export interface ExtendedDatabase extends BaseDatabase {
         }
         Relationships: [
           {
-            foreignKeyName: "sync_jobs_integration_id_fkey"
-            columns: ["integration_id"]
-            referencedRelation: "integrations"
-            referencedColumns: ["id"]
+            foreignKeyName: 'sync_jobs_integration_id_fkey'
+            columns: ['integration_id']
+            referencedRelation: 'integrations'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "sync_jobs_organization_id_fkey"
-            columns: ["organization_id"]
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          }
+            foreignKeyName: 'sync_jobs_organization_id_fkey'
+            columns: ['organization_id']
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
+          },
         ]
       }
       rate_limit_buckets: {
@@ -343,11 +361,11 @@ export interface ExtendedDatabase extends BaseDatabase {
         }
         Relationships: [
           {
-            foreignKeyName: "rate_limit_buckets_integration_id_fkey"
-            columns: ["integration_id"]
-            referencedRelation: "integrations"
-            referencedColumns: ["id"]
-          }
+            foreignKeyName: 'rate_limit_buckets_integration_id_fkey'
+            columns: ['integration_id']
+            referencedRelation: 'integrations'
+            referencedColumns: ['id']
+          },
         ]
       }
     }

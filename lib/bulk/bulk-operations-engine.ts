@@ -4,13 +4,13 @@ import { promisify } from 'util'
 import Papa from 'papaparse'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
-import type { Database } from '@/types/database.types'
-import type { 
-  BulkOperationStatus, 
-  BulkOperationConfig, 
-  BulkOperationProgress 
-} from '@/types/bulk-operations.types'
 import { isFile } from '@/lib/utils/file'
+import type {
+  BulkOperationConfig,
+  BulkOperationProgress,
+  BulkOperationStatus,
+} from '@/types/bulk-operations.types'
+import type { Database } from '@/types/database.types'
 
 const pipelineAsync = promisify(pipeline)
 
@@ -19,16 +19,17 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
 
 // Node.js version check for Readable.fromWeb support (available from 16.5.0)
 const versionMatch = process.version.match(/^v(\d+)\.(\d+)\.(\d+)/)
-const nodeVersion = versionMatch 
+const nodeVersion = versionMatch
   ? {
       major: parseInt(versionMatch[1], 10),
       minor: parseInt(versionMatch[2], 10),
-      patch: parseInt(versionMatch[3], 10)
+      patch: parseInt(versionMatch[3], 10),
     }
   : null
 
-const hasReadableFromWeb = nodeVersion 
-  ? nodeVersion.major > 16 || (nodeVersion.major === 16 && nodeVersion.minor >= 5)
+const hasReadableFromWeb = nodeVersion
+  ? nodeVersion.major > 16 ||
+    (nodeVersion.major === 16 && nodeVersion.minor >= 5)
   : false
 
 export class BulkOperationsEngine extends EventEmitter {
@@ -55,7 +56,9 @@ export class BulkOperationsEngine extends EventEmitter {
 
     // Validate file size
     if (isFile(file) && file.size > MAX_FILE_SIZE) {
-      throw new Error(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`)
+      throw new Error(
+        `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
+      )
     }
 
     // Get user's organization
@@ -99,13 +102,13 @@ export class BulkOperationsEngine extends EventEmitter {
       abortController.signal
     ).catch((err) => {
       console.error(`Bulk operation ${operation.id} failed:`, err)
-      this.updateOperationStatus(operation.id, 'failed', { 
+      this.updateOperationStatus(operation.id, 'failed', {
         error_log: [
           {
             message: err instanceof Error ? err.message : 'Unknown error',
             timestamp: new Date().toISOString(),
-          }
-        ]
+          },
+        ],
       })
     })
 
@@ -194,7 +197,8 @@ export class BulkOperationsEngine extends EventEmitter {
       quoteChar: '"',
       escapeChar: '"',
       skipEmptyLines: true,
-      transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_'),
+      transformHeader: (header) =>
+        header.trim().toLowerCase().replace(/\s+/g, '_'),
       transform: (value) => {
         // Trim whitespace and handle empty values
         const trimmed = value.trim()
@@ -217,18 +221,18 @@ export class BulkOperationsEngine extends EventEmitter {
             if (result.data && result.data[0]) {
               headers = result.data[0] as string[]
               // Remove any empty headers
-              headers = headers.filter(h => h && h.length > 0)
+              headers = headers.filter((h) => h && h.length > 0)
             }
             continue
           }
 
           const result = Papa.parse(line, parseConfig)
           const row = result.data[0]
-          
+
           if (row && Array.isArray(row) && row.length > 0) {
             const data: Record<string, any> = {}
             let hasValidData = false
-            
+
             headers.forEach((header, index) => {
               if (index < row.length) {
                 const mappedHeader = config.mapping?.[header] || header
@@ -253,11 +257,11 @@ export class BulkOperationsEngine extends EventEmitter {
         if (buffer && headers) {
           const result = Papa.parse(buffer, parseConfig)
           const row = result.data[0]
-          
+
           if (row && Array.isArray(row) && row.length > 0) {
             const data: Record<string, any> = {}
             let hasValidData = false
-            
+
             headers.forEach((header, index) => {
               if (index < row.length) {
                 const mappedHeader = config.mapping?.[header] || header
@@ -328,7 +332,7 @@ export class BulkOperationsEngine extends EventEmitter {
       console.warn(`chunkSize ${chunkSize} exceeds maximum, capping at 1000`)
       chunkSize = 1000
     }
-    
+
     let chunk: any[] = []
     let totalProcessed = 0
     let totalSuccess = 0
@@ -764,7 +768,11 @@ class InventoryProcessor extends EntityProcessor {
     notes: z.string().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
+  async process(
+    record: any,
+    config: BulkOperationConfig,
+    supabase: SupabaseClient
+  ) {
     // Implementation for inventory processing
     const { sku, warehouse_code, quantity, reason, notes } = record.data
 
@@ -830,7 +838,11 @@ class ProductProcessor extends EntityProcessor {
     price: z.number().positive().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
+  async process(
+    record: any,
+    config: BulkOperationConfig,
+    supabase: SupabaseClient
+  ) {
     const { sku, name, description, category, price } = record.data
 
     // Get organization_id from config
@@ -889,7 +901,11 @@ class PricingProcessor extends EntityProcessor {
     min_quantity: z.number().int().min(1).optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
+  async process(
+    record: any,
+    config: BulkOperationConfig,
+    supabase: SupabaseClient
+  ) {
     // Implementation for pricing processing
     const { sku, price_tier, price, min_quantity } = record.data
 
@@ -945,7 +961,11 @@ class CustomerProcessor extends EntityProcessor {
     price_tier: z.string().optional(),
   })
 
-  async process(record: any, config: BulkOperationConfig, supabase: SupabaseClient) {
+  async process(
+    record: any,
+    config: BulkOperationConfig,
+    supabase: SupabaseClient
+  ) {
     const { email, name, company, price_tier } = record.data
 
     // Get organization_id from config

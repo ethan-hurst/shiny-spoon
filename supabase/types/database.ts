@@ -14,7 +14,13 @@ export interface Database {
           id: string
           organization_id: string
           name: string
-          platform: 'netsuite' | 'shopify' | 'quickbooks' | 'sap' | 'dynamics365' | 'custom'
+          platform:
+            | 'netsuite'
+            | 'shopify'
+            | 'quickbooks'
+            | 'sap'
+            | 'dynamics365'
+            | 'custom'
           description: string | null
           status: 'active' | 'inactive' | 'error' | 'configuring' | 'suspended'
           last_sync_at: string | null
@@ -31,7 +37,13 @@ export interface Database {
           id?: string
           organization_id: string
           name: string
-          platform: 'netsuite' | 'shopify' | 'quickbooks' | 'sap' | 'dynamics365' | 'custom'
+          platform:
+            | 'netsuite'
+            | 'shopify'
+            | 'quickbooks'
+            | 'sap'
+            | 'dynamics365'
+            | 'custom'
           description?: string | null
           status?: 'active' | 'inactive' | 'error' | 'configuring' | 'suspended'
           last_sync_at?: string | null
@@ -39,7 +51,12 @@ export interface Database {
           error_count?: number
           config?: Json
           sync_settings?: Json
-          credential_type?: 'oauth2' | 'api_key' | 'basic_auth' | 'custom' | null
+          credential_type?:
+            | 'oauth2'
+            | 'api_key'
+            | 'basic_auth'
+            | 'custom'
+            | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -48,7 +65,13 @@ export interface Database {
           id?: string
           organization_id?: string
           name?: string
-          platform?: 'netsuite' | 'shopify' | 'quickbooks' | 'sap' | 'dynamics365' | 'custom'
+          platform?:
+            | 'netsuite'
+            | 'shopify'
+            | 'quickbooks'
+            | 'sap'
+            | 'dynamics365'
+            | 'custom'
           description?: string | null
           status?: 'active' | 'inactive' | 'error' | 'configuring' | 'suspended'
           last_sync_at?: string | null
@@ -56,7 +79,12 @@ export interface Database {
           error_count?: number
           config?: Json
           sync_settings?: Json
-          credential_type?: 'oauth2' | 'api_key' | 'basic_auth' | 'custom' | null
+          credential_type?:
+            | 'oauth2'
+            | 'api_key'
+            | 'basic_auth'
+            | 'custom'
+            | null
           created_at?: string
           updated_at?: string
           created_by?: string | null

@@ -1,9 +1,9 @@
-import { z } from 'zod'
-import Papa from 'papaparse'
-import { productSchema } from '@/lib/validations/product'
 import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '@/types/database.types'
+import Papa from 'papaparse'
+import { z } from 'zod'
 import { escapeCSVField } from '@/lib/utils/csv'
+import { productSchema } from '@/lib/validations/product'
+import { Database } from '@/types/database.types'
 
 export interface CSVParseResult {
   success: boolean
@@ -24,7 +24,10 @@ export interface ProductImportRow {
 }
 
 const csvRowSchema = z.object({
-  sku: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Invalid SKU format'),
+  sku: z
+    .string()
+    .min(1)
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Invalid SKU format'),
   name: z.string().min(1),
   description: z.string().optional(),
   category: z.string().optional(),
@@ -36,7 +39,7 @@ const csvRowSchema = z.object({
 export function parseProductCSV(csvContent: string): CSVParseResult {
   const errors: string[] = []
   const validRows: ProductImportRow[] = []
-  
+
   // Parse CSV using papaparse
   const parseResult = Papa.parse(csvContent, {
     header: true,
@@ -50,12 +53,12 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
           errors.push(`Row ${(error.row || 0) + 2}: ${error.message}`)
         })
       }
-    }
+    },
   })
 
   // Validate parsed data
   const data = parseResult.data as any[]
-  
+
   if (data.length === 0) {
     return {
       success: false,
@@ -66,8 +69,8 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
   // Check required headers
   const headers = parseResult.meta.fields || []
   const requiredHeaders = ['sku', 'name', 'base_price']
-  const missingHeaders = requiredHeaders.filter(h => !headers.includes(h))
-  
+  const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h))
+
   if (missingHeaders.length > 0) {
     return {
       success: false,
@@ -79,22 +82,28 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
   if (data.length > 5000) {
     return {
       success: false,
-      errors: ['CSV file contains more than 5000 rows. Please split into smaller files.'],
+      errors: [
+        'CSV file contains more than 5000 rows. Please split into smaller files.',
+      ],
     }
   }
 
   // Parse and validate each row
   data.forEach((row, index) => {
     const rowNumber = index + 2 // Account for header row
-    
+
     try {
       const rowData: any = {}
 
       // Process each field
       headers.forEach((header) => {
         const value = row[header]?.toString().trim()
-        
-        if (header === 'base_price' || header === 'cost' || header === 'weight') {
+
+        if (
+          header === 'base_price' ||
+          header === 'cost' ||
+          header === 'weight'
+        ) {
           rowData[header] = value ? parseFloat(value) : undefined
         } else {
           rowData[header] = value || undefined
@@ -103,7 +112,7 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
 
       // Validate row data
       const result = csvRowSchema.safeParse(rowData)
-      
+
       if (result.success) {
         validRows.push(result.data)
       } else {
@@ -126,7 +135,6 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
   }
 }
 
-
 /**
  * Generates a CSV template string for product imports with headers and sample rows.
  *
@@ -134,16 +142,50 @@ export function parseProductCSV(csvContent: string): CSVParseResult {
  * @returns A CSV-formatted string containing headers and three sample product rows.
  */
 export function generateProductCSVTemplate(): string {
-  const headers = ['sku', 'name', 'description', 'category', 'base_price', 'cost', 'weight']
+  const headers = [
+    'sku',
+    'name',
+    'description',
+    'category',
+    'base_price',
+    'cost',
+    'weight',
+  ]
   const sampleRows = [
-    ['WIDGET-001', 'Premium Widget', 'High quality widget for industrial use', 'Hardware', '99.99', '45.00', '2.5'],
-    ['GADGET-002', 'Super Gadget', 'Amazing gadget with multiple features', 'Electronics', '149.99', '75.00', '1.2'],
-    ['TOOL-003', 'Professional Tool', 'Heavy duty tool for professionals', 'Tools', '299.99', '150.00', '5.0'],
+    [
+      'WIDGET-001',
+      'Premium Widget',
+      'High quality widget for industrial use',
+      'Hardware',
+      '99.99',
+      '45.00',
+      '2.5',
+    ],
+    [
+      'GADGET-002',
+      'Super Gadget',
+      'Amazing gadget with multiple features',
+      'Electronics',
+      '149.99',
+      '75.00',
+      '1.2',
+    ],
+    [
+      'TOOL-003',
+      'Professional Tool',
+      'Heavy duty tool for professionals',
+      'Tools',
+      '299.99',
+      '150.00',
+      '5.0',
+    ],
   ]
 
   const csvLines = [
     headers.map(escapeCSVField).join(','),
-    ...sampleRows.map(row => row.map(cell => escapeCSVField(cell)).join(','))
+    ...sampleRows.map((row) =>
+      row.map((cell) => escapeCSVField(cell)).join(',')
+    ),
   ]
 
   return csvLines.join('\n')
@@ -155,13 +197,15 @@ export async function validateProductsForImport(
   supabase: SupabaseClient<Database>
 ): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = []
-  
+
   // Check for duplicate SKUs within the import
-  const skus = products.map(p => p.sku)
+  const skus = products.map((p) => p.sku)
   const duplicateSkus = skus.filter((sku, index) => skus.indexOf(sku) !== index)
-  
+
   if (duplicateSkus.length > 0) {
-    errors.push(`Duplicate SKUs in import: ${[...new Set(duplicateSkus)].join(', ')}`)
+    errors.push(
+      `Duplicate SKUs in import: ${[...new Set(duplicateSkus)].join(', ')}`
+    )
   }
 
   // Check for existing SKUs in database

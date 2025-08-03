@@ -1,9 +1,8 @@
 // Helper methods for ShopifyConnector to reduce class size
 
-import type { SyncOptions } from '@/lib/integrations/base-connector'
+import type { BaseLogger, SyncOptions } from '@/lib/integrations/base-connector'
 import { ShopifyApiClient } from './api-client'
 import type { ShopifyTransformers } from './transformers'
-import type { BaseLogger } from '@/lib/integrations/base-connector'
 
 export interface IncrementalSyncHelperOptions {
   client: ShopifyApiClient
@@ -33,14 +32,14 @@ export async function incrementalSyncProducts(
   options?: SyncOptions
 ): Promise<{ processed: number; failed: number; errors: Error[] }> {
   helpers.logger.info('Starting incremental product sync')
-  
+
   let cursor = syncState?.sync_cursor
   let hasNextPage = true
   let totalProcessed = 0
   let totalFailed = 0
   const errors: Error[] = []
 
-  while (hasNextPage && (!options?.signal?.aborted)) {
+  while (hasNextPage && !options?.signal?.aborted) {
     const query = `
       query GetProducts($cursor: String) {
         products(first: ${options?.limit || 50}, after: $cursor) {
@@ -57,8 +56,8 @@ export async function incrementalSyncProducts(
       }
     `
 
-    const result = await helpers.withRateLimit(
-      () => helpers.client.query(query, { cursor })
+    const result = await helpers.withRateLimit(() =>
+      helpers.client.query(query, { cursor })
     )
 
     const products = result.data?.products
@@ -73,7 +72,7 @@ export async function incrementalSyncProducts(
         if (options?.dryRun) {
           helpers.logger.info('Dry run: Would sync product', {
             id: edge.node.id,
-            title: edge.node.title
+            title: edge.node.title,
           })
         } else {
           const transformed = helpers.transformers.transformProduct(edge.node)
@@ -85,7 +84,7 @@ export async function incrementalSyncProducts(
         // Emit progress
         if (totalProcessed % 10 === 0) {
           // Estimate total based on current progress and pagination
-          const estimatedTotal = hasNextPage 
+          const estimatedTotal = hasNextPage
             ? totalProcessed + Math.max(products.edges.length, 50)
             : totalProcessed
           helpers.emitProgress(totalProcessed, estimatedTotal)
@@ -95,7 +94,7 @@ export async function incrementalSyncProducts(
         errors.push(error as Error)
         helpers.logger.error('Failed to sync product', {
           productId: edge.node.id,
-          error
+          error,
         })
       }
     }
@@ -117,13 +116,13 @@ export async function incrementalSyncProducts(
       last_sync_at: new Date(),
       total_synced: totalProcessed,
       total_failed: totalFailed,
-      last_error: errors.length > 0 ? errors[0].message : null
+      last_error: errors.length > 0 ? errors[0].message : null,
     })
   }
 
   return {
     processed: totalProcessed,
     failed: totalFailed,
-    errors
+    errors,
   }
 }

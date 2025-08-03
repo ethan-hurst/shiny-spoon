@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { withAPIRateLimit } from '@/lib/rate-limit'
-import { rateLimiters } from '@/lib/rate-limit'
+import { rateLimiters, withAPIRateLimit } from '@/lib/rate-limit'
 import { APIKeyManager } from '@/lib/security/api-key-manager'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +21,7 @@ export async function GET(request: NextRequest) {
     const apiKeys = await apiKeyManager.listAPIKeys('current')
 
     return NextResponse.json({
-      data: apiKeys.map(key => ({
+      data: apiKeys.map((key) => ({
         id: key.id,
         name: key.name,
         permissions: key.permissions,
@@ -30,10 +29,9 @@ export async function GET(request: NextRequest) {
         lastUsedAt: key.last_used_at,
         createdAt: key.created_at,
         isActive: key.is_active,
-        rateLimit: key.rate_limit
-      }))
+        rateLimit: key.rate_limit,
+      })),
     })
-
   } catch (error) {
     console.error('API Keys GET error:', error)
     return NextResponse.json(
@@ -72,21 +70,23 @@ export async function POST(request: NextRequest) {
       name,
       permissions,
       expiresAt: body.expiresAt,
-      rateLimit: body.rateLimit || 1000
+      rateLimit: body.rateLimit || 1000,
     })
 
-    return NextResponse.json({
-      data: {
-        id: apiKey.id,
-        name: apiKey.name,
-        key: apiKey.key, // Only returned on creation
-        permissions: apiKey.permissions,
-        expiresAt: apiKey.expires_at,
-        rateLimit: apiKey.rate_limit,
-        createdAt: apiKey.created_at
-      }
-    }, { status: 201 })
-
+    return NextResponse.json(
+      {
+        data: {
+          id: apiKey.id,
+          name: apiKey.name,
+          key: apiKey.key, // Only returned on creation
+          permissions: apiKey.permissions,
+          expiresAt: apiKey.expires_at,
+          rateLimit: apiKey.rate_limit,
+          createdAt: apiKey.created_at,
+        },
+      },
+      { status: 201 }
+    )
   } catch (error) {
     console.error('API Keys POST error:', error)
     return NextResponse.json(
@@ -94,4 +94,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-} 
+}

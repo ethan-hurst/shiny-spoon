@@ -5,7 +5,8 @@ import PageWrapper from '@/components/wrapper/page-wrapper'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - TruthSource',
-  description: 'Learn how TruthSource collects, uses, and protects your data. Our commitment to privacy and data security.',
+  description:
+    'Learn how TruthSource collects, uses, and protects your data. Our commitment to privacy and data security.',
 }
 
 export default function PrivacyPage() {
@@ -17,18 +18,18 @@ export default function PrivacyPage() {
         downloadUrl="/legal/privacy-policy.pdf"
       >
         <TableOfContents />
-        
+
         <div className="prose prose-gray max-w-none">
           <h2 id="introduction">1. Introduction</h2>
           <p>
-            TruthSource ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service.
+            TruthSource ("we," "our," or "us") is committed to protecting your
+            privacy. This Privacy Policy explains how we collect, use, disclose,
+            and safeguard your information when you use our service.
           </p>
 
           <h2 id="information-collected">2. Information We Collect</h2>
           <h3 id="personal-information">Personal Information</h3>
-          <p>
-            We collect information you provide directly to us, such as:
-          </p>
+          <p>We collect information you provide directly to us, such as:</p>
           <ul>
             <li>Name and contact information</li>
             <li>Company details</li>
@@ -37,9 +38,7 @@ export default function PrivacyPage() {
           </ul>
 
           <h3 id="business-data">Business Data</h3>
-          <p>
-            To provide our services, we process:
-          </p>
+          <p>To provide our services, we process:</p>
           <ul>
             <li>Inventory data</li>
             <li>Pricing information</li>
@@ -48,9 +47,7 @@ export default function PrivacyPage() {
           </ul>
 
           <h3 id="usage-data">Usage Data</h3>
-          <p>
-            We automatically collect:
-          </p>
+          <p>We automatically collect:</p>
           <ul>
             <li>Log data and IP addresses</li>
             <li>Browser type and version</li>
@@ -59,9 +56,7 @@ export default function PrivacyPage() {
           </ul>
 
           <h2 id="how-we-use">3. How We Use Your Information</h2>
-          <p>
-            We use the information we collect to:
-          </p>
+          <p>We use the information we collect to:</p>
           <ul>
             <li>Provide, maintain, and improve our services</li>
             <li>Process transactions and send related information</li>
@@ -73,7 +68,8 @@ export default function PrivacyPage() {
 
           <h2 id="data-sharing">4. Information Sharing and Disclosure</h2>
           <p>
-            We do not sell, trade, or rent your personal information. We may share your information only in the following circumstances:
+            We do not sell, trade, or rent your personal information. We may
+            share your information only in the following circumstances:
           </p>
           <ul>
             <li>With your consent</li>
@@ -85,7 +81,8 @@ export default function PrivacyPage() {
 
           <h2 id="data-security">5. Data Security</h2>
           <p>
-            We implement appropriate technical and organizational measures to protect your data:
+            We implement appropriate technical and organizational measures to
+            protect your data:
           </p>
           <ul>
             <li>256-bit SSL encryption for data in transit</li>
@@ -97,13 +94,14 @@ export default function PrivacyPage() {
 
           <h2 id="data-retention">6. Data Retention</h2>
           <p>
-            We retain your information for as long as necessary to provide our services and comply with legal obligations. When you close your account, we will delete or anonymize your data within 90 days, unless required to retain it for legal reasons.
+            We retain your information for as long as necessary to provide our
+            services and comply with legal obligations. When you close your
+            account, we will delete or anonymize your data within 90 days,
+            unless required to retain it for legal reasons.
           </p>
 
           <h2 id="your-rights">7. Your Rights</h2>
-          <p>
-            You have the right to:
-          </p>
+          <p>You have the right to:</p>
           <ul>
             <li>Access your personal information</li>
             <li>Correct inaccurate data</li>
@@ -115,7 +113,8 @@ export default function PrivacyPage() {
 
           <h2 id="gdpr">8. GDPR Compliance</h2>
           <p>
-            For users in the European Economic Area (EEA), we comply with the General Data Protection Regulation (GDPR). We process data based on:
+            For users in the European Economic Area (EEA), we comply with the
+            General Data Protection Regulation (GDPR). We process data based on:
           </p>
           <ul>
             <li>Your consent</li>
@@ -126,31 +125,41 @@ export default function PrivacyPage() {
 
           <h2 id="cookies">9. Cookies and Tracking</h2>
           <p>
-            We use cookies and similar tracking technologies to improve your experience. You can control cookies through your browser settings. See our Cookie Policy for more details.
+            We use cookies and similar tracking technologies to improve your
+            experience. You can control cookies through your browser settings.
+            See our Cookie Policy for more details.
           </p>
 
           <h2 id="children">10. Children's Privacy</h2>
           <p>
-            Our Service is not intended for children under 18. We do not knowingly collect personal information from children.
+            Our Service is not intended for children under 18. We do not
+            knowingly collect personal information from children.
           </p>
 
           <h2 id="international">11. International Data Transfers</h2>
           <p>
-            Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers.
+            Your information may be transferred to and processed in countries
+            other than your own. We ensure appropriate safeguards are in place
+            for such transfers.
           </p>
 
           <h2 id="changes">12. Changes to This Policy</h2>
           <p>
-            We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page and updating the "Last Updated" date.
+            We may update this Privacy Policy from time to time. We will notify
+            you of any changes by posting the new policy on this page and
+            updating the "Last Updated" date.
           </p>
 
           <h2 id="contact-privacy">13. Contact Us</h2>
           <p>
-            If you have questions about this Privacy Policy, please contact us at:
+            If you have questions about this Privacy Policy, please contact us
+            at:
           </p>
           <ul>
             <li>Email: privacy@truthsource.io</li>
-            <li>Address: 123 Market Street, Suite 100, San Francisco, CA 94105</li>
+            <li>
+              Address: 123 Market Street, Suite 100, San Francisco, CA 94105
+            </li>
             <li>Data Protection Officer: dpo@truthsource.io</li>
           </ul>
         </div>

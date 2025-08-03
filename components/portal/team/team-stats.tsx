@@ -1,5 +1,5 @@
+import { Clock, Shield, UserCheck, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, UserCheck, Shield, Clock } from 'lucide-react'
 
 interface TeamStatsProps {
   stats: {
@@ -52,7 +52,9 @@ export function TeamStats({ stats }: TeamStatsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{item.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {item.description}
+            </p>
           </CardContent>
         </Card>
       ))}

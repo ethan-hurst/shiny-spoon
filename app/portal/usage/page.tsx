@@ -1,15 +1,17 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getSubscription, getUsageStats } from '@/lib/billing'
-import { UsageOverview } from '@/components/portal/usage/usage-overview'
-import { UsageChart } from '@/components/portal/usage/usage-chart'
-import { UsageBreakdown } from '@/components/portal/usage/usage-breakdown'
 import { UsageAlerts } from '@/components/portal/usage/usage-alerts'
+import { UsageBreakdown } from '@/components/portal/usage/usage-breakdown'
+import { UsageChart } from '@/components/portal/usage/usage-chart'
+import { UsageOverview } from '@/components/portal/usage/usage-overview'
+import { getSubscription, getUsageStats } from '@/lib/billing'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function UsagePage() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -44,11 +46,15 @@ export default async function UsagePage() {
     .gte('created_at', new Date(new Date().setDate(1)).toISOString()) // Current month
 
   // Process API breakdown data
-  const endpointCounts = apiBreakdown?.reduce((acc, call) => {
-    const key = `${call.method} ${call.endpoint}`
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {} as Record<string, number>) || {}
+  const endpointCounts =
+    apiBreakdown?.reduce(
+      (acc, call) => {
+        const key = `${call.method} ${call.endpoint}`
+        acc[key] = (acc[key] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    ) || {}
 
   const topEndpoints = Object.entries(endpointCounts)
     .sort(([, a], [, b]) => b - a)
@@ -67,17 +73,14 @@ export default async function UsagePage() {
       <UsageAlerts usage={currentUsage} subscription={subscription} />
 
       <div className="grid gap-6">
-        <UsageOverview 
-          usage={currentUsage} 
-          subscription={subscription}
-        />
+        <UsageOverview usage={currentUsage} subscription={subscription} />
 
-        <UsageChart 
+        <UsageChart
           historicalUsage={historicalUsage || []}
           currentUsage={currentUsage}
         />
 
-        <UsageBreakdown 
+        <UsageBreakdown
           topEndpoints={topEndpoints}
           totalApiCalls={currentUsage.apiCalls.current}
         />

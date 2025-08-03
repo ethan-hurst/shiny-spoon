@@ -37,4 +37,3 @@ export function DashboardHeader({ rightExtras }: DashboardHeaderProps) {
     </header>
   )
 }
-

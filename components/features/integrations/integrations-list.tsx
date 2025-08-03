@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import type { IntegrationFull } from '@/types/integration.types'
 import { IntegrationItem } from './integration-item'
 
@@ -55,11 +55,17 @@ const syncIntegration = async (id: string, signal?: AbortSignal) => {
   return response.json()
 }
 
-const updateIntegrationStatus = async ({ id, status }: { id: string; status: string }) => {
+const updateIntegrationStatus = async ({
+  id,
+  status,
+}: {
+  id: string
+  status: string
+}) => {
   const csrfToken = getCSRFToken()
   const response = await fetch(`/api/integrations/${id}`, {
     method: 'PATCH',
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
       'x-csrf-token': csrfToken || '',
     },
@@ -100,7 +106,7 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  
+
   // Ref to store abort controller for sync requests
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -116,7 +122,7 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
 
   // Sync mutation
   const syncMutation = useMutation({
-    mutationFn: ({ id, signal }: { id: string; signal: AbortSignal }) => 
+    mutationFn: ({ id, signal }: { id: string; signal: AbortSignal }) =>
       syncIntegration(id, signal),
     onSuccess: (data) => {
       toast.success(data.message || 'Sync started successfully')
@@ -141,7 +147,9 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
     mutationFn: updateIntegrationStatus,
     onSuccess: (_, variables) => {
       const newStatus = variables.status
-      toast.success(`Integration ${newStatus === 'active' ? 'activated' : 'paused'}`)
+      toast.success(
+        `Integration ${newStatus === 'active' ? 'activated' : 'paused'}`
+      )
       // Invalidate and refetch integrations
       queryClient.invalidateQueries({ queryKey: ['integrations'] })
       router.refresh()
@@ -174,11 +182,11 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
-    
+
     // Create new abort controller for this request
     const abortController = new AbortController()
     abortControllerRef.current = abortController
-    
+
     // Start the sync with the abort signal
     syncMutation.mutate({ id, signal: abortController.signal })
   }
@@ -217,9 +225,12 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
             onToggleStatus={handleToggleStatus}
             onDelete={setDeleteId}
             isLoading={
-              (syncMutation.isPending && syncMutation.variables?.id === integration.id) ||
-              (statusMutation.isPending && statusMutation.variables?.id === integration.id) ||
-              (deleteMutation.isPending && deleteMutation.variables === integration.id)
+              (syncMutation.isPending &&
+                syncMutation.variables?.id === integration.id) ||
+              (statusMutation.isPending &&
+                statusMutation.variables?.id === integration.id) ||
+              (deleteMutation.isPending &&
+                deleteMutation.variables === integration.id)
             }
           />
         ))}
@@ -230,8 +241,8 @@ export function IntegrationsList({ integrations }: IntegrationsListProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Integration?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the integration and all associated data.
-              This action cannot be undone.
+              This will permanently delete the integration and all associated
+              data. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

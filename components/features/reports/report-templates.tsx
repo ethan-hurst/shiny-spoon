@@ -3,13 +3,32 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  BarChart3,
+  FileText,
+  Package,
+  Plus,
+  TrendingUp,
+  Users,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { BarChart3, FileText, Package, Users, TrendingUp, Plus } from 'lucide-react'
-import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { saveReport } from '@/app/actions/reports'
 import type { ReportTemplate } from '@/types/reports.types'
 
@@ -39,12 +58,14 @@ export function ReportTemplates({ templates }: ReportTemplatesProps) {
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all')
   const [isCreating, setIsCreating] = React.useState<string | null>(null)
 
-  const categories = Array.from(new Set(templates.map(t => t.category)))
+  const categories = Array.from(new Set(templates.map((t) => t.category)))
 
-  const filteredTemplates = templates.filter(template => {
-    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         template.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory
+  const filteredTemplates = templates.filter((template) => {
+    const matchesSearch =
+      template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      template.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory =
+      selectedCategory === 'all' || template.category === selectedCategory
     return matchesSearch && matchesCategory
   })
 
@@ -55,7 +76,7 @@ export function ReportTemplates({ templates }: ReportTemplatesProps) {
         ...template.config,
         name: `${template.name} (Copy)`,
       })
-      
+
       if (result.success) {
         toast.success('Report created from template')
         router.push(`/reports/${result.reportId}`)
@@ -85,7 +106,7 @@ export function ReportTemplates({ templates }: ReportTemplatesProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            {categories.map(category => (
+            {categories.map((category) => (
               <SelectItem key={category} value={category}>
                 {category.charAt(0).toUpperCase() + category.slice(1)}
               </SelectItem>
@@ -97,9 +118,11 @@ export function ReportTemplates({ templates }: ReportTemplatesProps) {
       {/* Templates Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredTemplates.map((template) => {
-          const Icon = categoryIcons[template.category as keyof typeof categoryIcons] || BarChart3
+          const Icon =
+            categoryIcons[template.category as keyof typeof categoryIcons] ||
+            BarChart3
           const isLoading = isCreating === template.id
-          
+
           return (
             <Card key={template.id} className="relative">
               <CardHeader className="pb-3">
@@ -108,19 +131,21 @@ export function ReportTemplates({ templates }: ReportTemplatesProps) {
                     <Icon className="h-5 w-5" />
                     <CardTitle className="text-lg">{template.name}</CardTitle>
                   </div>
-                  <Badge 
-                    variant="secondary" 
-                    className={categoryColors[template.category as keyof typeof categoryColors]}
+                  <Badge
+                    variant="secondary"
+                    className={
+                      categoryColors[
+                        template.category as keyof typeof categoryColors
+                      ]
+                    }
                   >
                     {template.category}
                   </Badge>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-4">
-                <CardDescription>
-                  {template.description}
-                </CardDescription>
+                <CardDescription>{template.description}</CardDescription>
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <span>
@@ -133,8 +158,8 @@ export function ReportTemplates({ templates }: ReportTemplatesProps) {
                   )}
                 </div>
 
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   onClick={() => handleCreateFromTemplate(template)}
                   disabled={isLoading}
                 >
@@ -156,10 +181,9 @@ export function ReportTemplates({ templates }: ReportTemplatesProps) {
       {filteredTemplates.length === 0 && (
         <div className="text-center py-12">
           <div className="text-muted-foreground">
-            {searchTerm || selectedCategory !== 'all' 
+            {searchTerm || selectedCategory !== 'all'
               ? 'No templates match your filters'
-              : 'No templates available'
-            }
+              : 'No templates available'}
           </div>
         </div>
       )}

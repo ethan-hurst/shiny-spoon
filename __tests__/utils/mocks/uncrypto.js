@@ -6,12 +6,14 @@ module.exports = {
     }
     return array
   }),
-  randomUUID: jest.fn(() => 'mock-uuid-' + Math.random().toString(36).substr(2, 9)),
+  randomUUID: jest.fn(
+    () => 'mock-uuid-' + Math.random().toString(36).substr(2, 9)
+  ),
   subtle: {
     generateKey: jest.fn(),
     sign: jest.fn(),
     verify: jest.fn(),
     encrypt: jest.fn(),
     decrypt: jest.fn(),
-  }
-} 
+  },
+}

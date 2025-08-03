@@ -1,13 +1,19 @@
 // PRP-014: Shopify Integration Configuration Page
-import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { AlertCircle, CheckCircle, ExternalLink, XCircle } from 'lucide-react'
 import { ShopifyConfigForm } from '@/components/features/integrations/shopify/shopify-config-form'
 import { ShopifySyncSettingsForm } from '@/components/features/integrations/shopify/shopify-sync-settings'
 import { ShopifySyncStatus } from '@/components/features/integrations/shopify/shopify-sync-status'
-import { AlertCircle, CheckCircle, XCircle, ExternalLink } from 'lucide-react'
-import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { createClient } from '@/lib/supabase/server'
 
 interface PageProps {
   searchParams: {
@@ -20,11 +26,16 @@ interface PageProps {
  *
  * Redirects unauthenticated users to the login page and users without a profile to onboarding. Fetches the user's organization and attempts to load an existing Shopify integration, either by ID from the query string or by organization. Displays setup instructions if no integration exists, and renders forms and controls for configuring, updating, and managing the Shopify integration, including sync settings, status, and helpful resources.
  */
-export default async function ShopifyIntegrationPage({ searchParams }: PageProps) {
+export default async function ShopifyIntegrationPage({
+  searchParams,
+}: PageProps) {
   const supabase = await createClient()
-  
+
   // Get user and validate
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError) {
     console.error('Authentication error:', authError)
     redirect('/login')
@@ -54,10 +65,12 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
   if (searchParams.id) {
     const { data, error } = await supabase
       .from('integrations')
-      .select(`
+      .select(
+        `
         *,
         shopify_config(*)
-      `)
+      `
+      )
       .eq('id', searchParams.id)
       .eq('organization_id', profile.organization_id)
       .single()
@@ -72,18 +85,21 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
     // Try to find existing Shopify integration
     const { data, error } = await supabase
       .from('integrations')
-      .select(`
+      .select(
+        `
         *,
         shopify_config(*)
-      `)
+      `
+      )
       .eq('platform', 'shopify')
       .eq('organization_id', profile.organization_id)
       .single()
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+    if (error && error.code !== 'PGRST116') {
+      // PGRST116 = no rows found
       console.error('Error fetching Shopify integration:', error)
     }
-    
+
     integration = data
   }
 
@@ -95,11 +111,14 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
         <div>
           <h1 className="text-3xl font-bold">Shopify Integration</h1>
           <p className="text-muted-foreground mt-2">
-            Connect your Shopify store to sync products, inventory, and customer pricing
+            Connect your Shopify store to sync products, inventory, and customer
+            pricing
           </p>
         </div>
         {integration && (
-          <Badge variant={integration.status === 'active' ? 'default' : 'secondary'}>
+          <Badge
+            variant={integration.status === 'active' ? 'default' : 'secondary'}
+          >
             {integration.status}
           </Badge>
         )}
@@ -121,7 +140,10 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
                 <li>Go to your Shopify admin panel</li>
                 <li>Navigate to Settings → Apps and sales channels</li>
                 <li>Click &quot;Develop apps&quot;</li>
-                <li>Create a new app with a descriptive name (e.g., &quot;TruthSource Integration&quot;)</li>
+                <li>
+                  Create a new app with a descriptive name (e.g.,
+                  &quot;TruthSource Integration&quot;)
+                </li>
               </ol>
             </div>
 
@@ -148,14 +170,14 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
                 Add the following webhook URL to your app:
               </p>
               <code className="block p-3 bg-muted rounded text-xs">
-                {process.env.NEXT_PUBLIC_URL 
+                {process.env.NEXT_PUBLIC_URL
                   ? `${process.env.NEXT_PUBLIC_URL}/api/webhooks/shopify`
-                  : '[NEXT_PUBLIC_URL not configured]/api/webhooks/shopify'
-                }
+                  : '[NEXT_PUBLIC_URL not configured]/api/webhooks/shopify'}
               </code>
               {!process.env.NEXT_PUBLIC_URL && (
                 <p className="text-sm text-destructive mt-2">
-                  Warning: NEXT_PUBLIC_URL environment variable is not set. Please configure it in your deployment settings.
+                  Warning: NEXT_PUBLIC_URL environment variable is not set.
+                  Please configure it in your deployment settings.
                 </p>
               )}
             </div>
@@ -179,30 +201,38 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
       <Card>
         <CardHeader>
           <CardTitle>
-            {isConfigured ? 'Update Configuration' : 'Configure Shopify Connection'}
+            {isConfigured
+              ? 'Update Configuration'
+              : 'Configure Shopify Connection'}
           </CardTitle>
           <CardDescription>
-            {isConfigured 
+            {isConfigured
               ? 'Update your Shopify store settings and credentials'
-              : 'Enter your Shopify store details to establish connection'
-            }
+              : 'Enter your Shopify store details to establish connection'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ShopifyConfigForm 
+          <ShopifyConfigForm
             integrationId={integration?.id}
             organizationId={profile.organization_id}
-            initialData={integration && integration.shopify_config?.length > 0 ? {
-              shop_domain: integration.shopify_config[0].shop_domain,
-              access_token: '', // Don't pre-fill sensitive data
-              webhook_secret: '', // Don't pre-fill sensitive data
-              sync_products: integration.shopify_config[0].sync_products,
-              sync_inventory: integration.shopify_config[0].sync_inventory,
-              sync_orders: integration.shopify_config[0].sync_orders,
-              sync_customers: integration.shopify_config[0].sync_customers,
-              b2b_catalog_enabled: integration.shopify_config[0].b2b_catalog_enabled,
-              sync_frequency: integration.config?.sync_frequency || 15
-            } : undefined}
+            initialData={
+              integration && integration.shopify_config?.length > 0
+                ? {
+                    shop_domain: integration.shopify_config[0].shop_domain,
+                    access_token: '', // Don't pre-fill sensitive data
+                    webhook_secret: '', // Don't pre-fill sensitive data
+                    sync_products: integration.shopify_config[0].sync_products,
+                    sync_inventory:
+                      integration.shopify_config[0].sync_inventory,
+                    sync_orders: integration.shopify_config[0].sync_orders,
+                    sync_customers:
+                      integration.shopify_config[0].sync_customers,
+                    b2b_catalog_enabled:
+                      integration.shopify_config[0].b2b_catalog_enabled,
+                    sync_frequency: integration.config?.sync_frequency || 15,
+                  }
+                : undefined
+            }
           />
         </CardContent>
       </Card>
@@ -218,7 +248,7 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ShopifySyncSettingsForm 
+              <ShopifySyncSettingsForm
                 integrationId={integration.id}
                 config={integration.shopify_config?.[0] || {}}
                 syncSettings={integration.config}
@@ -243,20 +273,18 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
           <Card>
             <CardHeader>
               <CardTitle>Resources</CardTitle>
-              <CardDescription>
-                Helpful links and documentation
-              </CardDescription>
+              <CardDescription>Helpful links and documentation</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                <Link 
+                <Link
                   href="/integrations/shopify/test"
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                 >
                   <CheckCircle className="h-4 w-4" />
                   Test Connection
                 </Link>
-                <a 
+                <a
                   href="https://shopify.dev/docs/apps"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -265,14 +293,14 @@ export default async function ShopifyIntegrationPage({ searchParams }: PageProps
                   <ExternalLink className="h-4 w-4" />
                   Shopify API Documentation
                 </a>
-                <Link 
+                <Link
                   href="/integrations"
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                 >
                   <AlertCircle className="h-4 w-4" />
                   View All Integrations
                 </Link>
-                <Link 
+                <Link
                   href="/support"
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                 >

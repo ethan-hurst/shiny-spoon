@@ -1,7 +1,14 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { Activity, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import {
   Table,
   TableBody,
   TableCell,
@@ -9,14 +16,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Activity, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 interface UsageBreakdownProps {
   topEndpoints: Array<{ endpoint: string; count: number }>
   totalApiCalls: number
 }
 
-export function UsageBreakdown({ topEndpoints, totalApiCalls }: UsageBreakdownProps) {
+export function UsageBreakdown({
+  topEndpoints,
+  totalApiCalls,
+}: UsageBreakdownProps) {
   const getMethodBadge = (endpoint: string) => {
     const method = endpoint.split(' ')[0]
     const variants: Record<string, any> = {
@@ -26,9 +35,12 @@ export function UsageBreakdown({ topEndpoints, totalApiCalls }: UsageBreakdownPr
       DELETE: 'destructive',
       PATCH: 'outline',
     }
-    
+
     return (
-      <Badge variant={variants[method] || 'outline'} className="font-mono text-xs">
+      <Badge
+        variant={variants[method] || 'outline'}
+        className="font-mono text-xs"
+      >
         {method}
       </Badge>
     )
@@ -44,7 +56,18 @@ export function UsageBreakdown({ topEndpoints, totalApiCalls }: UsageBreakdownPr
 
   // Mock trend data - in production, compare with previous period
   const getTrend = (index: number) => {
-    const trends = ['+12%', '-5%', '+3%', '0%', '+8%', '-2%', '+15%', '+1%', '-8%', '+4%']
+    const trends = [
+      '+12%',
+      '-5%',
+      '+3%',
+      '0%',
+      '+8%',
+      '-2%',
+      '+15%',
+      '+1%',
+      '-8%',
+      '+4%',
+    ]
     return trends[index] || '0%'
   }
 
@@ -127,9 +150,7 @@ export function UsageBreakdown({ topEndpoints, totalApiCalls }: UsageBreakdownPr
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
                             {getTrendIcon(trend)}
-                            <span className="text-sm font-medium">
-                              {trend}
-                            </span>
+                            <span className="text-sm font-medium">{trend}</span>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -147,15 +168,21 @@ export function UsageBreakdown({ topEndpoints, totalApiCalls }: UsageBreakdownPr
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Average</span>
+                      <span className="text-sm text-muted-foreground">
+                        Average
+                      </span>
                       <span className="text-sm font-medium">142ms</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">95th percentile</span>
+                      <span className="text-sm text-muted-foreground">
+                        95th percentile
+                      </span>
                       <span className="text-sm font-medium">312ms</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">99th percentile</span>
+                      <span className="text-sm text-muted-foreground">
+                        99th percentile
+                      </span>
                       <span className="text-sm font-medium">523ms</span>
                     </div>
                   </div>
@@ -169,15 +196,23 @@ export function UsageBreakdown({ topEndpoints, totalApiCalls }: UsageBreakdownPr
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Successful</span>
-                      <span className="text-sm font-medium text-green-600">99.8%</span>
+                      <span className="text-sm text-muted-foreground">
+                        Successful
+                      </span>
+                      <span className="text-sm font-medium text-green-600">
+                        99.8%
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Client errors (4xx)</span>
+                      <span className="text-sm text-muted-foreground">
+                        Client errors (4xx)
+                      </span>
                       <span className="text-sm font-medium">0.1%</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Server errors (5xx)</span>
+                      <span className="text-sm text-muted-foreground">
+                        Server errors (5xx)
+                      </span>
                       <span className="text-sm font-medium">0.1%</span>
                     </div>
                   </div>

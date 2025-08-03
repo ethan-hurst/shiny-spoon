@@ -1,79 +1,79 @@
 import {
-  createProductPricingSchema,
-  updateProductPricingSchema,
-  createPricingRuleSchema,
-  updatePricingRuleSchema,
+  checkRuleConflicts,
   createCustomerPricingSchema,
-  updateCustomerPricingSchema,
-  pricingRuleImportSchema,
-  productPricingImportSchema,
+  createPricingRuleSchema,
+  createProductPricingSchema,
+  formatQuantityBreaksDisplay,
+  parseQuantityBreaksCSV,
   priceCalculationRequestSchema,
   pricingRuleFiltersSchema,
-  validatePriceGreaterThanCost,
-  validateMargin,
-  validateDateRange,
-  validateQuantityBreaks,
-  parseQuantityBreaksCSV,
-  formatQuantityBreaksDisplay,
+  pricingRuleImportSchema,
+  productPricingImportSchema,
   transformPricingRuleImport,
   transformProductPricingImport,
-  checkRuleConflicts
+  updateCustomerPricingSchema,
+  updatePricingRuleSchema,
+  updateProductPricingSchema,
+  validateDateRange,
+  validateMargin,
+  validatePriceGreaterThanCost,
+  validateQuantityBreaks,
 } from '@/lib/pricing/validations'
 import {
-  customerPricingSchema,
   customerPricingBaseSchema,
-  pricingRuleSchema,
-  pricingRuleBaseSchema,
-  productPricingSchema,
-  quantityBreakSchema,
-  QuantityBreak,
+  customerPricingSchema,
   PricingRule,
+  pricingRuleBaseSchema,
+  PricingRuleRecord,
+  pricingRuleSchema,
   ProductPricing,
-  PricingRuleRecord
+  productPricingSchema,
+  QuantityBreak,
+  quantityBreakSchema,
 } from '@/types/pricing.types'
 
 // Mock dependencies
 jest.mock('@/types/pricing.types', () => ({
   customerPricingSchema: {
     parse: jest.fn(),
-    safeParse: jest.fn()
+    safeParse: jest.fn(),
   },
   customerPricingBaseSchema: {
     partial: jest.fn().mockReturnValue({
-      shape: {}
-    })
+      shape: {},
+    }),
   },
   pricingRuleSchema: {
     shape: {},
     parse: jest.fn(),
-    safeParse: jest.fn()
+    safeParse: jest.fn(),
   },
   pricingRuleBaseSchema: {
     partial: jest.fn().mockReturnValue({
-      shape: {}
-    })
+      shape: {},
+    }),
   },
   productPricingSchema: {
     extend: jest.fn().mockReturnValue({
       refine: jest.fn().mockReturnValue({
         parse: jest.fn(),
-        safeParse: jest.fn()
-      })
+        safeParse: jest.fn(),
+      }),
     }),
     partial: jest.fn().mockReturnValue({
       extend: jest.fn().mockReturnValue({
         parse: jest.fn(),
-        safeParse: jest.fn()
-      })
+        safeParse: jest.fn(),
+      }),
     }),
     parse: jest.fn(),
-    safeParse: jest.fn()
+    safeParse: jest.fn(),
   },
   quantityBreakSchema: {
     shape: {},
     parse: jest.fn(),
-    safeParse: jest.fn()
-  }
+    safeParse: jest.fn(),
+  },
 }))
 
 describe('Pricing Validations', () => {
@@ -84,7 +84,7 @@ describe('Pricing Validations', () => {
     min_margin_percent: 20,
     currency: 'USD',
     pricing_unit: 'EACH' as const,
-    unit_quantity: 1
+    unit_quantity: 1,
   }
 
   const validPricingRule = {
@@ -94,14 +94,14 @@ describe('Pricing Validations', () => {
     priority: 100,
     discount_type: 'percentage' as const,
     discount_value: 10,
-    is_active: true
+    is_active: true,
   }
 
   const validCustomerPricing = {
     customer_id: '123e4567-e89b-12d3-a456-426614174000',
     product_id: '987e6543-e21b-12d3-a456-426614174000',
     override_price: 85,
-    contract_number: 'CONT-2024-001'
+    contract_number: 'CONT-2024-001',
   }
 
   const validQuantityBreaks: QuantityBreak[] = [
@@ -110,34 +110,36 @@ describe('Pricing Validations', () => {
       max_quantity: 10,
       discount_type: 'percentage' as const,
       discount_value: 5,
-      sort_order: 0
+      sort_order: 0,
     },
     {
       min_quantity: 11,
       max_quantity: 50,
       discount_type: 'percentage' as const,
       discount_value: 10,
-      sort_order: 1
+      sort_order: 1,
     },
     {
       min_quantity: 51,
       discount_type: 'percentage' as const,
       discount_value: 15,
-      sort_order: 2
-    }
+      sort_order: 2,
+    },
   ]
 
   describe('createProductPricingSchema', () => {
     it('should validate product pricing with positive margin', () => {
       const mockRefine = jest.fn().mockReturnValue({
         parse: jest.fn().mockReturnValue(validProductPricing),
-        safeParse: jest.fn().mockReturnValue({ success: true, data: validProductPricing })
+        safeParse: jest
+          .fn()
+          .mockReturnValue({ success: true, data: validProductPricing }),
       })
       const mockExtend = jest.fn().mockReturnValue({
-        refine: mockRefine
+        refine: mockRefine,
       })
       ;(productPricingSchema.extend as jest.Mock).mockReturnValue({
-        refine: mockRefine
+        refine: mockRefine,
       })
 
       const result = createProductPricingSchema.safeParse(validProductPricing)
@@ -149,7 +151,7 @@ describe('Pricing Validations', () => {
       const invalidPricing = {
         ...validProductPricing,
         base_price: 40, // Less than cost of 50
-        cost: 50
+        cost: 50,
       }
 
       const mockRefine = jest.fn().mockImplementation((refineFn, options) => ({
@@ -157,12 +159,12 @@ describe('Pricing Validations', () => {
           const isValid = refineFn(data)
           return {
             success: isValid,
-            error: isValid ? undefined : { message: options.message }
+            error: isValid ? undefined : { message: options.message },
           }
-        })
+        }),
       }))
       ;(productPricingSchema.extend as jest.Mock).mockReturnValue({
-        refine: mockRefine
+        refine: mockRefine,
       })
 
       const result = createProductPricingSchema.safeParse(invalidPricing)
@@ -174,7 +176,7 @@ describe('Pricing Validations', () => {
       const equalPricing = {
         ...validProductPricing,
         base_price: 50,
-        cost: 50
+        cost: 50,
       }
 
       const result = createProductPricingSchema.safeParse(equalPricing)
@@ -189,7 +191,7 @@ describe('Pricing Validations', () => {
     it('should make all fields optional except id', () => {
       const updateData = {
         id: '123e4567-e89b-12d3-a456-426614174000',
-        base_price: 120
+        base_price: 120,
       }
 
       const result = updateProductPricingSchema.safeParse(updateData)
@@ -202,7 +204,7 @@ describe('Pricing Validations', () => {
     it('should accept pricing rule with quantity breaks', () => {
       const ruleWithBreaks = {
         ...validPricingRule,
-        quantity_breaks: validQuantityBreaks
+        quantity_breaks: validQuantityBreaks,
       }
 
       const result = createPricingRuleSchema.safeParse(ruleWithBreaks)
@@ -223,9 +225,9 @@ describe('Pricing Validations', () => {
           {
             min_quantity: 'invalid', // Should be number
             discount_type: 'percentage',
-            discount_value: 10
-          }
-        ]
+            discount_value: 10,
+          },
+        ],
       }
 
       const result = createPricingRuleSchema.safeParse(ruleWithInvalidBreaks)
@@ -247,16 +249,16 @@ describe('Pricing Validations', () => {
             discount_type: 'percentage' as const,
             discount_value: 8,
             sort_order: 0,
-            _action: 'update' as const
+            _action: 'update' as const,
           },
           {
             min_quantity: 16,
             discount_type: 'percentage' as const,
             discount_value: 12,
             sort_order: 1,
-            _action: 'create' as const
-          }
-        ]
+            _action: 'create' as const,
+          },
+        ],
       }
 
       const result = updatePricingRuleSchema.safeParse(updateData)
@@ -273,9 +275,9 @@ describe('Pricing Validations', () => {
             discount_type: 'percentage' as const,
             discount_value: 10,
             sort_order: 0,
-            _action: 'invalid_action'
-          }
-        ]
+            _action: 'invalid_action',
+          },
+        ],
       }
 
       const result = updatePricingRuleSchema.safeParse(invalidActionData)
@@ -288,11 +290,11 @@ describe('Pricing Validations', () => {
     it('should validate customer pricing data', () => {
       const mockSafeParse = jest.fn().mockReturnValue({
         success: true,
-        data: validCustomerPricing
+        data: validCustomerPricing,
       })
       ;(customerPricingSchema.safeParse as jest.Mock).mockReturnValue({
         success: true,
-        data: validCustomerPricing
+        data: validCustomerPricing,
       })
 
       const result = createCustomerPricingSchema.safeParse(validCustomerPricing)
@@ -305,7 +307,7 @@ describe('Pricing Validations', () => {
     it('should make fields optional except id', () => {
       const updateData = {
         id: '123e4567-e89b-12d3-a456-426614174000',
-        override_price: 90
+        override_price: 90,
       }
 
       const result = updateCustomerPricingSchema.safeParse(updateData)
@@ -328,7 +330,7 @@ describe('Pricing Validations', () => {
         is_active: true,
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        quantity_breaks: '1-10:5%;11-50:10%;51+:15%'
+        quantity_breaks: '1-10:5%;11-50:10%;51+:15%',
       }
 
       it('should validate complete import data', () => {
@@ -340,7 +342,7 @@ describe('Pricing Validations', () => {
       it('should require minimum fields', () => {
         const minimalRule = {
           name: 'Minimal Rule',
-          rule_type: 'tier' as const
+          rule_type: 'tier' as const,
         }
 
         const result = pricingRuleImportSchema.safeParse(minimalRule)
@@ -351,7 +353,7 @@ describe('Pricing Validations', () => {
       it('should validate rule_type enum', () => {
         const invalidTypeRule = {
           name: 'Invalid Type Rule',
-          rule_type: 'invalid_type'
+          rule_type: 'invalid_type',
         }
 
         const result = pricingRuleImportSchema.safeParse(invalidTypeRule)
@@ -370,7 +372,7 @@ describe('Pricing Validations', () => {
         pricing_unit: 'EACH' as const,
         unit_quantity: 1,
         effective_date: '2024-01-01',
-        expiry_date: '2024-12-31'
+        expiry_date: '2024-12-31',
       }
 
       it('should validate complete import data', () => {
@@ -383,7 +385,7 @@ describe('Pricing Validations', () => {
         const minimalPricing = {
           product_sku: 'WIDGET-001',
           cost: 25,
-          base_price: 50
+          base_price: 50,
         }
 
         const result = productPricingImportSchema.safeParse(minimalPricing)
@@ -394,7 +396,7 @@ describe('Pricing Validations', () => {
       it('should validate pricing_unit enum', () => {
         const invalidUnitPricing = {
           ...validImportPricing,
-          pricing_unit: 'INVALID_UNIT'
+          pricing_unit: 'INVALID_UNIT',
         }
 
         const result = productPricingImportSchema.safeParse(invalidUnitPricing)
@@ -405,10 +407,12 @@ describe('Pricing Validations', () => {
       it('should validate currency length', () => {
         const invalidCurrencyPricing = {
           ...validImportPricing,
-          currency: 'USDA' // Too long
+          currency: 'USDA', // Too long
         }
 
-        const result = productPricingImportSchema.safeParse(invalidCurrencyPricing)
+        const result = productPricingImportSchema.safeParse(
+          invalidCurrencyPricing
+        )
 
         expect(result.success).toBe(false)
       })
@@ -421,7 +425,7 @@ describe('Pricing Validations', () => {
         product_id: '123e4567-e89b-12d3-a456-426614174000',
         customer_id: '987e6543-e21b-12d3-a456-426614174000',
         quantity: 5,
-        requested_date: '2024-01-15T10:00:00Z'
+        requested_date: '2024-01-15T10:00:00Z',
       }
 
       const result = priceCalculationRequestSchema.safeParse(validRequest)
@@ -431,10 +435,12 @@ describe('Pricing Validations', () => {
 
     it('should use default quantity when not provided', () => {
       const requestWithoutQuantity = {
-        product_id: '123e4567-e89b-12d3-a456-426614174000'
+        product_id: '123e4567-e89b-12d3-a456-426614174000',
       }
 
-      const result = priceCalculationRequestSchema.safeParse(requestWithoutQuantity)
+      const result = priceCalculationRequestSchema.safeParse(
+        requestWithoutQuantity
+      )
 
       expect(result.success).toBe(true)
       if (result.success) {
@@ -445,7 +451,7 @@ describe('Pricing Validations', () => {
     it('should reject non-positive quantities', () => {
       const invalidRequest = {
         product_id: '123e4567-e89b-12d3-a456-426614174000',
-        quantity: 0
+        quantity: 0,
       }
 
       const result = priceCalculationRequestSchema.safeParse(invalidRequest)
@@ -464,7 +470,7 @@ describe('Pricing Validations', () => {
         category_id: '987e6543-e21b-12d3-a456-426614174000',
         customer_id: '456e7890-e21b-12d3-a456-426614174000',
         tier_id: '789e0123-e21b-12d3-a456-426614174000',
-        date: '2024-01-15T10:00:00Z'
+        date: '2024-01-15T10:00:00Z',
       }
 
       const result = pricingRuleFiltersSchema.safeParse(validFilters)
@@ -475,7 +481,7 @@ describe('Pricing Validations', () => {
     it('should allow partial filter data', () => {
       const partialFilters = {
         search: 'Discount',
-        is_active: true
+        is_active: true,
       }
 
       const result = pricingRuleFiltersSchema.safeParse(partialFilters)
@@ -485,7 +491,7 @@ describe('Pricing Validations', () => {
 
     it('should validate UUID fields', () => {
       const invalidUUIDFilters = {
-        product_id: 'invalid-uuid'
+        product_id: 'invalid-uuid',
       }
 
       const result = pricingRuleFiltersSchema.safeParse(invalidUUIDFilters)
@@ -564,12 +570,14 @@ describe('Pricing Validations', () => {
             max_quantity: 5, // Invalid: less than min
             discount_type: 'percentage' as const,
             discount_value: 10,
-            sort_order: 0
-          }
+            sort_order: 0,
+          },
         ]
 
         const errors = validateQuantityBreaks(invalidBreaks)
-        expect(errors).toContain('Break 1: Max quantity must be greater than min quantity')
+        expect(errors).toContain(
+          'Break 1: Max quantity must be greater than min quantity'
+        )
       })
 
       it('should detect gaps between quantity breaks', () => {
@@ -579,15 +587,15 @@ describe('Pricing Validations', () => {
             max_quantity: 10,
             discount_type: 'percentage' as const,
             discount_value: 5,
-            sort_order: 0
+            sort_order: 0,
           },
           {
             min_quantity: 15, // Gap: 11-14 missing
             max_quantity: 25,
             discount_type: 'percentage' as const,
             discount_value: 10,
-            sort_order: 1
-          }
+            sort_order: 1,
+          },
         ]
 
         const errors = validateQuantityBreaks(breaksWithGap)
@@ -601,15 +609,15 @@ describe('Pricing Validations', () => {
             max_quantity: 15,
             discount_type: 'percentage' as const,
             discount_value: 5,
-            sort_order: 0
+            sort_order: 0,
           },
           {
             min_quantity: 10, // Overlap: 10-15 covered by both
             max_quantity: 25,
             discount_type: 'percentage' as const,
             discount_value: 10,
-            sort_order: 1
-          }
+            sort_order: 1,
+          },
         ]
 
         const errors = validateQuantityBreaks(overlappingBreaks)
@@ -623,14 +631,14 @@ describe('Pricing Validations', () => {
             max_quantity: 10,
             discount_type: 'percentage' as const,
             discount_value: 5,
-            sort_order: 0
+            sort_order: 0,
           },
           {
             min_quantity: 11,
             discount_type: 'percentage' as const,
             discount_value: 10,
-            sort_order: 1
-          }
+            sort_order: 1,
+          },
         ]
 
         const errors = validateQuantityBreaks(breaksWithoutMax)
@@ -651,14 +659,14 @@ describe('Pricing Validations', () => {
           max_quantity: 10,
           discount_type: 'percentage',
           discount_value: 5,
-          sort_order: 0
+          sort_order: 0,
         })
         expect(breaks[2]).toEqual({
           min_quantity: 51,
           max_quantity: undefined,
           discount_type: 'percentage',
           discount_value: 15,
-          sort_order: 2
+          sort_order: 2,
         })
       })
 
@@ -672,7 +680,7 @@ describe('Pricing Validations', () => {
           max_quantity: 10,
           discount_type: 'fixed',
           discount_value: 5,
-          sort_order: 0
+          sort_order: 0,
         })
       })
 
@@ -686,7 +694,7 @@ describe('Pricing Validations', () => {
           max_quantity: 10,
           discount_type: 'price',
           discount_value: 45,
-          sort_order: 0
+          sort_order: 0,
         })
       })
 
@@ -714,14 +722,14 @@ describe('Pricing Validations', () => {
             max_quantity: 10,
             discount_type: 'percentage' as const,
             discount_value: 5,
-            sort_order: 0
+            sort_order: 0,
           },
           {
             min_quantity: 11,
             discount_type: 'percentage' as const,
             discount_value: 10,
-            sort_order: 1
-          }
+            sort_order: 1,
+          },
         ]
 
         const display = formatQuantityBreaksDisplay(breaks)
@@ -735,8 +743,8 @@ describe('Pricing Validations', () => {
             max_quantity: 10,
             discount_type: 'fixed' as const,
             discount_value: 5,
-            sort_order: 0
-          }
+            sort_order: 0,
+          },
         ]
 
         const display = formatQuantityBreaksDisplay(breaks)
@@ -750,8 +758,8 @@ describe('Pricing Validations', () => {
             max_quantity: 10,
             discount_type: 'price' as const,
             discount_value: 45,
-            sort_order: 0
-          }
+            sort_order: 0,
+          },
         ]
 
         const display = formatQuantityBreaksDisplay(breaks)
@@ -764,15 +772,15 @@ describe('Pricing Validations', () => {
             min_quantity: 11,
             discount_type: 'percentage' as const,
             discount_value: 10,
-            sort_order: 1
+            sort_order: 1,
           },
           {
             min_quantity: 1,
             max_quantity: 10,
             discount_type: 'percentage' as const,
             discount_value: 5,
-            sort_order: 0
-          }
+            sort_order: 0,
+          },
         ]
 
         const display = formatQuantityBreaksDisplay(unsortedBreaks)
@@ -794,7 +802,7 @@ describe('Pricing Validations', () => {
           is_active: true,
           start_date: '2024-01-01',
           end_date: '2024-12-31',
-          quantity_breaks: '1-10:5%;11+:10%'
+          quantity_breaks: '1-10:5%;11+:10%',
         }
 
         const result = transformPricingRuleImport(importData)
@@ -809,7 +817,7 @@ describe('Pricing Validations', () => {
           is_active: true,
           start_date: '2024-01-01',
           end_date: '2024-12-31',
-          conditions: {}
+          conditions: {},
         })
 
         expect(result.quantity_breaks).toHaveLength(2)
@@ -819,7 +827,7 @@ describe('Pricing Validations', () => {
       it('should apply default values', () => {
         const minimalData = {
           name: 'Minimal Rule',
-          rule_type: 'tier' as const
+          rule_type: 'tier' as const,
         }
 
         const result = transformPricingRuleImport(minimalData)
@@ -832,7 +840,7 @@ describe('Pricing Validations', () => {
       it('should handle missing quantity breaks', () => {
         const dataWithoutBreaks = {
           name: 'No Breaks Rule',
-          rule_type: 'tier' as const
+          rule_type: 'tier' as const,
         }
 
         const result = transformPricingRuleImport(dataWithoutBreaks)
@@ -852,7 +860,7 @@ describe('Pricing Validations', () => {
           pricing_unit: 'CASE' as const,
           unit_quantity: 12,
           effective_date: '2024-01-01',
-          expiry_date: '2024-12-31'
+          expiry_date: '2024-12-31',
         }
 
         const result = transformProductPricingImport(importData)
@@ -865,7 +873,7 @@ describe('Pricing Validations', () => {
           pricing_unit: 'CASE',
           unit_quantity: 12,
           effective_date: '2024-01-01',
-          expiry_date: '2024-12-31'
+          expiry_date: '2024-12-31',
         })
       })
 
@@ -873,7 +881,7 @@ describe('Pricing Validations', () => {
         const minimalData = {
           product_sku: 'WIDGET-001',
           cost: 25,
-          base_price: 50
+          base_price: 50,
         }
 
         const result = transformProductPricingImport(minimalData)
@@ -908,7 +916,7 @@ describe('Pricing Validations', () => {
         customer_tier_id: null,
         discount_type: 'percentage',
         discount_value: 10,
-        can_stack: true
+        can_stack: true,
       },
       {
         id: '2',
@@ -930,8 +938,8 @@ describe('Pricing Validations', () => {
         customer_tier_id: null,
         discount_type: 'percentage',
         discount_value: 15,
-        can_stack: true
-      }
+        can_stack: true,
+      },
     ]
 
     it('should detect conflicts with same priority', () => {
@@ -941,12 +949,14 @@ describe('Pricing Validations', () => {
         priority: 100, // Same as existing rule
         product_id: 'product-1',
         start_date: '2024-02-01',
-        end_date: '2024-05-31'
+        end_date: '2024-05-31',
       }
 
       const conflicts = checkRuleConflicts(newRule, existingRules)
 
-      expect(conflicts).toContain('Conflicts with rule "Existing VIP Rule" - same priority (100)')
+      expect(conflicts).toContain(
+        'Conflicts with rule "Existing VIP Rule" - same priority (100)'
+      )
     })
 
     it('should detect conflicts with exclusive rules', () => {
@@ -957,12 +967,14 @@ describe('Pricing Validations', () => {
         product_id: 'product-1',
         is_exclusive: true,
         start_date: '2024-02-01',
-        end_date: '2024-05-31'
+        end_date: '2024-05-31',
       }
 
       const conflicts = checkRuleConflicts(newRule, existingRules)
 
-      expect(conflicts).toContain('Conflicts with exclusive rule "Existing VIP Rule"')
+      expect(conflicts).toContain(
+        'Conflicts with exclusive rule "Existing VIP Rule"'
+      )
     })
 
     it('should not detect conflicts for different products', () => {
@@ -972,7 +984,7 @@ describe('Pricing Validations', () => {
         priority: 100,
         product_id: 'product-2', // Different product
         start_date: '2024-02-01',
-        end_date: '2024-05-31'
+        end_date: '2024-05-31',
       }
 
       const conflicts = checkRuleConflicts(newRule, existingRules)
@@ -987,7 +999,7 @@ describe('Pricing Validations', () => {
         priority: 100,
         product_id: 'product-1',
         start_date: '2024-07-01', // After existing rule ends
-        end_date: '2024-12-31'
+        end_date: '2024-12-31',
       }
 
       const conflicts = checkRuleConflicts(newRule, existingRules)
@@ -1002,7 +1014,7 @@ describe('Pricing Validations', () => {
         priority: 100,
         product_id: 'product-1',
         start_date: '2024-02-01',
-        end_date: '2024-05-31'
+        end_date: '2024-05-31',
       }
 
       const conflicts = checkRuleConflicts(newRule, existingRules)
@@ -1015,7 +1027,7 @@ describe('Pricing Validations', () => {
         name: 'Open-ended Rule',
         rule_type: 'tier',
         priority: 100,
-        product_id: 'product-1'
+        product_id: 'product-1',
         // No start_date or end_date
       }
 
@@ -1034,7 +1046,7 @@ describe('Pricing Validations', () => {
         rule_type: 'quantity' as const,
         discount_type: 'percentage' as const,
         discount_value: 10,
-        quantity_breaks: '1-10:5%;11+:10%'
+        quantity_breaks: '1-10:5%;11+:10%',
       }
 
       const importResult = pricingRuleImportSchema.safeParse(importData)
@@ -1057,7 +1069,7 @@ describe('Pricing Validations', () => {
     it('should handle validation errors consistently', () => {
       const invalidData = {
         name: '', // Empty required field
-        rule_type: 'invalid_type'
+        rule_type: 'invalid_type',
       }
 
       const result = pricingRuleImportSchema.safeParse(invalidData)

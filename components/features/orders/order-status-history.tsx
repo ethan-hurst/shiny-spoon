@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Clock, User, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
+import { ArrowRight, Clock, User } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { OrderStatusHistory as StatusHistory } from '@/types/order.types'
 
 interface OrderStatusHistoryProps {
@@ -43,7 +43,9 @@ export function OrderStatusHistory({ history }: OrderStatusHistoryProps) {
             <div
               key={item.id}
               className={`relative pb-4 ${
-                index < history.length - 1 ? 'border-l-2 border-gray-200 ml-2' : ''
+                index < history.length - 1
+                  ? 'border-l-2 border-gray-200 ml-2'
+                  : ''
               }`}
             >
               <div className="flex items-start gap-4">
@@ -57,21 +59,21 @@ export function OrderStatusHistory({ history }: OrderStatusHistoryProps) {
                     {item.previous_status && (
                       <>
                         <Badge className={getStatusColor(item.previous_status)}>
-                          {item.previous_status.charAt(0).toUpperCase() + item.previous_status.slice(1)}
+                          {item.previous_status.charAt(0).toUpperCase() +
+                            item.previous_status.slice(1)}
                         </Badge>
                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
                       </>
                     )}
                     <Badge className={getStatusColor(item.status)}>
-                      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                      {item.status.charAt(0).toUpperCase() +
+                        item.status.slice(1)}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(item.created_at), 'MMM d, yyyy at h:mm a')}
                   </p>
-                  {item.reason && (
-                    <p className="text-sm mt-1">{item.reason}</p>
-                  )}
+                  {item.reason && <p className="text-sm mt-1">{item.reason}</p>}
                   {item.changed_by && (
                     <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                       <User className="h-3 w-3" />

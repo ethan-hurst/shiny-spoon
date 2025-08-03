@@ -1,15 +1,17 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
-import { incrementalSyncProducts, type IncrementalSyncHelperOptions } from './connector-helpers'
-import type { SyncOptions } from '@/lib/integrations/base-connector'
+import { beforeEach, describe, expect, it, jest } from '@jest/globals'
+import type { BaseLogger, SyncOptions } from '@/lib/integrations/base-connector'
 import type { ShopifyApiClient } from './api-client'
+import {
+  incrementalSyncProducts,
+  type IncrementalSyncHelperOptions,
+} from './connector-helpers'
 import type { ShopifyTransformers } from './transformers'
-import type { BaseLogger } from '@/lib/integrations/base-connector'
 
 // Mock the ShopifyApiClient to avoid importing the real implementation
 jest.mock('./api-client', () => ({
   ShopifyApiClient: {
-    buildProductQuery: jest.fn().mockReturnValue('id title handle')
-  }
+    buildProductQuery: jest.fn().mockReturnValue('id title handle'),
+  },
 }))
 
 describe('connector-helpers', () => {
@@ -162,8 +164,14 @@ describe('connector-helpers', () => {
 
         expect(mockClient.query).toHaveBeenCalledTimes(2)
         expect(result.processed).toBe(2)
-        expect(mockHelpers.saveSyncCursor).toHaveBeenCalledWith('product', 'cursor1')
-        expect(mockHelpers.saveSyncCursor).toHaveBeenCalledWith('product', 'cursor2')
+        expect(mockHelpers.saveSyncCursor).toHaveBeenCalledWith(
+          'product',
+          'cursor1'
+        )
+        expect(mockHelpers.saveSyncCursor).toHaveBeenCalledWith(
+          'product',
+          'cursor2'
+        )
       })
 
       it('should resume from existing cursor', async () => {
@@ -449,9 +457,9 @@ describe('connector-helpers', () => {
 
         const syncState = { sync_cursor: null }
 
-        await expect(incrementalSyncProducts(mockHelpers, syncState)).rejects.toThrow(
-          'API Error'
-        )
+        await expect(
+          incrementalSyncProducts(mockHelpers, syncState)
+        ).rejects.toThrow('API Error')
       })
 
       it('should handle missing products data', async () => {
@@ -527,7 +535,9 @@ describe('connector-helpers', () => {
         const syncState = { sync_cursor: null }
         await incrementalSyncProducts(mockHelpers, syncState)
 
-        expect(mockHelpers.withRateLimit).toHaveBeenCalledWith(expect.any(Function))
+        expect(mockHelpers.withRateLimit).toHaveBeenCalledWith(
+          expect.any(Function)
+        )
       })
 
       it('should handle rate limit errors', async () => {
@@ -537,9 +547,9 @@ describe('connector-helpers', () => {
 
         const syncState = { sync_cursor: null }
 
-        await expect(incrementalSyncProducts(mockHelpers, syncState)).rejects.toThrow(
-          'Rate limit exceeded'
-        )
+        await expect(
+          incrementalSyncProducts(mockHelpers, syncState)
+        ).rejects.toThrow('Rate limit exceeded')
       })
     })
 
@@ -565,10 +575,7 @@ describe('connector-helpers', () => {
         expect(result.processed).toBe(0)
         expect(result.failed).toBe(0)
         expect(result.errors).toHaveLength(0)
-        expect(mockHelpers.saveSyncCursor).toHaveBeenCalledWith(
-          'product',
-          null
-        )
+        expect(mockHelpers.saveSyncCursor).toHaveBeenCalledWith('product', null)
       })
 
       it('should handle undefined sync state', async () => {
@@ -633,10 +640,7 @@ describe('connector-helpers', () => {
         const syncState = { sync_cursor: null }
         const result = await incrementalSyncProducts(mockHelpers, syncState)
 
-        expect(mockHelpers.saveSyncCursor).toHaveBeenCalledWith(
-          'product',
-          null
-        )
+        expect(mockHelpers.saveSyncCursor).toHaveBeenCalledWith('product', null)
         expect(result.processed).toBe(1)
       })
 
@@ -686,10 +690,9 @@ describe('connector-helpers', () => {
         const expectedQuery = expect.stringContaining(
           'query GetProducts($cursor: String)'
         )
-        expect(mockClient.query).toHaveBeenCalledWith(
-          expectedQuery,
-          { cursor: 'test-cursor' }
-        )
+        expect(mockClient.query).toHaveBeenCalledWith(expectedQuery, {
+          cursor: 'test-cursor',
+        })
       })
 
       it('should include buildProductQuery result in GraphQL query', async () => {
@@ -711,15 +714,9 @@ describe('connector-helpers', () => {
         await incrementalSyncProducts(mockHelpers, syncState)
 
         const capturedQuery = mockClient.query.mock.calls[0][0]
-        expect(capturedQuery).toContain(
-          'id'
-        )
-        expect(capturedQuery).toContain(
-          'title'
-        )
-        expect(capturedQuery).toContain(
-          'handle'
-        )
+        expect(capturedQuery).toContain('id')
+        expect(capturedQuery).toContain('title')
+        expect(capturedQuery).toContain('handle')
       })
     })
   })

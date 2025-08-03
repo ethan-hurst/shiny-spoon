@@ -1,9 +1,9 @@
 // PRP-013: NetSuite OAuth API Route
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
-import { AuthManager } from '@/lib/integrations/auth-manager'
 import { z } from 'zod'
+import { AuthManager } from '@/lib/integrations/auth-manager'
+import { NetSuiteAuth } from '@/lib/integrations/netsuite/auth'
+import { createClient } from '@/lib/supabase/server'
 import type { NetSuiteIntegrationConfig } from '@/types/netsuite.types'
 
 // Shared UUID schema
@@ -12,9 +12,11 @@ const uuidSchema = z.string().uuid('Invalid integration ID format')
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -22,14 +24,20 @@ export async function GET(request: NextRequest) {
     // Get integration ID from query params
     const integrationId = request.nextUrl.searchParams.get('integration_id')
     if (!integrationId) {
-      return NextResponse.json({ error: 'Integration ID required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Integration ID required' },
+        { status: 400 }
+      )
     }
 
     // Validate UUID format using shared schema
     try {
       uuidSchema.parse(integrationId)
     } catch (error) {
-      return NextResponse.json({ error: 'Invalid integration ID format' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid integration ID format' },
+        { status: 400 }
+      )
     }
 
     // Get user's organization
@@ -40,7 +48,10 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!profile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      )
     }
 
     // Get integration and verify ownership
@@ -53,17 +64,23 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!integration) {
-      return NextResponse.json({ error: 'Integration not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Integration not found' },
+        { status: 404 }
+      )
     }
 
     const netsuiteConfig = integration.netsuite_config?.[0]
     if (!netsuiteConfig) {
-      return NextResponse.json({ error: 'NetSuite configuration not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'NetSuite configuration not found' },
+        { status: 404 }
+      )
     }
 
     // Generate state parameter
     const state = NetSuiteAuth.generateState()
-    
+
     // Store state for verification
     await NetSuiteAuth.storeOAuthState(state, integrationId)
 
@@ -105,34 +122,39 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    
+
     // Get authenticated user
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    
+
     // Define validation schema for credentials
     const credentialsSchema = z.object({
       integration_id: uuidSchema,
       client_id: z.string().min(1, 'Client ID cannot be empty').trim(),
-      client_secret: z.string().min(1, 'Client secret cannot be empty').trim()
+      client_secret: z.string().min(1, 'Client secret cannot be empty').trim(),
     })
-    
+
     // Validate input
     let validatedData
     try {
       validatedData = credentialsSchema.parse(body)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const errors = error.errors.map(e => e.message).join(', ')
+        const errors = error.errors.map((e) => e.message).join(', ')
         return NextResponse.json({ error: errors }, { status: 400 })
       }
-      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid request data' },
+        { status: 400 }
+      )
     }
-    
+
     const { integration_id, client_id, client_secret } = validatedData
 
     // Get user's organization
@@ -143,7 +165,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!profile) {
-      return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      )
     }
 
     // Verify integration ownership
@@ -156,7 +181,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!integration) {
-      return NextResponse.json({ error: 'Integration not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Integration not found' },
+        { status: 404 }
+      )
     }
 
     // Store OAuth client credentials
@@ -169,7 +197,7 @@ export async function POST(request: NextRequest) {
     // Update integration
     await supabase
       .from('integrations')
-      .update({ 
+      .update({
         credential_type: 'oauth2',
         status: 'configuring',
       })

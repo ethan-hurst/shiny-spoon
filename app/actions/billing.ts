@@ -1,24 +1,25 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
-import { stripe, createCheckoutSession, createBillingPortalSession } from '@/lib/billing/stripe'
 import { z } from 'zod'
+import {
+  createBillingPortalSession,
+  createCheckoutSession,
+  stripe,
+} from '@/lib/billing/stripe'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 
 // Validate required environment variables at module load
 function validateEnvironmentVariables() {
-  const requiredEnvVars = [
-    'NEXT_PUBLIC_APP_URL',
-    'STRIPE_SECRET_KEY',
-  ]
+  const requiredEnvVars = ['NEXT_PUBLIC_APP_URL', 'STRIPE_SECRET_KEY']
 
-  const missingVars = requiredEnvVars.filter(varName => !process.env[varName])
-  
+  const missingVars = requiredEnvVars.filter((varName) => !process.env[varName])
+
   if (missingVars.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missingVars.join(', ')}. ` +
-      'Please check your .env.local file.'
+        'Please check your .env.local file.'
     )
   }
 }
@@ -34,8 +35,11 @@ const changePlanSchema = z.object({
 export async function changePlan(formData: FormData) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('You must be logged in to change your subscription plan.')
     }
@@ -47,7 +51,9 @@ export async function changePlan(formData: FormData) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      throw new Error('Unable to find your organization. Please contact support.')
+      throw new Error(
+        'Unable to find your organization. Please contact support.'
+      )
     }
 
     const parsed = changePlanSchema.safeParse({
@@ -66,8 +72,11 @@ export async function changePlan(formData: FormData) {
       .eq('organization_id', profile.organization_id)
       .single()
 
-    if (billingError && billingError.code !== 'PGRST116') { // PGRST116 is "no rows found"
-      throw new Error('Unable to retrieve billing information. Please try again.')
+    if (billingError && billingError.code !== 'PGRST116') {
+      // PGRST116 is "no rows found"
+      throw new Error(
+        'Unable to retrieve billing information. Please try again.'
+      )
     }
 
     let stripeCustomerId = billing?.stripe_customer_id
@@ -99,7 +108,7 @@ export async function changePlan(formData: FormData) {
           stripe_customer_id: stripeCustomerId,
           updated_at: new Date().toISOString(),
         })
-      
+
       if (upsertError) {
         throw new Error('Failed to save billing information. Please try again.')
       }
@@ -122,20 +131,25 @@ export async function changePlan(formData: FormData) {
   } catch (error) {
     // Log error for debugging but return user-friendly message
     console.error('Error changing plan:', error)
-    
+
     if (error instanceof Error) {
       throw new Error(error.message)
     }
-    
-    throw new Error('An unexpected error occurred. Please try again or contact support.')
+
+    throw new Error(
+      'An unexpected error occurred. Please try again or contact support.'
+    )
   }
 }
 
 export async function cancelSubscription() {
   try {
     const supabase = await createClient()
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('You must be logged in to cancel your subscription.')
     }
@@ -147,7 +161,9 @@ export async function cancelSubscription() {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      throw new Error('Unable to find your organization. Please contact support.')
+      throw new Error(
+        'Unable to find your organization. Please contact support.'
+      )
     }
 
     const { data: billing, error: billingError } = await supabase
@@ -174,26 +190,33 @@ export async function cancelSubscription() {
         updated_at: new Date().toISOString(),
       })
       .eq('organization_id', profile.organization_id)
-    
+
     if (updateError) {
-      throw new Error('Subscription canceled but failed to update local records. Please contact support.')
+      throw new Error(
+        'Subscription canceled but failed to update local records. Please contact support.'
+      )
     }
   } catch (error) {
     console.error('Error canceling subscription:', error)
-    
+
     if (error instanceof Error) {
       throw new Error(error.message)
     }
-    
-    throw new Error('Failed to cancel subscription. Please try again or contact support.')
+
+    throw new Error(
+      'Failed to cancel subscription. Please try again or contact support.'
+    )
   }
 }
 
 export async function resumeSubscription() {
   try {
     const supabase = await createClient()
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('You must be logged in to resume your subscription.')
     }
@@ -205,7 +228,9 @@ export async function resumeSubscription() {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      throw new Error('Unable to find your organization. Please contact support.')
+      throw new Error(
+        'Unable to find your organization. Please contact support.'
+      )
     }
 
     const { data: billing, error: billingError } = await supabase
@@ -232,26 +257,33 @@ export async function resumeSubscription() {
         updated_at: new Date().toISOString(),
       })
       .eq('organization_id', profile.organization_id)
-    
+
     if (updateError) {
-      throw new Error('Subscription resumed but failed to update local records. Please contact support.')
+      throw new Error(
+        'Subscription resumed but failed to update local records. Please contact support.'
+      )
     }
   } catch (error) {
     console.error('Error resuming subscription:', error)
-    
+
     if (error instanceof Error) {
       throw new Error(error.message)
     }
-    
-    throw new Error('Failed to resume subscription. Please try again or contact support.')
+
+    throw new Error(
+      'Failed to resume subscription. Please try again or contact support.'
+    )
   }
 }
 
 export async function openBillingPortal() {
   try {
     const supabase = await createClient()
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('You must be logged in to access the billing portal.')
     }
@@ -263,7 +295,9 @@ export async function openBillingPortal() {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      throw new Error('Unable to find your organization. Please contact support.')
+      throw new Error(
+        'Unable to find your organization. Please contact support.'
+      )
     }
 
     const { data: billing, error: billingError } = await supabase
@@ -283,18 +317,22 @@ export async function openBillingPortal() {
     })
 
     if (!url) {
-      throw new Error('Unable to create billing portal session. Please try again.')
+      throw new Error(
+        'Unable to create billing portal session. Please try again.'
+      )
     }
 
     redirect(url)
   } catch (error) {
     console.error('Error opening billing portal:', error)
-    
+
     if (error instanceof Error) {
       throw new Error(error.message)
     }
-    
-    throw new Error('Failed to open billing portal. Please try again or contact support.')
+
+    throw new Error(
+      'Failed to open billing portal. Please try again or contact support.'
+    )
   }
 }
 
@@ -303,7 +341,9 @@ const addPaymentMethodSchema = z.object({
   setAsDefault: z.boolean().optional(),
 })
 
-export async function addPaymentMethod(data: z.infer<typeof addPaymentMethodSchema>) {
+export async function addPaymentMethod(
+  data: z.infer<typeof addPaymentMethodSchema>
+) {
   try {
     // Validate input
     const validatedData = addPaymentMethodSchema.safeParse(data)
@@ -312,8 +352,11 @@ export async function addPaymentMethod(data: z.infer<typeof addPaymentMethodSche
     }
 
     const supabase = await createClient()
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('You must be logged in to add a payment method.')
     }
@@ -325,7 +368,9 @@ export async function addPaymentMethod(data: z.infer<typeof addPaymentMethodSche
       .single()
 
     if (profileError || !profile?.organization_id) {
-      throw new Error('Unable to find your organization. Please contact support.')
+      throw new Error(
+        'Unable to find your organization. Please contact support.'
+      )
     }
 
     const { data: billing, error: billingError } = await supabase
@@ -353,20 +398,24 @@ export async function addPaymentMethod(data: z.infer<typeof addPaymentMethodSche
     }
   } catch (error) {
     console.error('Error adding payment method:', error)
-    
+
     if (error instanceof Error) {
       // Handle specific Stripe errors
       if (error.message.includes('already been attached')) {
         throw new Error('This payment method has already been added.')
       }
       if (error.message.includes('payment_method')) {
-        throw new Error('Invalid payment method. Please check your card details.')
+        throw new Error(
+          'Invalid payment method. Please check your card details.'
+        )
       }
-      
+
       throw new Error(error.message)
     }
-    
-    throw new Error('Failed to add payment method. Please try again or contact support.')
+
+    throw new Error(
+      'Failed to add payment method. Please try again or contact support.'
+    )
   }
 }
 
@@ -377,8 +426,11 @@ export async function removePaymentMethod(paymentMethodId: string) {
     }
 
     const supabase = await createClient()
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       throw new Error('You must be logged in to remove a payment method.')
     }
@@ -390,12 +442,14 @@ export async function removePaymentMethod(paymentMethodId: string) {
       .single()
 
     if (profileError || !profile?.organization_id) {
-      throw new Error('Unable to find your organization. Please contact support.')
+      throw new Error(
+        'Unable to find your organization. Please contact support.'
+      )
     }
 
     // Verify ownership via Stripe
     const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId)
-    
+
     const { data: billing, error: billingError } = await supabase
       .from('customer_billing')
       .select('stripe_customer_id')
@@ -407,23 +461,27 @@ export async function removePaymentMethod(paymentMethodId: string) {
     }
 
     if (paymentMethod.customer !== billing.stripe_customer_id) {
-      throw new Error('You do not have permission to remove this payment method.')
+      throw new Error(
+        'You do not have permission to remove this payment method.'
+      )
     }
 
     // Detach payment method
     await stripe.paymentMethods.detach(paymentMethodId)
   } catch (error) {
     console.error('Error removing payment method:', error)
-    
+
     if (error instanceof Error) {
       // Handle specific Stripe errors
       if (error.message.includes('resource_missing')) {
         throw new Error('Payment method not found or already removed.')
       }
-      
+
       throw new Error(error.message)
     }
-    
-    throw new Error('Failed to remove payment method. Please try again or contact support.')
+
+    throw new Error(
+      'Failed to remove payment method. Please try again or contact support.'
+    )
   }
 }

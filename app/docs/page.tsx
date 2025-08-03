@@ -1,23 +1,33 @@
-import { allDocs } from 'contentlayer2/generated'
 import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { allDocs } from 'contentlayer2/generated'
 import { ArrowRight, Book, Code, Settings, Zap } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 export const metadata = {
   title: 'Documentation - TruthSource',
-  description: 'Learn how to use TruthSource to synchronize your B2B e-commerce data.',
+  description:
+    'Learn how to use TruthSource to synchronize your B2B e-commerce data.',
 }
 
 export default function DocsPage() {
   // Group docs by category
-  const docsByCategory = allDocs.reduce((acc, doc) => {
-    const category = doc.category
-    if (!acc[category]) {
-      acc[category] = []
-    }
-    acc[category].push(doc)
-    return acc
-  }, {} as Record<string, typeof allDocs>)
+  const docsByCategory = allDocs.reduce(
+    (acc, doc) => {
+      const category = doc.category
+      if (!acc[category]) {
+        acc[category] = []
+      }
+      acc[category].push(doc)
+      return acc
+    },
+    {} as Record<string, typeof allDocs>
+  )
 
   // Sort docs within each category by order
   Object.keys(docsByCategory).forEach((category) => {
@@ -28,10 +38,10 @@ export default function DocsPage() {
   })
 
   const categoryIcons: Record<string, React.ReactNode> = {
-    'Setup': <Settings className="h-5 w-5" />,
-    'Integration': <Zap className="h-5 w-5" />,
+    Setup: <Settings className="h-5 w-5" />,
+    Integration: <Zap className="h-5 w-5" />,
     'API Reference': <Code className="h-5 w-5" />,
-    'Guides': <Book className="h-5 w-5" />,
+    Guides: <Book className="h-5 w-5" />,
   }
 
   return (
@@ -83,8 +93,8 @@ export default function DocsPage() {
           <Link href="/contact" className="text-primary hover:underline">
             Contact Support →
           </Link>
-          <a 
-            href="https://github.com/truthsource/docs" 
+          <a
+            href="https://github.com/truthsource/docs"
             className="text-primary hover:underline"
             target="_blank"
             rel="noopener noreferrer"

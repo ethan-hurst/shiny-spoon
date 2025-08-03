@@ -76,23 +76,22 @@ export const pricingRuleBaseSchema = z.object({
 })
 
 // Pricing Rule Schema (with refinements)
-export const pricingRuleSchema = pricingRuleBaseSchema
-  .refine(
-    (data) => {
-      // If discount_type is set, discount_value must be set
-      if (data.discount_type && !data.discount_value) {
-        return false
-      }
-      // If discount_value is set, discount_type must be set
-      if (data.discount_value && !data.discount_type) {
-        return false
-      }
-      return true
-    },
-    {
-      message: 'Both discount type and value must be provided together',
+export const pricingRuleSchema = pricingRuleBaseSchema.refine(
+  (data) => {
+    // If discount_type is set, discount_value must be set
+    if (data.discount_type && !data.discount_value) {
+      return false
     }
-  )
+    // If discount_value is set, discount_type must be set
+    if (data.discount_value && !data.discount_type) {
+      return false
+    }
+    return true
+  },
+  {
+    message: 'Both discount type and value must be provided together',
+  }
+)
 
 // Quantity Break Schema
 export const quantityBreakSchema = z
@@ -129,19 +128,18 @@ export const customerPricingBaseSchema = z.object({
 })
 
 // Customer Pricing Schema (with refinements)
-export const customerPricingSchema = customerPricingBaseSchema
-  .refine(
-    (data) => {
-      // Can't have both price and discount
-      if (data.override_price && data.override_discount_percent) {
-        return false
-      }
-      return true
-    },
-    {
-      message: 'Cannot set both override price and discount percent',
+export const customerPricingSchema = customerPricingBaseSchema.refine(
+  (data) => {
+    // Can't have both price and discount
+    if (data.override_price && data.override_discount_percent) {
+      return false
     }
-  )
+    return true
+  },
+  {
+    message: 'Cannot set both override price and discount percent',
+  }
+)
 
 // Price Calculation Request Schema
 export const priceCalculationRequestSchema = z.object({

@@ -1,16 +1,21 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { AuditLogger } from '@/lib/audit/audit-logger'
 import { z } from 'zod'
-import { rateLimiters, withRateLimit, getUserIdentifier, checkRateLimit } from '@/lib/rate-limit'
-import type { 
-  CreateOrderInput, 
-  UpdateOrderInput, 
-  OrderStatus,
+import { AuditLogger } from '@/lib/audit/audit-logger'
+import {
+  checkRateLimit,
+  getUserIdentifier,
+  rateLimiters,
+  withRateLimit,
+} from '@/lib/rate-limit'
+import { createClient } from '@/lib/supabase/server'
+import type {
+  CreateOrderInput,
   Order,
-  OrderItem
+  OrderItem,
+  OrderStatus,
+  UpdateOrderInput,
 } from '@/types/order.types'
 
 // Validation schemas
@@ -41,7 +46,17 @@ const createOrderSchema = z.object({
 })
 
 const updateOrderSchema = z.object({
-  status: z.enum(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded']).optional(),
+  status: z
+    .enum([
+      'pending',
+      'confirmed',
+      'processing',
+      'shipped',
+      'delivered',
+      'cancelled',
+      'refunded',
+    ])
+    .optional(),
   notes: z.string().optional(),
   expected_delivery_date: z.string().optional(),
   actual_delivery_date: z.string().optional(),
@@ -52,7 +67,10 @@ const updateOrderSchema = z.object({
 /**
  * Generates a unique order number for the organization
  */
-async function generateOrderNumber(organizationId: string, supabase: any): Promise<string> {
+async function generateOrderNumber(
+  organizationId: string,
+  supabase: any
+): Promise<string> {
   const { data: lastOrder } = await supabase
     .from('orders')
     .select('order_number')
@@ -63,7 +81,7 @@ async function generateOrderNumber(organizationId: string, supabase: any): Promi
 
   const today = new Date()
   const datePrefix = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
-  
+
   if (!lastOrder || !lastOrder.order_number.startsWith(datePrefix)) {
     return `${datePrefix}-0001`
   }
@@ -79,13 +97,18 @@ export async function createOrder(input: CreateOrderInput) {
   const supabase = createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
 
   // Check rate limit
-  const rateLimitResult = await checkRateLimit(rateLimiters.orderCreation, user.id)
+  const rateLimitResult = await checkRateLimit(
+    rateLimiters.orderCreation,
+    user.id
+  )
   if (!rateLimitResult.success) {
     return { error: 'Rate limit exceeded. Please try again later.' }
   }
@@ -106,7 +129,7 @@ export async function createOrder(input: CreateOrderInput) {
     const validated = createOrderSchema.parse(input)
 
     // Get products for validation and pricing
-    const productIds = validated.items.map(item => item.product_id)
+    const productIds = validated.items.map((item) => item.product_id)
     const { data: products, error: productsError } = await supabase
       .from('products')
       .select('id, sku, name, description, base_price')
@@ -128,13 +151,16 @@ export async function createOrder(input: CreateOrderInput) {
     }
 
     // Generate order number
-    const orderNumber = await generateOrderNumber(profile.organization_id, supabase)
+    const orderNumber = await generateOrderNumber(
+      profile.organization_id,
+      supabase
+    )
 
     // Create order items with pricing
-    const orderItems = validated.items.map(item => {
+    const orderItems = validated.items.map((item) => {
       const product = productMap.get(item.product_id) as any
       const unitPrice = item.unit_price || product?.base_price || 0
-      
+
       return {
         product_id: item.product_id,
         sku: product?.sku,
@@ -177,12 +203,12 @@ export async function createOrder(input: CreateOrderInput) {
     }
 
     // Create order items
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems.map(item => ({
+    const { error: itemsError } = await supabase.from('order_items').insert(
+      orderItems.map((item) => ({
         order_id: order.id,
         ...item,
-      })))
+      }))
+    )
 
     if (itemsError) {
       return { error: 'Failed to create order items' }
@@ -194,7 +220,11 @@ export async function createOrder(input: CreateOrderInput) {
 
     // Send order confirmation email
     try {
-      await sendOrderConfirmationEmail(order, orderItems, profile.organization_id)
+      await sendOrderConfirmationEmail(
+        order,
+        orderItems,
+        profile.organization_id
+      )
     } catch (emailError) {
       console.error('Failed to send order confirmation email:', emailError)
       // Don't fail the order creation if email fails
@@ -213,14 +243,20 @@ export async function createOrder(input: CreateOrderInput) {
     return { success: true, data: order }
   } catch (error) {
     console.error('Failed to create order:', error)
-    return { error: error instanceof Error ? error.message : 'Failed to create order' }
+    return {
+      error: error instanceof Error ? error.message : 'Failed to create order',
+    }
   }
 }
 
 /**
  * Sends order confirmation email
  */
-async function sendOrderConfirmationEmail(order: any, orderItems: any[], organizationId: string) {
+async function sendOrderConfirmationEmail(
+  order: any,
+  orderItems: any[],
+  organizationId: string
+) {
   const supabase = createClient()
 
   // Get customer email
@@ -262,7 +298,7 @@ async function sendOrderConfirmationEmail(order: any, orderItems: any[], organiz
         customer_name: customerName,
         order_number: order.order_number,
         order_date: new Date().toLocaleDateString(),
-        items: orderItems.map(item => ({
+        items: orderItems.map((item) => ({
           name: item.name,
           sku: item.sku,
           quantity: item.quantity,
@@ -288,11 +324,13 @@ async function generateInvoice(orderId: string, organizationId: string) {
   // Get order details with items
   const { data: order, error: orderError } = await supabase
     .from('orders')
-    .select(`
+    .select(
+      `
       *,
       order_items (*),
       customers (name, email, billing_address)
-    `)
+    `
+    )
     .eq('id', orderId)
     .single()
 
@@ -355,13 +393,18 @@ export async function updateOrder(orderId: string, input: UpdateOrderInput) {
   const supabase = createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
 
   // Check rate limit
-  const rateLimitResult = await checkRateLimit(rateLimiters.orderUpdates, user.id)
+  const rateLimitResult = await checkRateLimit(
+    rateLimiters.orderUpdates,
+    user.id
+  )
   if (!rateLimitResult.success) {
     return { error: 'Rate limit exceeded. Please try again later.' }
   }
@@ -421,7 +464,9 @@ export async function updateOrder(orderId: string, input: UpdateOrderInput) {
     return { success: true, data: updatedOrder }
   } catch (error) {
     console.error('Failed to update order:', error)
-    return { error: error instanceof Error ? error.message : 'Failed to update order' }
+    return {
+      error: error instanceof Error ? error.message : 'Failed to update order',
+    }
   }
 }
 
@@ -432,11 +477,11 @@ export async function cancelOrder(orderId: string, reason?: string) {
   const updateData: UpdateOrderInput = {
     status: 'cancelled',
   }
-  
+
   if (reason) {
     updateData.notes = `Cancellation reason: ${reason}`
   }
-  
+
   return updateOrder(orderId, updateData)
 }
 
@@ -447,7 +492,9 @@ export async function getOrderDetails(orderId: string) {
   const supabase = createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -481,7 +528,9 @@ export async function listOrders(filters?: {
   const supabase = createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -538,14 +587,14 @@ export async function listOrders(filters?: {
     return { error: error.message }
   }
 
-  return { 
-    success: true, 
+  return {
+    success: true,
     data: {
       orders: data || [],
       total: count || 0,
       limit,
       offset,
-    }
+    },
   }
 }
 
@@ -561,7 +610,9 @@ export async function exportOrders(filters?: {
   const supabase = createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -615,7 +666,9 @@ export async function exportOrders(filters?: {
     return { success: true, data: orders || [] }
   } catch (error) {
     console.error('Failed to export orders:', error)
-    return { error: error instanceof Error ? error.message : 'Failed to export orders' }
+    return {
+      error: error instanceof Error ? error.message : 'Failed to export orders',
+    }
   }
 }
 
@@ -626,7 +679,9 @@ export async function getOrderTracking(orderId: string) {
   const supabase = createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -646,7 +701,8 @@ export async function getOrderTracking(orderId: string) {
     // Get order with tracking info
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select(`
+      .select(
+        `
         *,
         order_tracking (
           id,
@@ -656,7 +712,8 @@ export async function getOrderTracking(orderId: string) {
           timestamp,
           tracking_number
         )
-      `)
+      `
+      )
       .eq('id', orderId)
       .eq('organization_id', profile.organization_id)
       .single()
@@ -666,37 +723,47 @@ export async function getOrderTracking(orderId: string) {
     }
 
     // Sort tracking events by timestamp
-    const trackingEvents = order.order_tracking?.sort((a: any, b: any) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    ) || []
+    const trackingEvents =
+      order.order_tracking?.sort(
+        (a: any, b: any) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      ) || []
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
         order,
         tracking: trackingEvents,
-        currentStatus: trackingEvents[0]?.status || order.status
-      }
+        currentStatus: trackingEvents[0]?.status || order.status,
+      },
     }
   } catch (error) {
     console.error('Failed to get order tracking:', error)
-    return { error: error instanceof Error ? error.message : 'Failed to get order tracking' }
+    return {
+      error:
+        error instanceof Error ? error.message : 'Failed to get order tracking',
+    }
   }
 }
 
 /**
  * Adds tracking event to an order
  */
-export async function addTrackingEvent(orderId: string, trackingData: {
-  status: string
-  location?: string
-  description: string
-  tracking_number?: string
-}) {
+export async function addTrackingEvent(
+  orderId: string,
+  trackingData: {
+    status: string
+    location?: string
+    description: string
+    tracking_number?: string
+  }
+) {
   const supabase = createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -748,17 +815,22 @@ export async function addTrackingEvent(orderId: string, trackingData: {
     if (trackingData.status !== order.status) {
       await supabase
         .from('orders')
-        .update({ 
+        .update({
           status: trackingData.status,
           updated_at: new Date().toISOString(),
-          updated_by: user.id
+          updated_by: user.id,
         })
         .eq('id', orderId)
     }
 
     // Log audit event
     const auditLogger = new AuditLogger(supabase)
-    await auditLogger.logUpdate('order', orderId, { status: order.status }, { status: trackingData.status })
+    await auditLogger.logUpdate(
+      'order',
+      orderId,
+      { status: order.status },
+      { status: trackingData.status }
+    )
 
     revalidatePath('/orders')
     revalidatePath(`/orders/${orderId}`)
@@ -766,7 +838,10 @@ export async function addTrackingEvent(orderId: string, trackingData: {
     return { success: true, data: trackingEvent }
   } catch (error) {
     console.error('Failed to add tracking event:', error)
-    return { error: error instanceof Error ? error.message : 'Failed to add tracking event' }
+    return {
+      error:
+        error instanceof Error ? error.message : 'Failed to add tracking event',
+    }
   }
 }
 
@@ -777,7 +852,9 @@ export async function getShippingStatus(orderId: string) {
   const supabase = createClient()
 
   // Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     return { error: 'Unauthorized' }
   }
@@ -797,7 +874,8 @@ export async function getShippingStatus(orderId: string) {
     // Get order with shipping info
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select(`
+      .select(
+        `
         *,
         shipping_integrations (
           id,
@@ -806,7 +884,8 @@ export async function getShippingStatus(orderId: string) {
           label_url,
           status
         )
-      `)
+      `
+      )
       .eq('id', orderId)
       .eq('organization_id', profile.organization_id)
       .single()
@@ -815,15 +894,20 @@ export async function getShippingStatus(orderId: string) {
       return { error: 'Order not found' }
     }
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
         order,
-        shipping: order.shipping_integrations || []
-      }
+        shipping: order.shipping_integrations || [],
+      },
     }
   } catch (error) {
     console.error('Failed to get shipping status:', error)
-    return { error: error instanceof Error ? error.message : 'Failed to get shipping status' }
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to get shipping status',
+    }
   }
 }

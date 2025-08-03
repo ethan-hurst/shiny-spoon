@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { ArrowRight, CheckCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function CTASection() {
   return (
@@ -11,7 +11,8 @@ export function CTASection() {
             Stop losing money to data errors
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Join hundreds of B2B companies that trust TruthSource to keep their data accurate across all systems.
+            Join hundreds of B2B companies that trust TruthSource to keep their
+            data accurate across all systems.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
@@ -22,7 +23,11 @@ export function CTASection() {
               </Button>
             </Link>
             <Link href="/contact">
-              <Button size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-primary">
+              <Button
+                size="lg"
+                variant="outline"
+                className="bg-transparent text-white border-white hover:bg-white hover:text-primary"
+              >
                 Talk to Sales
               </Button>
             </Link>

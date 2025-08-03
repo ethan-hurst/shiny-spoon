@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ArrowDown,
   ArrowUp,
@@ -42,24 +42,24 @@ function getBasePrice(product: CustomerPriceWithProduct): number {
 
 function getCustomerPrice(product: CustomerPriceWithProduct): number {
   const basePrice = getBasePrice(product)
-  
+
   if (product.override_price !== null) {
     return product.override_price
   }
-  
+
   if (product.override_discount_percent !== null) {
     return basePrice * (1 - product.override_discount_percent / 100)
   }
-  
+
   return basePrice
 }
 
 function getDiscountPercentage(product: CustomerPriceWithProduct): number {
   const basePrice = getBasePrice(product)
   const customerPrice = getCustomerPrice(product)
-  
+
   if (basePrice === 0) return 0
-  
+
   return ((basePrice - customerPrice) / basePrice) * 100
 }
 
@@ -70,15 +70,13 @@ function getCost(product: CustomerPriceWithProduct): number {
 function getMarginPercentage(product: CustomerPriceWithProduct): number {
   const customerPrice = getCustomerPrice(product)
   const cost = getCost(product)
-  
+
   if (customerPrice === 0) return 0
-  
+
   return ((customerPrice - cost) / customerPrice) * 100
 }
 
-export function PriceComparisonView({
-  products,
-}: PriceComparisonViewProps) {
+export function PriceComparisonView({ products }: PriceComparisonViewProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [discountFilter, setDiscountFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'discount' | 'value'>('discount')
@@ -151,7 +149,7 @@ export function PriceComparisonView({
     // Sort
     filtered.sort((a, b) => {
       let comparison = 0
-      
+
       if (sortBy === 'discount') {
         comparison = getDiscountPercentage(a) - getDiscountPercentage(b)
       } else {
@@ -243,7 +241,7 @@ export function PriceComparisonView({
           onValueChange={(value) => {
             const [newSortBy, newSortOrder] = value.split('-') as [
               'discount' | 'value',
-              'asc' | 'desc'
+              'asc' | 'desc',
             ]
             setSortBy(newSortBy)
             setSortOrder(newSortOrder)
@@ -304,7 +302,9 @@ export function PriceComparisonView({
                       <TableRow key={product.product_id}>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{product.products?.name}</p>
+                            <p className="font-medium">
+                              {product.products?.name}
+                            </p>
                             <p className="text-sm text-muted-foreground">
                               {product.products?.sku}
                             </p>
@@ -319,7 +319,9 @@ export function PriceComparisonView({
                         <TableCell className="text-right">
                           {discount > 0 && (
                             <Badge
-                              variant={discount > 20 ? 'destructive' : 'secondary'}
+                              variant={
+                                discount > 20 ? 'destructive' : 'secondary'
+                              }
                             >
                               {formatPercent(discount)}
                             </Badge>
@@ -342,7 +344,9 @@ export function PriceComparisonView({
                               )}
                               <span
                                 className={`text-sm font-medium ${
-                                  marginDiff < 0 ? 'text-red-600' : 'text-green-600'
+                                  marginDiff < 0
+                                    ? 'text-red-600'
+                                    : 'text-green-600'
                                 }`}
                               >
                                 {formatPercent(Math.abs(marginDiff))}

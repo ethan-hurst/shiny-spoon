@@ -4,7 +4,13 @@
 
 export interface SecurityAlert {
   id: string
-  type: 'failed_auth' | 'suspicious_ip' | 'rate_limit_exceeded' | 'api_key_abuse' | 'geo_violation' | 'unusual_pattern'
+  type:
+    | 'failed_auth'
+    | 'suspicious_ip'
+    | 'rate_limit_exceeded'
+    | 'api_key_abuse'
+    | 'geo_violation'
+    | 'unusual_pattern'
   severity: 'low' | 'medium' | 'high' | 'critical'
   title: string
   description: string
@@ -41,20 +47,25 @@ export class SecurityMonitor {
   /**
    * Monitor security events in real-time
    */
-  async monitorSecurityEvents(organizationId: string): Promise<SecurityAlert[]> {
+  async monitorSecurityEvents(
+    organizationId: string
+  ): Promise<SecurityAlert[]> {
     const alerts: SecurityAlert[] = []
 
     try {
       // Check for failed authentication attempts
-      const failedAuthAlerts = await this.checkFailedAuthAttempts(organizationId)
+      const failedAuthAlerts =
+        await this.checkFailedAuthAttempts(organizationId)
       alerts.push(...failedAuthAlerts)
 
       // Check for suspicious IP activity
-      const suspiciousIPAlerts = await this.checkSuspiciousIPActivity(organizationId)
+      const suspiciousIPAlerts =
+        await this.checkSuspiciousIPActivity(organizationId)
       alerts.push(...suspiciousIPAlerts)
 
       // Check for rate limit violations
-      const rateLimitAlerts = await this.checkRateLimitViolations(organizationId)
+      const rateLimitAlerts =
+        await this.checkRateLimitViolations(organizationId)
       alerts.push(...rateLimitAlerts)
 
       // Check for API key abuse
@@ -80,7 +91,9 @@ export class SecurityMonitor {
   /**
    * Check for failed authentication attempts
    */
-  private async checkFailedAuthAttempts(organizationId: string): Promise<SecurityAlert[]> {
+  private async checkFailedAuthAttempts(
+    organizationId: string
+  ): Promise<SecurityAlert[]> {
     const alerts: SecurityAlert[] = []
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
 
@@ -110,7 +123,11 @@ export class SecurityMonitor {
           severity: count >= 50 ? 'critical' : count >= 20 ? 'high' : 'medium',
           title: `Excessive Failed Authentication Attempts`,
           description: `${count} failed authentication attempts from IP ${ip} in the last hour`,
-          metadata: { ip_address: ip, attempt_count: count, time_window: '1 hour' },
+          metadata: {
+            ip_address: ip,
+            attempt_count: count,
+            time_window: '1 hour',
+          },
           organization_id: organizationId,
           ip_address: ip,
           timestamp: new Date(),
@@ -126,7 +143,9 @@ export class SecurityMonitor {
   /**
    * Check for suspicious IP activity
    */
-  private async checkSuspiciousIPActivity(organizationId: string): Promise<SecurityAlert[]> {
+  private async checkSuspiciousIPActivity(
+    organizationId: string
+  ): Promise<SecurityAlert[]> {
     const alerts: SecurityAlert[] = []
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
@@ -140,7 +159,10 @@ export class SecurityMonitor {
     if (!accessLogs) return alerts
 
     // Analyze IP activity patterns
-    const ipStats = new Map<string, { requests: number; errors: number; uniqueEndpoints: Set<string> }>()
+    const ipStats = new Map<
+      string,
+      { requests: number; errors: number; uniqueEndpoints: Set<string> }
+    >()
 
     for (const log of accessLogs) {
       const ip = log.ip_address
@@ -169,7 +191,11 @@ export class SecurityMonitor {
           severity: 'high',
           title: `High Request Volume from IP`,
           description: `IP ${ip} made ${stats.requests} requests in 24 hours`,
-          metadata: { ip_address: ip, request_count: stats.requests, error_rate: errorRate },
+          metadata: {
+            ip_address: ip,
+            request_count: stats.requests,
+            error_rate: errorRate,
+          },
           organization_id: organizationId,
           ip_address: ip,
           timestamp: new Date(),
@@ -185,7 +211,11 @@ export class SecurityMonitor {
           severity: 'medium',
           title: `High Error Rate from IP`,
           description: `IP ${ip} has ${errorRate.toFixed(1)}% error rate`,
-          metadata: { ip_address: ip, error_rate: errorRate, request_count: stats.requests },
+          metadata: {
+            ip_address: ip,
+            error_rate: errorRate,
+            request_count: stats.requests,
+          },
           organization_id: organizationId,
           ip_address: ip,
           timestamp: new Date(),
@@ -201,7 +231,9 @@ export class SecurityMonitor {
   /**
    * Check for rate limit violations
    */
-  private async checkRateLimitViolations(organizationId: string): Promise<SecurityAlert[]> {
+  private async checkRateLimitViolations(
+    organizationId: string
+  ): Promise<SecurityAlert[]> {
     const alerts: SecurityAlert[] = []
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
 
@@ -231,7 +263,11 @@ export class SecurityMonitor {
           severity: 'medium',
           title: `Repeated Rate Limit Violations`,
           description: `IP ${ip} exceeded rate limits ${count} times in the last hour`,
-          metadata: { ip_address: ip, violation_count: count, time_window: '1 hour' },
+          metadata: {
+            ip_address: ip,
+            violation_count: count,
+            time_window: '1 hour',
+          },
           organization_id: organizationId,
           ip_address: ip,
           timestamp: new Date(),
@@ -247,7 +283,9 @@ export class SecurityMonitor {
   /**
    * Check for API key abuse
    */
-  private async checkAPIKeyAbuse(organizationId: string): Promise<SecurityAlert[]> {
+  private async checkAPIKeyAbuse(
+    organizationId: string
+  ): Promise<SecurityAlert[]> {
     const alerts: SecurityAlert[] = []
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
@@ -260,11 +298,18 @@ export class SecurityMonitor {
     if (!apiKeyUsage) return alerts
 
     // Group by API key
-    const keyStats = new Map<string, { requests: number; errors: number; uniqueIPs: Set<string> }>()
+    const keyStats = new Map<
+      string,
+      { requests: number; errors: number; uniqueIPs: Set<string> }
+    >()
 
     for (const usage of apiKeyUsage) {
       if (!keyStats.has(usage.key_id)) {
-        keyStats.set(usage.key_id, { requests: 0, errors: 0, uniqueIPs: new Set() })
+        keyStats.set(usage.key_id, {
+          requests: 0,
+          errors: 0,
+          uniqueIPs: new Set(),
+        })
       }
 
       const stats = keyStats.get(usage.key_id)!
@@ -287,7 +332,11 @@ export class SecurityMonitor {
           severity: 'high',
           title: `High API Key Usage`,
           description: `API key ${keyId} made ${stats.requests} requests in 24 hours`,
-          metadata: { key_id: keyId, request_count: stats.requests, unique_ips: stats.uniqueIPs.size },
+          metadata: {
+            key_id: keyId,
+            request_count: stats.requests,
+            unique_ips: stats.uniqueIPs.size,
+          },
           organization_id: organizationId,
           timestamp: new Date(),
           acknowledged: false,
@@ -302,7 +351,11 @@ export class SecurityMonitor {
           severity: 'medium',
           title: `API Key Used from Multiple IPs`,
           description: `API key ${keyId} used from ${stats.uniqueIPs.size} different IP addresses`,
-          metadata: { key_id: keyId, unique_ips: stats.uniqueIPs.size, ip_list: Array.from(stats.uniqueIPs) },
+          metadata: {
+            key_id: keyId,
+            unique_ips: stats.uniqueIPs.size,
+            ip_list: Array.from(stats.uniqueIPs),
+          },
           organization_id: organizationId,
           timestamp: new Date(),
           acknowledged: false,
@@ -317,7 +370,9 @@ export class SecurityMonitor {
   /**
    * Check for unusual access patterns
    */
-  private async checkUnusualPatterns(organizationId: string): Promise<SecurityAlert[]> {
+  private async checkUnusualPatterns(
+    organizationId: string
+  ): Promise<SecurityAlert[]> {
     const alerts: SecurityAlert[] = []
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
@@ -337,7 +392,10 @@ export class SecurityMonitor {
     for (const log of accessLogs) {
       const hour = new Date(log.timestamp).getHours()
       hourlyPatterns.set(hour, (hourlyPatterns.get(hour) || 0) + 1)
-      endpointPatterns.set(log.endpoint, (endpointPatterns.get(log.endpoint) || 0) + 1)
+      endpointPatterns.set(
+        log.endpoint,
+        (endpointPatterns.get(log.endpoint) || 0) + 1
+      )
     }
 
     // Check for unusual time patterns (e.g., activity at 3 AM)
@@ -386,12 +444,10 @@ export class SecurityMonitor {
    */
   private async saveSecurityAlert(alert: SecurityAlert): Promise<void> {
     try {
-      await this.supabase
-        .from('security_alerts')
-        .insert({
-          ...alert,
-          timestamp: alert.timestamp.toISOString(),
-        })
+      await this.supabase.from('security_alerts').insert({
+        ...alert,
+        timestamp: alert.timestamp.toISOString(),
+      })
     } catch (error) {
       console.error('Failed to save security alert:', error)
     }
@@ -418,12 +474,18 @@ export class SecurityMonitor {
       .gte('timestamp', oneDayAgo.toISOString())
 
     const totalAlerts = alerts?.length || 0
-    const criticalAlerts = alerts?.filter(a => a.severity === 'critical').length || 0
-    const failedAuthAttempts = accessLogs?.filter(l => l.status_code === 401 || l.status_code === 403).length || 0
-    const suspiciousIPs = new Set(accessLogs?.map(l => l.ip_address).filter(Boolean)).size
-    const blockedRequests = accessLogs?.filter(l => l.blocked).length || 0
-    const avgResponseTime = accessLogs?.length 
-      ? accessLogs.reduce((sum, l) => sum + l.response_time, 0) / accessLogs.length 
+    const criticalAlerts =
+      alerts?.filter((a) => a.severity === 'critical').length || 0
+    const failedAuthAttempts =
+      accessLogs?.filter((l) => l.status_code === 401 || l.status_code === 403)
+        .length || 0
+    const suspiciousIPs = new Set(
+      accessLogs?.map((l) => l.ip_address).filter(Boolean)
+    ).size
+    const blockedRequests = accessLogs?.filter((l) => l.blocked).length || 0
+    const avgResponseTime = accessLogs?.length
+      ? accessLogs.reduce((sum, l) => sum + l.response_time, 0) /
+        accessLogs.length
       : 0
 
     return {
@@ -457,7 +519,10 @@ export class SecurityMonitor {
   /**
    * Acknowledge security alert
    */
-  async acknowledgeAlert(alertId: string, organizationId: string): Promise<void> {
+  async acknowledgeAlert(
+    alertId: string,
+    organizationId: string
+  ): Promise<void> {
     const { error } = await this.supabase
       .from('security_alerts')
       .update({ acknowledged: true })
@@ -483,4 +548,4 @@ export class SecurityMonitor {
       throw new Error(`Failed to resolve alert: ${error.message}`)
     }
   }
-} 
+}

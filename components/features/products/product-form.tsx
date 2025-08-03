@@ -18,12 +18,12 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { isFile } from '@/lib/utils/file'
 import { productSchema } from '@/lib/validations/product'
 import { createProduct, updateProduct } from '@/app/actions/products'
 import { Product } from '@/types/product.types'
 import { CategorySelect } from './category-select'
 import { ImageUpload } from './image-upload'
-import { isFile } from '@/lib/utils/file'
 
 interface ProductFormProps {
   product?: Product

@@ -93,7 +93,8 @@ export const DEFAULT_NOTIFICATION_PREFERENCES = {
   securityAlerts: true,
 } as const
 
-export type NotificationPreference = keyof typeof DEFAULT_NOTIFICATION_PREFERENCES
+export type NotificationPreference =
+  keyof typeof DEFAULT_NOTIFICATION_PREFERENCES
 
 export const NOTIFICATION_MESSAGES = {
   PREFERENCES_UPDATED: 'Notification preferences updated',

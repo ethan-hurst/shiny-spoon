@@ -1,8 +1,9 @@
 'use client'
 
-import { CalendarIcon } from 'lucide-react'
 import { format } from 'date-fns'
-import { cn } from '@/lib/utils'
+import { CalendarIcon } from 'lucide-react'
+import { UseFormReturn } from 'react-hook-form'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -28,8 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { UseFormReturn } from 'react-hook-form'
-import { z } from 'zod'
+import { cn } from '@/lib/utils'
 import { contractSchema } from '@/types/customer-pricing.types'
 
 interface ContractDetailsSectionProps {

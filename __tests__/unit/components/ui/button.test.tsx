@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Button } from '@/components/ui/button'
 import { LucideHome } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 describe('Button Component', () => {
   it('should render as a button by default', () => {
@@ -22,7 +22,9 @@ describe('Button Component', () => {
   })
 
   it('should apply correct variant classes', () => {
-    const { rerender } = render(<Button variant="destructive">Destructive</Button>)
+    const { rerender } = render(
+      <Button variant="destructive">Destructive</Button>
+    )
     let button = screen.getByRole('button')
     expect(button).toHaveClass('bg-destructive')
 
@@ -44,10 +46,10 @@ describe('Button Component', () => {
   it('should be clickable and handle events', async () => {
     const user = userEvent.setup()
     const handleClick = jest.fn()
-    
+
     render(<Button onClick={handleClick}>Click me</Button>)
     const button = screen.getByRole('button')
-    
+
     await user.click(button)
     expect(handleClick).toHaveBeenCalledTimes(1)
   })
@@ -61,10 +63,14 @@ describe('Button Component', () => {
   it('should not be clickable when disabled', async () => {
     const user = userEvent.setup()
     const handleClick = jest.fn()
-    
-    render(<Button disabled onClick={handleClick}>Disabled</Button>)
+
+    render(
+      <Button disabled onClick={handleClick}>
+        Disabled
+      </Button>
+    )
     const button = screen.getByRole('button')
-    
+
     await user.click(button)
     expect(handleClick).not.toHaveBeenCalled()
   })
@@ -105,7 +111,11 @@ describe('Button Component', () => {
   })
 
   it('should pass through additional props', () => {
-    render(<Button data-testid="custom-button" aria-label="Custom">Custom</Button>)
+    render(
+      <Button data-testid="custom-button" aria-label="Custom">
+        Custom
+      </Button>
+    )
     const button = screen.getByTestId('custom-button')
     expect(button).toHaveAttribute('aria-label', 'Custom')
   })
@@ -128,7 +138,7 @@ describe('Button Component', () => {
     const user = userEvent.setup()
     render(<Button>Focusable</Button>)
     const button = screen.getByRole('button')
-    
+
     await user.tab()
     expect(button).toHaveFocus()
   })
@@ -136,10 +146,10 @@ describe('Button Component', () => {
   it('should handle keyboard interactions', async () => {
     const user = userEvent.setup()
     const handleClick = jest.fn()
-    
+
     render(<Button onClick={handleClick}>Keyboard</Button>)
     const button = screen.getByRole('button')
-    
+
     await user.tab()
     await user.keyboard('{Enter}')
     expect(handleClick).toHaveBeenCalledTimes(1)

@@ -1,5 +1,5 @@
 // Shared hook for copying text to clipboard with toast notifications
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useToast } from '@/components/ui/use-toast'
 
 interface UseCopyToClipboardOptions {
@@ -27,41 +27,44 @@ export function useCopyToClipboard(options?: UseCopyToClipboardOptions) {
     }
   }, [])
 
-  const copyToClipboard = useCallback(async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setIsCopied(true)
-      
-      toast({
-        title: 'Copied!',
-        description: options?.successMessage || 'Text copied to clipboard',
-      })
-      
-      // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-      
-      // Reset after 2 seconds
-      timeoutRef.current = setTimeout(() => {
+  const copyToClipboard = useCallback(
+    async (text: string) => {
+      try {
+        await navigator.clipboard.writeText(text)
+        setIsCopied(true)
+
+        toast({
+          title: 'Copied!',
+          description: options?.successMessage || 'Text copied to clipboard',
+        })
+
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+        }
+
+        // Reset after 2 seconds
+        timeoutRef.current = setTimeout(() => {
+          setIsCopied(false)
+          timeoutRef.current = null
+        }, 2000)
+
+        return true
+      } catch (error) {
+        console.error('Failed to copy to clipboard:', error)
+
+        toast({
+          title: 'Copy failed',
+          description: options?.errorMessage || 'Failed to copy to clipboard',
+          variant: 'destructive',
+        })
+
         setIsCopied(false)
-        timeoutRef.current = null
-      }, 2000)
-      
-      return true
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
-      
-      toast({
-        title: 'Copy failed',
-        description: options?.errorMessage || 'Failed to copy to clipboard',
-        variant: 'destructive',
-      })
-      
-      setIsCopied(false)
-      return false
-    }
-  }, [toast, options?.successMessage, options?.errorMessage])
+        return false
+      }
+    },
+    [toast, options?.successMessage, options?.errorMessage]
+  )
 
   return { copyToClipboard, isCopied }
 }

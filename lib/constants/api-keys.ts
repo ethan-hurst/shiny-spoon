@@ -19,13 +19,15 @@ export const API_KEY_SCOPES = {
   DELETE: 'delete',
 } as const
 
-export type ApiKeyScope = typeof API_KEY_SCOPES[keyof typeof API_KEY_SCOPES]
+export type ApiKeyScope = (typeof API_KEY_SCOPES)[keyof typeof API_KEY_SCOPES]
 
 export const API_KEY_MESSAGES = {
   CREATED: 'API key created successfully',
   REVOKED: 'API key revoked successfully',
   REGENERATED: 'API key regenerated successfully',
   COPY_SUCCESS: 'API key copied to clipboard',
-  COPY_WARNING: "Make sure to copy your API key now. You won't be able to see it again!",
-  REVOKE_WARNING: 'This action cannot be undone. The API key will be permanently revoked.',
+  COPY_WARNING:
+    "Make sure to copy your API key now. You won't be able to see it again!",
+  REVOKE_WARNING:
+    'This action cannot be undone. The API key will be permanently revoked.',
 } as const

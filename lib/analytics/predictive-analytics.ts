@@ -65,7 +65,10 @@ export class PredictiveAnalytics {
           .from('order_items')
           .select('quantity, created_at, unit_price')
           .eq('product_id', productId)
-          .gte('created_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString())
+          .gte(
+            'created_at',
+            new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()
+          )
           .order('created_at', { ascending: true })
 
         if (!salesData || salesData.length === 0) {
@@ -106,14 +109,20 @@ export class PredictiveAnalytics {
           .from('order_items')
           .select('quantity, unit_price, created_at')
           .eq('product_id', productId)
-          .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString())
+          .gte(
+            'created_at',
+            new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+          )
 
         if (!pricingData || !salesData) {
           continue
         }
 
         // Calculate price optimization
-        const optimization = this.calculatePriceOptimization(pricingData, salesData)
+        const optimization = this.calculatePriceOptimization(
+          pricingData,
+          salesData
+        )
         optimizations.push({
           productId,
           ...optimization,
@@ -208,7 +217,9 @@ export class PredictiveAnalytics {
   /**
    * Analyze seasonality patterns
    */
-  async analyzeSeasonality(productIds: string[]): Promise<SeasonalityAnalysis[]> {
+  async analyzeSeasonality(
+    productIds: string[]
+  ): Promise<SeasonalityAnalysis[]> {
     try {
       const analyses: SeasonalityAnalysis[] = []
 
@@ -218,7 +229,10 @@ export class PredictiveAnalytics {
           .from('order_items')
           .select('quantity, created_at')
           .eq('product_id', productId)
-          .gte('created_at', new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString())
+          .gte(
+            'created_at',
+            new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString()
+          )
           .order('created_at', { ascending: true })
 
         if (!historicalData || historicalData.length === 0) {
@@ -249,21 +263,31 @@ export class PredictiveAnalytics {
   ): Omit<DemandForecast, 'productId'> {
     // Simple moving average for demonstration
     // In production, use more sophisticated algorithms like ARIMA, Prophet, etc.
-    
-    const quantities = salesData.map(item => item.quantity)
-    const avgDemand = quantities.reduce((sum, qty) => sum + qty, 0) / quantities.length
-    
+
+    const quantities = salesData.map((item) => item.quantity)
+    const avgDemand =
+      quantities.reduce((sum, qty) => sum + qty, 0) / quantities.length
+
     // Calculate trend
-    const recentAvg = quantities.slice(-10).reduce((sum, qty) => sum + qty, 0) / 10
-    const olderAvg = quantities.slice(0, 10).reduce((sum, qty) => sum + qty, 0) / 10
-    const trend = recentAvg > olderAvg ? 'increasing' : recentAvg < olderAvg ? 'decreasing' : 'stable'
-    
+    const recentAvg =
+      quantities.slice(-10).reduce((sum, qty) => sum + qty, 0) / 10
+    const olderAvg =
+      quantities.slice(0, 10).reduce((sum, qty) => sum + qty, 0) / 10
+    const trend =
+      recentAvg > olderAvg
+        ? 'increasing'
+        : recentAvg < olderAvg
+          ? 'decreasing'
+          : 'stable'
+
     // Calculate seasonality (simplified)
     const seasonality = this.calculateSeasonalityFactor(salesData)
-    
+
     // Predict future demand
-    const predictedDemand = avgDemand * (1 + (trend === 'increasing' ? 0.1 : trend === 'decreasing' ? -0.1 : 0))
-    
+    const predictedDemand =
+      avgDemand *
+      (1 + (trend === 'increasing' ? 0.1 : trend === 'decreasing' ? -0.1 : 0))
+
     return {
       predictedDemand: Math.round(predictedDemand * forecastPeriod),
       confidence: 85, // Simplified confidence calculation
@@ -282,24 +306,24 @@ export class PredictiveAnalytics {
   ): Omit<PriceOptimization, 'productId'> {
     const currentPrice = pricingData.current_price || pricingData.base_price
     const basePrice = pricingData.base_price
-    
+
     // Calculate price elasticity
-    const priceChanges = salesData.map(item => ({
+    const priceChanges = salesData.map((item) => ({
       price: item.unit_price,
       quantity: item.quantity,
     }))
-    
+
     const elasticity = this.calculatePriceElasticity(priceChanges)
-    
+
     // Calculate optimal price
     const optimalPrice = this.calculateOptimalPrice(currentPrice, elasticity)
-    
+
     // Calculate revenue impact
     const revenueImpact = ((optimalPrice - currentPrice) / currentPrice) * 100
-    
+
     // Determine market position
     const marketPosition = this.determineMarketPosition(currentPrice, basePrice)
-    
+
     return {
       currentPrice,
       optimalPrice,
@@ -319,38 +343,43 @@ export class PredictiveAnalytics {
     // Calculate risk factors
     const riskFactors: string[] = []
     let churnRisk = 0
-    
+
     // Recency of last purchase
     const lastOrder = orderData[0]
     if (lastOrder) {
-      const daysSinceLastOrder = (Date.now() - new Date(lastOrder.created_at).getTime()) / (1000 * 60 * 60 * 24)
+      const daysSinceLastOrder =
+        (Date.now() - new Date(lastOrder.created_at).getTime()) /
+        (1000 * 60 * 60 * 24)
       if (daysSinceLastOrder > 90) {
         riskFactors.push('no_recent_purchases')
         churnRisk += 30
       }
     }
-    
+
     // Purchase frequency
-    const avgOrderValue = orderData.reduce((sum, order) => sum + order.total_amount, 0) / orderData.length
+    const avgOrderValue =
+      orderData.reduce((sum, order) => sum + order.total_amount, 0) /
+      orderData.length
     if (avgOrderValue < 100) {
       riskFactors.push('low_order_value')
       churnRisk += 20
     }
-    
+
     // Customer tenure
     const customerSince = new Date(customerData.created_at)
-    const tenureDays = (Date.now() - customerSince.getTime()) / (1000 * 60 * 60 * 24)
+    const tenureDays =
+      (Date.now() - customerSince.getTime()) / (1000 * 60 * 60 * 24)
     if (tenureDays < 30) {
       riskFactors.push('new_customer')
       churnRisk += 15
     }
-    
+
     // Calculate retention score
     const retentionScore = Math.max(0, 100 - churnRisk)
-    
+
     // Calculate next purchase probability
     const nextPurchaseProbability = retentionScore / 100
-    
+
     return {
       churnRisk: Math.min(100, churnRisk),
       riskFactors,
@@ -367,15 +396,19 @@ export class PredictiveAnalytics {
     dataType: string
   ): AnomalyDetection[] {
     const anomalies: AnomalyDetection[] = []
-    
+
     if (data.length === 0) return anomalies
-    
+
     // Calculate mean and standard deviation
-    const values = data.map(item => item.value || item.quantity || item.amount)
+    const values = data.map(
+      (item) => item.value || item.quantity || item.amount
+    )
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length
+    const variance =
+      values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      values.length
     const stdDev = Math.sqrt(variance)
-    
+
     // Detect outliers (values beyond 2 standard deviations)
     values.forEach((value, index) => {
       const zScore = Math.abs((value - mean) / stdDev)
@@ -391,7 +424,7 @@ export class PredictiveAnalytics {
         })
       }
     })
-    
+
     return anomalies
   }
 
@@ -401,23 +434,23 @@ export class PredictiveAnalytics {
   private calculateSeasonalityFactor(salesData: any[]): number {
     // Simplified seasonality calculation
     // In production, use FFT or other time series decomposition methods
-    
+
     const monthlyData = new Array(12).fill(0)
     const monthlyCount = new Array(12).fill(0)
-    
-    salesData.forEach(item => {
+
+    salesData.forEach((item) => {
       const month = new Date(item.created_at).getMonth()
       monthlyData[month] += item.quantity
       monthlyCount[month]++
     })
-    
-    const avgMonthlySales = monthlyData.map((total, month) => 
+
+    const avgMonthlySales = monthlyData.map((total, month) =>
       monthlyCount[month] > 0 ? total / monthlyCount[month] : 0
     )
-    
+
     const overallAvg = avgMonthlySales.reduce((sum, avg) => sum + avg, 0) / 12
     const maxMonthlyAvg = Math.max(...avgMonthlySales)
-    
+
     return maxMonthlyAvg > 0 ? (maxMonthlyAvg - overallAvg) / overallAvg : 0
   }
 
@@ -426,32 +459,40 @@ export class PredictiveAnalytics {
    */
   private calculatePriceElasticity(priceChanges: any[]): number {
     if (priceChanges.length < 2) return -1 // Default elasticity
-    
+
     // Simplified elasticity calculation
     const sorted = priceChanges.sort((a, b) => a.price - b.price)
     const midPoint = Math.floor(sorted.length / 2)
-    
+
     const lowerHalf = sorted.slice(0, midPoint)
     const upperHalf = sorted.slice(midPoint)
-    
-    const lowerAvgPrice = lowerHalf.reduce((sum, item) => sum + item.price, 0) / lowerHalf.length
-    const upperAvgPrice = upperHalf.reduce((sum, item) => sum + item.price, 0) / upperHalf.length
-    const lowerAvgQuantity = lowerHalf.reduce((sum, item) => sum + item.quantity, 0) / lowerHalf.length
-    const upperAvgQuantity = upperHalf.reduce((sum, item) => sum + item.quantity, 0) / upperHalf.length
-    
+
+    const lowerAvgPrice =
+      lowerHalf.reduce((sum, item) => sum + item.price, 0) / lowerHalf.length
+    const upperAvgPrice =
+      upperHalf.reduce((sum, item) => sum + item.price, 0) / upperHalf.length
+    const lowerAvgQuantity =
+      lowerHalf.reduce((sum, item) => sum + item.quantity, 0) / lowerHalf.length
+    const upperAvgQuantity =
+      upperHalf.reduce((sum, item) => sum + item.quantity, 0) / upperHalf.length
+
     const priceChange = (upperAvgPrice - lowerAvgPrice) / lowerAvgPrice
-    const quantityChange = (upperAvgQuantity - lowerAvgQuantity) / lowerAvgQuantity
-    
+    const quantityChange =
+      (upperAvgQuantity - lowerAvgQuantity) / lowerAvgQuantity
+
     return priceChange !== 0 ? quantityChange / priceChange : -1
   }
 
   /**
    * Calculate optimal price
    */
-  private calculateOptimalPrice(currentPrice: number, elasticity: number): number {
+  private calculateOptimalPrice(
+    currentPrice: number,
+    elasticity: number
+  ): number {
     // Simplified optimal price calculation
     // In production, use more sophisticated pricing models
-    
+
     if (elasticity >= -1) {
       // Inelastic demand - can increase price
       return currentPrice * 1.1
@@ -465,9 +506,12 @@ export class PredictiveAnalytics {
   /**
    * Determine market position
    */
-  private determineMarketPosition(currentPrice: number, basePrice: number): 'premium' | 'competitive' | 'budget' {
+  private determineMarketPosition(
+    currentPrice: number,
+    basePrice: number
+  ): 'premium' | 'competitive' | 'budget' {
     const markup = (currentPrice - basePrice) / basePrice
-    
+
     if (markup > 0.5) return 'premium'
     if (markup > 0.2) return 'competitive'
     return 'budget'
@@ -476,48 +520,60 @@ export class PredictiveAnalytics {
   /**
    * Calculate seasonality analysis
    */
-  private calculateSeasonality(historicalData: any[]): Omit<SeasonalityAnalysis, 'productId'> {
+  private calculateSeasonality(
+    historicalData: any[]
+  ): Omit<SeasonalityAnalysis, 'productId'> {
     const monthlyData = new Array(12).fill(0)
     const monthlyCount = new Array(12).fill(0)
-    
-    historicalData.forEach(item => {
+
+    historicalData.forEach((item) => {
       const month = new Date(item.created_at).getMonth()
       monthlyData[month] += item.quantity
       monthlyCount[month]++
     })
-    
-    const avgMonthlySales = monthlyData.map((total, month) => 
+
+    const avgMonthlySales = monthlyData.map((total, month) =>
       monthlyCount[month] > 0 ? total / monthlyCount[month] : 0
     )
-    
+
     const overallAvg = avgMonthlySales.reduce((sum, avg) => sum + avg, 0) / 12
     const maxAvg = Math.max(...avgMonthlySales)
     const minAvg = Math.min(...avgMonthlySales)
-    
+
     // Calculate seasonality score
     const seasonalityScore = maxAvg > 0 ? (maxAvg - minAvg) / overallAvg : 0
-    
+
     // Identify peak and low seasons
     const peakSeasons: string[] = []
     const lowSeasons: string[] = []
     const seasonalFactors: Record<string, number> = {}
-    
+
     const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ]
-    
+
     avgMonthlySales.forEach((avg, month) => {
       const factor = overallAvg > 0 ? avg / overallAvg : 1
       seasonalFactors[monthNames[month]] = factor
-      
+
       if (factor > 1.2) {
         peakSeasons.push(monthNames[month])
       } else if (factor < 0.8) {
         lowSeasons.push(monthNames[month])
       }
     })
-    
+
     return {
       seasonalityScore,
       peakSeasons,
@@ -527,43 +583,55 @@ export class PredictiveAnalytics {
   }
 
   // Helper methods for getting data
-  private async getPriceData(timeRange: { start: Date; end: Date }): Promise<any[]> {
+  private async getPriceData(timeRange: {
+    start: Date
+    end: Date
+  }): Promise<any[]> {
     const { data } = await this.supabase
       .from('order_items')
       .select('unit_price, created_at')
       .gte('created_at', timeRange.start.toISOString())
       .lte('created_at', timeRange.end.toISOString())
-    
+
     return data || []
   }
 
-  private async getDemandData(timeRange: { start: Date; end: Date }): Promise<any[]> {
+  private async getDemandData(timeRange: {
+    start: Date
+    end: Date
+  }): Promise<any[]> {
     const { data } = await this.supabase
       .from('order_items')
       .select('quantity, created_at')
       .gte('created_at', timeRange.start.toISOString())
       .lte('created_at', timeRange.end.toISOString())
-    
+
     return data || []
   }
 
-  private async getInventoryData(timeRange: { start: Date; end: Date }): Promise<any[]> {
+  private async getInventoryData(timeRange: {
+    start: Date
+    end: Date
+  }): Promise<any[]> {
     const { data } = await this.supabase
       .from('inventory')
       .select('quantity, created_at')
       .gte('created_at', timeRange.start.toISOString())
       .lte('created_at', timeRange.end.toISOString())
-    
+
     return data || []
   }
 
-  private async getRevenueData(timeRange: { start: Date; end: Date }): Promise<any[]> {
+  private async getRevenueData(timeRange: {
+    start: Date
+    end: Date
+  }): Promise<any[]> {
     const { data } = await this.supabase
       .from('orders')
       .select('total_amount, created_at')
       .gte('created_at', timeRange.start.toISOString())
       .lte('created_at', timeRange.end.toISOString())
-    
+
     return data || []
   }
-} 
+}

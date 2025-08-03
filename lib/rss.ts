@@ -1,14 +1,14 @@
-import { writeFileSync, mkdirSync, existsSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync } from 'fs'
+import path from 'path'
 import { allPosts } from 'contentlayer2/generated'
 // @ts-ignore - RSS library types not available
 import RSS from 'rss'
-import path from 'path'
 
 export async function generateRssFeed() {
   try {
     // Validate and get site URL
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://truthsource.io'
-    
+
     // Validate URL format
     try {
       new URL(siteUrl)
@@ -36,7 +36,7 @@ export async function generateRssFeed() {
           console.warn(`Skipping invalid post: ${post._id}`)
           return false
         }
-        
+
         // Validate date
         try {
           new Date(post.date)
@@ -75,7 +75,9 @@ export async function generateRssFeed() {
       writeFileSync(path.join(publicDir, 'rss.xml'), feed.xml({ indent: true }))
       console.log('RSS feed generated successfully')
     } catch (error) {
-      throw new Error(`Failed to write RSS feed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `Failed to write RSS feed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   } catch (error) {
     console.error('Failed to generate RSS feed:', error)

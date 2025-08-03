@@ -1,6 +1,6 @@
 // PRP-016: Data Accuracy Monitor - Alert Manager
 import { createAdminClient } from '@/lib/supabase/admin'
-import { AlertConfig, AlertRule, Alert, DiscrepancyResult } from './types'
+import { Alert, AlertConfig, AlertRule, DiscrepancyResult } from './types'
 
 export class AlertManager {
   private supabase = createAdminClient()
@@ -32,7 +32,7 @@ export class AlertManager {
             accuracy_score: config.accuracyScore,
             discrepancy_count: config.discrepancyCount,
             reason: config.triggerReason,
-            metadata: config.metadata || {}
+            metadata: config.metadata || {},
           },
           accuracy_check_id: config.checkId,
           status: 'active',
@@ -75,7 +75,7 @@ export class AlertManager {
     if (config.metadata) {
       lines.push('')
       lines.push('**Additional Information:**')
-      
+
       for (const [key, value] of Object.entries(config.metadata)) {
         lines.push(`- ${this.formatMetadataKey(key)}: ${value}`)
       }
@@ -91,7 +91,7 @@ export class AlertManager {
     // Convert snake_case to Title Case
     return key
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ')
   }
 
@@ -131,7 +131,7 @@ export class AlertManager {
     const channels = rule.notification_channels || ['in_app']
 
     // Create notification records for each channel
-    const notificationRecords = channels.map(channel => ({
+    const notificationRecords = channels.map((channel) => ({
       alert_id: alertId,
       channel,
       recipient: this.getRecipientForChannel(channel, rule),
@@ -139,16 +139,11 @@ export class AlertManager {
     }))
 
     if (notificationRecords.length > 0) {
-      await this.supabase
-        .from('notification_log')
-        .insert(notificationRecords)
+      await this.supabase.from('notification_log').insert(notificationRecords)
     }
   }
 
-  private getRecipientForChannel(
-    channel: string,
-    rule: AlertRule
-  ): string {
+  private getRecipientForChannel(channel: string, rule: AlertRule): string {
     // This would be enhanced to get actual recipients from organization settings
     switch (channel) {
       case 'email':
@@ -165,14 +160,12 @@ export class AlertManager {
   private async scheduleAutoRemediation(alertId: string, checkId: string) {
     // Create a task for the auto-remediation service
     // This will be picked up by the auto-remediation processor
-    await this.supabase
-      .from('remediation_queue')
-      .insert({
-        alert_id: alertId,
-        accuracy_check_id: checkId,
-        status: 'pending',
-        priority: 'high',
-      })
+    await this.supabase.from('remediation_queue').insert({
+      alert_id: alertId,
+      accuracy_check_id: checkId,
+      status: 'pending',
+      priority: 'high',
+    })
   }
 
   async evaluateAlertRules(
@@ -234,13 +227,20 @@ export class AlertManager {
     rule: AlertRule,
     accuracyScore: number,
     discrepancies: DiscrepancyResult[]
-  ): Promise<{ trigger: boolean; reason: string; metadata?: Record<string, any> }> {
+  ): Promise<{
+    trigger: boolean
+    reason: string
+    metadata?: Record<string, any>
+  }> {
     // Check if we're within the evaluation window
     const { data: recentAlerts } = await this.supabase
       .from('alerts')
       .select('created_at')
       .eq('alert_rule_id', rule.id)
-      .gte('created_at', new Date(Date.now() - rule.evaluationWindow * 1000).toISOString())
+      .gte(
+        'created_at',
+        new Date(Date.now() - rule.evaluationWindow * 1000).toISOString()
+      )
       .order('created_at', { ascending: false })
       .limit(1)
 
@@ -248,9 +248,12 @@ export class AlertManager {
     if (recentAlerts && recentAlerts.length > 0) {
       const lastAlertTime = new Date(recentAlerts[0].created_at).getTime()
       const timeSinceLastAlert = Date.now() - lastAlertTime
-      
+
       if (timeSinceLastAlert < rule.checkFrequency * 1000) {
-        return { trigger: false, reason: 'Alert suppressed due to frequency limit' }
+        return {
+          trigger: false,
+          reason: 'Alert suppressed due to frequency limit',
+        }
       }
     }
 
@@ -263,7 +266,7 @@ export class AlertManager {
           threshold_type: 'accuracy',
           threshold_value: rule.accuracyThreshold,
           actual_value: accuracyScore,
-        }
+        },
       }
     }
 
@@ -276,16 +279,16 @@ export class AlertManager {
           threshold_type: 'count',
           threshold_value: rule.discrepancyCountThreshold,
           actual_value: discrepancies.length,
-        }
+        },
       }
     }
 
     // Check entity type filters
     if (rule.entityType && rule.entityType.length > 0) {
-      const filteredDiscrepancies = discrepancies.filter(
-        d => rule.entityType!.includes(d.entityType)
+      const filteredDiscrepancies = discrepancies.filter((d) =>
+        rule.entityType!.includes(d.entityType)
       )
-      
+
       if (filteredDiscrepancies.length > rule.discrepancyCountThreshold) {
         return {
           trigger: true,
@@ -295,7 +298,7 @@ export class AlertManager {
             monitored_entities: rule.entityType,
             threshold_value: rule.discrepancyCountThreshold,
             actual_value: filteredDiscrepancies.length,
-          }
+          },
         }
       }
     }
@@ -303,15 +306,19 @@ export class AlertManager {
     // Check severity threshold
     const severityLevels = ['low', 'medium', 'high', 'critical']
     const thresholdIndex = severityLevels.indexOf(rule.severityThreshold)
-    
+
     const severityCount = discrepancies.filter(
-      d => severityLevels.indexOf(d.severity) >= thresholdIndex
+      (d) => severityLevels.indexOf(d.severity) >= thresholdIndex
     ).length
 
     if (severityCount > 0) {
-      const criticalCount = discrepancies.filter(d => d.severity === 'critical').length
-      const highCount = discrepancies.filter(d => d.severity === 'high').length
-      
+      const criticalCount = discrepancies.filter(
+        (d) => d.severity === 'critical'
+      ).length
+      const highCount = discrepancies.filter(
+        (d) => d.severity === 'high'
+      ).length
+
       return {
         trigger: true,
         reason: `${severityCount} discrepancies at or above ${rule.severityThreshold} severity detected`,
@@ -321,7 +328,7 @@ export class AlertManager {
           critical_count: criticalCount,
           high_count: highCount,
           total_severity_count: severityCount,
-        }
+        },
       }
     }
 
@@ -412,13 +419,13 @@ export class AlertManager {
     if (!expiredAlerts || expiredAlerts.length === 0) return
 
     // Reactivate expired alerts
-    const alertIds = expiredAlerts.map(alert => alert.id)
-    
+    const alertIds = expiredAlerts.map((alert) => alert.id)
+
     // Update each alert individually to preserve metadata
     for (const alert of expiredAlerts) {
       const updatedMetadata = { ...alert.metadata }
       delete updatedMetadata.snoozed_until // Remove only the snooze timestamp
-      
+
       await this.supabase
         .from('alerts')
         .update({

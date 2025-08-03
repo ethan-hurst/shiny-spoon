@@ -1,5 +1,5 @@
-import { SyncInterval, SyncStatus, SyncResult } from '@/lib/sync/types'
 import { createBrowserClient } from '@/lib/supabase/client'
+import { SyncInterval, SyncResult, SyncStatus } from '@/lib/sync/types'
 
 export class SyncScheduler {
   private supabase = createBrowserClient()
@@ -32,7 +32,8 @@ export class SyncScheduler {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to schedule sync',
+        error:
+          error instanceof Error ? error.message : 'Failed to schedule sync',
       }
     }
   }
@@ -127,7 +128,10 @@ export class SyncScheduler {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to process pending syncs',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to process pending syncs',
       }
     }
   }
@@ -135,16 +139,14 @@ export class SyncScheduler {
   private async executeScheduledSync(schedule: any): Promise<void> {
     // This would trigger the actual sync
     // For now, just mark as completed
-    await this.supabase
-      .from('sync_logs')
-      .insert({
-        sync_config_id: schedule.sync_config_id,
-        integration_id: schedule.integration_id,
-        status: SyncStatus.COMPLETED,
-        started_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
-        records_synced: 0,
-      })
+    await this.supabase.from('sync_logs').insert({
+      sync_config_id: schedule.sync_config_id,
+      integration_id: schedule.integration_id,
+      status: SyncStatus.COMPLETED,
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+      records_synced: 0,
+    })
   }
 
   async cancelScheduledSync(scheduleId: string): Promise<SyncResult> {
@@ -191,7 +193,10 @@ export class SyncScheduler {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to get scheduled syncs',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to get scheduled syncs',
       }
     }
   }
@@ -231,14 +236,12 @@ export class SyncScheduler {
         newInterval
       )
 
-      await this.supabase
-        .from('sync_schedules')
-        .insert({
-          sync_config_id: syncConfigId,
-          integration_id: config.integration_id,
-          scheduled_at: nextSyncTime.toISOString(),
-          status: 'scheduled',
-        })
+      await this.supabase.from('sync_schedules').insert({
+        sync_config_id: syncConfigId,
+        integration_id: config.integration_id,
+        scheduled_at: nextSyncTime.toISOString(),
+        status: 'scheduled',
+      })
 
       return {
         success: true,
@@ -247,7 +250,10 @@ export class SyncScheduler {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to update sync interval',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to update sync interval',
       }
     }
   }

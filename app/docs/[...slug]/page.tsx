@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation'
 import { allDocs } from 'contentlayer2/generated'
 import { getMDXComponent } from 'next-contentlayer2/hooks'
-import { MDXComponents } from '@/components/mdx'
-import { TableOfContents } from '@/components/docs/table-of-contents'
 import { DocsPagination } from '@/components/docs/pagination'
+import { TableOfContents } from '@/components/docs/table-of-contents'
+import { MDXComponents } from '@/components/mdx'
 
 export async function generateStaticParams() {
   return allDocs.map((doc) => ({
@@ -11,7 +11,9 @@ export async function generateStaticParams() {
   }))
 }
 
-export async function generateMetadata(props: { params: Promise<{ slug: string[] }> }) {
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string[] }>
+}) {
   const params = await props.params
   const doc = allDocs.find((doc) => doc.slug === params.slug.join('/'))
   if (!doc) return {}
@@ -22,7 +24,9 @@ export async function generateMetadata(props: { params: Promise<{ slug: string[]
   }
 }
 
-export default async function DocPage(props: { params: Promise<{ slug: string[] }> }) {
+export default async function DocPage(props: {
+  params: Promise<{ slug: string[] }>
+}) {
   const params = await props.params
   const doc = allDocs.find((doc) => doc.slug === params.slug.join('/'))
 
@@ -36,10 +40,13 @@ export default async function DocPage(props: { params: Promise<{ slug: string[] 
   const categoryDocs = allDocs
     .filter((d) => d.category === doc.category)
     .sort((a, b) => a.order - b.order)
-  
+
   const currentIndex = categoryDocs.findIndex((d) => d._id === doc._id)
   const prevDoc = currentIndex > 0 ? categoryDocs[currentIndex - 1] : null
-  const nextDoc = currentIndex < categoryDocs.length - 1 ? categoryDocs[currentIndex + 1] : null
+  const nextDoc =
+    currentIndex < categoryDocs.length - 1
+      ? categoryDocs[currentIndex + 1]
+      : null
 
   return (
     <div className="flex gap-8">

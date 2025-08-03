@@ -1,6 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
+import type {
+  Invoice,
+  PaymentMethod,
+  SubscriptionData,
+} from '@/types/billing.types'
 import { stripe, SUBSCRIPTION_PLANS } from './stripe'
-import type { SubscriptionData, Invoice, PaymentMethod } from '@/types/billing.types'
 
 export interface UsageStats {
   products: {
@@ -21,10 +25,16 @@ export interface UsageStats {
 }
 
 // Re-export types for backward compatibility
-export type { SubscriptionData, Invoice, PaymentMethod } from '@/types/billing.types'
+export type {
+  SubscriptionData,
+  Invoice,
+  PaymentMethod,
+} from '@/types/billing.types'
 
 // Get subscription data for an organization
-export async function getSubscription(organizationId: string): Promise<SubscriptionData | null> {
+export async function getSubscription(
+  organizationId: string
+): Promise<SubscriptionData | null> {
   const supabase = await createClient()
 
   const { data: billing } = await supabase
@@ -49,13 +59,15 @@ export async function getSubscription(organizationId: string): Promise<Subscript
 
   // Get subscription from Stripe
   try {
-    const subscription = await stripe.subscriptions.retrieve(billing.stripe_subscription_id)
+    const subscription = await stripe.subscriptions.retrieve(
+      billing.stripe_subscription_id
+    )
     const firstItem = subscription.items.data[0]
     if (!firstItem) {
       throw new Error('No subscription items found')
     }
     const priceId = firstItem.price.id
-    
+
     // Determine which plan based on price ID
     let plan = 'starter'
     for (const [key, value] of Object.entries(SUBSCRIPTION_PLANS)) {
@@ -70,11 +82,18 @@ export async function getSubscription(organizationId: string): Promise<Subscript
       id: subscription.id,
       plan: plan as 'starter' | 'growth' | 'scale' | 'enterprise',
       interval: firstItem.price.recurring?.interval as 'month' | 'year',
-      status: subscription.status as 'active' | 'canceled' | 'past_due' | 'incomplete' | 'trialing',
+      status: subscription.status as
+        | 'active'
+        | 'canceled'
+        | 'past_due'
+        | 'incomplete'
+        | 'trialing',
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
-      limits: SUBSCRIPTION_PLANS[planKey]?.limits || SUBSCRIPTION_PLANS.starter.limits,
+      limits:
+        SUBSCRIPTION_PLANS[planKey]?.limits ||
+        SUBSCRIPTION_PLANS.starter.limits,
     }
   } catch (error) {
     console.error('Error fetching subscription:', error)
@@ -83,7 +102,9 @@ export async function getSubscription(organizationId: string): Promise<Subscript
 }
 
 // Get usage statistics for an organization
-export async function getUsageStats(organizationId: string): Promise<UsageStats> {
+export async function getUsageStats(
+  organizationId: string
+): Promise<UsageStats> {
   const supabase = await createClient()
 
   // Get current period
@@ -94,7 +115,9 @@ export async function getUsageStats(organizationId: string): Promise<UsageStats>
   // Get subscription to know limits
   const subscription = await getSubscription(organizationId)
   const planKey = subscription?.plan || 'starter'
-  const limits = SUBSCRIPTION_PLANS[planKey as keyof typeof SUBSCRIPTION_PLANS]?.limits || SUBSCRIPTION_PLANS.starter.limits
+  const limits =
+    SUBSCRIPTION_PLANS[planKey as keyof typeof SUBSCRIPTION_PLANS]?.limits ||
+    SUBSCRIPTION_PLANS.starter.limits
 
   // Get actual usage counts
   const [productCount, warehouseCount, apiCallCount] = await Promise.all([
@@ -123,12 +146,14 @@ export async function getUsageStats(organizationId: string): Promise<UsageStats>
     products: {
       current: products,
       limit: limits.products,
-      percentage: limits.products === -1 ? 0 : (products / limits.products) * 100,
+      percentage:
+        limits.products === -1 ? 0 : (products / limits.products) * 100,
     },
     warehouses: {
       current: warehouses,
       limit: limits.warehouses,
-      percentage: limits.warehouses === -1 ? 0 : (warehouses / limits.warehouses) * 100,
+      percentage:
+        limits.warehouses === -1 ? 0 : (warehouses / limits.warehouses) * 100,
     },
     apiCalls: {
       current: apiCalls,
@@ -151,16 +176,17 @@ export async function getRecentActivity(organizationId: string, limit = 10) {
     .limit(limit)
 
   // Transform into activity format
-  const activity = apiCalls?.map((call: any) => ({
-    id: call.id,
-    type: 'api_call',
-    description: `API call to ${call.method} ${call.endpoint}`,
-    timestamp: call.created_at,
-    metadata: {
-      status_code: call.status_code,
-      response_time_ms: call.response_time_ms,
-    },
-  })) || []
+  const activity =
+    apiCalls?.map((call: any) => ({
+      id: call.id,
+      type: 'api_call',
+      description: `API call to ${call.method} ${call.endpoint}`,
+      timestamp: call.created_at,
+      metadata: {
+        status_code: call.status_code,
+        response_time_ms: call.response_time_ms,
+      },
+    })) || []
 
   return activity
 }
@@ -185,7 +211,7 @@ export async function getInvoices(organizationId: string): Promise<Invoice[]> {
       limit: 100,
     })
 
-    return invoices.data.map(invoice => ({
+    return invoices.data.map((invoice) => ({
       id: invoice.id,
       status: (invoice.status || 'draft') as Invoice['status'],
       amount_paid: invoice.amount_paid,
@@ -204,7 +230,9 @@ export async function getInvoices(organizationId: string): Promise<Invoice[]> {
 }
 
 // Get payment methods for an organization
-export async function getPaymentMethods(organizationId: string): Promise<PaymentMethod[]> {
+export async function getPaymentMethods(
+  organizationId: string
+): Promise<PaymentMethod[]> {
   const supabase = await createClient()
 
   const { data: billing } = await supabase
@@ -223,7 +251,7 @@ export async function getPaymentMethods(organizationId: string): Promise<Payment
       type: 'card',
     })
 
-    return paymentMethods.data.map(pm => ({
+    return paymentMethods.data.map((pm) => ({
       id: pm.id,
       brand: pm.card?.brand || '',
       last4: pm.card?.last4 || '',

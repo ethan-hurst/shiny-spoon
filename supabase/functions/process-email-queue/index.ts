@@ -5,7 +5,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
 }
 
 serve(async (req) => {
@@ -18,16 +19,18 @@ serve(async (req) => {
     // Create Supabase client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    
+
     // Validate required environment variables
     if (!supabaseUrl) {
       throw new Error('SUPABASE_URL environment variable is not configured')
     }
-    
+
     if (!supabaseServiceKey) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not configured')
+      throw new Error(
+        'SUPABASE_SERVICE_ROLE_KEY environment variable is not configured'
+      )
     }
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     // Get pending emails
@@ -78,7 +81,7 @@ async function processEmail(supabase: any, queueItem: any) {
   // Update status to processing
   await supabase
     .from('email_queue')
-    .update({ 
+    .update({
       status: 'processing',
       attempts: queueItem.attempts + 1,
     })
@@ -91,7 +94,7 @@ async function processEmail(supabase: any, queueItem: any) {
     // Mark as sent
     await supabase
       .from('email_queue')
-      .update({ 
+      .update({
         status: 'sent',
         sent_at: new Date().toISOString(),
       })
@@ -99,14 +102,16 @@ async function processEmail(supabase: any, queueItem: any) {
 
     return { id: queueItem.id, status: 'sent' }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
 
     // Mark as failed if max attempts reached
-    const status = queueItem.attempts + 1 >= queueItem.max_attempts ? 'failed' : 'pending'
+    const status =
+      queueItem.attempts + 1 >= queueItem.max_attempts ? 'failed' : 'pending'
 
     await supabase
       .from('email_queue')
-      .update({ 
+      .update({
         status,
         error: errorMessage,
       })
@@ -124,44 +129,44 @@ function validateEmailMessage(message: any): void {
   if (!message.to || (Array.isArray(message.to) && message.to.length === 0)) {
     throw new Error('Email recipient (to) is required')
   }
-  
+
   if (!message.from) {
     throw new Error('Email sender (from) is required')
   }
-  
+
   if (!message.subject || message.subject.trim() === '') {
     throw new Error('Email subject is required')
   }
-  
+
   if (!message.html && !message.text) {
     throw new Error('Email must have either HTML or text content')
   }
-  
+
   // Validate email format for all addresses
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  
+
   const validateEmailAddress = (email: string, field: string) => {
     if (!emailRegex.test(email)) {
       throw new Error(`Invalid email address in ${field}: ${email}`)
     }
   }
-  
+
   // Validate 'to' addresses
   const toAddresses = Array.isArray(message.to) ? message.to : [message.to]
   toAddresses.forEach((email: string) => validateEmailAddress(email, 'to'))
-  
+
   // Validate 'from' address
   validateEmailAddress(message.from, 'from')
-  
+
   // Validate optional addresses if provided
   if (message.replyTo) {
     validateEmailAddress(message.replyTo, 'replyTo')
   }
-  
+
   if (message.cc && Array.isArray(message.cc)) {
     message.cc.forEach((email: string) => validateEmailAddress(email, 'cc'))
   }
-  
+
   if (message.bcc && Array.isArray(message.bcc)) {
     message.bcc.forEach((email: string) => validateEmailAddress(email, 'bcc'))
   }
@@ -171,21 +176,23 @@ async function sendEmail(message: any) {
   try {
     // Validate the message before sending
     validateEmailMessage(message)
-    
+
     const emailProvider = Deno.env.get('EMAIL_PROVIDER') || 'console'
 
     switch (emailProvider) {
       case 'resend':
         const resendApiKey = Deno.env.get('RESEND_API_KEY')
         if (!resendApiKey) {
-          throw new Error('RESEND_API_KEY environment variable is not configured')
+          throw new Error(
+            'RESEND_API_KEY environment variable is not configured'
+          )
         }
 
         try {
           const resendResponse = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${resendApiKey}`,
+              Authorization: `Bearer ${resendApiKey}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -214,7 +221,7 @@ async function sendEmail(message: any) {
             }
             throw new Error(errorMessage)
           }
-          
+
           // Log successful send in development
           if (Deno.env.get('ENVIRONMENT') === 'development') {
             console.log('✅ Email sent successfully via Resend:', {
@@ -224,8 +231,13 @@ async function sendEmail(message: any) {
           }
         } catch (fetchError) {
           // Handle network errors
-          if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
-            throw new Error(`Network error connecting to Resend API: ${fetchError.message}`)
+          if (
+            fetchError instanceof TypeError &&
+            fetchError.message.includes('fetch')
+          ) {
+            throw new Error(
+              `Network error connecting to Resend API: ${fetchError.message}`
+            )
           }
           throw fetchError
         }
@@ -237,17 +249,20 @@ async function sendEmail(message: any) {
           to: message.to,
           from: message.from,
           subject: message.subject,
-          preview: message.text?.substring(0, 100) || message.html?.substring(0, 100),
+          preview:
+            message.text?.substring(0, 100) || message.html?.substring(0, 100),
         })
         break
 
       default:
-        throw new Error(`Unknown email provider: ${emailProvider}. Supported providers are: resend, console`)
+        throw new Error(
+          `Unknown email provider: ${emailProvider}. Supported providers are: resend, console`
+        )
     }
   } catch (error) {
     // Log the error for debugging
     console.error('Email send error:', error)
-    
+
     // Re-throw with a more descriptive message if needed
     if (error instanceof Error) {
       throw error

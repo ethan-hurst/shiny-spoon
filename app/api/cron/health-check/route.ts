@@ -10,9 +10,9 @@ const CRON_SECRET = process.env.CRON_SECRET
 // Thresholds for health status
 const HEALTH_THRESHOLDS = {
   SUCCESS_RATE_CRITICAL: 0.5, // Below 50% is critical
-  SUCCESS_RATE_WARNING: 0.8,  // Below 80% is warning
-  QUEUE_DEPTH_WARNING: 50,    // More than 50 pending jobs is warning
-  QUEUE_DEPTH_CRITICAL: 100,  // More than 100 pending jobs is critical
+  SUCCESS_RATE_WARNING: 0.8, // Below 80% is warning
+  QUEUE_DEPTH_WARNING: 50, // More than 50 pending jobs is warning
+  QUEUE_DEPTH_CRITICAL: 100, // More than 100 pending jobs is critical
   JOB_AGE_WARNING_MS: 30 * 60 * 1000, // 30 minutes
   JOB_AGE_CRITICAL_MS: 60 * 60 * 1000, // 1 hour
 }
@@ -48,31 +48,37 @@ export async function GET(request: NextRequest) {
 
     if (integrationsError) {
       console.error('[CRON] Error fetching integrations:', integrationsError)
-      return NextResponse.json({ 
-        error: 'Failed to fetch integrations',
-        details: integrationsError 
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch integrations',
+          details: integrationsError,
+        },
+        { status: 500 }
+      )
     }
 
     if (!integrations || integrations.length === 0) {
       console.log('[CRON] No active integrations found')
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'No active integrations to check',
-        health_statuses: []
+        health_statuses: [],
       })
     }
 
     // Check health for each integration
     for (const integration of integrations) {
       try {
-        const healthStatus = await checkIntegrationHealth(supabase, integration.id)
+        const healthStatus = await checkIntegrationHealth(
+          supabase,
+          integration.id
+        )
         healthStatuses.push(healthStatus)
 
         // Collect issues
         if (healthStatus.issues && healthStatus.issues.length > 0) {
           issues.push(
-            ...healthStatus.issues.map(issue => 
-              `[${integration.name}] ${issue}`
+            ...healthStatus.issues.map(
+              (issue) => `[${integration.name}] ${issue}`
             )
           )
         }
@@ -86,9 +92,11 @@ export async function GET(request: NextRequest) {
             healthStatus
           )
         }
-
       } catch (error) {
-        console.error(`[CRON] Error checking health for integration ${integration.id}:`, error)
+        console.error(
+          `[CRON] Error checking health for integration ${integration.id}:`,
+          error
+        )
         healthStatuses.push({
           integration_id: integration.id,
           status: 'unhealthy',
@@ -106,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     // Check overall system health
     const systemHealth = await checkSystemHealth(supabase)
-    
+
     // Initialize sync engine to check its health
     let engineHealth = null
     let syncEngine: SyncEngine | null = null
@@ -122,15 +130,22 @@ export async function GET(request: NextRequest) {
         try {
           await syncEngine.shutdown()
         } catch (shutdownError) {
-          console.error('[CRON] Error shutting down sync engine:', shutdownError)
+          console.error(
+            '[CRON] Error shutting down sync engine:',
+            shutdownError
+          )
         }
       }
     }
 
     // Determine overall status
-    const unhealthyCount = healthStatuses.filter(h => h.status === 'unhealthy').length
-    const degradedCount = healthStatuses.filter(h => h.status === 'degraded').length
-    
+    const unhealthyCount = healthStatuses.filter(
+      (h) => h.status === 'unhealthy'
+    ).length
+    const degradedCount = healthStatuses.filter(
+      (h) => h.status === 'degraded'
+    ).length
+
     let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy'
     if (unhealthyCount > 0 || systemHealth.status === 'unhealthy') {
       overallStatus = 'unhealthy'
@@ -150,18 +165,20 @@ export async function GET(request: NextRequest) {
       issues: issues,
       summary: {
         total_integrations: integrations.length,
-        healthy: healthStatuses.filter(h => h.status === 'healthy').length,
+        healthy: healthStatuses.filter((h) => h.status === 'healthy').length,
         degraded: degradedCount,
         unhealthy: unhealthyCount,
       },
     })
-
   } catch (error) {
     console.error('[CRON] Unexpected error in health check:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    )
   }
 }
 
@@ -178,7 +195,7 @@ async function checkIntegrationHealth(
   integrationId: string
 ): Promise<SyncHealthStatus> {
   const now = new Date()
-  
+
   // Get sync statistics for the last 24 hours
   const { data: stats } = await supabase.rpc('get_sync_statistics', {
     p_integration_id: integrationId,
@@ -191,14 +208,19 @@ async function checkIntegrationHealth(
     .select('id')
     .eq('integration_id', integrationId)
     .in('status', ['pending', 'running'])
-  
-  const jobIdList = jobIds?.map(job => job.id) || []
-  
+
+  const jobIdList = jobIds?.map((job) => job.id) || []
+
   // Get queue depth for these jobs
   const { count: queueDepth } = await supabase
     .from('sync_queue')
     .select('id', { count: 'exact', head: true })
-    .in('job_id', jobIdList.length > 0 ? jobIdList : ['00000000-0000-0000-0000-000000000000'])
+    .in(
+      'job_id',
+      jobIdList.length > 0
+        ? jobIdList
+        : ['00000000-0000-0000-0000-000000000000']
+    )
 
   // Get oldest pending job
   const { data: oldestPendingJob } = await supabase
@@ -212,7 +234,8 @@ async function checkIntegrationHealth(
 
   let oldestJobAgeMs: number | undefined
   if (oldestPendingJob) {
-    oldestJobAgeMs = now.getTime() - new Date(oldestPendingJob.created_at).getTime()
+    oldestJobAgeMs =
+      now.getTime() - new Date(oldestPendingJob.created_at).getTime()
   }
 
   // Calculate metrics
@@ -246,12 +269,22 @@ async function checkIntegrationHealth(
   }
 
   // Check oldest job age
-  if (oldestJobAgeMs && oldestJobAgeMs > HEALTH_THRESHOLDS.JOB_AGE_CRITICAL_MS) {
+  if (
+    oldestJobAgeMs &&
+    oldestJobAgeMs > HEALTH_THRESHOLDS.JOB_AGE_CRITICAL_MS
+  ) {
     status = 'unhealthy'
-    issues.push(`Critical: Oldest pending job is ${Math.round(oldestJobAgeMs / 60000)} minutes old`)
-  } else if (oldestJobAgeMs && oldestJobAgeMs > HEALTH_THRESHOLDS.JOB_AGE_WARNING_MS) {
+    issues.push(
+      `Critical: Oldest pending job is ${Math.round(oldestJobAgeMs / 60000)} minutes old`
+    )
+  } else if (
+    oldestJobAgeMs &&
+    oldestJobAgeMs > HEALTH_THRESHOLDS.JOB_AGE_WARNING_MS
+  ) {
     if (status === 'healthy') status = 'degraded'
-    issues.push(`Warning: Oldest pending job is ${Math.round(oldestJobAgeMs / 60000)} minutes old`)
+    issues.push(
+      `Warning: Oldest pending job is ${Math.round(oldestJobAgeMs / 60000)} minutes old`
+    )
   }
 
   // Check if no syncs have run recently
@@ -286,7 +319,7 @@ async function checkSystemHealth(supabase: any): Promise<{
 }> {
   const issues: string[] = []
   let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy'
-  
+
   // Check total queue depth across all integrations
   const { count: totalQueueDepth } = await supabase
     .from('sync_queue')
@@ -310,7 +343,9 @@ async function checkSystemHealth(supabase: any): Promise<{
 
   if (stuckJobs && stuckJobs > 0) {
     status = 'unhealthy'
-    issues.push(`Critical: ${stuckJobs} jobs have been running for over 2 hours`)
+    issues.push(
+      `Critical: ${stuckJobs} jobs have been running for over 2 hours`
+    )
   }
 
   // Check database connection (by running a simple query)
@@ -364,14 +399,16 @@ async function createHealthNotification(
       .select('user_id, users!inner(email)')
       .eq('organization_id', organizationId)
       .eq('role', 'admin')
-    
+
     if (!adminUsers || adminUsers.length === 0) {
-      console.warn(`[CRON] No admin users found for organization ${organizationId}`)
+      console.warn(
+        `[CRON] No admin users found for organization ${organizationId}`
+      )
       return
     }
-    
+
     // Create notification for each admin
-    const notifications = adminUsers.map(admin => ({
+    const notifications = adminUsers.map((admin) => ({
       organization_id: organizationId,
       event_type: 'performance_degradation',
       channel: 'email',
@@ -383,9 +420,8 @@ async function createHealthNotification(
         metrics: healthStatus.metrics,
       },
     }))
-    
-    await supabase.from('sync_notifications').insert(notifications)
 
+    await supabase.from('sync_notifications').insert(notifications)
   } catch (error) {
     console.error('[CRON] Error creating health notification:', error)
     // Don't fail the health check if notification fails

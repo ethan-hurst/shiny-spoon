@@ -1,9 +1,9 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { ResetPasswordForm } from '@/components/auth/reset-password-form'
 import { resetPassword } from '@/app/actions/auth'
-import { toast } from 'sonner'
 
 // Mock dependencies
 jest.mock('@/app/actions/auth', () => ({
@@ -17,7 +17,9 @@ jest.mock('sonner', () => ({
 }))
 
 describe('ResetPasswordForm', () => {
-  const mockResetPassword = resetPassword as jest.MockedFunction<typeof resetPassword>
+  const mockResetPassword = resetPassword as jest.MockedFunction<
+    typeof resetPassword
+  >
   const mockToastError = toast.error as jest.MockedFunction<typeof toast.error>
 
   beforeEach(() => {
@@ -29,15 +31,21 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Send reset link' })).toBeInTheDocument()
-      expect(screen.getByPlaceholderText('name@company.com')).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Send reset link' })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('name@company.com')
+      ).toBeInTheDocument()
     })
 
     it('should have proper form accessibility attributes', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       expect(emailInput).toHaveAttribute('type', 'email')
       expect(emailInput).toHaveAttribute('autoComplete', 'email')
@@ -50,7 +58,10 @@ describe('ResetPasswordForm', () => {
       // Use querySelector to find the form element since it doesn't have role="form"
       const form = document.querySelector('form')
       expect(form).toBeInTheDocument()
-      expect(form).toHaveAttribute('class', expect.stringContaining('space-y-4'))
+      expect(form).toHaveAttribute(
+        'class',
+        expect.stringContaining('space-y-4')
+      )
     })
   })
 
@@ -60,7 +71,9 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'invalid-email')
       await user.click(submitButton)
@@ -73,7 +86,9 @@ describe('ResetPasswordForm', () => {
       const user = userEvent.setup()
       render(<ResetPasswordForm />)
 
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.click(submitButton)
 
@@ -87,15 +102,15 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
 
       await waitFor(() => {
-        expect(mockResetPassword).toHaveBeenCalledWith(
-          expect.any(FormData)
-        )
+        expect(mockResetPassword).toHaveBeenCalledWith(expect.any(FormData))
       })
     })
   })
@@ -107,7 +122,9 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
@@ -132,15 +149,25 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
 
       await waitFor(() => {
         expect(screen.getByText('Check your email')).toBeInTheDocument()
-        expect(screen.getByText(/We've sent a password reset link to test@example.com/)).toBeInTheDocument()
-        expect(screen.getByText("Didn't receive the email? Check your spam folder or try again.")).toBeInTheDocument()
+        expect(
+          screen.getByText(
+            /We've sent a password reset link to test@example.com/
+          )
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText(
+            "Didn't receive the email? Check your spam folder or try again."
+          )
+        ).toBeInTheDocument()
       })
     })
 
@@ -150,7 +177,9 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
@@ -166,13 +195,17 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
 
       await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalledWith('An unexpected error occurred')
+        expect(mockToastError).toHaveBeenCalledWith(
+          'An unexpected error occurred'
+        )
       })
     })
   })
@@ -180,26 +213,36 @@ describe('ResetPasswordForm', () => {
   describe('Loading States', () => {
     it('should show loading state during submission', async () => {
       const user = userEvent.setup()
-      mockResetPassword.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockResetPassword.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
 
-      expect(screen.getByRole('button', { name: 'Sending reset link...' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Sending reset link...' })
+      ).toBeInTheDocument()
       expect(submitButton).toBeDisabled()
     })
 
     it('should disable submit button during loading', async () => {
       const user = userEvent.setup()
-      mockResetPassword.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockResetPassword.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
@@ -215,14 +258,18 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'john@acme.com')
       await user.click(submitButton)
 
       await waitFor(() => {
         expect(screen.getByText('Check your email')).toBeInTheDocument()
-        expect(screen.getByText(/We've sent a password reset link to john@acme.com/)).toBeInTheDocument()
+        expect(
+          screen.getByText(/We've sent a password reset link to john@acme.com/)
+        ).toBeInTheDocument()
       })
     })
 
@@ -232,7 +279,9 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
@@ -250,13 +299,17 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+        expect(
+          screen.getByRole('button', { name: 'Try again' })
+        ).toBeInTheDocument()
       })
     })
 
@@ -266,7 +319,9 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
@@ -280,7 +335,9 @@ describe('ResetPasswordForm', () => {
 
       // Should be back to the form
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Send reset link' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Send reset link' })
+      ).toBeInTheDocument()
       expect(screen.queryByText('Check your email')).not.toBeInTheDocument()
     })
   })
@@ -291,7 +348,9 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       // Tab through form elements
       await user.tab()
@@ -320,11 +379,15 @@ describe('ResetPasswordForm', () => {
   describe('Form State Management', () => {
     it('should maintain form state during loading', async () => {
       const user = userEvent.setup()
-      mockResetPassword.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockResetPassword.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
@@ -335,11 +398,15 @@ describe('ResetPasswordForm', () => {
 
     it('should handle multiple rapid submissions', async () => {
       const user = userEvent.setup()
-      mockResetPassword.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
+      mockResetPassword.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      )
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
@@ -362,7 +429,9 @@ describe('ResetPasswordForm', () => {
     it('should have proper button states', () => {
       render(<ResetPasswordForm />)
 
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
       expect(submitButton).not.toBeDisabled()
     })
 
@@ -371,7 +440,9 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'invalid-email')
       await user.click(submitButton)
@@ -395,15 +466,15 @@ describe('ResetPasswordForm', () => {
       render(<ResetPasswordForm />)
 
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Send reset link' })
+      const submitButton = screen.getByRole('button', {
+        name: 'Send reset link',
+      })
 
       await user.type(emailInput, 'test@example.com')
       await user.click(submitButton)
 
       await waitFor(() => {
-        expect(mockResetPassword).toHaveBeenCalledWith(
-          expect.any(FormData)
-        )
+        expect(mockResetPassword).toHaveBeenCalledWith(expect.any(FormData))
       })
     })
   })

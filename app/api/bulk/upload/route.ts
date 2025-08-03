@@ -1,36 +1,46 @@
-import { createServerClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { BulkOperationsEngine } from '@/lib/bulk/bulk-operations-engine'
 import { validateCSVFile } from '@/lib/csv/parser'
-import { NextRequest, NextResponse } from 'next/server'
-import { BulkOperationConfig } from '@/types/bulk-operations.types'
-import { validateCSRFToken } from '@/lib/utils/csrf'
 import { rateLimiters } from '@/lib/rate-limit'
-import { z } from 'zod'
+import { createServerClient } from '@/lib/supabase/server'
+import { validateCSRFToken } from '@/lib/utils/csrf'
+import { BulkOperationConfig } from '@/types/bulk-operations.types'
 
 // Define valid types
 const VALID_OPERATION_TYPES = ['import', 'export', 'update', 'delete'] as const
-const VALID_ENTITY_TYPES = ['products', 'inventory', 'pricing', 'customers'] as const
+const VALID_ENTITY_TYPES = [
+  'products',
+  'inventory',
+  'pricing',
+  'customers',
+] as const
 
 // Define the schema for bulk upload form data
 const bulkUploadSchema = z.object({
-  file: z.custom<File>(
-    (val) => val instanceof File,
-    { message: 'File is required and must be a valid file' }
-  ),
+  file: z.custom<File>((val) => val instanceof File, {
+    message: 'File is required and must be a valid file',
+  }),
   operationType: z.enum(VALID_OPERATION_TYPES, {
-    errorMap: () => ({ message: `Invalid operation type. Must be one of: ${VALID_OPERATION_TYPES.join(', ')}` }),
+    errorMap: () => ({
+      message: `Invalid operation type. Must be one of: ${VALID_OPERATION_TYPES.join(', ')}`,
+    }),
   }),
   entityType: z.enum(VALID_ENTITY_TYPES, {
-    errorMap: () => ({ message: `Invalid entity type. Must be one of: ${VALID_ENTITY_TYPES.join(', ')}` }),
+    errorMap: () => ({
+      message: `Invalid entity type. Must be one of: ${VALID_ENTITY_TYPES.join(', ')}`,
+    }),
   }),
   validateOnly: z.boolean().default(false),
   rollbackOnError: z.boolean().default(false),
-  chunkSize: z.number()
+  chunkSize: z
+    .number()
     .int()
     .min(1, 'Chunk size must be at least 1')
     .max(10000, 'Chunk size must not exceed 10000')
     .default(500),
-  maxConcurrent: z.number()
+  maxConcurrent: z
+    .number()
     .int()
     .min(1, 'Max concurrent must be at least 1')
     .max(10, 'Max concurrent must not exceed 10')
@@ -49,10 +59,7 @@ export async function POST(request: NextRequest) {
     // Validate CSRF token
     const isValidCSRF = await validateCSRFToken(request)
     if (!isValidCSRF) {
-      return NextResponse.json(
-        { error: 'Invalid CSRF token' },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
     }
 
     const supabase = createServerClient()
@@ -67,21 +74,22 @@ export async function POST(request: NextRequest) {
 
     // Rate limiting check for bulk operations
     if (rateLimiters.bulkOperations) {
-      const { success, limit, reset, remaining } = await rateLimiters.bulkOperations.limit(user.id)
-      
+      const { success, limit, reset, remaining } =
+        await rateLimiters.bulkOperations.limit(user.id)
+
       if (!success) {
         return NextResponse.json(
-          { 
+          {
             error: 'Too many bulk operations. Please try again later.',
-            details: `Rate limit exceeded. Try again in ${Math.round((reset - Date.now()) / 1000 / 60)} minutes.`
+            details: `Rate limit exceeded. Try again in ${Math.round((reset - Date.now()) / 1000 / 60)} minutes.`,
           },
-          { 
+          {
             status: 429,
             headers: {
               'X-RateLimit-Limit': limit.toString(),
               'X-RateLimit-Remaining': remaining.toString(),
               'X-RateLimit-Reset': reset.toString(),
-            }
+            },
           }
         )
       }
@@ -103,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     // Parse form data
     const formData = await request.formData()
-    
+
     // Prepare data for validation
     const rawData = {
       file: formData.get('file'),
@@ -111,11 +119,11 @@ export async function POST(request: NextRequest) {
       entityType: formData.get('entityType'),
       validateOnly: formData.get('validateOnly') === 'true',
       rollbackOnError: formData.get('rollbackOnError') === 'true',
-      chunkSize: formData.get('chunkSize') 
-        ? parseInt(String(formData.get('chunkSize'))) 
+      chunkSize: formData.get('chunkSize')
+        ? parseInt(String(formData.get('chunkSize')))
         : undefined,
-      maxConcurrent: formData.get('maxConcurrent') 
-        ? parseInt(String(formData.get('maxConcurrent'))) 
+      maxConcurrent: formData.get('maxConcurrent')
+        ? parseInt(String(formData.get('maxConcurrent')))
         : undefined,
     }
 
@@ -126,10 +134,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstError = error.errors[0]
-        return NextResponse.json(
-          { error: firstError.message },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: firstError.message }, { status: 400 })
       }
       throw error
     }
@@ -155,12 +160,11 @@ export async function POST(request: NextRequest) {
       user.id
     )
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       operationId,
-      message: 'Bulk operation started successfully'
+      message: 'Bulk operation started successfully',
     })
-
   } catch (error) {
     console.error('Bulk upload error:', error)
 

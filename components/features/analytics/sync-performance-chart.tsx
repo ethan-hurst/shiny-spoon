@@ -6,13 +6,13 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  ComposedChart,
   Line,
   LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  ComposedChart,
 } from 'recharts'
 import {
   Card,
@@ -67,9 +67,13 @@ export function SyncPerformanceChart({ data }: SyncPerformanceChartProps) {
                 tick={{ fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
-                label={{ value: 'Duration (s)', angle: 90, position: 'insideRight' }}
+                label={{
+                  value: 'Duration (s)',
+                  angle: 90,
+                  position: 'insideRight',
+                }}
               />
-              <Tooltip 
+              <Tooltip
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (

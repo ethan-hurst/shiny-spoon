@@ -1,12 +1,12 @@
 import { Suspense } from 'react'
-import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
-import { IntegrationsList } from '@/components/features/integrations/integrations-list'
+import { Plus } from 'lucide-react'
 import { IntegrationStats } from '@/components/features/integrations/integration-stats'
+import { IntegrationsList } from '@/components/features/integrations/integrations-list'
 import { IntegrationsListSkeleton } from '@/components/features/integrations/integrations-list-skeleton'
+import { Button } from '@/components/ui/button'
+import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/supabase/types/database'
 
 type SyncJob = {
@@ -14,10 +14,11 @@ type SyncJob = {
   status: Database['public']['Tables']['sync_jobs']['Row']['status']
 }
 
-type IntegrationWithRelations = Database['public']['Tables']['integrations']['Row'] & {
-  integration_logs?: { count: number }[]
-  sync_jobs?: SyncJob[]
-}
+type IntegrationWithRelations =
+  Database['public']['Tables']['integrations']['Row'] & {
+    integration_logs?: { count: number }[]
+    sync_jobs?: SyncJob[]
+  }
 
 export const metadata = {
   title: 'Integrations | TruthSource',
@@ -32,7 +33,9 @@ export default async function IntegrationsPage({
   const supabase = await createClient()
 
   // Get user's organization
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) {
     redirect('/login')
   }
@@ -53,9 +56,14 @@ export default async function IntegrationsPage({
   const offset = (page - 1) * limit
 
   // Fetch integrations with related data
-  const { data: integrations, error, count } = await supabase
+  const {
+    data: integrations,
+    error,
+    count,
+  } = await supabase
     .from('integrations')
-    .select(`
+    .select(
+      `
       *,
       integration_logs!integration_logs_integration_id_fkey(
         count
@@ -64,7 +72,9 @@ export default async function IntegrationsPage({
         count,
         status
       )
-    `, { count: 'exact' })
+    `,
+      { count: 'exact' }
+    )
     .eq('organization_id', profile.organization_id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -80,9 +90,9 @@ export default async function IntegrationsPage({
   // Calculate stats
   const stats = {
     total: count || 0,
-    active: typedIntegrations.filter(i => i.status === 'active').length,
-    error: typedIntegrations.filter(i => i.status === 'error').length,
-    syncing: typedIntegrations.filter(i => 
+    active: typedIntegrations.filter((i) => i.status === 'active').length,
+    error: typedIntegrations.filter((i) => i.status === 'error').length,
+    syncing: typedIntegrations.filter((i) =>
       i.sync_jobs?.some((j: SyncJob) => j.status === 'running')
     ).length,
   }
