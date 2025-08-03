@@ -1,455 +1,428 @@
-// app/actions/reports.ts
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import { AuditLogger } from '@/lib/audit/audit-logger'
-import type { ReportConfig, ExportFormat, ReportSchedule, AccessLevel } from '@/types/reports.types'
+import { createServerClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
+import { ReportGenerator } from '@/lib/reports/report-generator'
+import { getReportScheduler } from '@/lib/reports/report-scheduler'
+import { reportConfigSchema, reportScheduleSchema, reportShareSchema } from '@/types/reports.types'
+import type { ReportConfig, Report, ExportFormat } from '@/types/reports.types'
+import { z } from 'zod'
+import { nanoid } from 'nanoid'
 
-export async function saveReport(config: ReportConfig, reportId?: string) {
-  const supabase = createClient()
-  const auditLogger = new AuditLogger()
+const createReportSchema = z.object({
+  name: z.string().min(1).max(255),
+  config: reportConfigSchema,
+  organization_id: z.string().uuid(),
+  template_id: z.string().uuid().optional(),
+  access_level: z.enum(['private', 'team', 'organization'])
+})
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+const updateReportSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  config: reportConfigSchema.optional(),
+  access_level: z.enum(['private', 'team', 'organization']).optional()
+})
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!profile?.organization_id) {
-    return { success: false, error: 'No organization found' }
-  }
-
+export async function createReport(data: z.infer<typeof createReportSchema>) {
   try {
-    if (reportId) {
-      // Update existing report
-      const { data: oldReport } = await supabase
-        .from('reports')
-        .select('*')
-        .eq('id', reportId)
-        .eq('created_by', user.id)
-        .single()
+    const supabase = createServerClient()
+    const user = await getCurrentUser()
 
-      if (!oldReport) {
-        return { success: false, error: 'Report not found or access denied' }
-      }
-
-      const { data, error } = await supabase
-        .from('reports')
-        .update({
-          name: config.name,
-          config,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', reportId)
-        .select()
-        .single()
-
-      if (error) throw error
-
-      // Log the update
-      await auditLogger.logUpdate('report', reportId, oldReport, data)
-
-      return { success: true, reportId: data.id }
-    } else {
-      // Create new report
-      const { data, error } = await supabase
-        .from('reports')
-        .insert({
-          organization_id: profile.organization_id,
-          name: config.name,
-          config,
-          created_by: user.id,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      // Log the creation
-      await auditLogger.logCreate('report', data)
-
-      return { success: true, reportId: data.id }
+    if (!user?.id || user.organizationId !== data.organization_id) {
+      return { success: false, error: 'Unauthorized' }
     }
-  } catch (error) {
-    console.error('Save report error:', error)
-    return { success: false, error: 'Failed to save report' }
-  } finally {
+
+    const validated = createReportSchema.parse(data)
+
+    const { data: report, error } = await supabase
+      .from('reports')
+      .insert({
+        ...validated,
+        created_by: user.id,
+        is_shared: false,
+        schedule_enabled: false,
+        run_count: 0
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Failed to create report:', error)
+      return { success: false, error: 'Failed to create report' }
+    }
+
     revalidatePath('/reports')
+    return { success: true, data: report }
+  } catch (error) {
+    console.error('Error creating report:', error)
+    return { 
+      success: false, 
+      error: error instanceof z.ZodError ? 'Invalid report data' : 'Failed to create report' 
+    }
+  }
+}
+
+export async function updateReport(reportId: string, data: z.infer<typeof updateReportSchema>) {
+  try {
+    const supabase = createServerClient()
+    const user = await getCurrentUser()
+
+    if (!user?.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const validated = updateReportSchema.parse(data)
+
+    // Check ownership
+    const { data: existingReport } = await supabase
+      .from('reports')
+      .select('created_by, organization_id')
+      .eq('id', reportId)
+      .single()
+
+    if (!existingReport || 
+        (existingReport.created_by !== user.id && existingReport.organization_id !== user.organizationId)) {
+      return { success: false, error: 'Report not found or unauthorized' }
+    }
+
+    const { data: report, error } = await supabase
+      .from('reports')
+      .update({
+        ...validated,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', reportId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Failed to update report:', error)
+      return { success: false, error: 'Failed to update report' }
+    }
+
+    revalidatePath('/reports')
+    revalidatePath(`/reports/${reportId}`)
+    return { success: true, data: report }
+  } catch (error) {
+    console.error('Error updating report:', error)
+    return { 
+      success: false, 
+      error: error instanceof z.ZodError ? 'Invalid report data' : 'Failed to update report' 
+    }
   }
 }
 
 export async function deleteReport(reportId: string) {
-  const supabase = createClient()
-  const auditLogger = new AuditLogger()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
   try {
-    // Get the report first for audit logging
+    const supabase = createServerClient()
+    const user = await getCurrentUser()
+
+    if (!user?.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // Check ownership
     const { data: report } = await supabase
       .from('reports')
-      .select('*')
+      .select('created_by')
       .eq('id', reportId)
-      .eq('created_by', user.id)
       .single()
 
-    if (!report) {
-      return { success: false, error: 'Report not found or access denied' }
+    if (!report || report.created_by !== user.id) {
+      return { success: false, error: 'Report not found or unauthorized' }
     }
 
     const { error } = await supabase
       .from('reports')
       .delete()
       .eq('id', reportId)
-      .eq('created_by', user.id)
 
-    if (error) throw error
+    if (error) {
+      console.error('Failed to delete report:', error)
+      return { success: false, error: 'Failed to delete report' }
+    }
 
-    // Log the deletion
-    await auditLogger.logDelete('report', report)
-
+    revalidatePath('/reports')
     return { success: true }
   } catch (error) {
-    console.error('Delete report error:', error)
+    console.error('Error deleting report:', error)
     return { success: false, error: 'Failed to delete report' }
-  } finally {
-    revalidatePath('/reports')
   }
 }
 
-export async function duplicateReport(reportId: string) {
-  const supabase = createClient()
-  const auditLogger = new AuditLogger()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!profile?.organization_id) {
-    return { success: false, error: 'No organization found' }
-  }
-
+export async function runReport(reportId: string, format: ExportFormat = 'pdf') {
   try {
-    // Get the original report
-    const { data: originalReport } = await supabase
-      .from('reports')
-      .select('*')
-      .eq('id', reportId)
-      .single()
+    const supabase = createServerClient()
+    const user = await getCurrentUser()
 
-    if (!originalReport) {
-      return { success: false, error: 'Report not found' }
+    if (!user?.id) {
+      return { success: false, error: 'Unauthorized' }
     }
 
-    // Check access - can duplicate if user can view the report
-    const canAccess = 
-      originalReport.created_by === user.id ||
-      originalReport.access_level === 'organization' ||
-      (originalReport.access_level === 'team' && originalReport.organization_id === profile.organization_id)
-
-    if (!canAccess) {
-      return { success: false, error: 'Access denied' }
-    }
-
-    // Create duplicate
-    const { data, error } = await supabase
-      .from('reports')
-      .insert({
-        organization_id: profile.organization_id,
-        name: `${originalReport.name} (Copy)`,
-        description: originalReport.description,
-        config: originalReport.config,
-        created_by: user.id,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // Log the creation
-    await auditLogger.logCreate('report', data, { duplicated_from: reportId })
-
-    return { success: true, reportId: data.id }
-  } catch (error) {
-    console.error('Duplicate report error:', error)
-    return { success: false, error: 'Failed to duplicate report' }
-  } finally {
-    revalidatePath('/reports')
-  }
-}
-
-export async function runReport(
-  reportId: string,
-  format: ExportFormat = 'pdf',
-  parameters?: Record<string, any>
-) {
-  const supabase = createClient()
-  const auditLogger = new AuditLogger()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
-  try {
     // Get report
-    const { data: report, error: reportError } = await supabase
+    const { data: report } = await supabase
       .from('reports')
       .select('*')
       .eq('id', reportId)
       .single()
 
-    if (reportError) throw reportError
-
-    // Check access
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('organization_id')
-      .eq('user_id', user.id)
-      .single()
-
-    const canAccess = 
-      report.created_by === user.id ||
-      report.access_level === 'organization' ||
-      (report.access_level === 'team' && report.organization_id === profile?.organization_id)
-
-    if (!canAccess) {
-      return { success: false, error: 'Access denied' }
+    if (!report || 
+        (report.access_level === 'private' && report.created_by !== user.id) ||
+        (report.organization_id !== user.organizationId)) {
+      return { success: false, error: 'Report not found or unauthorized' }
     }
 
-    // Create report run record
-    const { data: reportRun } = await supabase
+    // Create run record
+    const { data: run, error: runError } = await supabase
       .from('report_runs')
       .insert({
         report_id: reportId,
         status: 'running',
-        parameters: parameters || {},
+        started_at: new Date().toISOString()
       })
       .select()
       .single()
 
-    // Generate report (simplified for now)
-    const reportData = await generateReportData(report.config, parameters || {}, profile?.organization_id)
-    
-    // For now, return the data directly
-    // In production, this would generate actual files and store them
-    const filename = `${report.name}_${new Date().toISOString().split('T')[0]}.${format}`
-
-    // Update report run status
-    await supabase
-      .from('report_runs')
-      .update({
-        status: 'completed',
-        completed_at: new Date().toISOString(),
-        record_count: reportData.recordCount,
-      })
-      .eq('id', reportRun!.id)
-
-    // Update report last run
-    await supabase
-      .from('reports')
-      .update({
-        last_run_at: new Date().toISOString(),
-        run_count: (report.run_count || 0) + 1,
-      })
-      .eq('id', reportId)
-
-    // Log the action
-    await auditLogger.log({
-      action: 'export',
-      entityType: 'report',
-      entityId: reportId,
-      entityName: report.name,
-      metadata: { format, recordCount: reportData.recordCount },
-    })
-
-    return {
-      success: true,
-      data: reportData.data,
-      filename,
-      format,
+    if (runError || !run) {
+      return { success: false, error: 'Failed to start report run' }
     }
-  } catch (error) {
-    console.error('Run report error:', error)
-    return { success: false, error: 'Failed to run report' }
-  }
-}
 
-async function generateReportData(
-  config: ReportConfig,
-  parameters: Record<string, any>,
-  organizationId?: string
-): Promise<{ data: any; recordCount: number }> {
-  const supabase = createClient()
+    try {
+      // Generate report
+      const generator = new ReportGenerator()
+      const result = await generator.generate(report.config, format, {
+        organizationId: report.organization_id,
+        reportId,
+        runId: run.id
+      })
 
-  // This is a simplified implementation
-  // In production, this would process the report config and generate actual data
-  
-  // Find table components and generate their data
-  const tableComponents = config.components.filter(c => c.type === 'table')
-  const chartComponents = config.components.filter(c => c.type === 'chart')
-  
-  let allData: any = {}
-  let totalRecords = 0
-
-  // Process data sources
-  for (const dataSource of config.dataSources) {
-    if (dataSource.type === 'query' && dataSource.query) {
-      try {
-        const { data, error } = await supabase.rpc('execute_report_query', {
-          query: dataSource.query,
-          parameters: { ...parameters, orgId: organizationId }
+      // Upload to storage
+      const filename = `${reportId}/${run.id}/${report.name}-${new Date().toISOString()}.${format}`
+      const { error: uploadError } = await supabase.storage
+        .from('reports')
+        .upload(filename, result.data, {
+          contentType: result.mimeType
         })
 
-        if (!error && data) {
-          allData[dataSource.id] = data.map((row: any) => row.result)
-          totalRecords += data.length
-        }
-      } catch (err) {
-        console.error(`Error executing query for data source ${dataSource.id}:`, err)
-        allData[dataSource.id] = []
+      if (uploadError) {
+        throw new Error(`Failed to upload: ${uploadError.message}`)
       }
-    }
-  }
 
-  return {
-    data: allData,
-    recordCount: totalRecords
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('reports')
+        .getPublicUrl(filename)
+
+      // Update run as completed
+      await supabase
+        .from('report_runs')
+        .update({
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          result_url: publicUrl,
+          result_size_bytes: Buffer.byteLength(result.data)
+        })
+        .eq('id', run.id)
+
+      // Update report stats
+      await supabase
+        .from('reports')
+        .update({
+          last_run_at: new Date().toISOString(),
+          run_count: report.run_count + 1
+        })
+        .eq('id', reportId)
+
+      revalidatePath(`/reports/${reportId}`)
+      return { 
+        success: true, 
+        data: result.data,
+        url: publicUrl,
+        filename: `${report.name}.${format}`
+      }
+    } catch (error) {
+      // Mark run as failed
+      await supabase
+        .from('report_runs')
+        .update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
+        .eq('id', run.id)
+
+      throw error
+    }
+  } catch (error) {
+    console.error('Error running report:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to run report' 
+    }
   }
 }
 
-export async function scheduleReport(
-  reportId: string,
-  schedule: ReportSchedule
-) {
-  const supabase = createClient()
-  const auditLogger = new AuditLogger()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
+export async function scheduleReport(reportId: string, schedule: z.infer<typeof reportScheduleSchema>) {
   try {
-    const { data, error } = await supabase
+    const supabase = createServerClient()
+    const user = await getCurrentUser()
+
+    if (!user?.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    const validated = reportScheduleSchema.parse(schedule)
+
+    // Check ownership
+    const { data: report } = await supabase
       .from('reports')
-      .update({
-        schedule_enabled: schedule.enabled,
-        schedule_cron: schedule.cron,
-        schedule_timezone: schedule.timezone,
-        schedule_recipients: schedule.recipients,
-        schedule_format: schedule.formats,
-      })
+      .select('created_by')
       .eq('id', reportId)
-      .eq('created_by', user.id)
-      .select()
       .single()
 
-    if (error) throw error
+    if (!report || report.created_by !== user.id) {
+      return { success: false, error: 'Report not found or unauthorized' }
+    }
 
-    // Log the scheduling change
-    await auditLogger.log({
-      action: 'update',
-      entityType: 'report',
-      entityId: reportId,
-      entityName: data.name,
-      metadata: { 
-        action: 'schedule_updated',
-        schedule_enabled: schedule.enabled,
-        cron: schedule.cron
-      },
-    })
+    const { error } = await supabase
+      .from('reports')
+      .update({
+        schedule_enabled: validated.enabled,
+        schedule_cron: validated.cron,
+        schedule_timezone: validated.timezone,
+        schedule_recipients: validated.recipients,
+        schedule_format: validated.format
+      })
+      .eq('id', reportId)
 
+    if (error) {
+      console.error('Failed to update schedule:', error)
+      return { success: false, error: 'Failed to update schedule' }
+    }
+
+    // Update scheduler
+    const scheduler = getReportScheduler()
+    await scheduler.updateSchedule(reportId)
+
+    revalidatePath(`/reports/${reportId}`)
     return { success: true }
   } catch (error) {
-    console.error('Schedule report error:', error)
-    return { success: false, error: 'Failed to schedule report' }
-  } finally {
-    revalidatePath('/reports')
+    console.error('Error scheduling report:', error)
+    return { 
+      success: false, 
+      error: error instanceof z.ZodError ? 'Invalid schedule data' : 'Failed to schedule report' 
+    }
   }
 }
 
-export async function shareReport(
-  reportId: string,
-  options: {
-    enabled: boolean
-    expiresIn?: number // hours
-    accessLevel?: AccessLevel
-  }
-) {
-  const supabase = createClient()
-  const auditLogger = new AuditLogger()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
-
+export async function shareReport(reportId: string, enabled: boolean, expiresInHours: number = 168) {
   try {
-    const updates: any = {
-      is_shared: options.enabled,
-      access_level: options.accessLevel || 'private',
+    const supabase = createServerClient()
+    const user = await getCurrentUser()
+
+    if (!user?.id) {
+      return { success: false, error: 'Unauthorized' }
     }
 
-    if (options.enabled) {
-      updates.share_token = crypto.randomUUID()
-      if (options.expiresIn) {
-        const expiresAt = new Date()
-        expiresAt.setHours(expiresAt.getHours() + options.expiresIn)
-        updates.share_expires_at = expiresAt.toISOString()
-      }
+    // Check ownership
+    const { data: report } = await supabase
+      .from('reports')
+      .select('created_by')
+      .eq('id', reportId)
+      .single()
+
+    if (!report || report.created_by !== user.id) {
+      return { success: false, error: 'Report not found or unauthorized' }
+    }
+
+    const updates: any = {
+      is_shared: enabled
+    }
+
+    if (enabled) {
+      updates.share_token = nanoid(32)
+      updates.share_expires_at = new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString()
     } else {
       updates.share_token = null
       updates.share_expires_at = null
     }
 
-    const { data, error } = await supabase
+    const { data: updated, error } = await supabase
       .from('reports')
       .update(updates)
       .eq('id', reportId)
-      .eq('created_by', user.id)
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Failed to update sharing:', error)
+      return { success: false, error: 'Failed to update sharing' }
+    }
 
-    // Log the sharing change
-    await auditLogger.log({
-      action: 'update',
-      entityType: 'report',
-      entityId: reportId,
-      entityName: data.name,
-      metadata: { 
-        action: 'sharing_updated',
-        is_shared: options.enabled,
-        access_level: options.accessLevel
-      },
-    })
-
-    return {
-      success: true,
-      shareUrl: data.share_token
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/reports/shared/${data.share_token}`
-        : null,
+    revalidatePath(`/reports/${reportId}`)
+    return { 
+      success: true, 
+      shareUrl: enabled ? `${process.env.NEXT_PUBLIC_APP_URL}/reports/shared/${updated.share_token}` : null 
     }
   } catch (error) {
-    console.error('Share report error:', error)
+    console.error('Error sharing report:', error)
     return { success: false, error: 'Failed to share report' }
+  }
+}
+
+export async function exportReport(reportId: string, format: ExportFormat) {
+  // This is essentially the same as runReport but without creating a run record
+  return runReport(reportId, format)
+}
+
+export async function duplicateReport(reportId: string) {
+  try {
+    const supabase = createServerClient()
+    const user = await getCurrentUser()
+
+    if (!user?.id) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // Get original report
+    const { data: original } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('id', reportId)
+      .single()
+
+    if (!original || 
+        (original.access_level === 'private' && original.created_by !== user.id) ||
+        (original.organization_id !== user.organizationId)) {
+      return { success: false, error: 'Report not found or unauthorized' }
+    }
+
+    // Create duplicate
+    const { data: duplicate, error } = await supabase
+      .from('reports')
+      .insert({
+        name: `${original.name} (Copy)`,
+        config: original.config,
+        organization_id: original.organization_id,
+        created_by: user.id,
+        access_level: 'private',
+        is_shared: false,
+        schedule_enabled: false,
+        run_count: 0
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Failed to duplicate report:', error)
+      return { success: false, error: 'Failed to duplicate report' }
+    }
+
+    revalidatePath('/reports')
+    return { success: true, data: duplicate }
+  } catch (error) {
+    console.error('Error duplicating report:', error)
+    return { success: false, error: 'Failed to duplicate report' }
   }
 }

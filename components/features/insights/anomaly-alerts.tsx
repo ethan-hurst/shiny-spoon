@@ -1,172 +1,118 @@
 // components/features/insights/anomaly-alerts.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, Package, Warehouse, RefreshCw } from 'lucide-react'
-import { detectAnomalies } from '@/app/actions/ai-insights'
-import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import type { AIInsight } from '@/types/ai.types'
+import { dismissInsight } from '@/app/actions/insights'
 
 interface AnomalyAlertsProps {
-  organizationId: string
-  insights: AIInsight[]
+  alerts: AIInsight[]
 }
 
-export function AnomalyAlerts({ organizationId, insights }: AnomalyAlertsProps) {
-  const [anomalies, setAnomalies] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-
-  const loadAnomalies = async () => {
-    setIsLoading(true)
-    try {
-      const result = await detectAnomalies(organizationId)
-      if (result.success && result.data) {
-        setAnomalies(result.data)
-      } else {
-        toast.error(result.error || 'Failed to load anomalies')
-      }
-    } catch (error) {
-      toast.error('Failed to load anomalies')
-    } finally {
-      setIsLoading(false)
-    }
+export function AnomalyAlerts({ alerts }: AnomalyAlertsProps) {
+  if (alerts.length === 0) {
+    return null
   }
 
-  useEffect(() => {
-    loadAnomalies()
-  }, [organizationId])
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200'
-      case 'warning': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'info': return 'bg-blue-100 text-blue-800 border-blue-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
+  const severityConfig = {
+    critical: {
+      icon: AlertTriangle,
+      color: 'text-red-600',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-200',
+      badgeVariant: 'destructive' as const,
+    },
+    warning: {
+      icon: AlertTriangle,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-50',
+      borderColor: 'border-yellow-200',
+      badgeVariant: 'secondary' as const,
+    },
+    info: {
+      icon: Info,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      badgeVariant: 'default' as const,
+    },
   }
 
-  const getAnomalyIcon = (type: string) => {
-    switch (type) {
-      case 'out_of_stock':
-      case 'low_stock':
-      case 'excess_inventory':
-        return Package
-      default:
-        return AlertTriangle
-    }
+  async function handleDismiss(id: string) {
+    await dismissInsight(id)
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Anomaly Detection</h2>
-          <p className="text-muted-foreground">
-            Real-time detection of inventory and operational anomalies
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={loadAnomalies}
-          disabled={isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Anomaly Alerts</CardTitle>
+        <CardDescription>
+          Unusual patterns and issues that require attention
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {alerts.map((alert) => {
+            const config = severityConfig[alert.severity || 'info']
+            const Icon = config.icon
 
-      {/* AI Insight Alerts */}
-      {insights.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold mb-4">AI-Generated Alerts</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            {insights.map((insight) => (
-              <Card key={insight.id} className={getSeverityColor(insight.severity)}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    <CardTitle className="text-lg">{insight.title}</CardTitle>
-                    <Badge variant="outline">{insight.severity}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="mb-3">
-                    {insight.content}
-                  </CardDescription>
-                  {insight.recommended_actions.length > 0 && (
-                    <div>
-                      <p className="font-medium text-sm mb-2">Recommended Actions:</p>
-                      <ul className="text-sm space-y-1">
-                        {insight.recommended_actions.map((action, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-muted-foreground">•</span>
-                            <span>{action}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Real-time Anomalies */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Inventory Anomalies</h3>
-        {isLoading ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p>Detecting anomalies...</p>
-            </CardContent>
-          </Card>
-        ) : anomalies.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Package className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-green-700 mb-2">All Clear</h3>
-              <p className="text-muted-foreground">No inventory anomalies detected</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {anomalies.map((anomaly, index) => {
-              const Icon = getAnomalyIcon(anomaly.anomaly_type)
-              return (
-                <Card key={index} className={getSeverityColor(anomaly.severity)}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      <CardTitle className="text-base">{anomaly.product_name}</CardTitle>
-                      <Badge variant="outline" className="text-xs">
-                        {anomaly.severity}
-                      </Badge>
-                    </div>
-                    <CardDescription className="text-sm">
-                      {anomaly.warehouse_name}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Current Stock:</span>
-                        <span className="font-medium">{anomaly.current_quantity}</span>
+            return (
+              <div
+                key={alert.id}
+                className={cn(
+                  'p-4 rounded-lg border',
+                  config.bgColor,
+                  config.borderColor
+                )}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-3">
+                    <Icon className={cn('h-5 w-5 mt-0.5', config.color)} />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{alert.title}</h4>
+                        <Badge variant={config.badgeVariant}>
+                          {alert.severity}
+                        </Badge>
                       </div>
-                      <p className="text-sm">{anomaly.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {alert.content}
+                      </p>
+                      {alert.recommended_actions && alert.recommended_actions.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium mb-1">Recommended Actions:</p>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            {alert.recommended_actions.map((action, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <CheckCircle2 className="h-3 w-3 mt-0.5 text-green-600" />
+                                {action}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+                  </div>
+                  <form action={handleDismiss.bind(null, alert.id)}>
+                    <Button
+                      type="submit"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
   )
 }

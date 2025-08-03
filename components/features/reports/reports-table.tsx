@@ -1,41 +1,15 @@
-// components/features/reports/reports-table.tsx
 'use client'
 
-import * as React from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import {
   ColumnDef,
-  ColumnFiltersState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
+  useReactTable,
   getPaginationRowModel,
   getSortedRowModel,
   SortingState,
-  useReactTable,
 } from '@tanstack/react-table'
-import { format } from 'date-fns'
-import {
-  ChevronDown,
-  Copy,
-  Edit,
-  MoreHorizontal,
-  Play,
-  Settings,
-  Share,
-  Trash2,
-} from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -44,226 +18,197 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { toast } from 'sonner'
-import { duplicateReport, deleteReport, runReport } from '@/app/actions/reports'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { 
+  MoreHorizontal, 
+  Play, 
+  Edit, 
+  Calendar, 
+  Share2, 
+  Download, 
+  Trash2,
+  Clock,
+  CheckCircle,
+  XCircle
+} from 'lucide-react'
+import Link from 'next/link'
+import { formatDistanceToNow } from 'date-fns'
 import type { Report } from '@/types/reports.types'
 
 interface ReportsTableProps {
-  reports: (Report & { report_runs?: { count: number }[] })[]
+  reports: Report[]
   showSchedule?: boolean
+  onRun?: (reportId: string) => void
+  onSchedule?: (reportId: string) => void
+  onShare?: (reportId: string) => void
+  onExport?: (reportId: string, format: 'csv' | 'excel' | 'pdf') => void
+  onDelete?: (reportId: string) => void
 }
 
-export function ReportsTable({ reports, showSchedule = false }: ReportsTableProps) {
-  const router = useRouter()
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [globalFilter, setGlobalFilter] = React.useState('')
-  const [isRunning, setIsRunning] = React.useState<string | null>(null)
+export function ReportsTable({
+  reports,
+  showSchedule = false,
+  onRun,
+  onSchedule,
+  onShare,
+  onExport,
+  onDelete
+}: ReportsTableProps) {
+  const [sorting, setSorting] = useState<SortingState>([])
 
-  const handleDuplicate = async (reportId: string) => {
-    try {
-      const result = await duplicateReport(reportId)
-      if (result.success) {
-        toast.success('Report duplicated successfully')
-        router.refresh()
-      } else {
-        toast.error(result.error || 'Failed to duplicate report')
-      }
-    } catch (error) {
-      toast.error('Failed to duplicate report')
-    }
-  }
-
-  const handleDelete = async (reportId: string, reportName: string) => {
-    if (!confirm(`Are you sure you want to delete "${reportName}"?`)) {
-      return
-    }
-
-    try {
-      const result = await deleteReport(reportId)
-      if (result.success) {
-        toast.success('Report deleted successfully')
-        router.refresh()
-      } else {
-        toast.error(result.error || 'Failed to delete report')
-      }
-    } catch (error) {
-      toast.error('Failed to delete report')
-    }
-  }
-
-  const handleRun = async (reportId: string, reportName: string) => {
-    setIsRunning(reportId)
-    try {
-      const result = await runReport(reportId, 'pdf')
-      if (result.success && result.data) {
-        // Create and download the file
-        const blob = new Blob([JSON.stringify(result.data, null, 2)], {
-          type: 'application/json',
-        })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = result.filename || `${reportName}.json`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-
-        toast.success('Report generated successfully')
-        router.refresh()
-      } else {
-        toast.error(result.error || 'Failed to run report')
-      }
-    } catch (error) {
-      toast.error('Failed to run report')
-    } finally {
-      setIsRunning(null)
-    }
-  }
-
-  const columns: ColumnDef<Report & { report_runs?: { count: number }[] }>[] = [
+  const columns: ColumnDef<Report>[] = [
     {
       accessorKey: 'name',
       header: 'Name',
       cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{row.getValue('name')}</div>
-          {row.original.description && (
-            <div className="text-sm text-muted-foreground">
-              {row.original.description}
-            </div>
-          )}
-        </div>
+        <Link 
+          href={`/reports/${row.original.id}`}
+          className="font-medium text-primary hover:underline"
+        >
+          {row.getValue('name')}
+        </Link>
       ),
-    },
-    {
-      accessorKey: 'config',
-      header: 'Components',
-      cell: ({ row }) => {
-        const config = row.getValue('config') as any
-        const componentCount = config?.components?.length || 0
-        return (
-          <Badge variant="secondary">
-            {componentCount} component{componentCount !== 1 ? 's' : ''}
-          </Badge>
-        )
-      },
     },
     {
       accessorKey: 'last_run_at',
       header: 'Last Run',
       cell: ({ row }) => {
-        const lastRun = row.getValue('last_run_at') as string
-        return lastRun
-          ? format(new Date(lastRun), 'MMM d, yyyy h:mm a')
-          : 'Never'
+        const lastRun = row.getValue('last_run_at') as string | null
+        return lastRun ? (
+          <span className="text-sm text-muted-foreground">
+            {formatDistanceToNow(new Date(lastRun), { addSuffix: true })}
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">Never</span>
+        )
       },
     },
     {
       accessorKey: 'run_count',
       header: 'Runs',
-      cell: ({ row }) => row.getValue('run_count') || 0,
+      cell: ({ row }) => (
+        <span className="text-sm">{row.getValue('run_count') || 0}</span>
+      ),
     },
-    ...(showSchedule
-      ? [
-          {
-            accessorKey: 'schedule_enabled',
-            header: 'Schedule',
-            cell: ({ row }: any) => {
-              const enabled = row.getValue('schedule_enabled')
-              const cron = row.original.schedule_cron
-              return enabled ? (
-                <Badge variant="outline" className="bg-green-50 text-green-700">
-                  {cron || 'Scheduled'}
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Manual</Badge>
-              )
-            },
-          } as ColumnDef<Report & { report_runs?: { count: number }[] }>,
-        ]
-      : []),
+    ...(showSchedule ? [{
+      accessorKey: 'schedule_enabled',
+      header: 'Schedule',
+      cell: ({ row }: any) => {
+        const report = row.original as Report
+        if (!report.schedule_enabled) {
+          return <Badge variant="outline">Manual</Badge>
+        }
+        return (
+          <div className="flex items-center gap-2">
+            <Clock className="h-3 w-3" />
+            <span className="text-sm">{report.schedule_cron}</span>
+          </div>
+        )
+      },
+    }] : []),
     {
       accessorKey: 'access_level',
       header: 'Access',
       cell: ({ row }) => {
         const level = row.getValue('access_level') as string
-        const colors = {
-          private: 'bg-gray-100 text-gray-800',
-          team: 'bg-blue-100 text-blue-800',
-          organization: 'bg-green-100 text-green-800',
-        }
         return (
-          <Badge variant="secondary" className={colors[level as keyof typeof colors]}>
+          <Badge variant={level === 'private' ? 'secondary' : 'default'}>
             {level}
           </Badge>
         )
       },
     },
     {
-      accessorKey: 'created_at',
-      header: 'Created',
+      accessorKey: 'is_shared',
+      header: 'Shared',
       cell: ({ row }) => {
-        const date = row.getValue('created_at') as string
-        return format(new Date(date), 'MMM d, yyyy')
+        const isShared = row.getValue('is_shared') as boolean
+        return isShared ? (
+          <CheckCircle className="h-4 w-4 text-green-500" />
+        ) : (
+          <XCircle className="h-4 w-4 text-gray-300" />
+        )
       },
     },
     {
       id: 'actions',
       cell: ({ row }) => {
         const report = row.original
-        const isLoading = isRunning === report.id
 
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+              <Button
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                aria-label="Report actions"
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => handleRun(report.id, report.name)}
-                disabled={isLoading}
-              >
-                <Play className="mr-2 h-4 w-4" />
-                Run Report
-              </DropdownMenuItem>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              {onRun && (
+                <DropdownMenuItem onClick={() => onRun(report.id)}>
+                  <Play className="mr-2 h-4 w-4" />
+                  Run Report
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
-                <Link href={`/reports/${report.id}`}>
+                <Link href={`/reports/${report.id}/edit`}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleDuplicate(report.id)}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href={`/reports/${report.id}/schedule`}>
-                  <Settings className="mr-2 h-4 w-4" />
+              {onSchedule && (
+                <DropdownMenuItem onClick={() => onSchedule(report.id)}>
+                  <Calendar className="mr-2 h-4 w-4" />
                   Schedule
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={`/reports/${report.id}/share`}>
-                  <Share className="mr-2 h-4 w-4" />
+                </DropdownMenuItem>
+              )}
+              {onShare && (
+                <DropdownMenuItem onClick={() => onShare(report.id)}>
+                  <Share2 className="mr-2 h-4 w-4" />
                   Share
-                </Link>
-              </DropdownMenuItem>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => handleDelete(report.id, report.name)}
-                className="text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </DropdownMenuItem>
+              {onExport && (
+                <>
+                  <DropdownMenuItem onClick={() => onExport(report.id, 'pdf')}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export as PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onExport(report.id, 'excel')}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export as Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onExport(report.id, 'csv')}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              {onDelete && (
+                <DropdownMenuItem 
+                  onClick={() => onDelete(report.id)}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )
@@ -274,48 +219,32 @@ export function ReportsTable({ reports, showSchedule = false }: ReportsTableProp
   const table = useReactTable({
     data: reports,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
     state: {
       sorting,
-      columnFilters,
-      globalFilter,
     },
   })
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Search reports..."
-          value={globalFilter}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="max-w-sm"
-        />
-      </div>
-
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -324,7 +253,7 @@ export function ReportsTable({ reports, showSchedule = false }: ReportsTableProp
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
+                  data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -342,7 +271,7 @@ export function ReportsTable({ reports, showSchedule = false }: ReportsTableProp
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No reports found. Create your first report to get started.
+                  No reports found.
                 </TableCell>
               </TableRow>
             )}
@@ -350,25 +279,68 @@ export function ReportsTable({ reports, showSchedule = false }: ReportsTableProp
         </Table>
       </div>
 
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </Button>
-        </div>
+      <div className="flex items-center justify-end space-x-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          Previous
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export function ReportsTableSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Last Run</TableHead>
+              <TableHead>Runs</TableHead>
+              <TableHead>Access</TableHead>
+              <TableHead>Shared</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...Array(5)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell>
+                  <Skeleton className="h-4 w-48" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-24" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-12" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-16" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-8 w-8" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   )

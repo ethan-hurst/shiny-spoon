@@ -1,0 +1,137 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2025-01-03T00:00:00Z",
+  "environment": "production",
+  "endpoints": {
+    "/api/products": {
+      "method": "GET",
+      "p50": 50,
+      "p95": 200,
+      "p99": 500,
+      "max": 2000,
+      "error_rate": 0.001,
+      "requests_per_second": 1000
+    },
+    "/api/products/search": {
+      "method": "GET",
+      "p50": 100,
+      "p95": 400,
+      "p99": 800,
+      "max": 3000,
+      "error_rate": 0.001,
+      "requests_per_second": 500
+    },
+    "/api/orders": {
+      "method": "POST",
+      "p50": 150,
+      "p95": 500,
+      "p99": 1000,
+      "max": 5000,
+      "error_rate": 0.01,
+      "requests_per_second": 200
+    },
+    "/api/reports/generate": {
+      "method": "GET",
+      "p50": 2000,
+      "p95": 5000,
+      "p99": 10000,
+      "max": 30000,
+      "error_rate": 0.02,
+      "requests_per_second": 50
+    },
+    "/api/inventory/bulk-adjust": {
+      "method": "POST",
+      "p50": 3000,
+      "p95": 8000,
+      "p99": 15000,
+      "max": 60000,
+      "error_rate": 0.05,
+      "requests_per_second": 10
+    }
+  },
+  "database": {
+    "connection_pool": {
+      "size": 100,
+      "active_avg": 20,
+      "active_p95": 50,
+      "wait_time_p95": 5,
+      "timeout_rate": 0.0001
+    },
+    "query_performance": {
+      "simple_select": {
+        "p50": 5,
+        "p95": 10,
+        "p99": 50
+      },
+      "complex_join": {
+        "p50": 50,
+        "p95": 100,
+        "p99": 500
+      },
+      "aggregation": {
+        "p50": 200,
+        "p95": 500,
+        "p99": 2000
+      },
+      "write_operation": {
+        "p50": 10,
+        "p95": 30,
+        "p99": 100
+      }
+    }
+  },
+  "cache": {
+    "hit_rate": 0.85,
+    "get_latency": {
+      "p50": 1,
+      "p95": 2,
+      "p99": 5
+    },
+    "set_latency": {
+      "p50": 2,
+      "p95": 5,
+      "p99": 10
+    },
+    "eviction_rate": 0.05
+  },
+  "resources": {
+    "cpu": {
+      "avg_utilization": 0.4,
+      "p95_utilization": 0.7,
+      "max_utilization": 0.85
+    },
+    "memory": {
+      "avg_utilization": 0.5,
+      "p95_utilization": 0.75,
+      "max_utilization": 0.9,
+      "heap_size_mb": 512
+    },
+    "network": {
+      "bandwidth_mbps": 100,
+      "avg_utilization": 0.3,
+      "p95_utilization": 0.6
+    }
+  },
+  "thresholds": {
+    "response_time": {
+      "acceptable": 1000,
+      "warning": 2000,
+      "critical": 5000
+    },
+    "error_rate": {
+      "acceptable": 0.01,
+      "warning": 0.05,
+      "critical": 0.1
+    },
+    "cpu_utilization": {
+      "acceptable": 0.7,
+      "warning": 0.85,
+      "critical": 0.95
+    },
+    "memory_utilization": {
+      "acceptable": 0.8,
+      "warning": 0.9,
+      "critical": 0.95
+    }
+  }
+}

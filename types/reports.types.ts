@@ -1,73 +1,59 @@
 // types/reports.types.ts
 import { z } from 'zod'
 
+// Component types
 export type ComponentType = 'chart' | 'table' | 'metric' | 'text' | 'image' | 'filter'
+export type ChartType = 'bar' | 'line' | 'pie' | 'area' | 'scatter'
 export type ExportFormat = 'csv' | 'excel' | 'pdf'
+export type ReportCategory = 'inventory' | 'orders' | 'customers' | 'performance' | 'custom'
 export type AccessLevel = 'private' | 'team' | 'organization'
 
-// Report component schema
-export const ReportComponentSchema = z.object({
-  id: z.string(),
-  type: z.enum(['chart', 'table', 'metric', 'text', 'image', 'filter']),
-  config: z.record(z.any()),
-  position: z.object({
-    x: z.number(),
-    y: z.number(),
-  }),
-  size: z.object({
-    width: z.number(),
-    height: z.number(),
-  }),
-})
+// Component configuration
+export interface ReportComponent {
+  id: string
+  type: ComponentType
+  config: Record<string, any>
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+}
 
-export type ReportComponent = z.infer<typeof ReportComponentSchema>
+// Data source configuration
+export interface DataSource {
+  id: string
+  type: 'query' | 'analytics'
+  query?: string
+  metric?: string
+  limit?: number
+}
 
-// Data source schema
-export const DataSourceSchema = z.object({
-  id: z.string(),
-  type: z.enum(['query', 'analytics', 'api']),
-  query: z.string().optional(),
-  metric: z.string().optional(),
-  apiEndpoint: z.string().optional(),
-  limit: z.number().optional(),
-})
+// Filter configuration
+export interface ReportFilter {
+  id: string
+  field: string
+  operator: 'equals' | 'contains' | 'gt' | 'lt' | 'between'
+  value: any
+}
 
-export type DataSource = z.infer<typeof DataSourceSchema>
+// Report configuration
+export interface ReportConfig {
+  name: string
+  layout: 'grid' | 'flex'
+  components: ReportComponent[]
+  dataSources: DataSource[]
+  filters: ReportFilter[]
+  style: {
+    theme: 'light' | 'dark'
+    spacing: 'compact' | 'normal' | 'relaxed'
+  }
+}
 
-// Filter schema
-export const FilterSchema = z.object({
-  id: z.string(),
-  type: z.enum(['date', 'select', 'text', 'number']),
-  label: z.string(),
-  field: z.string(),
-  defaultValue: z.any().optional(),
-  options: z.array(z.string()).optional(),
-})
-
-export type Filter = z.infer<typeof FilterSchema>
-
-// Report configuration schema
-export const ReportConfigSchema = z.object({
-  name: z.string(),
-  layout: z.enum(['grid', 'free']),
-  components: z.array(ReportComponentSchema),
-  dataSources: z.array(DataSourceSchema),
-  filters: z.array(FilterSchema),
-  style: z.object({
-    theme: z.enum(['light', 'dark']),
-    spacing: z.enum(['compact', 'normal', 'comfortable']),
-  }),
-})
-
-export type ReportConfig = z.infer<typeof ReportConfigSchema>
-
-// Report template
+// Database types
 export interface ReportTemplate {
   id: string
   organization_id?: string
   name: string
   description?: string
-  category: 'inventory' | 'orders' | 'customers' | 'performance' | 'custom'
+  category: ReportCategory
   config: ReportConfig
   is_system: boolean
   is_public: boolean
@@ -76,7 +62,6 @@ export interface ReportTemplate {
   updated_at: string
 }
 
-// Saved report
 export interface Report {
   id: string
   organization_id: string
@@ -100,7 +85,6 @@ export interface Report {
   updated_at: string
 }
 
-// Report run
 export interface ReportRun {
   id: string
   report_id: string
@@ -113,7 +97,7 @@ export interface ReportRun {
   record_count?: number
   delivery_status: Array<{
     email: string
-    status: 'sent' | 'failed'
+    status: string
     timestamp: string
     error?: string
   }>
@@ -121,7 +105,6 @@ export interface ReportRun {
   created_at: string
 }
 
-// Report component definition
 export interface ReportComponentDefinition {
   id: string
   name: string
@@ -135,63 +118,51 @@ export interface ReportComponentDefinition {
   created_at: string
 }
 
-// Chart data types
-export interface ChartData {
-  labels: string[]
-  datasets: Array<{
-    label: string
-    data: number[]
-    backgroundColor?: string | string[]
-    borderColor?: string | string[]
-    borderWidth?: number
-  }>
+// Scheduled report (extends Report)
+export interface ScheduledReport extends Report {
+  schedule_enabled: true
+  schedule_cron: string
 }
 
-// Table data types
-export interface TableData {
-  columns: Array<{
-    key: string
-    label: string
-    type?: 'text' | 'number' | 'date' | 'currency'
-    width?: number
-  }>
-  rows: Record<string, any>[]
-  totalCount?: number
-}
+// Validation schemas
+export const reportConfigSchema = z.object({
+  name: z.string().min(1).max(255),
+  layout: z.enum(['grid', 'flex']),
+  components: z.array(z.object({
+    id: z.string(),
+    type: z.enum(['chart', 'table', 'metric', 'text', 'image', 'filter']),
+    config: z.record(z.any()),
+    position: z.object({ x: z.number(), y: z.number() }),
+    size: z.object({ width: z.number(), height: z.number() })
+  })),
+  dataSources: z.array(z.object({
+    id: z.string(),
+    type: z.enum(['query', 'analytics']),
+    query: z.string().optional(),
+    metric: z.string().optional(),
+    limit: z.number().optional()
+  })),
+  filters: z.array(z.object({
+    id: z.string(),
+    field: z.string(),
+    operator: z.enum(['equals', 'contains', 'gt', 'lt', 'between']),
+    value: z.any()
+  })),
+  style: z.object({
+    theme: z.enum(['light', 'dark']),
+    spacing: z.enum(['compact', 'normal', 'relaxed'])
+  })
+})
 
-// Metric data types
-export interface MetricData {
-  value: number
-  label: string
-  format: 'number' | 'currency' | 'percentage'
-  change?: {
-    value: number
-    period: string
-    trend: 'up' | 'down' | 'stable'
-  }
-  target?: number
-}
+export const reportScheduleSchema = z.object({
+  enabled: z.boolean(),
+  cron: z.string().optional(),
+  timezone: z.string(),
+  recipients: z.array(z.string().email()),
+  formats: z.array(z.enum(['csv', 'excel', 'pdf']))
+})
 
-// Report generation request
-export interface ReportGenerationRequest {
-  reportId: string
-  format: ExportFormat
-  parameters?: Record<string, any>
-  filters?: Record<string, any>
-}
-
-// Report scheduling
-export interface ReportSchedule {
-  enabled: boolean
-  cron: string
-  timezone: string
-  recipients: string[]
-  formats: ExportFormat[]
-}
-
-// Report sharing
-export interface ReportShare {
-  enabled: boolean
-  expiresIn?: number // hours
-  accessLevel: AccessLevel
-}
+export const reportShareSchema = z.object({
+  enabled: z.boolean(),
+  expiresIn: z.number().optional() // hours
+})
