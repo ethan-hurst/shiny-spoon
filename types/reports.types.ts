@@ -1,73 +1,46 @@
-// types/reports.types.ts
-import { z } from 'zod'
+// PRP-019: Custom Reports Builder - TypeScript Types
 
-export type ComponentType =
-  | 'chart'
-  | 'table'
-  | 'metric'
-  | 'text'
-  | 'image'
-  | 'filter'
+export type ComponentType = 'chart' | 'table' | 'metric' | 'text' | 'image' | 'filter'
 export type ExportFormat = 'csv' | 'excel' | 'pdf'
 export type AccessLevel = 'private' | 'team' | 'organization'
+export type ReportStatus = 'pending' | 'running' | 'completed' | 'failed'
 
-// Report component schema
-export const ReportComponentSchema = z.object({
-  id: z.string(),
-  type: z.enum(['chart', 'table', 'metric', 'text', 'image', 'filter']),
-  config: z.record(z.any()),
-  position: z.object({
-    x: z.number(),
-    y: z.number(),
-  }),
-  size: z.object({
-    width: z.number(),
-    height: z.number(),
-  }),
-})
+export interface ReportComponent {
+  id: string
+  type: ComponentType
+  config: Record<string, any>
+  position: { x: number; y: number }
+  size: { width: number; height: number }
+}
 
-export type ReportComponent = z.infer<typeof ReportComponentSchema>
+export interface DataSource {
+  id: string
+  type: 'query' | 'analytics'
+  query?: string
+  metric?: string
+  limit?: number
+}
 
-// Data source schema
-export const DataSourceSchema = z.object({
-  id: z.string(),
-  type: z.enum(['query', 'analytics', 'api']),
-  query: z.string().optional(),
-  metric: z.string().optional(),
-  apiEndpoint: z.string().optional(),
-  limit: z.number().optional(),
-})
+export interface ReportFilter {
+  id: string
+  type: string
+  config: Record<string, any>
+}
 
-export type DataSource = z.infer<typeof DataSourceSchema>
+export interface ReportStyle {
+  theme: 'light' | 'dark'
+  spacing: 'compact' | 'normal' | 'loose'
+}
 
-// Filter schema
-export const FilterSchema = z.object({
-  id: z.string(),
-  type: z.enum(['date', 'select', 'text', 'number']),
-  label: z.string(),
-  field: z.string(),
-  defaultValue: z.any().optional(),
-  options: z.array(z.string()).optional(),
-})
+export interface ReportConfig {
+  name: string
+  layout: 'grid' | 'flexible'
+  components: ReportComponent[]
+  dataSources: DataSource[]
+  filters: ReportFilter[]
+  style: ReportStyle
+}
 
-export type Filter = z.infer<typeof FilterSchema>
-
-// Report configuration schema
-export const ReportConfigSchema = z.object({
-  name: z.string(),
-  layout: z.enum(['grid', 'free']),
-  components: z.array(ReportComponentSchema),
-  dataSources: z.array(DataSourceSchema),
-  filters: z.array(FilterSchema),
-  style: z.object({
-    theme: z.enum(['light', 'dark']),
-    spacing: z.enum(['compact', 'normal', 'comfortable']),
-  }),
-})
-
-export type ReportConfig = z.infer<typeof ReportConfigSchema>
-
-// Report template
 export interface ReportTemplate {
   id: string
   organization_id?: string
@@ -82,7 +55,6 @@ export interface ReportTemplate {
   updated_at: string
 }
 
-// Saved report
 export interface Report {
   id: string
   organization_id: string
@@ -90,27 +62,35 @@ export interface Report {
   name: string
   description?: string
   config: ReportConfig
+  
+  // Scheduling
   schedule_enabled: boolean
   schedule_cron?: string
   schedule_timezone: string
   schedule_recipients: string[]
   schedule_format: ExportFormat[]
+  
+  // Sharing
   is_shared: boolean
   share_token?: string
   share_expires_at?: string
+  
+  // Access control
   access_level: AccessLevel
+  
+  // Metadata
   last_run_at?: string
   run_count: number
+  
   created_at: string
   created_by: string
   updated_at: string
 }
 
-// Report run
 export interface ReportRun {
   id: string
   report_id: string
-  status: 'pending' | 'running' | 'completed' | 'failed'
+  status: ReportStatus
   started_at: string
   completed_at?: string
   parameters: Record<string, any>
@@ -127,77 +107,241 @@ export interface ReportRun {
   created_at: string
 }
 
-// Report component definition
 export interface ReportComponentDefinition {
   id: string
   name: string
   type: ComponentType
   category: string
-  icon: string
   config_schema: Record<string, any>
   default_config: Record<string, any>
+  icon?: string
   preview_image?: string
   is_active: boolean
   created_at: string
 }
 
-// Chart data types
-export interface ChartData {
-  labels: string[]
-  datasets: Array<{
-    label: string
-    data: number[]
-    backgroundColor?: string | string[]
-    borderColor?: string | string[]
-    borderWidth?: number
-  }>
+export interface ComponentLibraryItem {
+  id: string
+  name: string
+  type: ComponentType
+  category: string
+  icon: React.ComponentType<any>
+  configSchema: Record<string, any>
+  defaultConfig: Record<string, any>
+  preview: React.ComponentType<{ config: any }>
+  render: React.ComponentType<{ config: any; data: any }>
 }
 
-// Table data types
-export interface TableData {
-  columns: Array<{
-    key: string
-    label: string
-    type?: 'text' | 'number' | 'date' | 'currency'
-    width?: number
-  }>
-  rows: Record<string, any>[]
-  totalCount?: number
+export interface ReportBuilderProps {
+  initialConfig?: ReportConfig
+  templateId?: string
+  onSave: (config: ReportConfig) => Promise<void>
 }
 
-// Metric data types
-export interface MetricData {
-  value: number
-  label: string
-  format: 'number' | 'currency' | 'percentage'
-  change?: {
-    value: number
-    period: string
-    trend: 'up' | 'down' | 'stable'
-  }
-  target?: number
+export interface ReportCanvasProps {
+  config: ReportConfig
+  selectedComponent?: string | null
+  onSelectComponent: (componentId: string | null) => void
+  onUpdateComponent: (componentId: string, updates: Partial<ReportComponent>) => void
+  onDeleteComponent: (componentId: string) => void
 }
 
-// Report generation request
-export interface ReportGenerationRequest {
+export interface ComponentPropertiesProps {
+  component?: ReportComponent
+  onChange: (updates: Partial<ReportComponent>) => void
+}
+
+export interface ReportPreviewProps {
+  config: ReportConfig
+}
+
+export interface DataSourceManagerProps {
+  dataSources: DataSource[]
+  onChange: (dataSources: DataSource[]) => void
+}
+
+export interface ReportSettingsProps {
+  config: ReportConfig
+  onChange: (config: ReportConfig) => void
+}
+
+export interface ReportSchedulerProps {
+  report: Report
+  onUpdate: (updates: Partial<Report>) => Promise<void>
+}
+
+export interface ReportSharingProps {
+  report: Report
+  onUpdate: (updates: Partial<Report>) => Promise<void>
+}
+
+export interface ReportExportProps {
+  report: Report
+  onExport: (format: ExportFormat) => Promise<void>
+}
+
+export interface ReportTemplatesProps {
+  templates: ReportTemplate[]
+  onSelectTemplate: (template: ReportTemplate) => void
+}
+
+export interface ReportsTableProps {
+  reports: Report[]
+  showSchedule?: boolean
+}
+
+export interface ReportRunHistoryProps {
   reportId: string
-  format: ExportFormat
-  parameters?: Record<string, any>
-  filters?: Record<string, any>
+  runs: ReportRun[]
 }
 
-// Report scheduling
-export interface ReportSchedule {
-  enabled: boolean
-  cron: string
-  timezone: string
-  recipients: string[]
-  formats: ExportFormat[]
+export interface ScheduledReportsProps {
+  reports: Report[]
+  onUpdateSchedule: (reportId: string, schedule: any) => Promise<void>
 }
 
-// Report sharing
-export interface ReportShare {
-  enabled: boolean
-  expiresIn?: number // hours
-  accessLevel: AccessLevel
+export interface ReportAnalytics {
+  totalReports: number
+  scheduledReports: number
+  totalRuns: number
+  averageRunTime: number
+  popularTemplates: Array<{
+    template_id: string
+    name: string
+    usage_count: number
+  }>
+}
+
+export interface ReportBuilderState {
+  config: ReportConfig
+  selectedComponent: string | null
+  previewMode: boolean
+  isSaving: boolean
+  hasUnsavedChanges: boolean
+}
+
+export interface ReportBuilderActions {
+  updateConfig: (updates: Partial<ReportConfig>) => void
+  selectComponent: (componentId: string | null) => void
+  updateComponent: (componentId: string, updates: Partial<ReportComponent>) => void
+  deleteComponent: (componentId: string) => void
+  addComponent: (component: ReportComponent) => void
+  togglePreviewMode: () => void
+  save: () => Promise<void>
+  reset: () => void
+}
+
+export interface ReportData {
+  [dataSourceId: string]: any[]
+}
+
+export interface ReportExecutionContext {
+  organizationId: string
+  userId: string
+  dateRange?: {
+    from: Date
+    to: Date
+  }
+  parameters: Record<string, any>
+}
+
+export interface ReportGenerator {
+  generate(
+    report: Report,
+    format: ExportFormat,
+    context: ReportExecutionContext
+  ): Promise<{
+    data: Buffer | string
+    mimeType: string
+    filename: string
+  }>
+}
+
+export interface ReportScheduler {
+  scheduleReport(report: Report): void
+  cancelReport(reportId: string): void
+  runScheduledReports(): Promise<void>
+}
+
+export interface ReportNotification {
+  type: 'success' | 'error' | 'info'
+  title: string
+  message: string
+  duration?: number
+}
+
+export interface ReportBuilderContext {
+  state: ReportBuilderState
+  actions: ReportBuilderActions
+  notifications: ReportNotification[]
+  addNotification: (notification: ReportNotification) => void
+  removeNotification: (id: string) => void
+}
+
+// Utility types for form validation
+export interface ReportConfigSchema {
+  name: z.ZodString
+  description: z.ZodOptional<z.ZodString>
+  layout: z.ZodEnum<['grid', 'flexible']>
+  components: z.ZodArray<z.ZodObject<{
+    id: z.ZodString
+    type: z.ZodEnum<ComponentType[]>
+    config: z.ZodRecord(z.ZodString(), z.ZodAny())
+    position: z.ZodObject({
+      x: z.ZodNumber()
+      y: z.ZodNumber()
+    })
+    size: z.ZodObject({
+      width: z.ZodNumber()
+      height: z.ZodNumber()
+    })
+  }>>
+  dataSources: z.ZodArray<z.ZodObject<{
+    id: z.ZodString
+    type: z.ZodEnum<['query', 'analytics']>
+    query: z.ZodOptional<z.ZodString>()
+    metric: z.ZodOptional<z.ZodString>()
+    limit: z.ZodOptional<z.ZodNumber>()
+  }>>
+  filters: z.ZodArray<z.ZodObject<{
+    id: z.ZodString
+    type: z.ZodString()
+    config: z.ZodRecord(z.ZodString(), z.ZodAny())
+  }>>
+  style: z.ZodObject({
+    theme: z.ZodEnum<['light', 'dark']>()
+    spacing: z.ZodEnum<['compact', 'normal', 'loose']>()
+  })
+}
+
+// API response types
+export interface SaveReportResponse {
+  success: boolean
+  reportId?: string
+  error?: string
+}
+
+export interface RunReportResponse {
+  success: boolean
+  data?: Buffer | string
+  mimeType?: string
+  filename?: string
+  error?: string
+}
+
+export interface ScheduleReportResponse {
+  success: boolean
+  error?: string
+}
+
+export interface ShareReportResponse {
+  success: boolean
+  shareUrl?: string
+  error?: string
+}
+
+export interface ExportReportResponse {
+  success: boolean
+  downloadUrl?: string
+  error?: string
 }

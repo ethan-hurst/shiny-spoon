@@ -3,35 +3,33 @@
 
 import { useState } from 'react'
 import {
-  Activity,
-  BarChart3,
-  Plus,
-  Save,
-  Table,
-  Trash2,
-  Type,
-} from 'lucide-react'
-import { toast } from 'sonner'
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
-import type { ReportComponent, ReportConfig } from '@/types/reports.types'
+import { ComponentLibrary } from './component-library'
+import { ReportCanvas } from './report-canvas'
+import { ReportSettings } from './report-settings'
+import { ReportPreview } from './report-preview'
+import { DataSourceManager } from './data-source-manager'
+import { ComponentProperties } from './component-properties'
+import { Save, Play, Settings, Eye } from 'lucide-react'
+import type { ReportConfig, ReportComponent } from '@/types/reports.types'
 
 interface ReportBuilderProps {
   initialConfig?: ReportConfig
@@ -39,32 +37,10 @@ interface ReportBuilderProps {
   onSave: (config: ReportConfig) => Promise<void>
 }
 
-const componentTypes = [
-  {
-    id: 'chart',
-    name: 'Chart',
-    icon: BarChart3,
-    description: 'Bar, line, or pie charts',
-  },
-  {
-    id: 'table',
-    name: 'Table',
-    icon: Table,
-    description: 'Data tables with sorting',
-  },
-  {
-    id: 'metric',
-    name: 'Metric',
-    icon: Activity,
-    description: 'KPI cards and metrics',
-  },
-  { id: 'text', name: 'Text', icon: Type, description: 'Rich text content' },
-]
-
 export function ReportBuilder({
   initialConfig,
   templateId,
-  onSave,
+  onSave
 }: ReportBuilderProps) {
   const [config, setConfig] = useState<ReportConfig>(
     initialConfig || {
@@ -75,58 +51,86 @@ export function ReportBuilder({
       filters: [],
       style: {
         theme: 'light',
-        spacing: 'normal',
-      },
+        spacing: 'normal'
+      }
     }
   )
+
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null)
+  const [previewMode, setPreviewMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const addComponent = (type: string) => {
-    const newComponent: ReportComponent = {
-      id: `component-${Date.now()}`,
-      type: type as any,
-      config: getDefaultConfig(type),
-      position: { x: 0, y: config.components.length },
-      size: { width: 12, height: 4 },
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id))
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over) {
+      setActiveId(null)
+      return
     }
 
-    setConfig((prev) => ({
-      ...prev,
-      components: [...prev.components, newComponent],
-    }))
+    // Handle dropping from library to canvas
+    if (active.data.current?.type === 'library-component' && over.id === 'canvas') {
+      const newComponent: ReportComponent = {
+        id: `component-${Date.now()}`,
+        type: active.data.current.componentType,
+        config: active.data.current.defaultConfig,
+        position: { x: 0, y: config.components.length },
+        size: { width: 12, height: 4 }
+      }
+
+      setConfig(prev => ({
+        ...prev,
+        components: [...prev.components, newComponent]
+      }))
+    }
+    // Handle reordering within canvas
+    else if (active.id !== over.id) {
+      setConfig(prev => {
+        const oldIndex = prev.components.findIndex(c => c.id === active.id)
+        const newIndex = prev.components.findIndex(c => c.id === over.id)
+
+        return {
+          ...prev,
+          components: arrayMove(prev.components, oldIndex, newIndex)
+        }
+      })
+    }
+
+    setActiveId(null)
   }
 
-  const removeComponent = (componentId: string) => {
-    setConfig((prev) => ({
+  const handleComponentUpdate = (componentId: string, updates: Partial<ReportComponent>) => {
+    setConfig(prev => ({
       ...prev,
-      components: prev.components.filter((c) => c.id !== componentId),
-    }))
-  }
-
-  const updateComponent = (
-    componentId: string,
-    updates: Partial<ReportComponent>
-  ) => {
-    setConfig((prev) => ({
-      ...prev,
-      components: prev.components.map((c) =>
+      components: prev.components.map(c =>
         c.id === componentId ? { ...c, ...updates } : c
-      ),
+      )
+    }))
+  }
+
+  const handleComponentDelete = (componentId: string) => {
+    setConfig(prev => ({
+      ...prev,
+      components: prev.components.filter(c => c.id !== componentId)
     }))
   }
 
   const handleSave = async () => {
-    if (!config.name.trim()) {
-      toast.error('Please enter a report name')
-      return
-    }
-
     setIsSaving(true)
     try {
       await onSave(config)
-      toast.success('Report saved successfully')
-    } catch (error) {
-      toast.error('Failed to save report')
     } finally {
       setIsSaving(false)
     }
@@ -134,304 +138,106 @@ export function ReportBuilder({
 
   return (
     <div className="flex h-full">
-      {/* Left Sidebar - Component Library */}
-      <div className="w-80 border-r bg-muted/10 p-4 overflow-y-auto">
-        <h3 className="font-semibold mb-4">Components</h3>
-        <div className="space-y-3">
-          {componentTypes.map((type) => {
-            const Icon = type.icon
-            return (
-              <Card
-                key={type.id}
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => addComponent(type.id)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium text-sm">{type.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {type.description}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Left Sidebar - Component Library */}
+        <div className="w-80 border-r bg-muted/10 p-4 overflow-y-auto">
+          <h3 className="font-semibold mb-4">Components</h3>
+          <ComponentLibrary />
         </div>
-      </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Toolbar */}
-        <div className="border-b p-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Input
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Toolbar */}
+          <div className="border-b p-4 flex items-center justify-between">
+            <input
               type="text"
               value={config.name}
-              onChange={(e) =>
-                setConfig((prev) => ({ ...prev, name: e.target.value }))
-              }
-              className="text-lg font-semibold w-64"
-              placeholder="Report Name"
+              onChange={(e) => setConfig(prev => ({ ...prev, name: e.target.value }))}
+              className="text-xl font-semibold bg-transparent border-none outline-none"
             />
-          </div>
 
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <>Saving...</>
-            ) : (
-              <>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPreviewMode(!previewMode)}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {previewMode ? 'Edit' : 'Preview'}
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Save Report
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-hidden">
-          <Tabs defaultValue="design" className="h-full">
-            <TabsList className="mx-4 mt-4">
-              <TabsTrigger value="design">Design</TabsTrigger>
-              <TabsTrigger value="data">Data Sources</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="design" className="h-full p-4">
-              <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  Click components on the left to add them to your report. You
-                  can configure each component after adding it.
-                </div>
-
-                {config.components.length === 0 ? (
-                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                    <div className="text-muted-foreground">
-                      <Plus className="mx-auto h-8 w-8 mb-2" />
-                      <p>No components added yet</p>
-                      <p className="text-sm">
-                        Choose from the component library on the left
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {config.components.map((component, index) => (
-                      <ComponentEditor
-                        key={component.id}
-                        component={component}
-                        index={index}
-                        onUpdate={(updates) =>
-                          updateComponent(component.id, updates)
-                        }
-                        onRemove={() => removeComponent(component.id)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="data" className="p-4">
-              <div className="space-y-4">
-                <h3 className="font-semibold">Data Sources</h3>
-                <p className="text-sm text-muted-foreground">
-                  Configure data sources for your report components. This will
-                  be expanded in future versions.
-                </p>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-center text-muted-foreground">
-                      Data source configuration coming soon
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="settings" className="p-4">
-              <div className="space-y-4">
-                <h3 className="font-semibold">Report Settings</h3>
-
-                <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={config.name}
-                      onChange={(e) =>
-                        setConfig((prev) => ({ ...prev, name: e.target.value }))
-                      }
-                      placeholder="Describe what this report shows..."
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="theme">Theme</Label>
-                    <Select
-                      value={config.style.theme}
-                      onValueChange={(value) =>
-                        setConfig((prev) => ({
-                          ...prev,
-                          style: {
-                            ...prev.style,
-                            theme: value as 'light' | 'dark',
-                          },
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="light">Light</SelectItem>
-                        <SelectItem value="dark">Dark</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="spacing">Spacing</Label>
-                    <Select
-                      value={config.style.spacing}
-                      onValueChange={(value) =>
-                        setConfig((prev) => ({
-                          ...prev,
-                          style: {
-                            ...prev.style,
-                            spacing: value as
-                              | 'compact'
-                              | 'normal'
-                              | 'comfortable',
-                          },
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="compact">Compact</SelectItem>
-                        <SelectItem value="normal">Normal</SelectItem>
-                        <SelectItem value="comfortable">Comfortable</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ComponentEditor({
-  component,
-  index,
-  onUpdate,
-  onRemove,
-}: {
-  component: ReportComponent
-  index: number
-  onUpdate: (updates: Partial<ReportComponent>) => void
-  onRemove: () => void
-}) {
-  const Icon =
-    componentTypes.find((t) => t.id === component.type)?.icon || BarChart3
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Icon className="h-4 w-4" />
-            <CardTitle className="text-base">
-              {componentTypes.find((t) => t.id === component.type)?.name ||
-                component.type}{' '}
-              #{index + 1}
-            </CardTitle>
+              </Button>
+            </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onRemove}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
 
-      <CardContent className="space-y-3">
-        <div>
-          <Label htmlFor={`title-${component.id}`}>Title</Label>
-          <Input
-            id={`title-${component.id}`}
-            value={component.config.title || ''}
-            onChange={(e) =>
-              onUpdate({
-                config: { ...component.config, title: e.target.value },
-              })
-            }
-            placeholder="Component title"
-          />
+          {/* Content Area */}
+          <div className="flex-1 overflow-hidden">
+            {previewMode ? (
+              <ReportPreview config={config} />
+            ) : (
+              <Tabs defaultValue="design" className="h-full">
+                <TabsList className="mx-4 mt-4">
+                  <TabsTrigger value="design">Design</TabsTrigger>
+                  <TabsTrigger value="data">Data Sources</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="design" className="h-full">
+                  <ReportCanvas
+                    config={config}
+                    selectedComponent={selectedComponent}
+                    onSelectComponent={setSelectedComponent}
+                    onUpdateComponent={handleComponentUpdate}
+                    onDeleteComponent={handleComponentDelete}
+                  />
+                </TabsContent>
+
+                <TabsContent value="data" className="p-4">
+                  <DataSourceManager
+                    dataSources={config.dataSources}
+                    onChange={(dataSources) =>
+                      setConfig(prev => ({ ...prev, dataSources }))
+                    }
+                  />
+                </TabsContent>
+
+                <TabsContent value="settings" className="p-4">
+                  <ReportSettings
+                    config={config}
+                    onChange={setConfig}
+                  />
+                </TabsContent>
+              </Tabs>
+            )}
+          </div>
         </div>
 
-        {component.type === 'text' && (
-          <div>
-            <Label htmlFor={`content-${component.id}`}>Content</Label>
-            <Textarea
-              id={`content-${component.id}`}
-              value={component.config.content || ''}
-              onChange={(e) =>
-                onUpdate({
-                  config: { ...component.config, content: e.target.value },
-                })
-              }
-              placeholder="Enter text content..."
+        {/* Right Sidebar - Properties Panel */}
+        {selectedComponent && !previewMode && (
+          <div className="w-80 border-l bg-muted/10 p-4">
+            <ComponentProperties
+              component={config.components.find(c => c.id === selectedComponent)}
+              onChange={(updates) => handleComponentUpdate(selectedComponent, updates)}
             />
           </div>
         )}
 
-        {(component.type === 'chart' || component.type === 'table') && (
-          <div className="text-sm text-muted-foreground">
-            Data source configuration will be available in the Data Sources tab.
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <DragOverlay>
+          {activeId ? <div>Dragging...</div> : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
   )
-}
-
-function getDefaultConfig(type: string): Record<string, any> {
-  switch (type) {
-    case 'chart':
-      return {
-        title: 'Chart',
-        chartType: 'bar',
-        xAxis: '',
-        yAxis: '',
-        color: 'hsl(var(--chart-1))',
-      }
-    case 'table':
-      return {
-        title: 'Data Table',
-        columns: [],
-        pageSize: 25,
-      }
-    case 'metric':
-      return {
-        title: 'Metric',
-        aggregation: 'sum',
-        format: 'number',
-        comparison: false,
-      }
-    case 'text':
-      return {
-        content: 'Enter your text here...',
-        alignment: 'left',
-      }
-    default:
-      return {}
-  }
 }

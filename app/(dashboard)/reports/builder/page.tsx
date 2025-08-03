@@ -1,33 +1,41 @@
 // app/(dashboard)/reports/builder/page.tsx
-import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
+import { createServerClient } from '@/lib/supabase/server'
 import { ReportBuilder } from '@/components/features/reports/report-builder'
-import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { saveReport } from '@/app/actions/reports'
 
 interface ReportBuilderPageProps {
   searchParams: {
     template?: string
+    reportId?: string
   }
 }
 
 export default async function ReportBuilderPage({
-  searchParams,
+  searchParams
 }: ReportBuilderPageProps) {
-  const supabase = await createClient()
+  const supabase = createServerClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    redirect('/login')
-  }
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
 
   let initialConfig = undefined
   let templateId = searchParams.template
 
-  // Load template if specified
-  if (templateId) {
+  // Load existing report
+  if (searchParams.reportId) {
+    const { data: report } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('id', searchParams.reportId)
+      .single()
+
+    if (report) {
+      initialConfig = report.config
+    }
+  }
+  // Load template
+  else if (templateId) {
     const { data: template } = await supabase
       .from('report_templates')
       .select('*')
@@ -42,10 +50,10 @@ export default async function ReportBuilderPage({
   const handleSave = async (config: any) => {
     'use server'
 
-    const result = await saveReport(config)
+    const result = await saveReport(config, searchParams.reportId)
 
     if (result.success) {
-      redirect(`/reports`)
+      redirect(`/reports/${result.reportId}`)
     }
   }
 
