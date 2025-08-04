@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS customer_tiers (
 );
 
 -- Main customers table
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   
@@ -66,7 +66,7 @@ CREATE TABLE customers (
 );
 
 -- Customer contacts
-CREATE TABLE customer_contacts (
+CREATE TABLE IF NOT EXISTS customer_contacts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE CASCADE NOT NULL,
   
@@ -94,7 +94,7 @@ CREATE TABLE customer_contacts (
 );
 
 -- Activity log for customer interactions
-CREATE TABLE customer_activities (
+CREATE TABLE IF NOT EXISTS customer_activities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE CASCADE NOT NULL,
   organization_id UUID REFERENCES organizations(id) NOT NULL,
