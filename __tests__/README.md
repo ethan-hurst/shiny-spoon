@@ -1,344 +1,469 @@
-# Audit Trail Test Suite
+# TruthSource Component Testing Guide
 
-This comprehensive test suite validates the implementation of **PRP-020: Audit Trail & Compliance**. The tests ensure that the audit logging system meets all compliance requirements and performs reliably under various conditions.
+This directory contains comprehensive React component tests for the TruthSource application. Our testing strategy ensures production-ready components with high reliability and maintainability.
 
-## Test Structure
+## 🎯 Testing Philosophy
+
+We follow a **comprehensive testing approach** that covers:
+
+- **Functionality**: Core component behavior and user interactions
+- **Accessibility**: Screen reader support and keyboard navigation
+- **Performance**: Rendering efficiency and memory management
+- **Security**: Input validation and data sanitization
+- **Edge Cases**: Error handling and boundary conditions
+- **Integration**: Component interactions and data flow
+
+## 📁 Test Structure
 
 ```
 __tests__/
-├── lib/audit/                    # Unit tests for audit logging service
-│   └── audit-logger.test.ts     # AuditLogger class tests
-├── app/actions/                  # Server action tests
-│   └── audit.test.ts             # Export and compliance report tests
-├── integration/                  # End-to-end workflow tests
-│   └── audit-workflow.test.ts    # Complete audit trail integration
-├── e2e/                         # Browser-based UI tests
-│   └── audit-trail.spec.ts      # Playwright tests for audit UI
-├── database/                    # Database schema and policy tests
-│   └── audit-trail.test.sql     # SQL-based database validation
-├── setup.ts                    # Global test configuration
-└── README.md                   # This file
+├── helpers/
+│   └── test-utils.tsx          # Comprehensive test utilities
+├── unit/
+│   └── components/
+│       ├── ui/                  # UI component tests
+│       ├── auth/                # Authentication component tests
+│       └── features/            # Feature component tests
+│           ├── inventory/       # Inventory management tests
+│           ├── analytics/       # Analytics dashboard tests
+│           └── monitoring/      # Monitoring component tests
+├── integration/                 # Integration tests
+├── e2e/                        # End-to-end tests
+└── setup.ts                    # Global test configuration
 ```
 
-## Test Categories
+## 🚀 Quick Start
 
-### 1. Unit Tests (`lib/audit/`)
-
-Tests the core `AuditLogger` service with comprehensive coverage:
-
-- **Basic Logging**: Create, update, delete, view operations
-- **Helper Methods**: Convenience methods for common actions
-- **Error Handling**: Graceful failure and recovery
-- **Context Extraction**: IP address, user agent, headers
-- **Wrapper Functions**: `withAuditLog` decorator testing
-- **Data Validation**: Input sanitization and type checking
-
-**Coverage Target**: 90% for audit logging core
-
-### 2. Server Action Tests (`app/actions/`)
-
-Validates server-side audit functionality:
-
-- **Export Functions**: CSV and JSON export with filtering
-- **Compliance Reports**: SOC 2, ISO 27001, custom reports
-- **Authentication**: User authorization and access control
-- **Error Scenarios**: Network failures, invalid data
-- **Performance**: Export speed and memory usage
-
-### 3. Integration Tests (`integration/`)
-
-End-to-end workflow validation:
-
-- **Complete Audit Trail**: Create → Update → Delete with logging
-- **Bulk Operations**: High-volume audit logging efficiency
-- **Concurrent Operations**: Multi-user audit integrity
-- **Retention Policies**: Automatic cleanup and data retention
-- **Transaction Safety**: Audit logging within database transactions
-- **Performance Testing**: Scalability under load
-
-### 4. End-to-End Tests (`e2e/`)
-
-Browser-based UI testing with Playwright:
-
-- **Audit Table Display**: Data presentation and formatting
-- **Filtering System**: Date ranges, users, actions, entities
-- **Export Features**: Download CSV/JSON files
-- **Pagination**: Large dataset navigation
-- **Access Control**: Role-based feature visibility
-- **User Interactions**: Clicks, form submissions, navigation
-
-### 5. Database Tests (`database/`)
-
-SQL-based schema and policy validation:
-
-- **Table Structure**: Columns, constraints, indexes
-- **Row Level Security**: Organization isolation policies
-- **Performance Indexes**: Query optimization validation
-- **Data Integrity**: Foreign keys, JSON handling
-- **Retention Cleanup**: Automated log purging
-- **Extension Support**: supa_audit integration
-
-## Running Tests
-
-### Prerequisites
+### Running Tests
 
 ```bash
-# Install dependencies
-npm install
+# Run all component tests
+npm run test:unit
 
-# Install test-specific packages
-npm install --save-dev jest @jest/globals @testing-library/jest-dom
-npm install --save-dev playwright @playwright/test
-npm install --save-dev ts-jest jest-junit
+# Run specific component type tests
+npm run test:ui
+npm run test:auth
+npm run test:features
+
+# Run with coverage
+npm run test:coverage
+
+# Watch mode for development
+npm run test:watch
+
+# Run performance tests
+npm run test:perf
 ```
 
-### Quick Start
+### Using the Test Runner Script
 
 ```bash
-# Run complete test suite
-./scripts/test-audit.sh
+# Run UI component tests
+node scripts/run-component-tests.js run ui
 
-# Run specific test categories
-./scripts/test-audit.sh unit        # Unit tests only
-./scripts/test-audit.sh integration # Integration tests only
-./scripts/test-audit.sh database    # Database tests only
-./scripts/test-audit.sh e2e         # End-to-end tests only
+# Watch mode with coverage
+node scripts/run-component-tests.js watch features --coverage
+
+# CI mode (all tests with strict coverage)
+node scripts/run-component-tests.js ci
+
+# Performance testing
+node scripts/run-component-tests.js performance all
+
+# Accessibility testing
+node scripts/run-component-tests.js accessibility all
 ```
 
-### Manual Test Execution
+## 🛠️ Test Utilities
 
-```bash
-# Unit tests with coverage
-npx jest --config jest.config.audit.js --selectProjects unit --coverage
+Our `test-utils.tsx` provides comprehensive testing infrastructure:
 
-# Integration tests
-npx jest --config jest.config.audit.js --selectProjects integration
-
-# Playwright E2E tests
-npx playwright test __tests__/e2e/audit-trail.spec.ts
-
-# Database tests (requires PostgreSQL)
-psql -d test_database -f __tests__/database/audit-trail.test.sql
-```
-
-## Test Configuration
-
-### Environment Variables
-
-Create `.env.test` with test-specific configuration:
-
-```env
-# Test Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/audit_test_db
-
-# Supabase Test Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://test.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=test-key
-SUPABASE_SERVICE_ROLE_KEY=test-service-key
-
-# Test Flags
-SKIP_DATABASE_TESTS=false
-SKIP_E2E_TESTS=false
-TEST_TIMEOUT=30000
-```
-
-### Jest Configuration
-
-The test suite uses `jest.config.audit.js` with:
-
-- **TypeScript Support**: `ts-jest` transformer
-- **Module Mapping**: `@/` path resolution
-- **Coverage Thresholds**: 80% global, 90% for audit core
-- **Test Projects**: Separate configs for each test type
-- **Reporters**: Console + JUnit XML output
-
-### Playwright Configuration
-
-E2E tests use Playwright with:
-
-- **Browser Support**: Chromium, Firefox, Safari
-- **Mobile Testing**: Responsive design validation
-- **API Mocking**: Controlled test data
-- **Screenshots**: Failure capture for debugging
-
-## Test Data Management
-
-### Mock Data
-
-Tests use consistent mock data from `setup.ts`:
+### Custom Render Function
 
 ```typescript
-// Example usage in tests
-const mockLog = global.auditTestUtils.createMockAuditLog({
-  action: 'create',
-  entity_type: 'product',
-  user_email: 'test@example.com',
+import { render, screen } from '@/__tests__/helpers/test-utils'
+
+// Automatically includes all necessary providers:
+// - QueryClient (React Query)
+// - ThemeProvider (Next.js themes)
+// - Toaster (Notifications)
+// - User event setup
+```
+
+### Mock Data Factories
+
+```typescript
+import { 
+  mockUser, 
+  mockInventoryItem, 
+  mockProduct,
+  mockOrder,
+  mockCustomer,
+  mockPricingRule,
+  mockWarehouse,
+  mockAuditLog,
+  mockAnalyticsData,
+  mockMonitoringData
+} from '@/__tests__/helpers/test-utils'
+```
+
+### Helper Functions
+
+```typescript
+import { 
+  waitForLoadingToFinish,
+  mockServerAction,
+  createMockSupabaseClient
+} from '@/__tests__/helpers/test-utils'
+```
+
+## 📋 Test Categories
+
+### 1. UI Components (`ui/`)
+
+**Components**: Button, Input, Form, Modal, etc.
+
+**Test Coverage**:
+- All variants and sizes
+- State management (loading, disabled, error)
+- Accessibility (ARIA labels, keyboard navigation)
+- Event handling and callbacks
+- Visual styling and responsive design
+
+**Example**:
+```typescript
+describe('Button Component', () => {
+  describe('Variants', () => {
+    it('renders default variant', () => {
+      render(<Button variant="default">Click me</Button>)
+      expect(screen.getByRole('button')).toHaveClass('bg-primary')
+    })
+  })
 })
 ```
 
-### Database Seeding
+### 2. Authentication Components (`auth/`)
 
-Integration and database tests create isolated test data:
+**Components**: LoginForm, SignupForm, ResetPassword, etc.
 
-- **Organizations**: Separate test organizations
-- **Users**: Test users with different roles
-- **Audit Logs**: Controlled test scenarios
-- **Cleanup**: Automatic teardown after tests
+**Test Coverage**:
+- Form validation and error handling
+- Server action integration
+- Security (input sanitization, no sensitive data logging)
+- Loading states and user feedback
+- Accessibility compliance
 
-### Test Isolation
+**Example**:
+```typescript
+describe('LoginForm Component', () => {
+  it('validates email format', async () => {
+    const { user } = render(<LoginForm />)
+    await user.type(screen.getByLabelText(/email/i), 'invalid-email')
+    await user.click(screen.getByRole('button', { name: /sign in/i }))
+    expect(screen.getByText(/invalid email/i)).toBeInTheDocument()
+  })
+})
+```
 
-Each test runs in isolation with:
+### 3. Feature Components (`features/`)
 
-- **Mock Reset**: Cleared between tests
-- **Database Transactions**: Rollback after tests
-- **Time Mocking**: Consistent timestamps
-- **Environment Isolation**: Separate test config
+**Components**: InventoryTable, MetricsCards, AlertHealthMonitor, etc.
 
-## Coverage and Reporting
+**Test Coverage**:
+- Data display and calculations
+- Real-time updates and state management
+- User interactions (sorting, filtering, pagination)
+- Performance with large datasets
+- Integration with external APIs
 
-### Coverage Targets
+**Example**:
+```typescript
+describe('InventoryTable Component', () => {
+  it('filters data when searching', async () => {
+    const { user } = render(<InventoryTable data={mockData} />)
+    await user.type(screen.getByPlaceholderText(/search/i), 'SKU-001')
+    expect(screen.getByText('SKU-001')).toBeInTheDocument()
+    expect(screen.queryByText('SKU-002')).not.toBeInTheDocument()
+  })
+})
+```
 
-| Component         | Target | Current |
-| ----------------- | ------ | ------- |
-| Audit Logger Core | 90%    | ✅      |
-| Server Actions    | 85%    | ✅      |
-| UI Components     | 80%    | ✅      |
-| Database Schema   | 100%   | ✅      |
-| Overall           | 80%    | ✅      |
+## 🎨 Testing Patterns
 
-### Reports Generated
+### 1. Component Rendering Tests
 
-1. **Coverage Report**: `coverage/lcov-report/index.html`
-2. **Test Results**: `test-results/audit-trail-test-results.xml`
-3. **E2E Report**: `test-results/playwright-report/index.html`
-4. **Database Output**: `test-results/database-test-output.log`
-5. **Summary Report**: `test-results/audit-trail-test-report.md`
+```typescript
+describe('Rendering', () => {
+  it('renders with default props', () => {
+    render(<Component />)
+    expect(screen.getByRole('button')).toBeInTheDocument()
+  })
+})
+```
 
-## Compliance Validation
+### 2. User Interaction Tests
 
-The test suite validates compliance requirements:
+```typescript
+describe('User Interaction', () => {
+  it('handles user input correctly', async () => {
+    const { user } = render(<Component />)
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com')
+    expect(screen.getByDisplayValue('test@example.com')).toBeInTheDocument()
+  })
+})
+```
 
-### SOC 2 Requirements
+### 3. Accessibility Tests
 
-- ✅ **Access Control**: User authentication and authorization
-- ✅ **Audit Logging**: Complete activity tracking
-- ✅ **Data Integrity**: Tamper-evident audit trails
-- ✅ **Retention**: Configurable data retention policies
-- ✅ **Export**: Compliance report generation
+```typescript
+describe('Accessibility', () => {
+  it('supports keyboard navigation', async () => {
+    const { user } = render(<Component />)
+    await user.tab()
+    expect(screen.getByRole('button')).toHaveFocus()
+  })
+})
+```
 
-### ISO 27001 Requirements
+### 4. Performance Tests
 
-- ✅ **Information Security**: Secure audit data handling
-- ✅ **Access Management**: Role-based access control
-- ✅ **Monitoring**: Continuous activity monitoring
-- ✅ **Documentation**: Comprehensive audit trails
-- ✅ **Risk Management**: Error handling and recovery
+```typescript
+describe('Performance', () => {
+  it('renders large datasets efficiently', () => {
+    const startTime = performance.now()
+    render(<Component data={largeDataset} />)
+    const endTime = performance.now()
+    expect(endTime - startTime).toBeLessThan(100)
+  })
+})
+```
 
-### GDPR Considerations
+### 5. Security Tests
 
-- ✅ **Data Minimization**: Only necessary audit data
-- ✅ **Retention Limits**: Automatic data purging
-- ✅ **Right to Export**: User data export capability
-- ✅ **Data Protection**: Encrypted audit storage
+```typescript
+describe('Security', () => {
+  it('sanitizes user input', async () => {
+    const { user } = render(<Component />)
+    await user.type(screen.getByLabelText(/input/i), '<script>alert("xss")</script>')
+    // Verify input is properly handled
+  })
+})
+```
 
-## Performance Benchmarks
+## 🔧 Mocking Strategy
 
-Tests validate performance requirements:
+### Server Actions
 
-- **Single Operation**: < 50ms average
-- **Bulk Operations**: < 30ms per operation (1000+ items)
-- **Query Performance**: < 1 second for filtered queries
-- **Export Generation**: < 5 seconds for standard datasets
-- **UI Responsiveness**: < 200ms for user interactions
+```typescript
+jest.mock('@/app/actions/auth', () => ({
+  signIn: jest.fn().mockResolvedValue({ success: true }),
+  signUp: jest.fn().mockResolvedValue({ success: true }),
+}))
+```
 
-## Troubleshooting
+### Supabase Client
+
+```typescript
+jest.mock('@/lib/supabase/client', () => ({
+  createBrowserClient: () => ({
+    auth: { getUser: jest.fn() },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({ single: jest.fn() })),
+      })),
+    })),
+  }),
+}))
+```
+
+### Next.js Router
+
+```typescript
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    refresh: jest.fn(),
+  }),
+}))
+```
+
+## 📊 Coverage Requirements
+
+Our testing strategy requires:
+
+- **Statements**: 80% minimum
+- **Branches**: 70% minimum  
+- **Functions**: 80% minimum
+- **Lines**: 80% minimum
+
+### Coverage Categories
+
+1. **Critical Paths**: 95% coverage
+2. **Error Handling**: 90% coverage
+3. **User Interactions**: 85% coverage
+4. **Edge Cases**: 75% coverage
+
+## 🚨 Error Handling
+
+### Test Failure Categories
+
+1. **Critical Failures**: Break the build
+   - Authentication flows
+   - Data persistence
+   - Security validations
+
+2. **Warning Failures**: Log but don't break
+   - Performance thresholds
+   - Accessibility warnings
+   - Deprecated patterns
+
+3. **Info Failures**: Report only
+   - Code style issues
+   - Documentation gaps
+   - Test coverage gaps
+
+## 🔍 Debugging Tests
 
 ### Common Issues
 
-1. **Database Connection Errors**
+1. **Async Operations**: Use `waitFor` for async state changes
+2. **Mock Dependencies**: Ensure all external dependencies are mocked
+3. **Component State**: Test state changes with user interactions
+4. **Memory Leaks**: Check for proper cleanup in `afterEach`
 
-   ```bash
-   # Check PostgreSQL is running
-   pg_isready
-
-   # Verify test database exists
-   psql -l | grep audit_test_db
-   ```
-
-2. **Playwright Browser Issues**
-
-   ```bash
-   # Reinstall browsers
-   npx playwright install --force
-
-   # Run with debug mode
-   PWDEBUG=1 npx playwright test
-   ```
-
-3. **Coverage Report Missing**
-
-   ```bash
-   # Ensure coverage directory exists
-   mkdir -p coverage
-
-   # Run with explicit coverage flag
-   npx jest --coverage --coverageDirectory=coverage
-   ```
-
-### Debug Mode
-
-Enable verbose testing for troubleshooting:
+### Debug Commands
 
 ```bash
-# Verbose Jest output
-DEBUG=true npx jest --verbose
+# Run specific test with verbose output
+npm test -- --verbose --testNamePattern="Button.*variant"
 
-# Playwright debug mode
-PWDEBUG=1 npx playwright test --headed
+# Debug mode with open handles detection
+npm test -- --detectOpenHandles --forceExit
 
-# Database query logging
-PGPASSWORD=pass psql -d audit_test_db -e -f test.sql
+# Run tests with coverage for specific file
+npm test -- --coverage --collectCoverageFrom="components/ui/button.tsx"
 ```
 
-## Contributing
+## 📈 Performance Testing
 
-When adding new audit functionality:
+### Metrics We Track
 
-1. **Write Tests First**: TDD approach for new features
-2. **Update Coverage**: Maintain coverage thresholds
-3. **Document Changes**: Update test documentation
-4. **Validate Compliance**: Ensure regulatory requirements met
-5. **Performance Test**: Validate speed and scalability
+1. **Render Time**: < 50ms for simple components
+2. **Memory Usage**: No memory leaks after unmount
+3. **Bundle Size**: Component size impact
+4. **Interaction Responsiveness**: < 16ms for user interactions
 
-### Test Writing Guidelines
+### Performance Test Examples
 
-- **Descriptive Names**: Clear test intention
-- **Isolated Tests**: No dependencies between tests
-- **Mock External**: Database, APIs, file system
-- **Assert Completely**: Verify all aspects of behavior
-- **Clean Up**: Proper test teardown
+```typescript
+describe('Performance', () => {
+  it('renders efficiently with large datasets', () => {
+    const startTime = performance.now()
+    render(<Component data={largeDataset} />)
+    const endTime = performance.now()
+    expect(endTime - startTime).toBeLessThan(100)
+  })
+})
+```
 
-### Review Checklist
+## ♿ Accessibility Testing
 
-- [ ] All test categories pass
-- [ ] Coverage thresholds met
-- [ ] Performance benchmarks satisfied
-- [ ] Compliance requirements validated
-- [ ] Documentation updated
-- [ ] No test flakiness
+### WCAG 2.1 AA Compliance
 
-## Related Documentation
+1. **Keyboard Navigation**: All interactive elements accessible
+2. **Screen Reader Support**: Proper ARIA labels and roles
+3. **Color Contrast**: Meets WCAG contrast requirements
+4. **Focus Management**: Logical tab order and focus indicators
 
-- [PRP-020 Specification](../PRPs/Phase%205/PRP-020.md)
-- [Audit Logger API](../lib/audit/README.md)
-- [Database Schema](../supabase/migrations/20250128_audit_trail.sql)
-- [Compliance Reports](../docs/compliance.md)
+### Accessibility Test Examples
 
-## Support
+```typescript
+describe('Accessibility', () => {
+  it('has proper ARIA attributes', () => {
+    render(<Component />)
+    expect(screen.getByRole('button')).toHaveAttribute('aria-label')
+  })
+})
+```
 
-For test-related questions:
+## 🔒 Security Testing
 
-1. Check existing test files for examples
-2. Review error logs in `test-results/`
-3. Consult test documentation
-4. Verify environment configuration
+### Security Considerations
+
+1. **Input Validation**: All user inputs validated
+2. **XSS Prevention**: No script injection vulnerabilities
+3. **Data Sanitization**: Sensitive data not logged
+4. **Authentication**: Proper auth state management
+
+### Security Test Examples
+
+```typescript
+describe('Security', () => {
+  it('does not log sensitive information', () => {
+    const consoleSpy = jest.spyOn(console, 'log')
+    // Perform action with sensitive data
+    expect(consoleSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('password')
+    )
+  })
+})
+```
+
+## 🎯 Best Practices
+
+### 1. Test Organization
+
+- Group related tests in `describe` blocks
+- Use descriptive test names
+- Follow AAA pattern (Arrange, Act, Assert)
+
+### 2. Test Data
+
+- Use factory functions for consistent test data
+- Avoid hardcoded values in tests
+- Mock external dependencies consistently
+
+### 3. Assertions
+
+- Test one thing per test case
+- Use specific assertions over generic ones
+- Include both positive and negative test cases
+
+### 4. Async Testing
+
+- Use `waitFor` for async operations
+- Mock timers when testing timeouts
+- Handle loading states properly
+
+## 📝 Contributing
+
+### Adding New Tests
+
+1. **Follow the existing structure**
+2. **Use the provided test utilities**
+3. **Include all test categories** (rendering, interaction, accessibility, performance, security)
+4. **Add proper TypeScript types**
+5. **Update this documentation**
+
+### Test Review Checklist
+
+- [ ] All user interactions tested
+- [ ] Error states covered
+- [ ] Accessibility requirements met
+- [ ] Performance benchmarks included
+- [ ] Security considerations addressed
+- [ ] Edge cases handled
+- [ ] Integration points tested
+
+## 🔗 Related Documentation
+
+- [Jest Testing Framework](https://jestjs.io/)
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+- [TruthSource Architecture](ARCHITECTURE.md)
+- [Component Development Guide](COMPONENT-GUIDE.md)
+
+---
+
+**Remember**: Good tests are the foundation of reliable software. Invest time in writing comprehensive, maintainable tests that will catch regressions and ensure your components work correctly in production.
