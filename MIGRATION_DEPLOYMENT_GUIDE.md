@@ -27,17 +27,16 @@ pg_dump -h your-host -U your-user -d your-database > backup_before_migration.sql
 ## Migration Order
 
 ### Phase 1: Core Functions (000_core_functions.sql)
-**Purpose**: Standardize all helper functions and remove duplications
+**Purpose**: Create placeholder functions that can be created before tables exist
 ```bash
 # Apply core functions first
 supabase db push --file=supabase/migrations/000_core_functions.sql
 ```
 
 **What it does**:
-- Consolidates all `update_updated_at` functions
-- Standardizes helper functions
-- Removes function duplications
+- Creates placeholder functions that don't reference tables yet
 - Sets up proper permissions
+- Prepares for table creation
 
 ### Phase 2: Core Schema (001_core_schema.sql)
 **Purpose**: Consolidate all core tables and resolve conflicts
@@ -53,7 +52,59 @@ supabase db push --file=supabase/migrations/001_core_schema.sql
 - Creates performance indexes
 - Establishes proper constraints
 
-### Phase 3: Production Enhancements (scripts/production-deployment.sql)
+### Phase 3: Update Functions (002_update_functions.sql)
+**Purpose**: Update functions with proper table references
+```bash
+# Update functions with table references
+supabase db push --file=supabase/migrations/002_update_functions.sql
+```
+
+**What it does**:
+- Updates placeholder functions with proper table references
+- Enables full functionality
+- Sets up triggers and proper logic
+
+### Phase 4: Production Enhancements (scripts/production-deployment.sql)
+**Purpose**: Add additional important fixes and best practices
+```bash
+# Apply production enhancements
+psql -h your-host -U your-user -d your-database -f scripts/production-deployment.sql
+```
+
+**What it does**:
+- Adds data validation functions
+- Implements security enhancements
+- Creates monitoring functions
+- Sets up data retention policies
+- Adds performance optimizations
+
+### Phase 2: Core Schema (001_core_schema.sql)
+**Purpose**: Consolidate all core tables and resolve conflicts
+```bash
+# Apply core schema
+supabase db push --file=supabase/migrations/001_core_schema.sql
+```
+
+**What it does**:
+- Creates consolidated core tables
+- Resolves table conflicts (audit_logs, api_keys, etc.)
+- Sets up RLS policies
+- Creates performance indexes
+- Establishes proper constraints
+
+### Phase 3: Update Functions (002_update_functions.sql)
+**Purpose**: Update functions with proper table references
+```bash
+# Update functions with table references
+supabase db push --file=supabase/migrations/002_update_functions.sql
+```
+
+**What it does**:
+- Updates placeholder functions with proper table references
+- Enables full functionality
+- Sets up triggers and proper logic
+
+### Phase 4: Production Enhancements (scripts/production-deployment.sql)
 **Purpose**: Add additional important fixes and best practices
 ```bash
 # Apply production enhancements

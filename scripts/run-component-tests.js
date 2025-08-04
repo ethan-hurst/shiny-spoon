@@ -195,7 +195,7 @@ function buildJestOptions({
   const options = ['--config', 'jest.config.js']
   
   if (pattern) {
-    options.push('--testPathPattern', pattern)
+    options.push('--testPathPatterns', pattern)
   }
   
   if (watch) {
