@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS product_categories (
 );
 
 -- Base product pricing
-CREATE TABLE product_pricing (
+CREATE TABLE IF NOT EXISTS product_pricing (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
   organization_id UUID REFERENCES organizations(id) NOT NULL,
@@ -46,7 +46,7 @@ CREATE TABLE product_pricing (
 );
 
 -- Pricing rules with priority
-CREATE TABLE pricing_rules (
+CREATE TABLE IF NOT EXISTS pricing_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   
@@ -90,7 +90,7 @@ CREATE TABLE pricing_rules (
 );
 
 -- Quantity break pricing
-CREATE TABLE quantity_breaks (
+CREATE TABLE IF NOT EXISTS quantity_breaks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pricing_rule_id UUID REFERENCES pricing_rules(id) ON DELETE CASCADE NOT NULL,
   
@@ -112,7 +112,7 @@ CREATE TABLE quantity_breaks (
 );
 
 -- Customer-specific pricing overrides
-CREATE TABLE customer_pricing (
+CREATE TABLE IF NOT EXISTS customer_pricing (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES customers(id) ON DELETE CASCADE NOT NULL,
   product_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
@@ -148,7 +148,7 @@ CREATE TABLE customer_pricing (
 );
 
 -- Price calculation audit log
-CREATE TABLE price_calculations (
+CREATE TABLE IF NOT EXISTS price_calculations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   

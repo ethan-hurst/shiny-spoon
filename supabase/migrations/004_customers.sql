@@ -2,7 +2,7 @@
 -- Supports B2B customer profiles, contacts, pricing tiers, and activity tracking
 
 -- Customer tiers table (create first as it's referenced by customers)
-CREATE TABLE customer_tiers (
+CREATE TABLE IF NOT EXISTS customer_tiers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   name TEXT NOT NULL,
