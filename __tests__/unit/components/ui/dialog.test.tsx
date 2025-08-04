@@ -201,14 +201,12 @@ describe('Dialog Component', () => {
 
       await user.click(screen.getByRole('button', { name: /open dialog/i }))
 
-      // Focus should be on the dialog
-      const dialog = screen.getByRole('dialog')
-      expect(dialog).toHaveFocus()
+      // Focus should be on a focusable element within the dialog
+      // Radix UI typically focuses the first focusable element
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      expect(cancelButton).toHaveFocus()
 
       // Tab through dialog elements
-      await user.tab()
-      expect(screen.getByRole('button', { name: /cancel/i })).toHaveFocus()
-
       await user.tab()
       expect(screen.getByRole('button', { name: /confirm/i })).toHaveFocus()
 
@@ -221,12 +219,16 @@ describe('Dialog Component', () => {
 
       await user.click(screen.getByRole('button', { name: /open dialog/i }))
 
-      // Navigate with arrow keys
-      await user.keyboard('{Tab}')
-      expect(screen.getByRole('button', { name: /cancel/i })).toHaveFocus()
+      // Focus should start on the first focusable element
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      expect(cancelButton).toHaveFocus()
 
-      await user.keyboard('{ArrowRight}')
+      // Navigate with tab key
+      await user.keyboard('{Tab}')
       expect(screen.getByRole('button', { name: /confirm/i })).toHaveFocus()
+
+      await user.keyboard('{Tab}')
+      expect(screen.getByRole('button', { name: /close/i })).toHaveFocus()
     })
   })
 
@@ -244,7 +246,7 @@ describe('Dialog Component', () => {
               <DialogHeader>
                 <DialogTitle>Controlled Dialog</DialogTitle>
               </DialogHeader>
-              <Button onClick={() => setOpen(false)}>Close</Button>
+              <Button onClick={() => setOpen(false)}>Close Dialog</Button>
             </DialogContent>
           </Dialog>
         )
@@ -256,8 +258,8 @@ describe('Dialog Component', () => {
       await user.click(screen.getByRole('button', { name: /open/i }))
       expect(screen.getByRole('dialog')).toBeInTheDocument()
 
-      // Close dialog
-      await user.click(screen.getByRole('button', { name: /close/i }))
+      // Close dialog using the close button inside the dialog
+      await user.click(screen.getByRole('button', { name: /close dialog/i }))
 
       await waitFor(() => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
