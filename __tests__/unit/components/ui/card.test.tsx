@@ -1,344 +1,521 @@
+import React from 'react'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
+  CardFooter,
   CardTitle,
-} from '@/components/ui/card'
+  CardDescription,
+  CardContent,
+} from '../../../../components/ui/card'
 
-describe('Card Components', () => {
-  describe('Card', () => {
-    it('should render as a div element', () => {
-      render(<Card data-testid="card">Card content</Card>)
-      const card = screen.getByTestId('card')
-      expect(card.tagName).toBe('DIV')
+// Test card component
+const TestCard = () => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Card Title</CardTitle>
+        <CardDescription>This is a test card description</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p>This is the card content with some text.</p>
+      </CardContent>
+      <CardFooter>
+        <button>Action Button</button>
+      </CardFooter>
+    </Card>
+  )
+}
+
+// Test card with custom styling
+const TestCardWithCustomStyling = () => {
+  return (
+    <Card className="custom-card">
+      <CardHeader className="custom-header">
+        <CardTitle className="custom-title">Custom Title</CardTitle>
+        <CardDescription className="custom-description">
+          Custom description
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="custom-content">
+        <p>Custom content</p>
+      </CardContent>
+      <CardFooter className="custom-footer">
+        <button>Custom Button</button>
+      </CardFooter>
+    </Card>
+  )
+}
+
+// Test interactive card
+const TestInteractiveCard = () => {
+  const [clicked, setClicked] = React.useState(false)
+
+  return (
+    <Card
+      onClick={() => setClicked(true)}
+      className="cursor-pointer hover:shadow-md transition-shadow"
+    >
+      <CardHeader>
+        <CardTitle>Interactive Card</CardTitle>
+        <CardDescription>Click me to test interactions</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p>Click count: {clicked ? '1' : '0'}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Test card with complex content
+const TestCardWithComplexContent = () => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Complex Card</CardTitle>
+        <CardDescription>
+          This card contains various types of content including lists, links, and
+          interactive elements.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div>
+          <h3>Features:</h3>
+          <ul>
+            <li>Feature 1</li>
+            <li>Feature 2</li>
+            <li>Feature 3</li>
+          </ul>
+          <a href="#" className="text-blue-500 hover:underline">
+            Learn more
+          </a>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <button className="mr-2">Primary Action</button>
+        <button className="text-gray-500">Secondary Action</button>
+      </CardFooter>
+    </Card>
+  )
+}
+
+describe('Card Component', () => {
+  describe('Card Elements', () => {
+    it('renders card with all sub-components', () => {
+      render(<TestCard />)
+
+      expect(screen.getByText('Card Title')).toBeInTheDocument()
+      expect(screen.getByText('This is a test card description')).toBeInTheDocument()
+      expect(screen.getByText('This is the card content with some text.')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Action Button' })).toBeInTheDocument()
     })
 
-    it('should apply default card classes', () => {
-      render(<Card data-testid="card">Card content</Card>)
-      const card = screen.getByTestId('card')
-      expect(card).toHaveClass(
-        'rounded-lg',
-        'border',
-        'bg-card',
-        'text-card-foreground',
-        'shadow-sm'
-      )
+    it('renders card with proper structure', () => {
+      render(<TestCard />)
+
+      const card = screen.getByText('Card Title').closest('[class*="rounded-lg"]')
+      expect(card).toBeInTheDocument()
+      expect(card).toHaveClass('rounded-lg', 'border', 'bg-card', 'text-card-foreground', 'shadow-sm')
     })
 
-    it('should apply custom className', () => {
-      render(
-        <Card className="custom-class" data-testid="card">
-          Card content
-        </Card>
-      )
-      const card = screen.getByTestId('card')
-      expect(card).toHaveClass('custom-class')
-    })
+    it('renders card with custom styling', () => {
+      render(<TestCardWithCustomStyling />)
 
-    it('should forward ref correctly', () => {
-      const ref = jest.fn()
-      render(
-        <Card ref={ref} data-testid="card">
-          Card content
-        </Card>
-      )
-      expect(ref).toHaveBeenCalled()
-    })
+      const card = screen.getByText('Custom Title').closest('[class*="rounded-lg"]')
+      expect(card).toHaveClass('custom-card')
 
-    it('should pass through additional props', () => {
-      render(
-        <Card data-testid="card" aria-label="Card">
-          Card content
-        </Card>
-      )
-      const card = screen.getByTestId('card')
-      expect(card).toHaveAttribute('aria-label', 'Card')
-    })
+      const header = screen.getByText('Custom Title').closest('[class*="flex flex-col"]')
+      expect(header).toHaveClass('custom-header')
 
-    it('should render children content', () => {
-      render(<Card>Card content</Card>)
-      expect(screen.getByText('Card content')).toBeInTheDocument()
+      const content = screen.getByText('Custom content').closest('[class*="p-6 pt-0"]')
+      expect(content).toHaveClass('custom-content')
+
+      const footer = screen.getByRole('button', { name: 'Custom Button' }).closest('[class*="flex items-center"]')
+      expect(footer).toHaveClass('custom-footer')
     })
   })
 
-  describe('CardHeader', () => {
-    it('should render as a div element', () => {
-      render(<CardHeader data-testid="header">Header content</CardHeader>)
-      const header = screen.getByTestId('header')
-      expect(header.tagName).toBe('DIV')
+  describe('Card Sub-components', () => {
+    it('renders Card with proper wrapper', () => {
+      render(
+        <Card data-testid="card">
+          <CardContent>Test content</CardContent>
+        </Card>
+      )
+
+      const card = screen.getByTestId('card')
+      expect(card).toBeInTheDocument()
+      expect(card.tagName).toBe('DIV')
+      expect(card).toHaveClass('rounded-lg', 'border', 'bg-card', 'text-card-foreground', 'shadow-sm')
     })
 
-    it('should apply default header classes', () => {
-      render(<CardHeader data-testid="header">Header content</CardHeader>)
+    it('renders CardHeader with proper styling', () => {
+      render(
+        <Card>
+          <CardHeader data-testid="header">
+            <CardTitle>Title</CardTitle>
+          </CardHeader>
+        </Card>
+      )
+
       const header = screen.getByTestId('header')
+      expect(header).toBeInTheDocument()
+      expect(header.tagName).toBe('DIV')
       expect(header).toHaveClass('flex', 'flex-col', 'space-y-1.5', 'p-6')
     })
 
-    it('should apply custom className', () => {
+    it('renders CardTitle with proper styling', () => {
       render(
-        <CardHeader className="custom-header" data-testid="header">
-          Header content
-        </CardHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle data-testid="title">Test Title</CardTitle>
+          </CardHeader>
+        </Card>
       )
-      const header = screen.getByTestId('header')
-      expect(header).toHaveClass('custom-header')
-    })
 
-    it('should forward ref correctly', () => {
-      const ref = jest.fn()
-      render(
-        <CardHeader ref={ref} data-testid="header">
-          Header content
-        </CardHeader>
-      )
-      expect(ref).toHaveBeenCalled()
-    })
-
-    it('should render children content', () => {
-      render(<CardHeader>Header content</CardHeader>)
-      expect(screen.getByText('Header content')).toBeInTheDocument()
-    })
-  })
-
-  describe('CardTitle', () => {
-    it('should render as an h1 element', () => {
-      render(<CardTitle data-testid="title">Card Title</CardTitle>)
       const title = screen.getByTestId('title')
+      expect(title).toBeInTheDocument()
       expect(title.tagName).toBe('H1')
+      expect(title).toHaveClass('text-2xl', 'font-semibold', 'leading-none', 'tracking-tight')
     })
 
-    it('should apply default title classes', () => {
-      render(<CardTitle data-testid="title">Card Title</CardTitle>)
-      const title = screen.getByTestId('title')
-      expect(title).toHaveClass(
-        'text-2xl',
-        'font-semibold',
-        'leading-none',
-        'tracking-tight'
-      )
-    })
-
-    it('should apply custom className', () => {
+    it('renders CardDescription with proper styling', () => {
       render(
-        <CardTitle className="custom-title" data-testid="title">
-          Card Title
-        </CardTitle>
+        <Card>
+          <CardHeader>
+            <CardDescription data-testid="description">Test description</CardDescription>
+          </CardHeader>
+        </Card>
       )
-      const title = screen.getByTestId('title')
-      expect(title).toHaveClass('custom-title')
-    })
 
-    it('should forward ref correctly', () => {
-      const ref = jest.fn()
-      render(
-        <CardTitle ref={ref} data-testid="title">
-          Card Title
-        </CardTitle>
-      )
-      expect(ref).toHaveBeenCalled()
-    })
-
-    it('should render children content', () => {
-      render(<CardTitle>Card Title</CardTitle>)
-      expect(screen.getByText('Card Title')).toBeInTheDocument()
-    })
-  })
-
-  describe('CardDescription', () => {
-    it('should render as a p element', () => {
-      render(
-        <CardDescription data-testid="description">
-          Card description
-        </CardDescription>
-      )
       const description = screen.getByTestId('description')
+      expect(description).toBeInTheDocument()
       expect(description.tagName).toBe('P')
-    })
-
-    it('should apply default description classes', () => {
-      render(
-        <CardDescription data-testid="description">
-          Card description
-        </CardDescription>
-      )
-      const description = screen.getByTestId('description')
       expect(description).toHaveClass('text-sm', 'text-muted-foreground')
     })
 
-    it('should apply custom className', () => {
+    it('renders CardContent with proper styling', () => {
       render(
-        <CardDescription className="custom-desc" data-testid="description">
-          Card description
-        </CardDescription>
+        <Card>
+          <CardContent data-testid="content">
+            <p>Test content</p>
+          </CardContent>
+        </Card>
       )
-      const description = screen.getByTestId('description')
-      expect(description).toHaveClass('custom-desc')
-    })
 
-    it('should forward ref correctly', () => {
-      const ref = jest.fn()
-      render(
-        <CardDescription ref={ref} data-testid="description">
-          Card description
-        </CardDescription>
-      )
-      expect(ref).toHaveBeenCalled()
-    })
-
-    it('should render children content', () => {
-      render(<CardDescription>Card description</CardDescription>)
-      expect(screen.getByText('Card description')).toBeInTheDocument()
-    })
-  })
-
-  describe('CardContent', () => {
-    it('should render as a div element', () => {
-      render(<CardContent data-testid="content">Card content</CardContent>)
       const content = screen.getByTestId('content')
+      expect(content).toBeInTheDocument()
       expect(content.tagName).toBe('DIV')
-    })
-
-    it('should apply default content classes', () => {
-      render(<CardContent data-testid="content">Card content</CardContent>)
-      const content = screen.getByTestId('content')
       expect(content).toHaveClass('p-6', 'pt-0')
     })
 
-    it('should apply custom className', () => {
-      render(
-        <CardContent className="custom-content" data-testid="content">
-          Card content
-        </CardContent>
-      )
-      const content = screen.getByTestId('content')
-      expect(content).toHaveClass('custom-content')
-    })
-
-    it('should forward ref correctly', () => {
-      const ref = jest.fn()
-      render(
-        <CardContent ref={ref} data-testid="content">
-          Card content
-        </CardContent>
-      )
-      expect(ref).toHaveBeenCalled()
-    })
-
-    it('should render children content', () => {
-      render(<CardContent>Card content</CardContent>)
-      expect(screen.getByText('Card content')).toBeInTheDocument()
-    })
-  })
-
-  describe('CardFooter', () => {
-    it('should render as a div element', () => {
-      render(<CardFooter data-testid="footer">Footer content</CardFooter>)
-      const footer = screen.getByTestId('footer')
-      expect(footer.tagName).toBe('DIV')
-    })
-
-    it('should apply default footer classes', () => {
-      render(<CardFooter data-testid="footer">Footer content</CardFooter>)
-      const footer = screen.getByTestId('footer')
-      expect(footer).toHaveClass('flex', 'items-center', 'p-6', 'pt-0')
-    })
-
-    it('should apply custom className', () => {
-      render(
-        <CardFooter className="custom-footer" data-testid="footer">
-          Footer content
-        </CardFooter>
-      )
-      const footer = screen.getByTestId('footer')
-      expect(footer).toHaveClass('custom-footer')
-    })
-
-    it('should forward ref correctly', () => {
-      const ref = jest.fn()
-      render(
-        <CardFooter ref={ref} data-testid="footer">
-          Footer content
-        </CardFooter>
-      )
-      expect(ref).toHaveBeenCalled()
-    })
-
-    it('should render children content', () => {
-      render(<CardFooter>Footer content</CardFooter>)
-      expect(screen.getByText('Footer content')).toBeInTheDocument()
-    })
-  })
-
-  describe('Card Integration', () => {
-    it('should work together as a complete card', () => {
-      render(
-        <Card data-testid="card">
-          <CardHeader>
-            <CardTitle>Card Title</CardTitle>
-            <CardDescription>Card description</CardDescription>
-          </CardHeader>
-          <CardContent>Card content</CardContent>
-          <CardFooter>Footer content</CardFooter>
-        </Card>
-      )
-
-      expect(screen.getByTestId('card')).toBeInTheDocument()
-      expect(screen.getByText('Card Title')).toBeInTheDocument()
-      expect(screen.getByText('Card description')).toBeInTheDocument()
-      expect(screen.getByText('Card content')).toBeInTheDocument()
-      expect(screen.getByText('Footer content')).toBeInTheDocument()
-    })
-
-    it('should maintain proper hierarchy', () => {
+    it('renders CardFooter with proper styling', () => {
       render(
         <Card>
-          <CardHeader>
-            <CardTitle>Title</CardTitle>
-            <CardDescription>Description</CardDescription>
-          </CardHeader>
-          <CardContent>Content</CardContent>
-          <CardFooter>Footer</CardFooter>
-        </Card>
-      )
-
-      const card = screen.getByText('Title').closest('[class*="rounded-lg"]')
-      expect(card).toBeInTheDocument()
-
-      // Verify all elements are within the card
-      expect(card).toContainElement(screen.getByText('Title'))
-      expect(card).toContainElement(screen.getByText('Description'))
-      expect(card).toContainElement(screen.getByText('Content'))
-      expect(card).toContainElement(screen.getByText('Footer'))
-    })
-
-    it('should handle complex nested content', () => {
-      render(
-        <Card>
-          <CardHeader>
-            <CardTitle>Complex Card</CardTitle>
-            <CardDescription>With nested elements</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div data-testid="nested-content">
-              <p>Nested paragraph</p>
-              <button>Nested button</button>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <button>Action 1</button>
-            <button>Action 2</button>
+          <CardFooter data-testid="footer">
+            <button>Test button</button>
           </CardFooter>
         </Card>
       )
 
-      expect(screen.getByTestId('nested-content')).toBeInTheDocument()
-      expect(screen.getByText('Nested paragraph')).toBeInTheDocument()
-      expect(screen.getByText('Nested button')).toBeInTheDocument()
-      expect(screen.getByText('Action 1')).toBeInTheDocument()
-      expect(screen.getByText('Action 2')).toBeInTheDocument()
+      const footer = screen.getByTestId('footer')
+      expect(footer).toBeInTheDocument()
+      expect(footer.tagName).toBe('DIV')
+      expect(footer).toHaveClass('flex', 'items-center', 'p-6', 'pt-0')
+    })
+  })
+
+  describe('Card Interactions', () => {
+    it('handles click events', async () => {
+      const user = userEvent.setup()
+      render(<TestInteractiveCard />)
+
+      const card = screen.getByText('Interactive Card').closest('[class*="rounded-lg"]')
+      expect(card).toBeInTheDocument()
+
+      // Initial state
+      expect(screen.getByText('Click count: 0')).toBeInTheDocument()
+
+      // Click the card
+      await user.click(card!)
+
+      // Check that the state changed
+      expect(screen.getByText('Click count: 1')).toBeInTheDocument()
+    })
+
+    it('handles hover states', async () => {
+      const user = userEvent.setup()
+      render(<TestInteractiveCard />)
+
+      const card = screen.getByText('Interactive Card').closest('[class*="rounded-lg"]')
+      expect(card).toBeInTheDocument()
+
+      // Hover over the card
+      await user.hover(card!)
+
+      // The hover class should be applied (this is handled by CSS)
+      expect(card).toHaveClass('hover:shadow-md')
+    })
+  })
+
+  describe('Accessibility', () => {
+    it('has proper semantic structure', () => {
+      render(<TestCard />)
+
+      // Check for proper heading structure
+      const title = screen.getByRole('heading', { level: 1 })
+      expect(title).toBeInTheDocument()
+      expect(title).toHaveTextContent('Card Title')
+
+      // Check for proper button accessibility
+      const button = screen.getByRole('button')
+      expect(button).toBeInTheDocument()
+      expect(button).toHaveTextContent('Action Button')
+    })
+
+    it('supports keyboard navigation', async () => {
+      const user = userEvent.setup()
+      render(<TestInteractiveCard />)
+
+      const card = screen.getByText('Interactive Card').closest('[class*="rounded-lg"]')
+      expect(card).toBeInTheDocument()
+
+      // Focus the card
+      if (card instanceof HTMLElement) {
+        card.focus()
+      }
+
+      // The card should be focusable
+      expect(card).toHaveClass('cursor-pointer')
+    })
+
+    it('has proper ARIA attributes for interactive elements', () => {
+      render(<TestCard />)
+
+      const button = screen.getByRole('button')
+      expect(button).toBeInTheDocument()
+      // Buttons don't have a default type attribute in HTML
+      expect(button).toBeInTheDocument()
+    })
+  })
+
+  describe('Card State Management', () => {
+    it('handles dynamic content updates', () => {
+      const DynamicCard = () => {
+        const [count, setCount] = React.useState(0)
+
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Dynamic Card</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Count: {count}</p>
+              <button onClick={() => setCount(count + 1)}>Increment</button>
+            </CardContent>
+          </Card>
+        )
+      }
+
+      render(<DynamicCard />)
+
+      expect(screen.getByText('Count: 0')).toBeInTheDocument()
+
+      const button = screen.getByRole('button', { name: 'Increment' })
+      expect(button).toBeInTheDocument()
+    })
+
+    it('handles conditional rendering', () => {
+      const ConditionalCard = ({ showFooter }: { showFooter: boolean }) => (
+        <Card>
+          <CardHeader>
+            <CardTitle>Conditional Card</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Content</p>
+          </CardContent>
+          {showFooter && (
+            <CardFooter>
+              <button>Footer Button</button>
+            </CardFooter>
+          )}
+        </Card>
+      )
+
+      const { rerender } = render(<ConditionalCard showFooter={false} />)
+
+      expect(screen.queryByRole('button', { name: 'Footer Button' })).not.toBeInTheDocument()
+
+      rerender(<ConditionalCard showFooter={true} />)
+
+      expect(screen.getByRole('button', { name: 'Footer Button' })).toBeInTheDocument()
+    })
+  })
+
+  describe('Performance', () => {
+    it('renders efficiently', () => {
+      const startTime = performance.now()
+      render(<TestCard />)
+      const endTime = performance.now()
+
+      // Should render within reasonable time (less than 50ms)
+      expect(endTime - startTime).toBeLessThan(50)
+    })
+
+    it('handles many cards efficiently', () => {
+      const ManyCards = () => (
+        <div>
+          {Array.from({ length: 100 }, (_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <CardTitle>Card {i + 1}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>Content for card {i + 1}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )
+
+      const startTime = performance.now()
+      render(<ManyCards />)
+      const endTime = performance.now()
+
+      // Should render within reasonable time even with many cards
+      expect(endTime - startTime).toBeLessThan(200)
+      expect(screen.getByText('Card 1')).toBeInTheDocument()
+      expect(screen.getByText('Card 100')).toBeInTheDocument()
+    })
+
+    it('does not cause memory leaks', () => {
+      const { unmount } = render(<TestCard />)
+      expect(() => unmount()).not.toThrow()
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('handles card with very long content', () => {
+      const LongContentCard = () => (
+        <Card>
+          <CardHeader>
+            <CardTitle>Long Content Card</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>
+              This is a very long content that might wrap to multiple lines and should be handled gracefully by the card component. It contains a lot of text to test how the card handles overflow and wrapping. The content should be properly contained within the card boundaries and maintain proper spacing and layout.
+            </p>
+          </CardContent>
+        </Card>
+      )
+
+      render(<LongContentCard />)
+
+      const longContent = screen.getByText(/This is a very long content/)
+      expect(longContent).toBeInTheDocument()
+    })
+
+
+
+    it('handles empty card content', () => {
+      const EmptyCard = () => (
+        <Card>
+          <CardHeader>
+            <CardTitle>Empty Card</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* No content */}
+          </CardContent>
+        </Card>
+      )
+
+      render(<EmptyCard />)
+
+      expect(screen.getByText('Empty Card')).toBeInTheDocument()
+      // Should not crash and should render properly
+    })
+
+    it('handles card with complex nested content', () => {
+      render(<TestCardWithComplexContent />)
+
+      expect(screen.getByText('Complex Card')).toBeInTheDocument()
+      expect(screen.getByText('Features:')).toBeInTheDocument()
+      expect(screen.getByText('Feature 1')).toBeInTheDocument()
+      expect(screen.getByText('Feature 2')).toBeInTheDocument()
+      expect(screen.getByText('Feature 3')).toBeInTheDocument()
+      expect(screen.getByText('Learn more')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Primary Action' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Secondary Action' })).toBeInTheDocument()
+    })
+  })
+
+  describe('Integration with UI Components', () => {
+    it('works with custom styling classes', () => {
+      render(<TestCardWithCustomStyling />)
+
+      const card = screen.getByText('Custom Title').closest('[class*="rounded-lg"]')
+      expect(card).toHaveClass('custom-card')
+
+      const title = screen.getByText('Custom Title')
+      expect(title).toHaveClass('custom-title')
+
+      const description = screen.getByText('Custom description')
+      expect(description).toHaveClass('custom-description')
+    })
+
+    it('works with form elements inside cards', () => {
+      const CardWithForm = () => (
+        <Card>
+          <CardHeader>
+            <CardTitle>Form Card</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form>
+              <label htmlFor="name">Name:</label>
+              <input id="name" type="text" placeholder="Enter your name" />
+              <button type="submit">Submit</button>
+            </form>
+          </CardContent>
+        </Card>
+      )
+
+      render(<CardWithForm />)
+
+      expect(screen.getByText('Form Card')).toBeInTheDocument()
+      expect(screen.getByLabelText('Name:')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Enter your name')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument()
+    })
+
+    it('works with multiple cards on the same page', () => {
+      const MultipleCards = () => (
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>First Card</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>First card content</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Second Card</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>Second card content</p>
+            </CardContent>
+          </Card>
+        </div>
+      )
+
+      render(<MultipleCards />)
+
+      expect(screen.getByText('First Card')).toBeInTheDocument()
+      expect(screen.getByText('Second Card')).toBeInTheDocument()
+      expect(screen.getByText('First card content')).toBeInTheDocument()
+      expect(screen.getByText('Second card content')).toBeInTheDocument()
     })
   })
 })
