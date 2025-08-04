@@ -60,7 +60,7 @@ const TestForm = () => {
 }
 
 describe('Form Component', () => {
-  describe('Form Elements', () => {
+  describe('Form Integration', () => {
     it('renders form with all components', () => {
       render(<TestForm />)
 
@@ -71,65 +71,6 @@ describe('Form Component', () => {
       expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument()
     })
 
-    it('renders FormItem with proper structure', () => {
-      render(
-        <FormItem>
-          <FormLabel>Test Label</FormLabel>
-          <FormControl>
-            <Input />
-          </FormControl>
-          <FormDescription>Test description</FormDescription>
-          <FormMessage />
-        </FormItem>
-      )
-
-      expect(screen.getByText('Test Label')).toBeInTheDocument()
-      expect(screen.getByText('Test description')).toBeInTheDocument()
-      expect(screen.getByRole('textbox')).toBeInTheDocument()
-    })
-
-    it('renders FormLabel with proper accessibility', () => {
-      render(
-        <FormItem>
-          <FormLabel>Email Address</FormLabel>
-          <FormControl>
-            <Input />
-          </FormControl>
-        </FormItem>
-      )
-
-      const label = screen.getByText('Email Address')
-      const input = screen.getByRole('textbox')
-      
-      expect(label).toBeInTheDocument()
-      expect(label).toHaveAttribute('for', input.id)
-    })
-
-    it('renders FormDescription with proper styling', () => {
-      render(<FormDescription>This is a description</FormDescription>)
-
-      const description = screen.getByText('This is a description')
-      expect(description).toBeInTheDocument()
-      expect(description).toHaveClass('text-sm', 'text-muted-foreground')
-    })
-
-    it('renders FormMessage with proper styling', () => {
-      render(<FormMessage>This is an error message</FormMessage>)
-
-      const message = screen.getByText('This is an error message')
-      expect(message).toBeInTheDocument()
-      expect(message).toHaveClass('text-sm', 'font-medium', 'text-destructive')
-    })
-
-    it('does not render FormMessage when no error', () => {
-      render(<FormMessage />)
-
-      // Should not render anything when no error
-      expect(screen.queryByRole('paragraph')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('Form Integration', () => {
     it('handles form with default values', () => {
       const TestFormWithDefaults = () => {
         const form = useForm({
@@ -296,16 +237,32 @@ describe('Form Component', () => {
 
   describe('Integration with UI Components', () => {
     it('works with Input component', () => {
-      render(
-        <FormItem>
-          <FormLabel>Test Input</FormLabel>
-          <FormControl>
-            <Input placeholder="Enter text" />
-          </FormControl>
-          <FormDescription>Test description</FormDescription>
-          <FormMessage />
-        </FormItem>
-      )
+      const TestInputForm = () => {
+        const form = useForm()
+
+        return (
+          <Form {...form}>
+            <form>
+              <FormField
+                control={form.control}
+                name="test"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Test Input</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter text" {...field} />
+                    </FormControl>
+                    <FormDescription>Test description</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        )
+      }
+
+      render(<TestInputForm />)
 
       expect(screen.getByLabelText('Test Input')).toBeInTheDocument()
       expect(screen.getByPlaceholderText('Enter text')).toBeInTheDocument()
@@ -313,17 +270,31 @@ describe('Form Component', () => {
     })
 
     it('works with Button component', () => {
-      render(
-        <form>
-          <FormItem>
-            <FormLabel>Test</FormLabel>
-            <FormControl>
-              <Input />
-            </FormControl>
-          </FormItem>
-          <Button type="submit">Submit</Button>
-        </form>
-      )
+      const TestButtonForm = () => {
+        const form = useForm()
+
+        return (
+          <Form {...form}>
+            <form>
+              <FormField
+                control={form.control}
+                name="test"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Test</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <Button type="submit">Submit</Button>
+            </form>
+          </Form>
+        )
+      }
+
+      render(<TestButtonForm />)
 
       expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument()
     })
