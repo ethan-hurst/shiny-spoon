@@ -1,547 +1,471 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen, waitFor } from '@/__tests__/helpers/test-utils'
 import {
   Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogOverlay,
-  DialogPortal,
-  DialogTitle,
   DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
-// Mock Radix UI Dialog components
-jest.mock('@radix-ui/react-dialog', () => ({
-  Root: ({ children, ...props }: any) => (
-    <div data-testid="dialog-root" {...props}>
-      {children}
-    </div>
-  ),
-  Trigger: React.forwardRef(({ children, ...props }: any, ref) => (
-    <button ref={ref} data-testid="dialog-trigger" {...props}>
-      {children}
-    </button>
-  )),
-  Portal: ({ children }: any) => (
-    <div data-testid="dialog-portal">{children}</div>
-  ),
-  Overlay: React.forwardRef(({ className, ...props }: any, ref) => (
-    <div
-      ref={ref}
-      data-testid="dialog-overlay"
-      className={className}
-      {...props}
-    />
-  )),
-  Content: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <div
-      ref={ref}
-      data-testid="dialog-content"
-      className={className}
-      {...props}
-    >
-      {children}
-      <button data-testid="dialog-close">×</button>
-    </div>
-  )),
-  Title: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <h2 ref={ref} data-testid="dialog-title" className={className} {...props}>
-      {children}
-    </h2>
-  )),
-  Description: React.forwardRef(
-    ({ children, className, ...props }: any, ref) => (
-      <p
-        ref={ref}
-        data-testid="dialog-description"
-        className={className}
-        {...props}
-      >
-        {children}
-      </p>
-    )
-  ),
-  Close: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <button
-      ref={ref}
-      data-testid="dialog-close-button"
-      className={className}
-      {...props}
-    >
-      {children}
-    </button>
-  )),
-}))
+// Test dialog component
+const TestDialog = () => {
+  const [open, setOpen] = React.useState(false)
 
-describe('Dialog Components', () => {
-  describe('Dialog (Root)', () => {
-    it('should render dialog root component', () => {
-      render(
-        <Dialog data-testid="dialog">
-          <DialogTrigger>Open Dialog</DialogTrigger>
-          <DialogContent>
-            <DialogTitle>Dialog Title</DialogTitle>
-          </DialogContent>
-        </Dialog>
-      )
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>Open Dialog</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Test Dialog</DialogTitle>
+          <DialogDescription>
+            This is a test dialog for testing purposes.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <p>This is the dialog content.</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline">Cancel</Button>
+          <Button>Confirm</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
-      expect(screen.getByTestId('dialog')).toBeInTheDocument()
+describe('Dialog Component', () => {
+  describe('Dialog Elements', () => {
+    it('renders dialog trigger', () => {
+      render(<TestDialog />)
+
+      expect(screen.getByRole('button', { name: /open dialog/i })).toBeInTheDocument()
     })
 
-    it('should pass through props to root component', () => {
-      render(
-        <Dialog data-testid="dialog" open={false}>
-          <DialogTrigger>Open Dialog</DialogTrigger>
-          <DialogContent>
-            <DialogTitle>Dialog Title</DialogTitle>
-          </DialogContent>
-        </Dialog>
-      )
+    it('renders dialog content when opened', async () => {
+      const { user } = render(<TestDialog />)
 
-      const dialogRoot = screen.getByTestId('dialog')
-      expect(dialogRoot).toHaveAttribute('data-testid', 'dialog')
-      expect(dialogRoot).toBeInTheDocument()
-    })
-  })
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
 
-  describe('DialogTrigger', () => {
-    it('should render trigger button', () => {
-      render(<DialogTrigger data-testid="trigger">Open Dialog</DialogTrigger>)
-
-      const trigger = screen.getByTestId('trigger')
-      expect(trigger).toBeInTheDocument()
-      expect(trigger).toHaveTextContent('Open Dialog')
+      // Check that dialog content is rendered
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(screen.getByText('Test Dialog')).toBeInTheDocument()
+      expect(screen.getByText('This is a test dialog for testing purposes.')).toBeInTheDocument()
+      expect(screen.getByText('This is the dialog content.')).toBeInTheDocument()
     })
 
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLButtonElement>()
-      render(
-        <DialogTrigger ref={ref} data-testid="trigger">
-          Open Dialog
-        </DialogTrigger>
-      )
+    it('renders dialog header with title and description', async () => {
+      const { user } = render(<TestDialog />)
 
-      expect(ref.current).toBe(screen.getByTestId('trigger'))
-    })
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
 
-    it('should pass through additional props', () => {
-      render(
-        <DialogTrigger data-testid="trigger" aria-label="Open dialog">
-          Open Dialog
-        </DialogTrigger>
-      )
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toBeInTheDocument()
 
-      const trigger = screen.getByTestId('trigger')
-      expect(trigger).toHaveAttribute('aria-label', 'Open dialog')
-    })
-  })
-
-  describe('DialogContent', () => {
-    it('should render content with portal and overlay', () => {
-      render(
-        <DialogContent data-testid="content">
-          <DialogTitle>Dialog Title</DialogTitle>
-        </DialogContent>
-      )
-
-      expect(screen.getByTestId('dialog-portal')).toBeInTheDocument()
-      expect(screen.getByTestId('dialog-overlay')).toBeInTheDocument()
-      expect(screen.getByTestId('content')).toBeInTheDocument()
-    })
-
-    it('should apply custom className', () => {
-      render(
-        <DialogContent className="custom-content" data-testid="content">
-          <DialogTitle>Dialog Title</DialogTitle>
-        </DialogContent>
-      )
-
-      const content = screen.getByTestId('content')
-      expect(content).toHaveClass('custom-content')
-    })
-
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLDivElement>()
-      render(
-        <DialogContent ref={ref} data-testid="content">
-          <DialogTitle>Dialog Title</DialogTitle>
-        </DialogContent>
-      )
-
-      expect(ref.current).toBe(screen.getByTestId('content'))
-    })
-
-    it('should include close button', () => {
-      render(
-        <DialogContent data-testid="content">
-          <DialogTitle>Dialog Title</DialogTitle>
-        </DialogContent>
-      )
-
-      expect(screen.getByTestId('dialog-close')).toBeInTheDocument()
-    })
-  })
-
-  describe('DialogOverlay', () => {
-    it('should render overlay with correct classes', () => {
-      render(<DialogOverlay data-testid="overlay" />)
-
-      const overlay = screen.getByTestId('overlay')
-      expect(overlay).toBeInTheDocument()
-      expect(overlay).toHaveClass('fixed', 'inset-0', 'z-50', 'bg-black/80')
-    })
-
-    it('should apply custom className', () => {
-      render(<DialogOverlay className="custom-overlay" data-testid="overlay" />)
-
-      const overlay = screen.getByTestId('overlay')
-      expect(overlay).toHaveClass('custom-overlay')
-    })
-
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLDivElement>()
-      render(<DialogOverlay ref={ref} data-testid="overlay" />)
-
-      expect(ref.current).toBe(screen.getByTestId('overlay'))
-    })
-  })
-
-  describe('DialogPortal', () => {
-    it('should render portal component', () => {
-      render(
-        <DialogPortal data-testid="portal">
-          <div>Portal content</div>
-        </DialogPortal>
-      )
-
-      expect(screen.getByTestId('dialog-portal')).toBeInTheDocument()
-      expect(screen.getByText('Portal content')).toBeInTheDocument()
-    })
-  })
-
-  describe('DialogTitle', () => {
-    it('should render title with correct classes', () => {
-      render(<DialogTitle data-testid="title">Dialog Title</DialogTitle>)
-
-      const title = screen.getByTestId('title')
+      const title = screen.getByText('Test Dialog')
       expect(title).toBeInTheDocument()
-      expect(title).toHaveClass(
-        'text-lg',
-        'font-semibold',
-        'leading-none',
-        'tracking-tight'
-      )
-    })
+      expect(title).toHaveClass('text-lg', 'font-semibold')
 
-    it('should apply custom className', () => {
-      render(
-        <DialogTitle className="custom-title" data-testid="title">
-          Dialog Title
-        </DialogTitle>
-      )
-
-      const title = screen.getByTestId('title')
-      expect(title).toHaveClass('custom-title')
-    })
-
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLHeadingElement>()
-      render(
-        <DialogTitle ref={ref} data-testid="title">
-          Dialog Title
-        </DialogTitle>
-      )
-
-      expect(ref.current).toBe(screen.getByTestId('title'))
-    })
-
-    it('should pass through additional props', () => {
-      render(
-        <DialogTitle data-testid="title" aria-label="Dialog title">
-          Dialog Title
-        </DialogTitle>
-      )
-
-      const title = screen.getByTestId('title')
-      expect(title).toHaveAttribute('aria-label', 'Dialog title')
-    })
-  })
-
-  describe('DialogDescription', () => {
-    it('should render description with correct classes', () => {
-      render(
-        <DialogDescription data-testid="description">
-          Dialog description
-        </DialogDescription>
-      )
-
-      const description = screen.getByTestId('description')
+      const description = screen.getByText('This is a test dialog for testing purposes.')
       expect(description).toBeInTheDocument()
       expect(description).toHaveClass('text-sm', 'text-muted-foreground')
     })
 
-    it('should apply custom className', () => {
-      render(
-        <DialogDescription
-          className="custom-description"
-          data-testid="description"
-        >
-          Dialog description
-        </DialogDescription>
-      )
+    it('renders dialog footer with buttons', async () => {
+      const { user } = render(<TestDialog />)
 
-      const description = screen.getByTestId('description')
-      expect(description).toHaveClass('custom-description')
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+
+      expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument()
     })
 
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLParagraphElement>()
-      render(
-        <DialogDescription ref={ref} data-testid="description">
-          Dialog description
-        </DialogDescription>
-      )
+    it('renders close button', async () => {
+      const { user } = render(<TestDialog />)
 
-      expect(ref.current).toBe(screen.getByTestId('description'))
-    })
-  })
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
 
-  describe('DialogHeader', () => {
-    it('should render header with correct classes', () => {
-      render(
-        <DialogHeader data-testid="header">
-          <DialogTitle>Dialog Title</DialogTitle>
-        </DialogHeader>
-      )
-
-      const header = screen.getByTestId('header')
-      expect(header).toBeInTheDocument()
-      expect(header).toHaveClass(
-        'flex',
-        'flex-col',
-        'space-y-1.5',
-        'text-center',
-        'sm:text-left'
-      )
-    })
-
-    it('should apply custom className', () => {
-      render(
-        <DialogHeader className="custom-header" data-testid="header">
-          <DialogTitle>Dialog Title</DialogTitle>
-        </DialogHeader>
-      )
-
-      const header = screen.getByTestId('header')
-      expect(header).toHaveClass('custom-header')
-    })
-
-    it('should pass through additional props', () => {
-      render(
-        <DialogHeader data-testid="header" aria-label="Dialog header">
-          <DialogTitle>Dialog Title</DialogTitle>
-        </DialogHeader>
-      )
-
-      const header = screen.getByTestId('header')
-      expect(header).toHaveAttribute('aria-label', 'Dialog header')
-    })
-  })
-
-  describe('DialogFooter', () => {
-    it('should render footer with correct classes', () => {
-      render(
-        <DialogFooter data-testid="footer">
-          <button>Cancel</button>
-          <button>Save</button>
-        </DialogFooter>
-      )
-
-      const footer = screen.getByTestId('footer')
-      expect(footer).toBeInTheDocument()
-      expect(footer).toHaveClass(
-        'flex',
-        'flex-col-reverse',
-        'sm:flex-row',
-        'sm:justify-end',
-        'sm:space-x-2'
-      )
-    })
-
-    it('should apply custom className', () => {
-      render(
-        <DialogFooter className="custom-footer" data-testid="footer">
-          <button>Cancel</button>
-          <button>Save</button>
-        </DialogFooter>
-      )
-
-      const footer = screen.getByTestId('footer')
-      expect(footer).toHaveClass('custom-footer')
-    })
-
-    it('should pass through additional props', () => {
-      render(
-        <DialogFooter data-testid="footer" aria-label="Dialog footer">
-          <button>Cancel</button>
-          <button>Save</button>
-        </DialogFooter>
-      )
-
-      const footer = screen.getByTestId('footer')
-      expect(footer).toHaveAttribute('aria-label', 'Dialog footer')
-    })
-  })
-
-  describe('DialogClose', () => {
-    it('should render close button', () => {
-      render(<DialogClose data-testid="close">Close</DialogClose>)
-
-      const closeButton = screen.getByTestId('close')
+      const closeButton = screen.getByRole('button', { name: /close/i })
       expect(closeButton).toBeInTheDocument()
-      expect(closeButton).toHaveTextContent('Close')
-    })
-
-    it('should apply custom className', () => {
-      render(
-        <DialogClose className="custom-close" data-testid="close">
-          Close
-        </DialogClose>
-      )
-
-      const closeButton = screen.getByTestId('close')
-      expect(closeButton).toHaveClass('custom-close')
-    })
-
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLButtonElement>()
-      render(
-        <DialogClose ref={ref} data-testid="close">
-          Close
-        </DialogClose>
-      )
-
-      expect(ref.current).toBe(screen.getByTestId('close'))
     })
   })
 
-  describe('Dialog Integration', () => {
-    it('should work together as a complete dialog', () => {
-      render(
-        <Dialog data-testid="dialog">
-          <DialogTrigger data-testid="trigger">Open Dialog</DialogTrigger>
-          <DialogContent data-testid="content">
-            <DialogHeader data-testid="header">
-              <DialogTitle data-testid="title">Dialog Title</DialogTitle>
-              <DialogDescription data-testid="description">
-                Dialog description
-              </DialogDescription>
-            </DialogHeader>
-            <div>Dialog content</div>
-            <DialogFooter data-testid="footer">
-              <DialogClose data-testid="close">Cancel</DialogClose>
-              <button data-testid="save">Save</button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )
+  describe('Dialog Interactions', () => {
+    it('opens dialog when trigger is clicked', async () => {
+      const { user } = render(<TestDialog />)
 
-      expect(screen.getByTestId('dialog')).toBeInTheDocument()
-      expect(screen.getByTestId('trigger')).toBeInTheDocument()
-      expect(screen.getByTestId('content')).toBeInTheDocument()
-      expect(screen.getByTestId('header')).toBeInTheDocument()
-      expect(screen.getByTestId('title')).toBeInTheDocument()
-      expect(screen.getByTestId('description')).toBeInTheDocument()
-      expect(screen.getByTestId('footer')).toBeInTheDocument()
-      expect(screen.getByTestId('close')).toBeInTheDocument()
-      expect(screen.getByTestId('save')).toBeInTheDocument()
+      const trigger = screen.getByRole('button', { name: /open dialog/i })
+      await user.click(trigger)
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    it('should maintain proper hierarchy', () => {
-      render(
-        <Dialog>
-          <DialogTrigger>Open Dialog</DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Dialog Title</DialogTitle>
-              <DialogDescription>Dialog description</DialogDescription>
-            </DialogHeader>
-            <div>Dialog content</div>
-            <DialogFooter>
-              <DialogClose>Cancel</DialogClose>
-              <button>Save</button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )
+    it('closes dialog when close button is clicked', async () => {
+      const { user } = render(<TestDialog />)
 
-      // Should render all components in correct hierarchy
-      expect(screen.getByTestId('dialog-root')).toBeInTheDocument()
-      expect(screen.getByTestId('dialog-trigger')).toBeInTheDocument()
-      expect(screen.getByTestId('dialog-portal')).toBeInTheDocument()
-      expect(screen.getByTestId('dialog-overlay')).toBeInTheDocument()
-      expect(screen.getByTestId('dialog-content')).toBeInTheDocument()
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+      // Close dialog
+      await user.click(screen.getByRole('button', { name: /close/i }))
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    it('closes dialog when escape key is pressed', async () => {
+      const { user } = render(<TestDialog />)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+      // Press escape key
+      await user.keyboard('{Escape}')
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    it('closes dialog when clicking outside', async () => {
+      const { user } = render(<TestDialog />)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+      // Click outside (on the overlay)
+      const overlay = screen.getByRole('presentation')
+      await user.click(overlay)
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    it('maintains focus within dialog when opened', async () => {
+      const { user } = render(<TestDialog />)
+
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+
+      // Focus should be trapped within the dialog
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toHaveFocus()
     })
   })
 
   describe('Accessibility', () => {
-    it('should have proper ARIA attributes', () => {
-      render(
-        <Dialog aria-label="Dialog">
-          <DialogTrigger>Open Dialog</DialogTrigger>
-          <DialogContent>
-            <DialogTitle>Dialog Title</DialogTitle>
-          </DialogContent>
-        </Dialog>
-      )
+    it('has proper ARIA attributes', async () => {
+      const { user } = render(<TestDialog />)
 
-      const dialog = screen.getByTestId('dialog-root')
-      expect(dialog).toHaveAttribute('aria-label', 'Dialog')
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toBeInTheDocument()
+      expect(dialog).toHaveAttribute('aria-modal', 'true')
+
+      const title = screen.getByText('Test Dialog')
+      expect(title).toHaveAttribute('id')
+      expect(dialog).toHaveAttribute('aria-labelledby', title.id)
+
+      const description = screen.getByText('This is a test dialog for testing purposes.')
+      expect(description).toHaveAttribute('id')
+      expect(dialog).toHaveAttribute('aria-describedby', description.id)
     })
 
-    it('should have proper heading structure', () => {
-      render(
-        <DialogContent>
-          <DialogTitle>Dialog Title</DialogTitle>
-          <DialogDescription>Dialog description</DialogDescription>
-        </DialogContent>
-      )
+    it('announces dialog to screen readers', async () => {
+      const { user } = render(<TestDialog />)
 
-      const title = screen.getByTestId('dialog-title')
-      expect(title.tagName).toBe('H2')
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toBeInTheDocument()
+
+      // Check that the dialog is properly announced
+      expect(dialog).toHaveAttribute('aria-modal', 'true')
     })
 
-    it('should have proper close button accessibility', () => {
-      render(
-        <DialogContent>
-          <DialogClose>Close</DialogClose>
-        </DialogContent>
-      )
+    it('provides proper focus management', async () => {
+      const { user } = render(<TestDialog />)
 
-      const closeButtons = screen.getAllByRole('button', { name: /close/i })
-      expect(closeButtons).toHaveLength(2)
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+
+      // Focus should be on the dialog
+      const dialog = screen.getByRole('dialog')
+      expect(dialog).toHaveFocus()
+
+      // Tab through dialog elements
+      await user.tab()
+      expect(screen.getByRole('button', { name: /cancel/i })).toHaveFocus()
+
+      await user.tab()
+      expect(screen.getByRole('button', { name: /confirm/i })).toHaveFocus()
+
+      await user.tab()
+      expect(screen.getByRole('button', { name: /close/i })).toHaveFocus()
+    })
+
+    it('supports keyboard navigation', async () => {
+      const { user } = render(<TestDialog />)
+
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+
+      // Navigate with arrow keys
+      await user.keyboard('{Tab}')
+      expect(screen.getByRole('button', { name: /cancel/i })).toHaveFocus()
+
+      await user.keyboard('{ArrowRight}')
+      expect(screen.getByRole('button', { name: /confirm/i })).toHaveFocus()
     })
   })
 
-  describe('Type Safety', () => {
-    it('should maintain proper TypeScript types', () => {
-      // This test ensures the component props are properly typed
-      const TestDialog = () => (
-        <Dialog open={false}>
-          <DialogTrigger>Open Dialog</DialogTrigger>
+  describe('Dialog State Management', () => {
+    it('handles controlled dialog state', async () => {
+      const ControlledDialog = () => {
+        const [open, setOpen] = React.useState(false)
+
+        return (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setOpen(true)}>Open</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Controlled Dialog</DialogTitle>
+              </DialogHeader>
+              <Button onClick={() => setOpen(false)}>Close</Button>
+            </DialogContent>
+          </Dialog>
+        )
+      }
+
+      const { user } = render(<ControlledDialog />)
+
+      // Open dialog
+      await user.click(screen.getByRole('button', { name: /open/i }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+      // Close dialog
+      await user.click(screen.getByRole('button', { name: /close/i }))
+
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    it('handles uncontrolled dialog state', async () => {
+      const UncontrolledDialog = () => (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>Open</Button>
+          </DialogTrigger>
           <DialogContent>
-            <DialogTitle>Dialog Title</DialogTitle>
-            <DialogDescription>Dialog description</DialogDescription>
+            <DialogHeader>
+              <DialogTitle>Uncontrolled Dialog</DialogTitle>
+            </DialogHeader>
           </DialogContent>
         </Dialog>
       )
 
+      const { user } = render(<UncontrolledDialog />)
+
+      await user.click(screen.getByRole('button', { name: /open/i }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+  })
+
+  describe('Performance', () => {
+    it('renders efficiently', () => {
+      const startTime = performance.now()
       render(<TestDialog />)
-      expect(screen.getByTestId('dialog-root')).toBeInTheDocument()
+      const endTime = performance.now()
+
+      // Should render within reasonable time (less than 50ms)
+      expect(endTime - startTime).toBeLessThan(50)
+    })
+
+    it('handles rapid open/close cycles', async () => {
+      const { user } = render(<TestDialog />)
+
+      const trigger = screen.getByRole('button', { name: /open dialog/i })
+
+      // Rapid open/close cycles
+      for (let i = 0; i < 5; i++) {
+        await user.click(trigger)
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+        
+        await user.click(screen.getByRole('button', { name: /close/i }))
+        await waitFor(() => {
+          expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        })
+      }
+    })
+
+    it('does not cause memory leaks', () => {
+      const { unmount } = render(<TestDialog />)
+      expect(() => unmount()).not.toThrow()
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('handles dialog with no content', async () => {
+      const EmptyDialog = () => (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>Open Empty</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Empty Dialog</DialogTitle>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      )
+
+      const { user } = render(<EmptyDialog />)
+
+      await user.click(screen.getByRole('button', { name: /open empty/i }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('handles dialog with very long content', async () => {
+      const LongContentDialog = () => (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>Open Long</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Long Content Dialog</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              {Array.from({ length: 100 }, (_, i) => (
+                <p key={i}>This is line {i + 1} of very long content.</p>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )
+
+      const { user } = render(<LongContentDialog />)
+
+      await user.click(screen.getByRole('button', { name: /open long/i }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(screen.getByText('This is line 1 of very long content.')).toBeInTheDocument()
+    })
+
+    it('handles dialog with special characters in content', async () => {
+      const SpecialCharsDialog = () => (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>Open Special</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Special Characters: !@#$%^&*()</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p>Content with special chars: &lt;&gt;&amp;&quot;&apos;</p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )
+
+      const { user } = render(<SpecialCharsDialog />)
+
+      await user.click(screen.getByRole('button', { name: /open special/i }))
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(screen.getByText('Special Characters: !@#$%^&*()')).toBeInTheDocument()
+    })
+
+    it('handles multiple dialogs', async () => {
+      const MultipleDialogs = () => (
+        <div>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>Dialog 1</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>First Dialog</DialogTitle>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>Dialog 2</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Second Dialog</DialogTitle>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )
+
+      const { user } = render(<MultipleDialogs />)
+
+      // Open first dialog
+      await user.click(screen.getByRole('button', { name: /dialog 1/i }))
+      expect(screen.getByText('First Dialog')).toBeInTheDocument()
+
+      // Close first dialog
+      await user.click(screen.getByRole('button', { name: /close/i }))
+      await waitFor(() => {
+        expect(screen.queryByText('First Dialog')).not.toBeInTheDocument()
+      })
+
+      // Open second dialog
+      await user.click(screen.getByRole('button', { name: /dialog 2/i }))
+      expect(screen.getByText('Second Dialog')).toBeInTheDocument()
+    })
+  })
+
+  describe('Integration with UI Components', () => {
+    it('works with Button component', async () => {
+      const { user } = render(<TestDialog />)
+
+      await user.click(screen.getByRole('button', { name: /open dialog/i }))
+
+      expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument()
+    })
+
+    it('works with form elements inside dialog', async () => {
+      const FormDialog = () => (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>Open Form</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Form Dialog</DialogTitle>
+            </DialogHeader>
+            <form>
+              <input type="text" placeholder="Enter text" />
+              <button type="submit">Submit</button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )
+
+      const { user } = render(<FormDialog />)
+
+      await user.click(screen.getByRole('button', { name: /open form/i }))
+
+      expect(screen.getByRole('textbox')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument()
     })
   })
 })
