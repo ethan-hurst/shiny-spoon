@@ -1,289 +1,153 @@
 // PRP-021: AI-Powered Insights - Insights Dashboard
-import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
-import {
-  AlertTriangle,
-  Brain,
-  Lightbulb,
-  RefreshCw,
-  TrendingUp,
-} from 'lucide-react'
-import { AIInsightsList } from '@/components/features/insights/ai-insights-list'
-import { AnomalyAlerts } from '@/components/features/insights/anomaly-alerts'
-import { DemandForecastChart } from '@/components/features/insights/demand-forecast-chart'
-import { RefreshInsightsButton } from '@/components/features/insights/refresh-insights-button'
-import { ReorderSuggestions } from '@/components/features/insights/reorder-suggestions'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
+import { AIInsightsDashboard } from '@/components/features/ai/ai-insights-dashboard'
+import type { AIDashboardData } from '@/types/ai.types'
 
-export const metadata = {
-  title: 'AI Insights | TruthSource',
-  description: 'AI-powered business insights and recommendations',
-}
+export default async function InsightsPage() {
+  const supabase = createServerClient()
 
-// Loading skeleton for insights
-function InsightsPageSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <Skeleton className="h-8 w-32" />
-          <Skeleton className="h-4 w-64 mt-2" />
-        </div>
-        <Skeleton className="h-10 w-32" />
-      </div>
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthorized')
 
-      <div className="grid gap-4 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="p-6 border rounded-lg space-y-3">
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-4 w-full" />
-          </div>
-        ))}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="p-6 border rounded-lg space-y-3">
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-async function InsightsContent() {
-  const supabase = await createClient()
-
-  // Get user's organization
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    redirect('/login')
+  // Mock data for demonstration
+  const mockData: AIDashboardData = {
+    insights: [
+      {
+        id: '1',
+        organization_id: '00000000-0000-0000-0000-000000000000',
+        insight_type: 'summary',
+        title: 'Weekly Business Summary',
+        content: 'Your inventory accuracy improved by 2.3% this week. Low stock alerts decreased by 15%. Consider reviewing pricing strategy for top 5 products.',
+        severity: 'info',
+        related_entities: [{ type: 'product', id: '123', name: 'Product A' }],
+        metrics: {},
+        recommended_actions: ['Review pricing for top products', 'Check inventory levels'],
+        is_read: false,
+        is_dismissed: false,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        organization_id: '00000000-0000-0000-0000-000000000000',
+        insight_type: 'recommendation',
+        title: 'Reorder Point Optimization',
+        content: 'Product "Widget X" has high demand variability. Consider increasing safety stock by 20% to prevent stockouts.',
+        severity: 'info',
+        related_entities: [{ type: 'product', id: '456', name: 'Widget X' }],
+        metrics: {},
+        recommended_actions: ['Increase safety stock', 'Monitor demand patterns'],
+        is_read: true,
+        is_dismissed: false,
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ],
+    predictions: [
+      {
+        id: '1',
+        organization_id: '00000000-0000-0000-0000-000000000000',
+        prediction_type: 'demand',
+        entity_type: 'product',
+        entity_id: '123',
+        prediction_date: new Date().toISOString().split('T')[0],
+        prediction_value: { forecast: [100, 120, 140, 160], confidence: 0.85 },
+        confidence_score: 0.85,
+        model_version: '1.0.0',
+        model_parameters: {},
+        prediction_start: new Date().toISOString().split('T')[0],
+        prediction_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        created_at: new Date().toISOString(),
+      },
+    ],
+    anomalies: [
+      {
+        id: '1',
+        type: 'stock_out',
+        severity: 'critical',
+        title: 'Product Out of Stock',
+        description: 'Product "Widget X" is completely out of stock',
+        detectedAt: new Date(),
+        confidence: 1.0,
+        relatedEntities: [{ type: 'product', id: '456', name: 'Widget X' }],
+        suggestedActions: ['Place emergency reorder', 'Check for pending shipments'],
+      },
+      {
+        id: '2',
+        type: 'large_order',
+        severity: 'info',
+        title: 'Large Order Detected',
+        description: 'Order #12345 for $50,000',
+        detectedAt: new Date(),
+        confidence: 1.0,
+        relatedEntities: [{ type: 'order', id: '789', name: 'Order #12345' }],
+        suggestedActions: ['Verify customer credit', 'Confirm inventory availability'],
+      },
+    ],
+    recommendations: [
+      {
+        id: '1',
+        type: 'inventory',
+        title: 'Optimize Safety Stock Levels',
+        description: 'Increase safety stock for high-demand products to prevent stockouts',
+        impact: { revenue: 5, cost: -2, efficiency: 10 },
+        confidence: 0.85,
+        implementation: {
+          effort: 'medium',
+          timeline: '2-3 weeks',
+          resources: ['Inventory Manager', 'Data Analysis'],
+        },
+        status: 'pending',
+        created_at: new Date(),
+      },
+      {
+        id: '2',
+        type: 'pricing',
+        title: 'Dynamic Pricing Strategy',
+        description: 'Implement dynamic pricing based on demand patterns and competitor analysis',
+        impact: { revenue: 8, cost: 0, efficiency: 5 },
+        confidence: 0.78,
+        implementation: {
+          effort: 'high',
+          timeline: '4-6 weeks',
+          resources: ['Pricing Analyst', 'Software Development'],
+        },
+        status: 'pending',
+        created_at: new Date(),
+      },
+    ],
+    summary: {
+      totalInsights: 2,
+      unreadCount: 1,
+      criticalAlerts: 1,
+      recommendations: 2,
+      trends: 1,
+      lastGenerated: new Date(),
+    },
+    modelPerformance: [
+      {
+        modelType: 'demand_forecast',
+        version: '1.0.0',
+        metrics: {
+          mae: 0.15,
+          rmse: 0.22,
+          r2: 0.85,
+          accuracy: 0.78,
+        },
+        trainingDataSize: 10000,
+        lastTrained: new Date(),
+        nextRetrain: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    ],
   }
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('organization_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!profile) {
-    redirect('/onboarding')
-  }
-
-  // Fetch real AI insights
-  const { data: insights } = await supabase
-    .from('ai_insights')
-    .select('*')
-    .eq('organization_id', profile.organization_id)
-    .eq('is_dismissed', false)
-    .order('created_at', { ascending: false })
-    .limit(20)
-
-  // Fetch predictions
-  const { data: predictions } = await supabase
-    .from('ai_predictions')
-    .select('*')
-    .eq('organization_id', profile.organization_id)
-    .gte('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false })
-
-  // Calculate summary stats
-  const totalInsights = insights?.length || 0
-  const unreadInsights = insights?.filter((i) => !i.is_read).length || 0
-  const criticalAlerts =
-    insights?.filter((i) => i.severity === 'critical').length || 0
-  const recommendations =
-    insights?.filter((i) => i.insight_type === 'recommendation').length || 0
-
-  // Group insights by type
-  const alertInsights =
-    insights?.filter((i) => i.insight_type === 'alert') || []
-  const recommendationInsights =
-    insights?.filter((i) => i.insight_type === 'recommendation') || []
-  const trendInsights =
-    insights?.filter((i) => i.insight_type === 'trend') || []
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">AI Insights</h1>
-          <p className="text-muted-foreground">
-            AI-powered insights to optimize your inventory and pricing
-          </p>
-        </div>
-        <RefreshInsightsButton organizationId={profile.organization_id} />
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Insights
-            </CardTitle>
-            <Brain className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalInsights}</div>
-            <p className="text-xs text-muted-foreground">
-              {unreadInsights} unread
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Critical Alerts
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {criticalAlerts}
-            </div>
-            <p className="text-xs text-muted-foreground">Require attention</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Recommendations
-            </CardTitle>
-            <Lightbulb className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{recommendations}</div>
-            <p className="text-xs text-muted-foreground">Action items</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Predictions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{predictions?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Active forecasts</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Alert Banner for Critical Issues */}
-      {criticalAlerts > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <CardTitle className="text-red-800">
-                Critical Issues Detected
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-700">
-              {criticalAlerts} critical issue{criticalAlerts !== 1 ? 's' : ''}{' '}
-              require{criticalAlerts === 1 ? 's' : ''} immediate attention.
-              Check the alerts tab for details.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="alerts">
-            Alerts
-            {alertInsights.length > 0 && (
-              <Badge
-                variant="destructive"
-                className="ml-2 h-5 w-5 rounded-full p-0 text-xs"
-              >
-                {alertInsights.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-          <TabsTrigger value="forecasts">Forecasts</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <AIInsightsList
-            insights={insights?.slice(0, 10) || []}
-            showAllTypes={true}
-          />
-        </TabsContent>
-
-        <TabsContent value="alerts" className="space-y-4">
-          <AnomalyAlerts
-            organizationId={profile.organization_id}
-            insights={alertInsights}
-          />
-        </TabsContent>
-
-        <TabsContent value="recommendations" className="space-y-4">
-          <ReorderSuggestions
-            organizationId={profile.organization_id}
-            insights={recommendationInsights}
-          />
-        </TabsContent>
-
-        <TabsContent value="forecasts" className="space-y-4">
-          <DemandForecastChart
-            organizationId={profile.organization_id}
-            predictions={predictions || []}
-          />
-        </TabsContent>
-
-        <TabsContent value="trends" className="space-y-4">
-          <AIInsightsList insights={trendInsights} showAllTypes={false} />
-        </TabsContent>
-      </Tabs>
-
-      {totalInsights === 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Brain className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No insights yet</h3>
-            <p className="text-muted-foreground mb-4">
-              AI insights will appear here as your data is analyzed. Click
-              refresh to generate initial insights.
-            </p>
-            <RefreshInsightsButton organizationId={profile.organization_id} />
-          </CardContent>
-        </Card>
-      )}
+    <div className="container mx-auto py-6">
+      <AIInsightsDashboard
+        data={mockData}
+        loading={false}
+        onRefresh={() => {
+          // Handle refresh
+        }}
+      />
     </div>
-  )
-}
-
-export default function InsightsPage() {
-  return (
-    <Suspense fallback={<InsightsPageSkeleton />}>
-      <InsightsContent />
-    </Suspense>
   )
 }

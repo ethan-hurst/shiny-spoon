@@ -1,28 +1,17 @@
-// types/ai.types.ts
-export interface AIPrediction {
-  id: string
-  organization_id: string
-  prediction_type: 'demand' | 'reorder' | 'price' | 'anomaly'
-  entity_type: 'product' | 'warehouse' | 'category'
-  entity_id: string
-  prediction_date: string
-  prediction_value: any
-  confidence_score: number
-  model_version: string
-  model_parameters: Record<string, any>
-  prediction_start: string
-  prediction_end: string
-  created_at: string
-  expires_at?: string
-}
+// PRP-021: AI-Powered Insights - TypeScript Types
+
+export type InsightType = 'summary' | 'recommendation' | 'alert' | 'trend'
+export type AnomalyType = 'stock_out' | 'low_stock' | 'large_order' | 'price_volatility' | 'inventory_spike'
+export type Severity = 'info' | 'warning' | 'critical'
+export type PredictionType = 'demand' | 'reorder' | 'price' | 'anomaly'
 
 export interface AIInsight {
   id: string
   organization_id: string
-  insight_type: 'summary' | 'recommendation' | 'alert' | 'trend'
+  insight_type: InsightType
   title: string
   content: string
-  severity: 'info' | 'warning' | 'critical'
+  severity: Severity
   related_entities: Array<{
     type: string
     id: string
@@ -36,21 +25,40 @@ export interface AIInsight {
   valid_until?: string
 }
 
+export interface AIPrediction {
+  id: string
+  organization_id: string
+  prediction_type: PredictionType
+  entity_type: 'product' | 'warehouse' | 'category'
+  entity_id: string
+  prediction_date: string
+  prediction_value: Record<string, any>
+  confidence_score: number
+  model_version: string
+  model_parameters: Record<string, any>
+  prediction_start: string
+  prediction_end: string
+  created_at: string
+  expires_at?: string
+}
+
 export interface DemandForecast {
   productId: string
   warehouseId: string
   predictions: number[]
-  dates: string[]
   confidence: number
-  method: 'moving_average' | 'arima' | 'lstm' | 'ensemble'
+  method: 'ensemble' | 'arima' | 'prophet' | 'lstm'
   generatedAt: Date
+  metadata?: {
+    seasonality?: boolean
+    trend?: 'increasing' | 'decreasing' | 'stable'
+    volatility?: number
+  }
 }
 
 export interface ReorderSuggestion {
   productId: string
   warehouseId: string
-  productName: string
-  warehouseName: string
   currentStock: number
   reorderPoint: number
   reorderQuantity: number
@@ -58,6 +66,7 @@ export interface ReorderSuggestion {
   leadTimeDays: number
   confidence: number
   reasoning: string
+  urgency: 'low' | 'medium' | 'high' | 'critical'
 }
 
 export interface PriceRecommendation {
@@ -65,31 +74,25 @@ export interface PriceRecommendation {
   currentPrice: number
   suggestedPrice: number
   estimatedImpact: {
-    revenueChange: number
-    volumeChange: number
+    revenueChange: number // percentage
+    volumeChange: number // percentage
+    profitChange: number // percentage
   }
   confidence: number
   reasoning: string
   factors: {
     demandElasticity: number
-    competitorAverage?: number
+    competitorAverage: number
     inventoryPressure: number
     marginTarget: number
+    marketTrend: 'up' | 'down' | 'stable'
   }
 }
 
 export interface AnomalyAlert {
   id: string
-  type:
-    | 'inventory_spike'
-    | 'adjustment_pattern'
-    | 'stock_out'
-    | 'excess_inventory'
-    | 'order_spike'
-    | 'large_order'
-    | 'price_volatility'
-    | 'large_price_change'
-  severity: 'info' | 'warning' | 'critical'
+  type: AnomalyType
+  severity: Severity
   title: string
   description: string
   detectedAt: Date
@@ -100,128 +103,230 @@ export interface AnomalyAlert {
     name: string
   }>
   suggestedActions: string[]
+  metadata?: {
+    threshold?: number
+    baseline?: number
+    deviation?: number
+    historicalContext?: string
+  }
 }
 
 export interface TrendAnalysis {
   metric: string
+  period: 'daily' | 'weekly' | 'monthly' | 'quarterly'
   trend: 'increasing' | 'decreasing' | 'stable'
-  changePercent: number
-  period: string
+  changeRate: number // percentage
   confidence: number
-  significanceLevel: number
-}
-
-export interface TimeSeriesData {
-  date: Date
-  value: number
-}
-
-export interface MLTrainingData {
-  id: string
-  organization_id: string
-  model_type: string
-  data: any
-  feature_names: string[]
-  metrics: {
-    mae?: number
-    rmse?: number
-    r2?: number
-    accuracy?: number
+  seasonality?: {
+    detected: boolean
+    period?: number
+    strength?: number
   }
-  created_at: string
-}
-
-export interface InsightSummary {
-  totalInsights: number
-  unreadInsights: number
-  criticalAlerts: number
-  activeRecommendations: number
-  lastUpdated: Date
-}
-
-export interface DemandPattern {
-  productId: string
-  seasonal: boolean
-  trendDirection: 'up' | 'down' | 'stable'
-  volatility: 'low' | 'medium' | 'high'
-  avgDailyDemand: number
-  peakDays: string[]
-  cyclePeriod?: number
-}
-
-export interface PricingInsight {
-  productId: string
-  currentMargin: number
-  competitorCount: number
-  priceElasticity: number
-  lastPriceChange?: string
-  recommendation: 'increase' | 'decrease' | 'maintain'
-  confidence: number
-}
-
-export interface InventoryOptimization {
-  productId: string
-  warehouseId: string
-  currentValue: number
-  optimizedValue: number
-  potential_savings: number
-  turnoverRate: number
-  daysOfSupply: number
-}
-
-export interface ForecastAccuracy {
-  model: string
-  mae: number
-  mape: number
-  rmse: number
-  r2: number
-  lastEvaluated: Date
-}
-
-export interface AIServiceConfig {
-  enableForecasting: boolean
-  enablePriceOptimization: boolean
-  enableAnomalyDetection: boolean
-  forecastHorizonDays: number
-  confidenceThreshold: number
-  updateFrequencyHours: number
-}
-
-// Chat/Natural Language Interface Types
-export interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp: Date
-  metadata?: Record<string, any>
-}
-
-export interface ChatContext {
-  organizationId: string
-  userId: string
-  sessionId: string
-  messages: ChatMessage[]
-}
-
-export interface NLQuery {
-  query: string
-  intent: 'forecast' | 'reorder' | 'anomaly' | 'trend' | 'general'
-  entities: Array<{
-    type: 'product' | 'warehouse' | 'date' | 'metric'
-    value: string
+  forecast?: {
+    nextPeriod: number
     confidence: number
-  }>
-  parameters: Record<string, any>
+  }
 }
 
-export interface NLResponse {
-  answer: string
-  data?: any
-  visualizations?: Array<{
-    type: 'chart' | 'table' | 'metric'
-    config: any
-    data: any
-  }>
-  suggestedActions?: string[]
+export interface AIInsightSummary {
+  totalInsights: number
+  unreadCount: number
+  criticalAlerts: number
+  recommendations: number
+  trends: number
+  lastGenerated: Date
+}
+
+export interface AIModelPerformance {
+  modelType: string
+  version: string
+  metrics: {
+    mae: number // Mean Absolute Error
+    rmse: number // Root Mean Square Error
+    r2: number // R-squared
+    accuracy: number
+  }
+  trainingDataSize: number
+  lastTrained: Date
+  nextRetrain: Date
+}
+
+export interface AIRecommendation {
+  id: string
+  type: 'inventory' | 'pricing' | 'demand' | 'efficiency'
+  title: string
+  description: string
+  impact: {
+    revenue?: number
+    cost?: number
+    efficiency?: number
+  }
   confidence: number
+  implementation: {
+    effort: 'low' | 'medium' | 'high'
+    timeline: string
+    resources: string[]
+  }
+  status: 'pending' | 'implemented' | 'dismissed'
+  created_at: Date
+}
+
+export interface AIDashboardData {
+  insights: AIInsight[]
+  predictions: AIPrediction[]
+  anomalies: AnomalyAlert[]
+  recommendations: AIRecommendation[]
+  summary: AIInsightSummary
+  modelPerformance: AIModelPerformance[]
+}
+
+export interface AIInsightFilters {
+  type?: InsightType[]
+  severity?: Severity[]
+  dateRange?: {
+    from: Date
+    to: Date
+  }
+  read?: boolean
+  dismissed?: boolean
+}
+
+export interface AIPredictionFilters {
+  type?: PredictionType[]
+  entityType?: string[]
+  dateRange?: {
+    from: Date
+    to: Date
+  }
+  confidence?: {
+    min: number
+    max: number
+  }
+}
+
+export interface AIInsightActions {
+  markAsRead: (insightId: string) => Promise<void>
+  dismiss: (insightId: string) => Promise<void>
+  implement: (recommendationId: string) => Promise<void>
+  generateInsights: () => Promise<void>
+  refreshPredictions: () => Promise<void>
+}
+
+export interface AIInsightContext {
+  insights: AIInsight[]
+  predictions: AIPrediction[]
+  anomalies: AnomalyAlert[]
+  summary: AIInsightSummary
+  actions: AIInsightActions
+  loading: boolean
+  error?: string
+}
+
+// Component Props
+export interface AIInsightsPanelProps {
+  insights: AIInsight[]
+  onInsightAction: (action: string, insightId: string) => void
+}
+
+export interface AIPredictionsPanelProps {
+  predictions: AIPrediction[]
+  onPredictionClick: (prediction: AIPrediction) => void
+}
+
+export interface AIAnomalyAlertsProps {
+  anomalies: AnomalyAlert[]
+  onAlertAction: (action: string, alertId: string) => void
+}
+
+export interface AIRecommendationsProps {
+  recommendations: AIRecommendation[]
+  onRecommendationAction: (action: string, recommendationId: string) => void
+}
+
+export interface AIDashboardProps {
+  data: AIDashboardData
+  loading?: boolean
+  error?: string
+  onRefresh?: () => void
+}
+
+export interface AIInsightCardProps {
+  insight: AIInsight
+  onAction: (action: string) => void
+}
+
+export interface AIPredictionCardProps {
+  prediction: AIPrediction
+  onClick: () => void
+}
+
+export interface AIAnomalyCardProps {
+  anomaly: AnomalyAlert
+  onAction: (action: string) => void
+}
+
+export interface AIRecommendationCardProps {
+  recommendation: AIRecommendation
+  onAction: (action: string) => void
+}
+
+// API Response Types
+export interface GenerateInsightsResponse {
+  success: boolean
+  insights?: AIInsight[]
+  error?: string
+}
+
+export interface GetPredictionsResponse {
+  success: boolean
+  predictions?: AIPrediction[]
+  error?: string
+}
+
+export interface GetAnomaliesResponse {
+  success: boolean
+  anomalies?: AnomalyAlert[]
+  error?: string
+}
+
+export interface GetRecommendationsResponse {
+  success: boolean
+  recommendations?: AIRecommendation[]
+  error?: string
+}
+
+export interface UpdateInsightResponse {
+  success: boolean
+  error?: string
+}
+
+export interface AIModelTrainingResponse {
+  success: boolean
+  modelId?: string
+  performance?: AIModelPerformance
+  error?: string
+}
+
+// Utility Types
+export interface AIInsightStats {
+  total: number
+  byType: Record<InsightType, number>
+  bySeverity: Record<Severity, number>
+  unread: number
+  critical: number
+}
+
+export interface AIPredictionStats {
+  total: number
+  byType: Record<PredictionType, number>
+  averageConfidence: number
+  recentPredictions: number
+}
+
+export interface AIAnomalyStats {
+  total: number
+  byType: Record<AnomalyType, number>
+  bySeverity: Record<Severity, number>
+  resolved: number
+  pending: number
 }

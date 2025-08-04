@@ -3,10 +3,10 @@
 
 import { createClient } from '@supabase/supabase-js'
 // Load environment variables
-// import dotenv from 'dotenv'
+import dotenv from 'dotenv'
 import { Database } from './supabase/types/database'
 
-// dotenv.config({ path: '.env.local' })
+dotenv.config({ path: '.env.local' })
 
 async function testConnection() {
   console.log('🔍 Testing Supabase connection...\n')
