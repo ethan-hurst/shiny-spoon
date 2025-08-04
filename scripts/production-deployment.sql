@@ -114,8 +114,8 @@ WHERE active = true;
 CREATE INDEX IF NOT EXISTS idx_inventory_low_stock_org ON inventory(organization_id, warehouse_id) 
 WHERE quantity <= reorder_point;
 
-CREATE INDEX IF NOT EXISTS idx_audit_logs_recent ON audit_logs(organization_id, created_at DESC) 
-WHERE created_at >= NOW() - INTERVAL '30 days';
+-- Note: Removed time-based partial index as NOW() is not IMMUTABLE
+-- Regular index on created_at will provide good performance for recent queries
 
 -- 7. Add data retention policies
 -- Create function to clean up old data
