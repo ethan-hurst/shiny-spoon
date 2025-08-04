@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -15,11 +16,12 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { signIn } from '@/app/actions/auth'
+import { signInWithEmail } from '@/lib/auth-helpers'
 import { loginSchema, type LoginFormData } from '@/types/auth.types'
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -30,26 +32,33 @@ export function LoginForm() {
   })
 
   async function onSubmit(data: LoginFormData) {
+    console.log('[LoginForm] Starting submission')
     setIsLoading(true)
 
-    const formData = new FormData()
-    formData.append('email', data.email)
-    formData.append('password', data.password)
+    try {
+      console.log('[LoginForm] Calling client-side sign-in')
+      const result = await signInWithEmail(data.email, data.password)
+      
+      console.log('[LoginForm] Sign-in result:', result)
 
-    // The Server Action (`signIn`) will handle its own errors and return a result.
-    // If it needs to redirect, Next.js throws a special error that should not be caught here.
-    const result = await signIn(formData)
+      if (result.error) {
+        toast.error(result.error)
+        setIsLoading(false)
+        return
+      }
 
-    // If the action returns an error object, we display it and stop the loading state.
-    if (result?.error) {
-      toast.error(result.error)
+      if (result.success) {
+        console.log('[LoginForm] Sign-in successful, redirecting...')
+        toast.success('Sign-in successful!')
+        
+        // Use router.push for client-side navigation
+        router.push('/')
+      }
+    } catch (error) {
+      console.error('[LoginForm] Unexpected error:', error)
+      toast.error('An unexpected error occurred')
       setIsLoading(false)
     }
-
-    // If the action is successful, it will redirect, and this code below
-    // will not be reached. If it returns without an error OR a redirect,
-    // we should stop the loading state, though this case is unlikely in this form.
-    // We leave setIsLoading(true) so the button remains in a loading state during navigation.
   }
 
   return (

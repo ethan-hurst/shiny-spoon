@@ -54,10 +54,18 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // This will refresh the session if it's expired
+  // Try to get the session first
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession()
+
+  // Only log auth errors for non-static routes
+  if (sessionError && !request.nextUrl.pathname.startsWith('/_next/')) {
+    console.error('[Middleware] Session error:', sessionError.message)
+  }
+
+  const user = session?.user
 
   const protectedPaths = [
     '/',
@@ -75,7 +83,13 @@ export async function updateSession(request: NextRequest) {
       (path) => path !== '/' && request.nextUrl.pathname.startsWith(path)
     )
 
+  // Only log for non-static routes
+  if (!request.nextUrl.pathname.startsWith('/_next/')) {
+    console.log('[Middleware] Path:', request.nextUrl.pathname, 'Protected:', isProtectedPath, 'User:', !!user)
+  }
+
   if (!user && isProtectedPath) {
+    console.log('[Middleware] Redirecting to login - no user for protected path')
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
     redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
@@ -87,8 +101,18 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path)
   )
 
+  // Allow access to test endpoints
+  if (request.nextUrl.pathname.startsWith('/api/test-') || 
+      request.nextUrl.pathname.startsWith('/api/debug-')) {
+    return response
+  }
+
   if (user && isAuthPath) {
-    return NextResponse.redirect(new URL('/', request.url))
+    // Only redirect if not already going to home
+    const redirectUrl = request.nextUrl.searchParams.get('redirectTo') || '/'
+    if (redirectUrl !== request.nextUrl.pathname) {
+      return NextResponse.redirect(new URL(redirectUrl, request.url))
+    }
   }
 
   return response

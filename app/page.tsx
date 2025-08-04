@@ -8,11 +8,14 @@ export const metadata: Metadata = {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const supabase = createClient()
 
+  // Use getSession instead of getUser to avoid the redirect loop
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  const user = session?.user
 
   if (!user) {
     // This should not happen, as the middleware is now protecting this page.
