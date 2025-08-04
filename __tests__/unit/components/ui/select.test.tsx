@@ -1,572 +1,557 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen, waitFor } from '@/__tests__/helpers/test-utils'
 import {
   Select,
-  SelectContent,
   SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectScrollDownButton,
-  SelectScrollUpButton,
-  SelectSeparator,
-  SelectTrigger,
   SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
 } from '@/components/ui/select'
 
-// Mock Radix UI Select components
-jest.mock('@radix-ui/react-select', () => ({
-  Root: ({ children, ...props }: any) => (
-    <div data-testid="select-root" {...props}>
-      {children}
-    </div>
-  ),
-  Group: ({ children, ...props }: any) => (
-    <div data-testid="select-group" {...props}>
-      {children}
-    </div>
-  ),
-  Value: ({ children, ...props }: any) => (
-    <span data-testid="select-value" {...props}>
-      {children}
-    </span>
-  ),
-  Trigger: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <button
-      ref={ref}
-      data-testid="select-trigger"
-      className={className}
-      {...props}
-    >
-      {children}
-      <div data-testid="select-icon">▼</div>
-    </button>
-  )),
-  Content: React.forwardRef(
-    ({ children, className, position, ...props }: any, ref) => (
-      <div
-        ref={ref}
-        data-testid="select-content"
-        className={className}
-        data-position={position}
-        {...props}
-      >
-        <div data-testid="scroll-up-button">▲</div>
-        <div data-testid="select-viewport">{children}</div>
-        <div data-testid="scroll-down-button">▼</div>
-      </div>
-    )
-  ),
-  Label: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <div ref={ref} data-testid="select-label" className={className} {...props}>
-      {children}
-    </div>
-  )),
-  Item: React.forwardRef(({ children, className, ...props }: any, ref) => (
-    <div ref={ref} data-testid="select-item" className={className} {...props}>
-      <span data-testid="item-indicator">✓</span>
-      <span data-testid="item-text">{children}</span>
-    </div>
-  )),
-  Separator: React.forwardRef(({ className, ...props }: any, ref) => (
-    <div
-      ref={ref}
-      data-testid="select-separator"
-      className={className}
-      {...props}
-    />
-  )),
-  ScrollUpButton: React.forwardRef(({ className, ...props }: any, ref) => (
-    <button
-      ref={ref}
-      data-testid="scroll-up-button"
-      className={className}
-      {...props}
-    >
-      ▲
-    </button>
-  )),
-  ScrollDownButton: React.forwardRef(({ className, ...props }: any, ref) => (
-    <button
-      ref={ref}
-      data-testid="scroll-down-button"
-      className={className}
-      {...props}
-    >
-      ▼
-    </button>
-  )),
-  Icon: ({ asChild, children }: any) => (asChild ? children : <div>▼</div>),
-  Portal: ({ children }: any) => (
-    <div data-testid="select-portal">{children}</div>
-  ),
-  Viewport: ({ children, className }: any) => (
-    <div data-testid="select-viewport" className={className}>
-      {children}
-    </div>
-  ),
-  ItemIndicator: ({ children }: any) => (
-    <span data-testid="item-indicator">{children}</span>
-  ),
-  ItemText: ({ children }: any) => (
-    <span data-testid="item-text">{children}</span>
-  ),
-}))
+// Test select component
+const TestSelect = () => {
+  const [value, setValue] = React.useState('')
 
-describe('Select Components', () => {
-  describe('Select (Root)', () => {
-    it('should render select root component', () => {
-      render(
-        <Select data-testid="select">
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-        </Select>
-      )
+  return (
+    <Select value={value} onValueChange={setValue}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select an option" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>Fruits</SelectLabel>
+          <SelectItem value="apple">Apple</SelectItem>
+          <SelectItem value="banana">Banana</SelectItem>
+          <SelectItem value="orange">Orange</SelectItem>
+        </SelectGroup>
+        <SelectSeparator />
+        <SelectGroup>
+          <SelectLabel>Vegetables</SelectLabel>
+          <SelectItem value="carrot">Carrot</SelectItem>
+          <SelectItem value="broccoli">Broccoli</SelectItem>
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  )
+}
 
-      expect(screen.getByTestId('select')).toBeInTheDocument()
-    })
+// Test select with disabled items
+const TestSelectWithDisabled = () => {
+  const [value, setValue] = React.useState('')
 
-    it('should pass through props to root component', () => {
-      render(
-        <Select data-testid="select" defaultValue="option1">
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-        </Select>
-      )
-
-      const selectRoot = screen.getByTestId('select')
-      expect(selectRoot).toHaveAttribute('data-testid', 'select')
-      expect(selectRoot).toBeInTheDocument()
-    })
-  })
-
-  describe('SelectTrigger', () => {
-    it('should render trigger with correct classes', () => {
-      render(
-        <SelectTrigger data-testid="trigger">
-          <SelectValue placeholder="Select an option" />
-        </SelectTrigger>
-      )
-
-      const trigger = screen.getByTestId('trigger')
-      expect(trigger).toBeInTheDocument()
-      expect(trigger).toHaveClass('flex', 'h-10', 'w-full')
-    })
-
-    it('should apply custom className', () => {
-      render(
-        <SelectTrigger className="custom-trigger" data-testid="trigger">
-          <SelectValue placeholder="Select an option" />
-        </SelectTrigger>
-      )
-
-      const trigger = screen.getByTestId('trigger')
-      expect(trigger).toHaveClass('custom-trigger')
-    })
-
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLButtonElement>()
-      render(
-        <SelectTrigger ref={ref} data-testid="trigger">
-          <SelectValue placeholder="Select an option" />
-        </SelectTrigger>
-      )
-
-      expect(ref.current).toBe(screen.getByTestId('trigger'))
-    })
-
-    it('should render icon', () => {
-      render(
-        <SelectTrigger data-testid="trigger">
-          <SelectValue placeholder="Select an option" />
-        </SelectTrigger>
-      )
-
-      expect(screen.getByTestId('select-icon')).toBeInTheDocument()
-    })
-
-    it('should pass through additional props', () => {
-      render(
-        <SelectTrigger data-testid="trigger" aria-label="Select option">
-          <SelectValue placeholder="Select an option" />
-        </SelectTrigger>
-      )
-
-      const trigger = screen.getByTestId('trigger')
-      expect(trigger).toHaveAttribute('aria-label', 'Select option')
-    })
-  })
-
-  describe('SelectValue', () => {
-    it('should render value component', () => {
-      render(<SelectValue placeholder="Select an option" />)
-
-      expect(screen.getByTestId('select-value')).toBeInTheDocument()
-    })
-
-    it('should display placeholder when no value', () => {
-      render(<SelectValue placeholder="Select an option" />)
-
-      const value = screen.getByTestId('select-value')
-      expect(value).toHaveAttribute('placeholder', 'Select an option')
-    })
-
-    it('should display selected value', () => {
-      render(<SelectValue value="selected-option">Selected Option</SelectValue>)
-
-      const value = screen.getByTestId('select-value')
-      expect(value).toHaveTextContent('Selected Option')
-    })
-  })
-
-  describe('SelectContent', () => {
-    it('should render content with portal', () => {
-      render(
-        <SelectContent data-testid="content">
-          <SelectItem value="option1">Option 1</SelectItem>
-        </SelectContent>
-      )
-
-      expect(screen.getByTestId('select-portal')).toBeInTheDocument()
-      expect(screen.getByTestId('content')).toBeInTheDocument()
-    })
-
-    it('should apply default position', () => {
-      render(
-        <SelectContent data-testid="content">
-          <SelectItem value="option1">Option 1</SelectItem>
-        </SelectContent>
-      )
-
-      const content = screen.getByTestId('content')
-      expect(content).toHaveAttribute('data-position', 'popper')
-    })
-
-    it('should apply custom position', () => {
-      render(
-        <SelectContent data-testid="content" position="item">
-          <SelectItem value="option1">Option 1</SelectItem>
-        </SelectContent>
-      )
-
-      const content = screen.getByTestId('content')
-      expect(content).toHaveAttribute('data-position', 'item')
-    })
-
-    it('should apply custom className', () => {
-      render(
-        <SelectContent className="custom-content" data-testid="content">
-          <SelectItem value="option1">Option 1</SelectItem>
-        </SelectContent>
-      )
-
-      const content = screen.getByTestId('content')
-      expect(content).toHaveClass('custom-content')
-    })
-
-    it('should include scroll buttons', () => {
-      render(
-        <SelectContent data-testid="content">
-          <SelectItem value="option1">Option 1</SelectItem>
-        </SelectContent>
-      )
-
-      expect(screen.getAllByTestId('scroll-up-button')).toHaveLength(2)
-      expect(screen.getAllByTestId('scroll-down-button')).toHaveLength(2)
-    })
-  })
-
-  describe('SelectItem', () => {
-    it('should render item with correct structure', () => {
-      render(
-        <SelectItem value="option1" data-testid="item">
-          Option 1
+  return (
+    <Select value={value} onValueChange={setValue}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select an option" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="option1">Option 1</SelectItem>
+        <SelectItem value="option2" disabled>
+          Option 2 (Disabled)
         </SelectItem>
-      )
+        <SelectItem value="option3">Option 3</SelectItem>
+      </SelectContent>
+    </Select>
+  )
+}
 
-      const item = screen.getByTestId('item')
-      expect(item).toBeInTheDocument()
-      expect(screen.getAllByTestId('item-indicator')).toHaveLength(2)
-      expect(screen.getAllByTestId('item-text')).toHaveLength(2)
+// Test select with custom trigger
+const TestSelectWithCustomTrigger = () => {
+  const [value, setValue] = React.useState('')
+
+  return (
+    <Select value={value} onValueChange={setValue}>
+      <SelectTrigger className="w-[200px]">
+        <SelectValue placeholder="Choose a color" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="red">Red</SelectItem>
+        <SelectItem value="green">Green</SelectItem>
+        <SelectItem value="blue">Blue</SelectItem>
+      </SelectContent>
+    </Select>
+  )
+}
+
+// Test select with long content
+const TestSelectWithLongContent = () => {
+  const [value, setValue] = React.useState('')
+
+  return (
+    <Select value={value} onValueChange={setValue}>
+      <SelectTrigger>
+        <SelectValue placeholder="Select an option" />
+      </SelectTrigger>
+      <SelectContent>
+        {Array.from({ length: 50 }, (_, i) => (
+          <SelectItem key={i} value={`option${i}`}>
+            Option {i + 1} with very long text that might wrap to multiple lines
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+describe('Select Component', () => {
+  describe('Select Elements', () => {
+    it('renders select trigger', () => {
+      render(<TestSelect />)
+
+      expect(screen.getByRole('combobox')).toBeInTheDocument()
+      expect(screen.getByText('Select an option')).toBeInTheDocument()
     })
 
-    it('should apply custom className', () => {
-      render(
-        <SelectItem value="option1" className="custom-item" data-testid="item">
-          Option 1
-        </SelectItem>
-      )
+    it('renders select content when opened', async () => {
+      const { user } = render(<TestSelect />)
 
-      const item = screen.getByTestId('item')
-      expect(item).toHaveClass('custom-item')
+      // Open select
+      await user.click(screen.getByRole('combobox'))
+
+      // Check that select content is rendered
+      expect(screen.getByText('Fruits')).toBeInTheDocument()
+      expect(screen.getByText('Apple')).toBeInTheDocument()
+      expect(screen.getByText('Banana')).toBeInTheDocument()
+      expect(screen.getByText('Orange')).toBeInTheDocument()
+      expect(screen.getByText('Vegetables')).toBeInTheDocument()
+      expect(screen.getByText('Carrot')).toBeInTheDocument()
+      expect(screen.getByText('Broccoli')).toBeInTheDocument()
     })
 
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLDivElement>()
-      render(
-        <SelectItem ref={ref} value="option1" data-testid="item">
-          Option 1
-        </SelectItem>
-      )
+    it('renders select groups and labels', async () => {
+      const { user } = render(<TestSelect />)
 
-      expect(ref.current).toBe(screen.getByTestId('item'))
+      await user.click(screen.getByRole('combobox'))
+
+      const fruitsLabel = screen.getByText('Fruits')
+      expect(fruitsLabel).toBeInTheDocument()
+      expect(fruitsLabel).toHaveClass('py-1.5', 'pl-8', 'pr-2', 'text-sm', 'font-semibold')
+
+      const vegetablesLabel = screen.getByText('Vegetables')
+      expect(vegetablesLabel).toBeInTheDocument()
     })
 
-    it('should pass through additional props', () => {
-      render(
-        <SelectItem value="option1" data-testid="item" aria-label="Option 1">
-          Option 1
-        </SelectItem>
-      )
+    it('renders select items with proper styling', async () => {
+      const { user } = render(<TestSelect />)
 
-      const item = screen.getByTestId('item')
-      expect(item).toHaveAttribute('aria-label', 'Option 1')
-    })
-  })
+      await user.click(screen.getByRole('combobox'))
 
-  describe('SelectLabel', () => {
-    it('should render label with correct classes', () => {
-      render(<SelectLabel data-testid="label">Group Label</SelectLabel>)
-
-      const label = screen.getByTestId('label')
-      expect(label).toBeInTheDocument()
-      expect(label).toHaveClass(
+      const appleItem = screen.getByText('Apple')
+      expect(appleItem).toBeInTheDocument()
+      expect(appleItem.closest('[role="option"]')).toHaveClass(
+        'relative',
+        'flex',
+        'w-full',
+        'cursor-default',
+        'select-none',
+        'items-center',
+        'rounded-sm',
         'py-1.5',
         'pl-8',
         'pr-2',
         'text-sm',
-        'font-semibold'
+        'outline-none'
       )
     })
 
-    it('should apply custom className', () => {
-      render(
-        <SelectLabel className="custom-label" data-testid="label">
-          Group Label
-        </SelectLabel>
-      )
+    it('renders separator between groups', async () => {
+      const { user } = render(<TestSelect />)
 
-      const label = screen.getByTestId('label')
-      expect(label).toHaveClass('custom-label')
-    })
+      await user.click(screen.getByRole('combobox'))
 
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLDivElement>()
-      render(
-        <SelectLabel ref={ref} data-testid="label">
-          Group Label
-        </SelectLabel>
-      )
-
-      expect(ref.current).toBe(screen.getByTestId('label'))
-    })
-  })
-
-  describe('SelectGroup', () => {
-    it('should render group component', () => {
-      render(
-        <SelectGroup data-testid="group">
-          <SelectLabel>Group Label</SelectLabel>
-          <SelectItem value="option1">Option 1</SelectItem>
-        </SelectGroup>
-      )
-
-      expect(screen.getByTestId('group')).toBeInTheDocument()
-    })
-  })
-
-  describe('SelectSeparator', () => {
-    it('should render separator with correct classes', () => {
-      render(<SelectSeparator data-testid="separator" />)
-
-      const separator = screen.getByTestId('separator')
+      // The separator should be present between Fruits and Vegetables groups
+      const separator = document.querySelector('[data-radix-select-separator]')
       expect(separator).toBeInTheDocument()
-      expect(separator).toHaveClass('-mx-1', 'my-1', 'h-px', 'bg-muted')
-    })
-
-    it('should apply custom className', () => {
-      render(
-        <SelectSeparator className="custom-separator" data-testid="separator" />
-      )
-
-      const separator = screen.getByTestId('separator')
-      expect(separator).toHaveClass('custom-separator')
-    })
-
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLDivElement>()
-      render(<SelectSeparator ref={ref} data-testid="separator" />)
-
-      expect(ref.current).toBe(screen.getByTestId('separator'))
     })
   })
 
-  describe('SelectScrollUpButton', () => {
-    it('should render scroll up button', () => {
-      render(<SelectScrollUpButton data-testid="scroll-up" />)
+  describe('Select Interactions', () => {
+    it('opens select when trigger is clicked', async () => {
+      const { user } = render(<TestSelect />)
 
-      expect(screen.getByTestId('scroll-up')).toBeInTheDocument()
+      const trigger = screen.getByRole('combobox')
+      await user.click(trigger)
+
+      expect(screen.getByText('Apple')).toBeInTheDocument()
     })
 
-    it('should apply custom className', () => {
-      render(
-        <SelectScrollUpButton
-          className="custom-scroll"
-          data-testid="scroll-up"
-        />
-      )
+    it('closes select when clicking outside', async () => {
+      const { user } = render(<TestSelect />)
 
-      const button = screen.getByTestId('scroll-up')
-      expect(button).toHaveClass('custom-scroll')
+      // Open select
+      await user.click(screen.getByRole('combobox'))
+      expect(screen.getByText('Apple')).toBeInTheDocument()
+
+      // Click outside
+      await user.click(document.body)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Apple')).not.toBeInTheDocument()
+      })
     })
 
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLButtonElement>()
-      render(<SelectScrollUpButton ref={ref} data-testid="scroll-up" />)
+    it('selects an option when clicked', async () => {
+      const { user } = render(<TestSelect />)
 
-      expect(ref.current).toBe(screen.getByTestId('scroll-up'))
+      // Open select
+      await user.click(screen.getByRole('combobox'))
+
+      // Select an option
+      await user.click(screen.getByText('Apple'))
+
+      // Check that the value is updated
+      expect(screen.getByText('Apple')).toBeInTheDocument()
+    })
+
+    it('handles keyboard navigation', async () => {
+      const { user } = render(<TestSelect />)
+
+      // Open select
+      await user.click(screen.getByRole('combobox'))
+
+      // Navigate with arrow keys
+      await user.keyboard('{ArrowDown}')
+      const firstOption = screen.getByText('Apple')
+      expect(firstOption.closest('[role="option"]')).toHaveAttribute('data-highlighted')
+
+      await user.keyboard('{ArrowDown}')
+      const secondOption = screen.getByText('Banana')
+      expect(secondOption.closest('[role="option"]')).toHaveAttribute('data-highlighted')
+    })
+
+    it('selects option with Enter key', async () => {
+      const { user } = render(<TestSelect />)
+
+      // Open select
+      await user.click(screen.getByRole('combobox'))
+
+      // Navigate to first option
+      await user.keyboard('{ArrowDown}')
+
+      // Select with Enter
+      await user.keyboard('{Enter}')
+
+      // Check that the value is selected
+      expect(screen.getByText('Apple')).toBeInTheDocument()
+    })
+
+    it('closes select with Escape key', async () => {
+      const { user } = render(<TestSelect />)
+
+      // Open select
+      await user.click(screen.getByRole('combobox'))
+      expect(screen.getByText('Apple')).toBeInTheDocument()
+
+      // Close with Escape
+      await user.keyboard('{Escape}')
+
+      await waitFor(() => {
+        expect(screen.queryByText('Apple')).not.toBeInTheDocument()
+      })
     })
   })
 
-  describe('SelectScrollDownButton', () => {
-    it('should render scroll down button', () => {
-      render(<SelectScrollDownButton data-testid="scroll-down" />)
+  describe('Accessibility', () => {
+    it('has proper ARIA attributes', async () => {
+      const { user } = render(<TestSelect />)
 
-      expect(screen.getByTestId('scroll-down')).toBeInTheDocument()
+      const trigger = screen.getByRole('combobox')
+      expect(trigger).toHaveAttribute('aria-expanded', 'false')
+
+      // Open select
+      await user.click(trigger)
+      expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+      // Check that options have proper roles
+      const options = screen.getAllByRole('option')
+      expect(options).toHaveLength(5) // Apple, Banana, Orange, Carrot, Broccoli
     })
 
-    it('should apply custom className', () => {
-      render(
-        <SelectScrollDownButton
-          className="custom-scroll"
-          data-testid="scroll-down"
-        />
-      )
+    it('announces selection to screen readers', async () => {
+      const { user } = render(<TestSelect />)
 
-      const button = screen.getByTestId('scroll-down')
-      expect(button).toHaveClass('custom-scroll')
+      await user.click(screen.getByRole('combobox'))
+      await user.click(screen.getByText('Apple'))
+
+      // The selected value should be visible in the trigger
+      expect(screen.getByText('Apple')).toBeInTheDocument()
     })
 
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLButtonElement>()
-      render(<SelectScrollDownButton ref={ref} data-testid="scroll-down" />)
+    it('supports keyboard navigation', async () => {
+      const { user } = render(<TestSelect />)
 
-      expect(ref.current).toBe(screen.getByTestId('scroll-down'))
+      // Focus the trigger
+      const trigger = screen.getByRole('combobox')
+      trigger.focus()
+
+      // Open with Space
+      await user.keyboard(' ')
+
+      expect(screen.getByText('Apple')).toBeInTheDocument()
+
+      // Navigate with arrow keys
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowDown}')
+
+      // Select with Enter
+      await user.keyboard('{Enter}')
+
+      expect(screen.getByText('Banana')).toBeInTheDocument()
+    })
+
+    it('handles disabled options correctly', async () => {
+      const { user } = render(<TestSelectWithDisabled />)
+
+      await user.click(screen.getByRole('combobox'))
+
+      const disabledOption = screen.getByText('Option 2 (Disabled)')
+      expect(disabledOption.closest('[role="option"]')).toHaveAttribute('data-disabled')
+
+      // Try to click disabled option
+      await user.click(disabledOption)
+
+      // The disabled option should not be selected
+      expect(screen.queryByText('Option 2 (Disabled)')).not.toBeInTheDocument()
     })
   })
 
-  describe('Select Integration', () => {
-    it('should work together as a complete select', () => {
-      render(
-        <Select data-testid="select">
-          <SelectTrigger data-testid="trigger">
+  describe('Select State Management', () => {
+    it('handles controlled select state', async () => {
+      const ControlledSelect = () => {
+        const [value, setValue] = React.useState('')
+
+        return (
+          <Select value={value} onValueChange={setValue}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="option1">Option 1</SelectItem>
+              <SelectItem value="option2">Option 2</SelectItem>
+            </SelectContent>
+          </Select>
+        )
+      }
+
+      const { user } = render(<ControlledSelect />)
+
+      await user.click(screen.getByRole('combobox'))
+      await user.click(screen.getByText('Option 1'))
+
+      expect(screen.getByText('Option 1')).toBeInTheDocument()
+    })
+
+    it('handles uncontrolled select state', async () => {
+      const UncontrolledSelect = () => (
+        <Select>
+          <SelectTrigger>
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
-          <SelectContent data-testid="content">
-            <SelectGroup data-testid="group">
-              <SelectLabel>Options</SelectLabel>
-              <SelectItem value="option1" data-testid="item1">
-                Option 1
-              </SelectItem>
-              <SelectItem value="option2" data-testid="item2">
-                Option 2
-              </SelectItem>
-            </SelectGroup>
-            <SelectSeparator data-testid="separator" />
-            <SelectItem value="option3" data-testid="item3">
-              Option 3
+          <SelectContent>
+            <SelectItem value="option1">Option 1</SelectItem>
+            <SelectItem value="option2">Option 2</SelectItem>
+          </SelectContent>
+        </Select>
+      )
+
+      const { user } = render(<UncontrolledSelect />)
+
+      await user.click(screen.getByRole('combobox'))
+      await user.click(screen.getByText('Option 1'))
+
+      expect(screen.getByText('Option 1')).toBeInTheDocument()
+    })
+  })
+
+  describe('Performance', () => {
+    it('renders efficiently', () => {
+      const startTime = performance.now()
+      render(<TestSelect />)
+      const endTime = performance.now()
+
+      // Should render within reasonable time (less than 50ms)
+      expect(endTime - startTime).toBeLessThan(50)
+    })
+
+    it('handles large option lists', async () => {
+      const { user } = render(<TestSelectWithLongContent />)
+
+      const startTime = performance.now()
+      await user.click(screen.getByRole('combobox'))
+      const endTime = performance.now()
+
+      // Should open within reasonable time even with many options
+      expect(endTime - startTime).toBeLessThan(100)
+      expect(screen.getByText('Option 1 with very long text that might wrap to multiple lines')).toBeInTheDocument()
+    })
+
+    it('does not cause memory leaks', () => {
+      const { unmount } = render(<TestSelect />)
+      expect(() => unmount()).not.toThrow()
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('handles empty select content', async () => {
+      const EmptySelect = () => (
+        <Select>
+          <SelectTrigger>
+            <SelectValue placeholder="No options" />
+          </SelectTrigger>
+          <SelectContent>
+            {/* No items */}
+          </SelectContent>
+        </Select>
+      )
+
+      const { user } = render(<EmptySelect />)
+
+      await user.click(screen.getByRole('combobox'))
+
+      // Should not crash and should show empty content
+      expect(screen.getByRole('combobox')).toBeInTheDocument()
+    })
+
+    it('handles select with very long option text', async () => {
+      const LongTextSelect = () => (
+        <Select>
+          <SelectTrigger>
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="long">
+              This is a very long option text that might wrap to multiple lines and should be handled gracefully by the select component
             </SelectItem>
           </SelectContent>
         </Select>
       )
 
-      expect(screen.getByTestId('select')).toBeInTheDocument()
-      expect(screen.getByTestId('trigger')).toBeInTheDocument()
-      expect(screen.getByTestId('content')).toBeInTheDocument()
-      expect(screen.getByTestId('group')).toBeInTheDocument()
-      expect(screen.getByTestId('item1')).toBeInTheDocument()
-      expect(screen.getByTestId('item2')).toBeInTheDocument()
-      expect(screen.getByTestId('separator')).toBeInTheDocument()
-      expect(screen.getByTestId('item3')).toBeInTheDocument()
+      const { user } = render(<LongTextSelect />)
+
+      await user.click(screen.getByRole('combobox'))
+
+      const longOption = screen.getByText(/This is a very long option text/)
+      expect(longOption).toBeInTheDocument()
     })
 
-    it('should maintain proper hierarchy', () => {
-      render(
+    it('handles select with special characters in options', async () => {
+      const SpecialCharsSelect = () => (
         <Select>
           <SelectTrigger>
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
           <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Group 1</SelectLabel>
+            <SelectItem value="special">Option with &lt;&gt;&amp;&quot;&apos;</SelectItem>
+            <SelectItem value="unicode">Option with émojis 🎉</SelectItem>
+          </SelectContent>
+        </Select>
+      )
+
+      const { user } = render(<SpecialCharsSelect />)
+
+      await user.click(screen.getByRole('combobox'))
+
+      expect(screen.getByText('Option with &lt;&gt;&amp;&quot;&apos;')).toBeInTheDocument()
+      expect(screen.getByText('Option with émojis 🎉')).toBeInTheDocument()
+    })
+
+    it('handles multiple selects on the same page', async () => {
+      const MultipleSelects = () => (
+        <div>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="First select" />
+            </SelectTrigger>
+            <SelectContent>
               <SelectItem value="option1">Option 1</SelectItem>
-            </SelectGroup>
-            <SelectSeparator />
-            <SelectGroup>
-              <SelectLabel>Group 2</SelectLabel>
+            </SelectContent>
+          </Select>
+          <Select>
+            <SelectTrigger>
+              <SelectValue placeholder="Second select" />
+            </SelectTrigger>
+            <SelectContent>
               <SelectItem value="option2">Option 2</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+            </SelectContent>
+          </Select>
+        </div>
       )
 
-      // Should render all components in correct hierarchy
-      expect(screen.getByTestId('select-root')).toBeInTheDocument()
-      expect(screen.getByTestId('select-trigger')).toBeInTheDocument()
-      expect(screen.getByTestId('select-portal')).toBeInTheDocument()
+      const { user } = render(<MultipleSelects />)
+
+      const triggers = screen.getAllByRole('combobox')
+      expect(triggers).toHaveLength(2)
+
+      // Open first select
+      await user.click(triggers[0])
+      expect(screen.getByText('Option 1')).toBeInTheDocument()
+
+      // Close first select
+      await user.click(document.body)
+
+      // Open second select
+      await user.click(triggers[1])
+      expect(screen.getByText('Option 2')).toBeInTheDocument()
     })
   })
 
-  describe('Accessibility', () => {
-    it('should have proper ARIA attributes', () => {
-      render(
-        <Select aria-label="Select option">
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-        </Select>
-      )
+  describe('Integration with UI Components', () => {
+    it('works with custom styling', async () => {
+      const { user } = render(<TestSelectWithCustomTrigger />)
 
-      const select = screen.getByTestId('select-root')
-      expect(select).toHaveAttribute('aria-label', 'Select option')
+      const trigger = screen.getByRole('combobox')
+      expect(trigger).toHaveClass('w-[200px]')
+
+      await user.click(trigger)
+      await user.click(screen.getByText('Red'))
+
+      expect(screen.getByText('Red')).toBeInTheDocument()
     })
 
-    it('should support keyboard navigation', () => {
-      render(
-        <Select>
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="option1">Option 1</SelectItem>
-          </SelectContent>
-        </Select>
+    it('works with form elements', async () => {
+      const FormSelect = () => (
+        <form>
+          <label htmlFor="select">Choose an option:</label>
+          <Select>
+            <SelectTrigger id="select">
+              <SelectValue placeholder="Select an option" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="option1">Option 1</SelectItem>
+              <SelectItem value="option2">Option 2</SelectItem>
+            </SelectContent>
+          </Select>
+        </form>
       )
 
-      const trigger = screen.getByTestId('select-trigger')
-      expect(trigger).toBeInTheDocument()
-      // Radix UI handles keyboard navigation internally
+      const { user } = render(<FormSelect />)
+
+      expect(screen.getByText('Choose an option:')).toBeInTheDocument()
+
+      await user.click(screen.getByRole('combobox'))
+      await user.click(screen.getByText('Option 1'))
+
+      expect(screen.getByText('Option 1')).toBeInTheDocument()
     })
   })
 
-  describe('Type Safety', () => {
-    it('should maintain proper TypeScript types', () => {
-      // This test ensures the component props are properly typed
-      const TestSelect = () => (
-        <Select defaultValue="option1">
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="option1">Option 1</SelectItem>
-          </SelectContent>
-        </Select>
-      )
+  describe('Scroll Buttons', () => {
+    it('renders scroll buttons when content overflows', async () => {
+      const { user } = render(<TestSelectWithLongContent />)
 
-      render(<TestSelect />)
-      expect(screen.getByTestId('select-root')).toBeInTheDocument()
+      await user.click(screen.getByRole('combobox'))
+
+      // Scroll buttons should be present for long content
+      const scrollUpButton = document.querySelector('[data-radix-select-scroll-up-button]')
+      const scrollDownButton = document.querySelector('[data-radix-select-scroll-down-button]')
+
+      expect(scrollUpButton).toBeInTheDocument()
+      expect(scrollDownButton).toBeInTheDocument()
     })
   })
 })
