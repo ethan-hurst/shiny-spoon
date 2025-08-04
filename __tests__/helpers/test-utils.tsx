@@ -203,9 +203,10 @@ jest.mock('@/app/actions/sync-engine', () => ({
   getSyncProgress: jest.fn(),
 }))
 
-jest.mock('@/app/actions/insights', () => ({
-  getInsights: jest.fn(),
-  generateInsight: jest.fn(),
+// Only mock actions that actually exist
+jest.mock('@/app/actions/analytics', () => ({
+  getAnalytics: jest.fn(),
+  generateReport: jest.fn(),
 }))
 
 jest.mock('@/app/actions/ai-insights', () => ({
@@ -224,12 +225,6 @@ jest.mock('@/app/actions/billing', () => ({
   getSubscription: jest.fn(),
 }))
 
-jest.mock('@/app/actions/notifications', () => ({
-  sendNotification: jest.fn(),
-  getNotifications: jest.fn(),
-  markAsRead: jest.fn(),
-}))
-
 jest.mock('@/app/actions/team', () => ({
   inviteTeamMember: jest.fn(),
   updateTeamMember: jest.fn(),
@@ -242,37 +237,10 @@ jest.mock('@/app/actions/api-keys', () => ({
   getApiKeys: jest.fn(),
 }))
 
-jest.mock('@/app/actions/webhooks', () => ({
-  createWebhook: jest.fn(),
-  updateWebhook: jest.fn(),
-  deleteWebhook: jest.fn(),
-}))
-
-jest.mock('@/app/actions/backup', () => ({
-  createBackup: jest.fn(),
-  restoreBackup: jest.fn(),
-  getBackupHistory: jest.fn(),
-}))
-
 jest.mock('@/app/actions/security', () => ({
   enable2FA: jest.fn(),
   disable2FA: jest.fn(),
   getSecurityLogs: jest.fn(),
-}))
-
-jest.mock('@/app/actions/compliance', () => ({
-  getComplianceReport: jest.fn(),
-  validateCompliance: jest.fn(),
-}))
-
-jest.mock('@/app/actions/performance', () => ({
-  getPerformanceMetrics: jest.fn(),
-  optimizePerformance: jest.fn(),
-}))
-
-jest.mock('@/app/actions/health', () => ({
-  getHealthStatus: jest.fn(),
-  runHealthCheck: jest.fn(),
 }))
 
 // Mock environment variables

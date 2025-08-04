@@ -2,9 +2,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverExternalPackages: ['@prisma/client', 'bcrypt'],
-  },
+  // Removed deprecated serverExternalPackages - now handled automatically by Next.js
   images: {
     remotePatterns: [
       {
@@ -62,7 +60,7 @@ const nextConfig = {
       },
     ]
   },
-  // Configure webpack for Node.js modules
+  // Configure webpack for Node.js modules (only used when not using Turbopack)
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -84,6 +82,17 @@ const nextConfig = {
       }
     }
     return config
+  },
+  // Turbopack configuration
+  experimental: {
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
 }
 
