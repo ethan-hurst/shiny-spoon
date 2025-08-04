@@ -197,7 +197,7 @@ jest.mock('@/app/actions/settings', () => ({
   getSettings: jest.fn(),
 }))
 
-jest.mock('@/app/actions/sync', () => ({
+jest.mock('@/app/actions/sync-engine', () => ({
   startSync: jest.fn(),
   stopSync: jest.fn(),
   getSyncProgress: jest.fn(),
