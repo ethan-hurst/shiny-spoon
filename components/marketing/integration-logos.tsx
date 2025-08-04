@@ -6,24 +6,24 @@ interface IntegrationLogosProps {
 
 const integrations = {
   inventory: [
-    { name: 'NetSuite', logo: '/logos/netsuite.svg' },
-    { name: 'Shopify', logo: '/logos/shopify.svg' },
-    { name: 'SAP', logo: '/logos/sap.svg' },
-    { name: 'WooCommerce', logo: '/logos/woocommerce.svg' },
-    { name: 'BigCommerce', logo: '/logos/bigcommerce.svg' },
-    { name: 'Magento', logo: '/logos/magento.svg' },
+    { name: 'NetSuite' },
+    { name: 'Shopify' },
+    { name: 'SAP' },
+    { name: 'WooCommerce' },
+    { name: 'BigCommerce' },
+    { name: 'Magento' },
   ],
   pricing: [
-    { name: 'Stripe', logo: '/logos/stripe.svg' },
-    { name: 'QuickBooks', logo: '/logos/quickbooks.svg' },
-    { name: 'Salesforce', logo: '/logos/salesforce.svg' },
-    { name: 'HubSpot', logo: '/logos/hubspot.svg' },
+    { name: 'Stripe' },
+    { name: 'QuickBooks' },
+    { name: 'Salesforce' },
+    { name: 'HubSpot' },
   ],
   customers: [
-    { name: 'Salesforce', logo: '/logos/salesforce.svg' },
-    { name: 'HubSpot', logo: '/logos/hubspot.svg' },
-    { name: 'Zendesk', logo: '/logos/zendesk.svg' },
-    { name: 'Intercom', logo: '/logos/intercom.svg' },
+    { name: 'Salesforce' },
+    { name: 'HubSpot' },
+    { name: 'Zendesk' },
+    { name: 'Intercom' },
   ],
 }
 
@@ -67,16 +67,11 @@ export function IntegrationLogos({ category }: IntegrationLogosProps) {
             <div
               key={integration.name}
               role="listitem"
-              className="h-12 w-32 relative grayscale hover:grayscale-0 transition-all opacity-60 hover:opacity-100"
+              className="h-12 w-32 relative flex items-center justify-center transition-all opacity-60 hover:opacity-100"
             >
-              <Image
-                src={integration.logo}
-                alt={`${integration.name} integration`}
-                className="h-full w-full object-contain"
-                width={128}
-                height={48}
-                loading="lazy"
-              />
+              <span className="text-sm font-medium text-gray-600">
+                {integration.name}
+              </span>
             </div>
           ))}
         </div>

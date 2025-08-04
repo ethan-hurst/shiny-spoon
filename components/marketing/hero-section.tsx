@@ -67,7 +67,7 @@ export function HeroSection() {
         </div>
 
         {/* Optional: Add hero image or animation */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.6 }}
@@ -81,7 +81,7 @@ export function HeroSection() {
               loading="lazy"
             />
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
 
       {/* Background decoration */}

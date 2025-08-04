@@ -1,16 +1,16 @@
 import {
   BarChart3,
+  Bell,
   DollarSign,
   FileText,
-  FileUp,
   LayoutDashboard,
   Package,
   Settings,
-  Shield,
-  ShoppingCart,
-  TrendingUp,
   Users,
   Warehouse,
+  Database,
+  Activity,
+  Shield,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -58,11 +58,6 @@ export const navigation: NavSection[] = [
     title: 'Sales',
     items: [
       {
-        title: 'Orders',
-        href: '/orders',
-        icon: ShoppingCart,
-      },
-      {
         title: 'Customers',
         href: '/customers',
         icon: Users,
@@ -78,11 +73,6 @@ export const navigation: NavSection[] = [
     title: 'Analytics',
     items: [
       {
-        title: 'Analytics Dashboard',
-        href: '/analytics',
-        icon: TrendingUp,
-      },
-      {
         title: 'Reports',
         href: '/reports',
         icon: FileText,
@@ -92,15 +82,10 @@ export const navigation: NavSection[] = [
         href: '/insights',
         icon: BarChart3,
       },
-    ],
-  },
-  {
-    title: 'Operations',
-    items: [
       {
-        title: 'Bulk Operations',
-        href: '/bulk-operations',
-        icon: FileUp,
+        title: 'Analytics',
+        href: '/analytics',
+        icon: Activity,
       },
     ],
   },
@@ -110,13 +95,12 @@ export const navigation: NavSection[] = [
       {
         title: 'Integrations',
         href: '/integrations',
-        icon: Settings,
+        icon: Database,
       },
       {
-        title: 'Audit Trail',
-        href: '/audit',
-        icon: Shield,
-        roles: ['owner', 'admin'],
+        title: 'Monitoring',
+        href: '/monitoring',
+        icon: Activity,
       },
       {
         title: 'Settings',

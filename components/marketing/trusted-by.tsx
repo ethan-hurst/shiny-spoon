@@ -1,11 +1,11 @@
 export function TrustedBy() {
   const companies = [
-    { name: 'NetSuite', logo: '/logos/netsuite.svg' },
-    { name: 'Shopify', logo: '/logos/shopify.svg' },
-    { name: 'SAP', logo: '/logos/sap.svg' },
-    { name: 'Microsoft', logo: '/logos/microsoft.svg' },
-    { name: 'QuickBooks', logo: '/logos/quickbooks.svg' },
-    { name: 'WooCommerce', logo: '/logos/woocommerce.svg' },
+    { name: 'NetSuite' },
+    { name: 'Shopify' },
+    { name: 'SAP' },
+    { name: 'Microsoft' },
+    { name: 'QuickBooks' },
+    { name: 'WooCommerce' },
   ]
 
   return (
@@ -20,14 +20,11 @@ export function TrustedBy() {
           {companies.map((company) => (
             <div
               key={company.name}
-              className="h-12 w-32 relative grayscale hover:grayscale-0 transition-all"
+              className="h-12 w-32 relative flex items-center justify-center transition-all hover:opacity-100"
             >
-              <img
-                src={company.logo}
-                alt={`${company.name} logo`}
-                className="h-full w-full object-contain"
-                loading="lazy"
-              />
+              <span className="text-sm font-medium text-gray-600">
+                {company.name}
+              </span>
             </div>
           ))}
         </div>

@@ -62,7 +62,6 @@ export async function updateSession(request: NextRequest) {
 
   // Protected routes that require authentication
   const protectedPaths = [
-    '/dashboard',
     '/inventory',
     '/pricing',
     '/settings',
@@ -91,7 +90,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthPath) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/dashboard'
+    redirectUrl.pathname = '/'
     return NextResponse.redirect(redirectUrl)
   }
 
