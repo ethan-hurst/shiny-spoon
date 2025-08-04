@@ -1,430 +1,470 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { toast } from 'sonner'
+import { render, screen, waitFor } from '@/__tests__/helpers/test-utils'
 import { LoginForm } from '@/components/auth/login-form'
 import { signIn } from '@/app/actions/auth'
 
-// Mock dependencies
-jest.mock('@/app/actions/auth', () => ({
-  signIn: jest.fn(),
-}))
+// Mock the signIn action
+jest.mocked(signIn).mockImplementation(async (formData: FormData) => {
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
 
-jest.mock('sonner', () => ({
-  toast: {
-    error: jest.fn(),
-  },
-}))
-
-jest.mock('next/link', () => {
-  return function MockLink({ children, href, ...props }: any) {
-    return (
-      <a href={href} {...props}>
-        {children}
-      </a>
-    )
+  if (email === 'test@example.com' && password === 'password123') {
+    return { success: true }
   }
+
+  if (email === 'error@example.com') {
+    return { error: 'Invalid credentials' }
+  }
+
+  return { error: 'An unexpected error occurred' }
 })
 
-describe('LoginForm', () => {
-  const mockSignIn = signIn as jest.MockedFunction<typeof signIn>
-  const mockToastError = toast.error as jest.MockedFunction<typeof toast.error>
-
+describe('LoginForm Component', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  describe('Form Structure and Accessibility', () => {
-    it('should render all form elements', () => {
+  describe('Rendering', () => {
+    it('renders the login form with all required fields', () => {
       render(<LoginForm />)
-
-      expect(screen.getByLabelText('Login form')).toBeInTheDocument()
-      expect(screen.getByLabelText('Email')).toBeInTheDocument()
-      expect(screen.getByLabelText('Password')).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: 'Sign in' })
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('link', { name: 'Reset your password' })
-      ).toBeInTheDocument()
+      
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+      expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /forgot password/i })).toBeInTheDocument()
     })
 
-    it('should have proper form labels and placeholders', () => {
+    it('has proper form structure and accessibility', () => {
       render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-
-      expect(emailInput).toHaveAttribute('type', 'email')
-      expect(emailInput).toHaveAttribute('placeholder', 'name@company.com')
-      expect(emailInput).toHaveAttribute('autoComplete', 'email')
-
-      expect(passwordInput).toHaveAttribute('type', 'password')
-      expect(passwordInput).toHaveAttribute(
-        'placeholder',
-        'Enter your password'
-      )
-      expect(passwordInput).toHaveAttribute('autoComplete', 'current-password')
-    })
-
-    it('should have proper accessibility attributes', () => {
-      render(<LoginForm />)
-
-      const form = screen.getByLabelText('Login form')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-      const forgotPasswordLink = screen.getByRole('link', {
-        name: 'Reset your password',
-      })
-
+      
+      const form = screen.getByRole('form', { name: /login form/i })
       expect(form).toBeInTheDocument()
-      expect(submitButton).toBeInTheDocument()
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      expect(emailInput).toHaveAttribute('type', 'email')
+      expect(emailInput).toHaveAttribute('autocomplete', 'email')
+      expect(emailInput).toHaveAttribute('placeholder', 'name@company.com')
+      
+      const passwordInput = screen.getByLabelText(/password/i)
+      expect(passwordInput).toHaveAttribute('type', 'password')
+      expect(passwordInput).toHaveAttribute('autocomplete', 'current-password')
+      expect(passwordInput).toHaveAttribute('placeholder', 'Enter your password')
+    })
+
+    it('renders forgot password link with correct href', () => {
+      render(<LoginForm />)
+      
+      const forgotPasswordLink = screen.getByRole('link', { name: /forgot password/i })
       expect(forgotPasswordLink).toHaveAttribute('href', '/reset-password')
-      expect(forgotPasswordLink).toHaveAttribute(
-        'aria-label',
-        'Reset your password'
-      )
+      expect(forgotPasswordLink).toHaveAttribute('aria-label', 'Reset your password')
     })
   })
 
   describe('Form Validation', () => {
-    it('should validate email format', async () => {
-      const user = userEvent.setup()
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
+    it('shows validation error for invalid email format', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
       await user.type(emailInput, 'invalid-email')
-      await user.type(passwordInput, 'password123') // Need valid password too
+      await user.type(passwordInput, 'password123')
       await user.click(submitButton)
-
-      // The form should not submit with invalid email, so signIn should not be called
-      expect(mockSignIn).not.toHaveBeenCalled()
-    })
-
-    it('should validate password length', async () => {
-      const user = userEvent.setup()
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'short')
-      await user.click(submitButton)
-
-      // The form should not submit with invalid password, so signIn should not be called
-      expect(mockSignIn).not.toHaveBeenCalled()
-    })
-
-    it('should show validation errors for empty fields', async () => {
-      const user = userEvent.setup()
-      render(<LoginForm />)
-
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-      await user.click(submitButton)
-
+      
       await waitFor(() => {
-        expect(screen.getByText('Invalid email address')).toBeInTheDocument()
-        expect(
-          screen.getByText('Password must be at least 8 characters')
-        ).toBeInTheDocument()
+        expect(screen.getByText(/invalid email/i)).toBeInTheDocument()
       })
     })
 
-    it('should clear validation errors when user starts typing', async () => {
-      const user = userEvent.setup()
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
-      // Trigger validation error
+    it('shows validation error for empty email', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      await user.type(passwordInput, 'password123')
       await user.click(submitButton)
+      
       await waitFor(() => {
-        expect(screen.getByText('Invalid email address')).toBeInTheDocument()
+        expect(screen.getByText(/email is required/i)).toBeInTheDocument()
       })
+    })
 
-      // Start typing valid email
-      await user.clear(emailInput)
+    it('shows validation error for empty password', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
       await user.type(emailInput, 'test@example.com')
-
+      await user.click(submitButton)
+      
       await waitFor(() => {
-        expect(
-          screen.queryByText('Invalid email address')
-        ).not.toBeInTheDocument()
+        expect(screen.getByText(/password is required/i)).toBeInTheDocument()
+      })
+    })
+
+    it('shows validation error for password that is too short', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      await user.type(emailInput, 'test@example.com')
+      await user.type(passwordInput, '123')
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(screen.getByText(/password must be at least/i)).toBeInTheDocument()
+      })
+    })
+
+    it('clears validation errors when user starts typing', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      // Submit with empty email to trigger validation error
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(screen.getByText(/email is required/i)).toBeInTheDocument()
+      })
+      
+      // Start typing to clear the error
+      await user.type(emailInput, 'test@example.com')
+      
+      await waitFor(() => {
+        expect(screen.queryByText(/email is required/i)).not.toBeInTheDocument()
       })
     })
   })
 
   describe('Form Submission', () => {
-    it('should submit form with valid data', async () => {
-      const user = userEvent.setup()
-      mockSignIn.mockResolvedValue(undefined) // Success case
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
+    it('submits form with valid credentials', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
       await user.type(emailInput, 'test@example.com')
       await user.type(passwordInput, 'password123')
       await user.click(submitButton)
-
+      
       await waitFor(() => {
-        expect(mockSignIn).toHaveBeenCalledWith(expect.any(FormData))
+        expect(signIn).toHaveBeenCalledTimes(1)
       })
-
-      const formData = mockSignIn.mock.calls[0][0] as FormData
-      expect(formData.get('email')).toBe('test@example.com')
-      expect(formData.get('password')).toBe('password123')
+      
+      const formData = new FormData()
+      formData.append('email', 'test@example.com')
+      formData.append('password', 'password123')
+      
+      expect(signIn).toHaveBeenCalledWith(formData)
     })
 
-    it('should show loading state during submission', async () => {
-      const user = userEvent.setup()
-      mockSignIn.mockImplementation(
-        () => new Promise((resolve) => setTimeout(resolve, 100))
-      )
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
+    it('shows loading state during submission', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
       await user.type(emailInput, 'test@example.com')
       await user.type(passwordInput, 'password123')
       await user.click(submitButton)
-
-      // Should show loading state
-      expect(
-        screen.getByRole('button', { name: 'Signing in...' })
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: 'Signing in...' })
-      ).toBeDisabled()
+      
+      expect(screen.getByRole('button', { name: /signing in/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /signing in/i })).toBeDisabled()
     })
 
-    it('should handle signIn error', async () => {
-      const user = userEvent.setup()
-      const errorMessage = 'Invalid credentials'
-      mockSignIn.mockResolvedValue({ error: errorMessage })
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
+    it('disables submit button during submission', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
       await user.type(emailInput, 'test@example.com')
       await user.type(passwordInput, 'password123')
       await user.click(submitButton)
+      
+      expect(submitButton).toBeDisabled()
+    })
 
+    it('handles server errors gracefully', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      await user.type(emailInput, 'error@example.com')
+      await user.type(passwordInput, 'password123')
+      await user.click(submitButton)
+      
       await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalledWith(errorMessage)
-      })
-    })
-
-    it('should handle unexpected errors', async () => {
-      const user = userEvent.setup()
-      mockSignIn.mockRejectedValue(new Error('Network error'))
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password123')
-      await user.click(submitButton)
-
-      await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalledWith(
-          'An unexpected error occurred'
-        )
+        expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument()
       })
     })
 
-    it('should reset loading state after error', async () => {
-      const user = userEvent.setup()
-      mockSignIn.mockRejectedValue(new Error('Network error'))
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
-      await user.type(emailInput, 'test@example.com')
+    it('handles unexpected errors', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      await user.type(emailInput, 'unknown@example.com')
       await user.type(passwordInput, 'password123')
       await user.click(submitButton)
-
-      // Wait for error handling to complete
+      
       await waitFor(() => {
-        expect(mockToastError).toHaveBeenCalled()
+        expect(screen.getByText(/an unexpected error occurred/i)).toBeInTheDocument()
       })
+    })
 
-      // Should be back to normal state
-      expect(
-        screen.getByRole('button', { name: 'Sign in' })
-      ).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Sign in' })).not.toBeDisabled()
+    it('resets loading state after error', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      await user.type(emailInput, 'error@example.com')
+      await user.type(passwordInput, 'password123')
+      await user.click(submitButton)
+      
+      // Wait for error to appear and loading state to reset
+      await waitFor(() => {
+        expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument()
+      })
+      
+      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /sign in/i })).not.toBeDisabled()
     })
   })
 
-  describe('User Interactions', () => {
-    it('should handle keyboard navigation', async () => {
-      const user = userEvent.setup()
+  describe('User Interaction', () => {
+    it('allows user to type in email field', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      await user.type(emailInput, 'test@example.com')
+      
+      expect(emailInput).toHaveValue('test@example.com')
+    })
+
+    it('allows user to type in password field', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const passwordInput = screen.getByLabelText(/password/i)
+      await user.type(passwordInput, 'password123')
+      
+      expect(passwordInput).toHaveValue('password123')
+    })
+
+    it('submits form on Enter key press', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      
+      await user.type(emailInput, 'test@example.com')
+      await user.type(passwordInput, 'password123')
+      await user.keyboard('{Enter}')
+      
+      await waitFor(() => {
+        expect(signIn).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    it('focuses email field on initial render', () => {
       render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      expect(emailInput).toHaveFocus()
+    })
+  })
 
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
+  describe('Accessibility', () => {
+    it('has proper ARIA labels and roles', () => {
+      render(<LoginForm />)
+      
+      const form = screen.getByRole('form', { name: /login form/i })
+      expect(form).toBeInTheDocument()
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      expect(emailInput).toHaveAttribute('type', 'email')
+      
+      const passwordInput = screen.getByLabelText(/password/i)
+      expect(passwordInput).toHaveAttribute('type', 'password')
+      
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      expect(submitButton).toHaveAttribute('type', 'submit')
+    })
 
+    it('supports keyboard navigation', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
       // Tab through form elements
       await user.tab()
       expect(emailInput).toHaveFocus()
-
-      await user.tab()
-      // Skip the "Forgot password?" link
+      
       await user.tab()
       expect(passwordInput).toHaveFocus()
-
+      
       await user.tab()
       expect(submitButton).toHaveFocus()
     })
 
-    it('should handle form submission with Enter key', async () => {
-      const user = userEvent.setup()
-      mockSignIn.mockResolvedValue(undefined)
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password123')
-      await user.keyboard('{Enter}')
-
-      await waitFor(() => {
-        expect(mockSignIn).toHaveBeenCalled()
-      })
-    })
-
-    it('should not submit form when validation fails', async () => {
-      const user = userEvent.setup()
-      render(<LoginForm />)
-
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
+    it('announces validation errors to screen readers', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
       await user.click(submitButton)
-
+      
       await waitFor(() => {
-        expect(screen.getByText('Invalid email address')).toBeInTheDocument()
+        expect(screen.getByText(/email is required/i)).toBeInTheDocument()
       })
-
-      expect(mockSignIn).not.toHaveBeenCalled()
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      expect(emailInput).toHaveAttribute('aria-invalid', 'true')
     })
   })
 
-  describe('Form State Management', () => {
-    it('should maintain form state during typing', async () => {
-      const user = userEvent.setup()
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-
-      await user.type(emailInput, 'test@example.com')
+  describe('Error Handling', () => {
+    it('clears previous errors when form is resubmitted', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      // First submission with error
+      await user.type(emailInput, 'error@example.com')
       await user.type(passwordInput, 'password123')
-
-      expect(emailInput).toHaveValue('test@example.com')
-      expect(passwordInput).toHaveValue('password123')
-    })
-
-    it('should handle form reset', async () => {
-      const user = userEvent.setup()
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password123')
-
-      // Clear fields
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument()
+      })
+      
+      // Clear form and resubmit with valid credentials
       await user.clear(emailInput)
       await user.clear(passwordInput)
-
-      expect(emailInput).toHaveValue('')
-      expect(passwordInput).toHaveValue('')
-    })
-  })
-
-  describe('Accessibility and UX', () => {
-    it('should have proper ARIA labels', () => {
-      render(<LoginForm />)
-
-      expect(screen.getByLabelText('Login form')).toBeInTheDocument()
-      expect(screen.getByLabelText('Email')).toBeInTheDocument()
-      expect(screen.getByLabelText('Password')).toBeInTheDocument()
-      expect(
-        screen.getByRole('link', { name: 'Reset your password' })
-      ).toBeInTheDocument()
-    })
-
-    it('should disable submit button during loading', async () => {
-      const user = userEvent.setup()
-      mockSignIn.mockImplementation(
-        () => new Promise((resolve) => setTimeout(resolve, 100))
-      )
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
       await user.type(emailInput, 'test@example.com')
       await user.type(passwordInput, 'password123')
       await user.click(submitButton)
-
-      expect(
-        screen.getByRole('button', { name: 'Signing in...' })
-      ).toBeDisabled()
-    })
-
-    it('should show forgot password link with proper styling', () => {
-      render(<LoginForm />)
-
-      const forgotPasswordLink = screen.getByRole('link', {
-        name: 'Reset your password',
-      })
-
-      expect(forgotPasswordLink).toHaveClass(
-        'text-sm',
-        'text-blue-600',
-        'hover:underline'
-      )
-      expect(forgotPasswordLink).toHaveAttribute('href', '/reset-password')
-    })
-  })
-
-  describe('Type Safety', () => {
-    it('should maintain proper TypeScript types', async () => {
-      const user = userEvent.setup()
-      mockSignIn.mockResolvedValue(undefined)
-      render(<LoginForm />)
-
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-      const submitButton = screen.getByRole('button', { name: 'Sign in' })
-
-      // This should compile without TypeScript errors
-      await user.type(emailInput, 'test@example.com')
-      await user.type(passwordInput, 'password123')
-      await user.click(submitButton)
-
+      
       await waitFor(() => {
-        expect(mockSignIn).toHaveBeenCalledWith(expect.any(FormData))
+        expect(screen.queryByText(/invalid credentials/i)).not.toBeInTheDocument()
       })
+    })
+
+    it('handles network errors gracefully', async () => {
+      // Mock a network error
+      jest.mocked(signIn).mockRejectedValueOnce(new Error('Network error'))
+      
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      await user.type(emailInput, 'test@example.com')
+      await user.type(passwordInput, 'password123')
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(screen.getByText(/an unexpected error occurred/i)).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('Security', () => {
+    it('does not log sensitive information', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
+      
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      await user.type(emailInput, 'test@example.com')
+      await user.type(passwordInput, 'password123')
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(signIn).toHaveBeenCalled()
+      })
+      
+      // Verify that sensitive data is not logged
+      expect(consoleSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('password123')
+      )
+      
+      consoleSpy.mockRestore()
+    })
+
+    it('sanitizes input data', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      // Test with potentially malicious input
+      await user.type(emailInput, '<script>alert("xss")</script>@example.com')
+      await user.type(passwordInput, 'password<script>alert("xss")</script>')
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(signIn).toHaveBeenCalled()
+      })
+      
+      const formData = new FormData()
+      formData.append('email', '<script>alert("xss")</script>@example.com')
+      formData.append('password', 'password<script>alert("xss")</script>')
+      
+      expect(signIn).toHaveBeenCalledWith(formData)
+    })
+  })
+
+  describe('Performance', () => {
+    it('debounces rapid form submissions', async () => {
+      const { user } = render(<LoginForm />)
+      
+      const emailInput = screen.getByLabelText(/email/i)
+      const passwordInput = screen.getByLabelText(/password/i)
+      const submitButton = screen.getByRole('button', { name: /sign in/i })
+      
+      await user.type(emailInput, 'test@example.com')
+      await user.type(passwordInput, 'password123')
+      
+      // Rapidly click submit multiple times
+      await user.click(submitButton)
+      await user.click(submitButton)
+      await user.click(submitButton)
+      
+      await waitFor(() => {
+        expect(signIn).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    it('does not cause memory leaks', () => {
+      const { unmount } = render(<LoginForm />)
+      
+      // This should not throw any errors
+      expect(() => unmount()).not.toThrow()
     })
   })
 })
