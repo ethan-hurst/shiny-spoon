@@ -91,6 +91,11 @@ BEGIN
     END
   );
 
+  -- Create default retention policies for new organizations
+  INSERT INTO audit_retention_policies (organization_id, entity_type, retention_days)
+  VALUES (org_id, NULL, 365)
+  ON CONFLICT (organization_id, entity_type) DO NOTHING;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

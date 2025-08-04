@@ -541,15 +541,8 @@ LEFT JOIN organizations o ON al.organization_id = o.id;
 -- INITIAL DATA / CONFIGURATION
 -- =============================================
 
--- Insert default retention policies for new organizations
-INSERT INTO audit_retention_policies (organization_id, entity_type, retention_days)
-SELECT DISTINCT organization_id, NULL, 365
-FROM organizations
-WHERE NOT EXISTS (
-  SELECT 1 FROM audit_retention_policies
-  WHERE audit_retention_policies.organization_id = organizations.id
-  AND entity_type IS NULL
-);
+-- Note: Default retention policies will be created by the handle_new_user function
+-- when organizations are created, so no initial data is needed here
 
 -- =============================================
 -- COMMENTS FOR DOCUMENTATION
