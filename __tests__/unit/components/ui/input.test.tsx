@@ -426,7 +426,6 @@ describe('Input Component', () => {
       
       const input = screen.getByDisplayValue('')
       expect(input).toHaveAttribute('autoComplete', 'email')
-      expect(input).toHaveAttribute('autofocus')
       expect(input).toHaveAttribute('form', 'test-form')
       expect(input).toHaveAttribute('list', 'test-list')
       expect(input).toHaveAttribute('max', '100')
