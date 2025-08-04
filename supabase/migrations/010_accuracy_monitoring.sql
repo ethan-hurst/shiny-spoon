@@ -1,7 +1,7 @@
 -- PRP-016: Data Accuracy Monitor Database Schema
 
 -- Accuracy check runs
-CREATE TABLE accuracy_checks (
+CREATE TABLE IF NOT EXISTS accuracy_checks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
 
@@ -28,7 +28,7 @@ CREATE TABLE accuracy_checks (
 );
 
 -- Detected discrepancies
-CREATE TABLE discrepancies (
+CREATE TABLE IF NOT EXISTS discrepancies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   accuracy_check_id UUID REFERENCES accuracy_checks(id) NOT NULL,
   organization_id UUID REFERENCES organizations(id) NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE discrepancies (
 );
 
 -- Alert rules configuration
-CREATE TABLE alert_rules (
+CREATE TABLE IF NOT EXISTS alert_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
 
@@ -91,7 +91,7 @@ CREATE TABLE alert_rules (
 );
 
 -- Alert instances
-CREATE TABLE alerts (
+CREATE TABLE IF NOT EXISTS alerts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   alert_rule_id UUID REFERENCES alert_rules(id) NOT NULL,
   organization_id UUID REFERENCES organizations(id) NOT NULL,
@@ -119,7 +119,7 @@ CREATE TABLE alerts (
 );
 
 -- Notification log
-CREATE TABLE notification_log (
+CREATE TABLE IF NOT EXISTS notification_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   alert_id UUID REFERENCES alerts(id) NOT NULL,
 
@@ -140,7 +140,7 @@ CREATE TABLE notification_log (
 );
 
 -- Auto-remediation log
-CREATE TABLE remediation_log (
+CREATE TABLE IF NOT EXISTS remediation_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   discrepancy_id UUID REFERENCES discrepancies(id) NOT NULL,
   organization_id UUID REFERENCES organizations(id) NOT NULL,
@@ -163,7 +163,7 @@ CREATE TABLE remediation_log (
 );
 
 -- Accuracy metrics time series
-CREATE TABLE accuracy_metrics (
+CREATE TABLE IF NOT EXISTS accuracy_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   integration_id UUID REFERENCES integrations(id),
