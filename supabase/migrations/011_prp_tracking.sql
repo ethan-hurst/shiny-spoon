@@ -1,7 +1,7 @@
 -- PRP tracking tables for development progress
 
 -- PRP phases
-CREATE TABLE prp_phases (
+CREATE TABLE IF NOT EXISTS prp_phases (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
@@ -11,7 +11,7 @@ CREATE TABLE prp_phases (
 );
 
 -- PRP records
-CREATE TABLE prps (
+CREATE TABLE IF NOT EXISTS prps (
   id TEXT PRIMARY KEY, -- e.g., 'PRP-001'
   phase_id TEXT REFERENCES prp_phases(id) NOT NULL,
   title TEXT NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE prps (
 );
 
 -- PRP implementation files
-CREATE TABLE prp_implementation_files (
+CREATE TABLE IF NOT EXISTS prp_implementation_files (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   prp_id TEXT REFERENCES prps(id) ON DELETE CASCADE,
   file_path TEXT NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE prp_implementation_files (
 );
 
 -- PRP missing features (for partial implementations)
-CREATE TABLE prp_missing_features (
+CREATE TABLE IF NOT EXISTS prp_missing_features (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   prp_id TEXT REFERENCES prps(id) ON DELETE CASCADE,
   feature TEXT NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE prp_missing_features (
 );
 
 -- PRP dependencies
-CREATE TABLE prp_dependencies (
+CREATE TABLE IF NOT EXISTS prp_dependencies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   prp_id TEXT REFERENCES prps(id) ON DELETE CASCADE,
   depends_on_prp_id TEXT REFERENCES prps(id) ON DELETE CASCADE,
