@@ -10,16 +10,17 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const supabase = await createClient()
 
-  // Get user and validate
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
   if (!user) {
-    // Redirect to marketing page for unauthenticated users
-    redirect('/marketing')
+    // This should not happen, as the middleware is now protecting this page.
+    // However, as a safeguard, we'll redirect to login.
+    return redirect('/login')
   }
 
-  // Get user's organization
+  // Get user's organization.
   const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
     .select('organization_id, role')
@@ -27,8 +28,19 @@ export default async function DashboardPage() {
     .single()
 
   if (profileError) {
-    console.error('Error fetching user profile:', profileError)
-    redirect('/login')
+    if (profileError.code === 'PGRST116') {
+      // This is expected for new users whose profiles are not yet created.
+      return redirect('/setup')
+    }
+    // For any other unexpected error, log it and redirect to login.
+    console.error('Unexpected error fetching user profile:', profileError)
+    return redirect('/login?error=profile_fetch_failed')
+  }
+
+  if (!profile) {
+    // As a final fallback, if the profile is null for any other reason,
+    // redirect to the setup page to be safe.
+    return redirect('/setup')
   }
 
   return (

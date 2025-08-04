@@ -1,80 +1,80 @@
-// Supabase middleware for Next.js
-// Handles auth session refresh and protected routes
-
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import type { Database } from '@/supabase/types/database'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  // Validate environment variables
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn(
-      'Supabase environment variables not set. Auth features disabled.'
-    )
-    // Return unmodified response if Supabase is not configured
-    return NextResponse.next({
-      request,
-    })
-  }
-
-  // Create response to modify
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
-
-  // Create Supabase client with cookie handling
-  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      async getAll() {
-        return request.cookies.getAll()
-      },
-      async setAll(
-        cookiesToSet: Array<{ name: string; value: string; options?: any }>
-      ) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value)
-        )
-        supabaseResponse = NextResponse.next({
-          request,
-        })
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
-        )
-      },
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
     },
   })
 
-  // Refresh session if expired - handle potential errors
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
+        },
+      },
+    }
+  )
+
+  // This will refresh the session if it's expired
   const {
     data: { user },
-    error,
   } = await supabase.auth.getUser()
 
-  // Handle authentication errors
-  if (error) {
-    console.error('Supabase auth error in middleware:', error)
-    // For auth errors, treat as unauthenticated
-  }
-
-  // Protected routes that require authentication
   const protectedPaths = [
+    '/',
     '/inventory',
     '/pricing',
     '/settings',
     '/sync',
     '/api/protected',
+    '/setup',
   ]
 
-  // Check if current path is protected
-  const isProtectedPath = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  )
+  const isProtectedPath =
+    request.nextUrl.pathname === '/' ||
+    protectedPaths.some(
+      (path) => path !== '/' && request.nextUrl.pathname.startsWith(path)
+    )
 
-  // Redirect to login if accessing protected route without auth
   if (!user && isProtectedPath) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
@@ -82,64 +82,14 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Redirect to dashboard if accessing auth pages while logged in
   const authPaths = ['/login', '/signup', '/reset-password']
   const isAuthPath = authPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   )
 
   if (user && isAuthPath) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/'
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
-  return supabaseResponse
-}
-
-// Helper to check if user has specific role
-export async function checkUserRole(
-  request: NextRequest,
-  requiredRole: 'owner' | 'admin' | 'member'
-) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase environment variables not set. Role check failed.')
-    return false
-  }
-
-  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
-      setAll() {
-        // Read-only operation
-      },
-    },
-  })
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return false
-
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!profile || !profile.role) return false
-
-  // Role hierarchy: owner > admin > member
-  const roleHierarchy = { owner: 3, admin: 2, member: 1 }
-  const userRoleLevel =
-    roleHierarchy[profile.role as keyof typeof roleHierarchy] || 0
-  const requiredRoleLevel = roleHierarchy[requiredRole] || 0
-
-  return userRoleLevel >= requiredRoleLevel
+  return response
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase/admin'
+
 import {
   loginSchema,
   resetPasswordSchema,
@@ -12,38 +12,43 @@ import {
 } from '@/types/auth.types'
 
 export async function signIn(formData: FormData) {
-  // Parse and validate input
-  const parsed = loginSchema.safeParse({
-    email: formData.get('email'),
-    password: formData.get('password'),
-  })
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+
+  const parsed = loginSchema.safeParse({ email, password })
 
   if (!parsed.success) {
     return {
-      error: 'Invalid input',
+      error: 'Invalid email or password format.',
       fieldErrors: parsed.error.flatten().fieldErrors,
     }
   }
 
-  const supabase = await createClient()
+  const supabase = createClient()
 
-  // Attempt to sign in
   const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   })
 
   if (error) {
-    return { error: error.message }
+    // Return a generic error to avoid leaking implementation details.
+    if (error.message.includes('Invalid login credentials')) {
+      return { error: 'Invalid email or password.' }
+    }
+    console.error('Supabase sign-in error:', error.message)
+    return { error: 'An unexpected error occurred during sign-in.' }
   }
 
-  // For now, skip the profile check since we know the profile exists
-  // and the RLS policies are causing issues
-  console.log('User authenticated successfully:', data.user.id)
+  if (!data.user) {
+    // This case should not be reachable if there is no error, but as a safeguard:
+    console.error('Sign-in successful, but no user object returned.')
+    return { error: 'Could not retrieve user details after sign-in.' }
+  }
 
-  // Success - revalidate and redirect
+  // On success, revalidate the path and redirect the user.
   revalidatePath('/', 'layout')
-  redirect('/')
+  return redirect('/')
 }
 
 export async function signUp(formData: FormData) {

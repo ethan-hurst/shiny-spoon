@@ -32,23 +32,24 @@ export function LoginForm() {
   async function onSubmit(data: LoginFormData) {
     setIsLoading(true)
 
-    try {
-      const formData = new FormData()
-      formData.append('email', data.email)
-      formData.append('password', data.password)
+    const formData = new FormData()
+    formData.append('email', data.email)
+    formData.append('password', data.password)
 
-      const result = await signIn(formData)
+    // The Server Action (`signIn`) will handle its own errors and return a result.
+    // If it needs to redirect, Next.js throws a special error that should not be caught here.
+    const result = await signIn(formData)
 
-      if (result?.error) {
-        toast.error(result.error)
-      }
-
-      // If successful, the server action will redirect
-    } catch (error) {
-      toast.error('An unexpected error occurred')
-    } finally {
+    // If the action returns an error object, we display it and stop the loading state.
+    if (result?.error) {
+      toast.error(result.error)
       setIsLoading(false)
     }
+
+    // If the action is successful, it will redirect, and this code below
+    // will not be reached. If it returns without an error OR a redirect,
+    // we should stop the loading state, though this case is unlikely in this form.
+    // We leave setIsLoading(true) so the button remains in a loading state during navigation.
   }
 
   return (
