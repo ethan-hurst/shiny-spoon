@@ -60,40 +60,20 @@ const nextConfig = {
       },
     ]
   },
-  // Configure webpack for Node.js modules (only used when not using Turbopack)
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        crypto: false,
-        stream: false,
-        url: false,
-        zlib: false,
-        http: false,
-        https: false,
-        assert: false,
-        os: false,
-        path: false,
-        querystring: false,
-        diagnostics_channel: false,
-      }
-    }
-    return config
-  },
-  // Turbopack configuration
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  // Turbopack configuration (stable in Next.js 15)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
+  // Performance optimizations
+  swcMinify: true,
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
 }
 
 // module.exports = withContentlayer(nextConfig)
