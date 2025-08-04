@@ -123,26 +123,33 @@ CREATE OR REPLACE FUNCTION cleanup_old_data()
 RETURNS INTEGER AS $$
 DECLARE
   deleted_count INTEGER := 0;
+  audit_deleted INTEGER;
+  access_deleted INTEGER;
+  api_deleted INTEGER;
+  error_deleted INTEGER;
 BEGIN
   -- Clean up old audit logs (keep 1 year)
   DELETE FROM audit_logs 
   WHERE created_at < NOW() - INTERVAL '1 year';
-  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  GET DIAGNOSTICS audit_deleted = ROW_COUNT;
   
   -- Clean up old access logs (keep 6 months)
   DELETE FROM access_logs 
   WHERE timestamp < NOW() - INTERVAL '6 months';
-  GET DIAGNOSTICS deleted_count = deleted_count + ROW_COUNT;
+  GET DIAGNOSTICS access_deleted = ROW_COUNT;
   
   -- Clean up old API key usage (keep 3 months)
   DELETE FROM api_key_usage 
   WHERE timestamp < NOW() - INTERVAL '3 months';
-  GET DIAGNOSTICS deleted_count = deleted_count + ROW_COUNT;
+  GET DIAGNOSTICS api_deleted = ROW_COUNT;
   
   -- Clean up old error logs (keep 1 month)
   DELETE FROM error_logs 
   WHERE created_at < NOW() - INTERVAL '1 month';
-  GET DIAGNOSTICS deleted_count = deleted_count + ROW_COUNT;
+  GET DIAGNOSTICS error_deleted = ROW_COUNT;
+  
+  -- Calculate total deleted
+  deleted_count := audit_deleted + access_deleted + api_deleted + error_deleted;
   
   RETURN deleted_count;
 END;
