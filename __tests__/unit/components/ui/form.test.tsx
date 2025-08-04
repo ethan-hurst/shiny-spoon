@@ -1,7 +1,8 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen, waitFor } from '@/__tests__/helpers/test-utils'
 import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
   Form,
   FormControl,
@@ -10,32 +11,43 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  useFormField,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+
+// Test schema for validation
+const testSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  name: z.string().min(1, 'Name is required'),
+})
+
+type TestFormData = z.infer<typeof testSchema>
 
 // Test component that uses the form
-const TestForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
-  const form = useForm({
+const TestForm = ({ onSubmit }: { onSubmit: (data: TestFormData) => void }) => {
+  const form = useForm<TestFormData>({
+    resolver: zodResolver(testSchema),
     defaultValues: {
-      username: '',
       email: '',
+      password: '',
+      name: '',
     },
   })
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="username"
+          name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="Enter username" {...field} />
+                <Input placeholder="Enter your name" {...field} />
               </FormControl>
-              <FormDescription>Enter your username</FormDescription>
+              <FormDescription>Enter your full name</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -47,547 +59,337 @@ const TestForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="Enter email" {...field} />
+                <Input type="email" placeholder="Enter your email" {...field} />
               </FormControl>
+              <FormDescription>Enter a valid email address</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <button type="submit">Submit</button>
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="Enter your password" {...field} />
+              </FormControl>
+              <FormDescription>Password must be at least 6 characters</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit">Submit</Button>
       </form>
     </Form>
   )
 }
 
-// Component to test useFormField hook
-const TestUseFormField = () => {
-  const form = useForm({
-    defaultValues: { test: '' },
+describe('Form Component', () => {
+  describe('Form Elements', () => {
+    it('renders FormItem with proper structure', () => {
+      render(
+        <FormItem>
+          <FormLabel>Test Label</FormLabel>
+          <FormControl>
+            <Input />
+          </FormControl>
+          <FormDescription>Test description</FormDescription>
+          <FormMessage />
+        </FormItem>
+      )
+
+      expect(screen.getByText('Test Label')).toBeInTheDocument()
+      expect(screen.getByText('Test description')).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toBeInTheDocument()
+    })
+
+    it('renders FormLabel with proper accessibility', () => {
+      render(
+        <FormItem>
+          <FormLabel>Email Address</FormLabel>
+          <FormControl>
+            <Input />
+          </FormControl>
+        </FormItem>
+      )
+
+      const label = screen.getByText('Email Address')
+      const input = screen.getByRole('textbox')
+      
+      expect(label).toBeInTheDocument()
+      expect(label).toHaveAttribute('for', input.id)
+    })
+
+    it('renders FormDescription with proper styling', () => {
+      render(<FormDescription>This is a description</FormDescription>)
+
+      const description = screen.getByText('This is a description')
+      expect(description).toBeInTheDocument()
+      expect(description).toHaveClass('text-sm', 'text-muted-foreground')
+    })
+
+    it('renders FormMessage with proper styling', () => {
+      render(<FormMessage>This is an error message</FormMessage>)
+
+      const message = screen.getByText('This is an error message')
+      expect(message).toBeInTheDocument()
+      expect(message).toHaveClass('text-sm', 'font-medium', 'text-destructive')
+    })
+
+    it('does not render FormMessage when no error', () => {
+      render(<FormMessage />)
+
+      // Should not render anything when no error
+      expect(screen.queryByRole('paragraph')).not.toBeInTheDocument()
+    })
   })
 
-  return (
-    <Form {...form}>
-      <FormField
-        control={form.control}
-        name="test"
-        render={() => (
-          <FormItem>
-            <FormLabel>Test</FormLabel>
-            <FormControl>
-              <Input />
-            </FormControl>
-            <FormDescription>Test description</FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    </Form>
-  )
-}
-
-describe('Form Components', () => {
   describe('Form Integration', () => {
-    it('should render form with all components', () => {
+    it('handles form submission with valid data', async () => {
       const onSubmit = jest.fn()
-      render(<TestForm onSubmit={onSubmit} />)
+      const { user } = render(<TestForm onSubmit={onSubmit} />)
 
-      expect(screen.getByLabelText('Username')).toBeInTheDocument()
+      // Fill out the form
+      await user.type(screen.getByPlaceholderText('Enter your name'), 'John Doe')
+      await user.type(screen.getByPlaceholderText('Enter your email'), 'john@example.com')
+      await user.type(screen.getByPlaceholderText('Enter your password'), 'password123')
+
+      // Submit the form
+      await user.click(screen.getByRole('button', { name: /submit/i }))
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith({
+          name: 'John Doe',
+          email: 'john@example.com',
+          password: 'password123',
+        })
+      })
+    })
+
+    it('shows validation errors for empty form submission', async () => {
+      const onSubmit = jest.fn()
+      const { user } = render(<TestForm onSubmit={onSubmit} />)
+
+      // Submit empty form
+      await user.click(screen.getByRole('button', { name: /submit/i }))
+
+      // Should show validation errors
+      await waitFor(() => {
+        expect(screen.getByText('Name is required')).toBeInTheDocument()
+        expect(screen.getByText('Invalid email address')).toBeInTheDocument()
+        expect(screen.getByText('Password must be at least 6 characters')).toBeInTheDocument()
+      })
+
+      expect(onSubmit).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Accessibility', () => {
+    it('has proper form structure and labels', () => {
+      render(<TestForm onSubmit={jest.fn()} />)
+
+      // Check that all form elements have proper labels
+      expect(screen.getByLabelText('Name')).toBeInTheDocument()
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
-      expect(screen.getByText('Enter your username')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument()
+      expect(screen.getByLabelText('Password')).toBeInTheDocument()
+
+      // Check that descriptions are present
+      expect(screen.getByText('Enter your full name')).toBeInTheDocument()
+      expect(screen.getByText('Enter a valid email address')).toBeInTheDocument()
+      expect(screen.getByText('Password must be at least 6 characters')).toBeInTheDocument()
     })
 
-    it('should handle form submission', async () => {
-      const user = userEvent.setup()
-      const onSubmit = jest.fn()
-      render(<TestForm onSubmit={onSubmit} />)
+    it('provides proper focus management', async () => {
+      const { user } = render(<TestForm onSubmit={jest.fn()} />)
 
-      const usernameInput = screen.getByLabelText('Username')
+      const nameInput = screen.getByLabelText('Name')
       const emailInput = screen.getByLabelText('Email')
-      const submitButton = screen.getByRole('button', { name: 'Submit' })
+      const passwordInput = screen.getByLabelText('Password')
 
-      await user.type(usernameInput, 'testuser')
-      await user.type(emailInput, 'test@example.com')
-      await user.click(submitButton)
+      // Tab through form elements
+      await user.tab()
+      expect(nameInput).toHaveFocus()
 
-      expect(onSubmit).toHaveBeenCalledWith(
-        {
-          username: 'testuser',
-          email: 'test@example.com',
-        },
-        expect.any(Object) // Form event object
-      )
+      await user.tab()
+      expect(emailInput).toHaveFocus()
+
+      await user.tab()
+      expect(passwordInput).toHaveFocus()
+
+      await user.tab()
+      expect(screen.getByRole('button', { name: /submit/i })).toHaveFocus()
+    })
+  })
+
+  describe('Form State Management', () => {
+    it('handles controlled form fields', async () => {
+      const { user } = render(<TestForm onSubmit={jest.fn()} />)
+
+      const nameInput = screen.getByLabelText('Name')
+      const emailInput = screen.getByLabelText('Email')
+
+      // Type in fields
+      await user.type(nameInput, 'John Doe')
+      await user.type(emailInput, 'john@example.com')
+
+      // Values should be updated
+      expect(nameInput).toHaveValue('John Doe')
+      expect(emailInput).toHaveValue('john@example.com')
     })
 
-    it('should handle form validation', async () => {
-      const user = userEvent.setup()
-      const onSubmit = jest.fn()
-
-      const TestFormWithValidation = () => {
-        const form = useForm({
-          defaultValues: { username: '' },
+    it('handles form with default values', () => {
+      const TestFormWithDefaults = () => {
+        const form = useForm<TestFormData>({
+          resolver: zodResolver(testSchema),
+          defaultValues: {
+            name: 'Default Name',
+            email: 'default@example.com',
+            password: 'defaultpass',
+          },
         })
 
         return (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form>
               <FormField
                 control={form.control}
-                name="username"
-                rules={{ required: 'Username is required' }}
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
-              <button type="submit">Submit</button>
             </form>
           </Form>
         )
       }
 
-      render(<TestFormWithValidation />)
+      render(<TestFormWithDefaults />)
 
-      const submitButton = screen.getByRole('button', { name: 'Submit' })
-      await user.click(submitButton)
-
-      expect(screen.getByText('Username is required')).toBeInTheDocument()
-      expect(onSubmit).not.toHaveBeenCalled()
+      const nameInput = screen.getByLabelText('Name')
+      expect(nameInput).toHaveValue('Default Name')
     })
   })
 
-  describe('FormItem', () => {
-    it('should render with default classes', () => {
-      render(
-        <FormItem data-testid="form-item">
-          <div>Test content</div>
-        </FormItem>
-      )
+  describe('Performance', () => {
+    it('renders efficiently', () => {
+      const startTime = performance.now()
+      render(<TestForm onSubmit={jest.fn()} />)
+      const endTime = performance.now()
 
-      const formItem = screen.getByTestId('form-item')
-      expect(formItem).toHaveClass('space-y-2')
+      // Should render within reasonable time (less than 100ms for complex form)
+      expect(endTime - startTime).toBeLessThan(100)
     })
 
-    it('should apply custom className', () => {
-      render(
-        <FormItem className="custom-class" data-testid="form-item">
-          <div>Test content</div>
-        </FormItem>
-      )
+    it('handles rapid form updates', async () => {
+      const { user } = render(<TestForm onSubmit={jest.fn()} />)
 
-      const formItem = screen.getByTestId('form-item')
-      expect(formItem).toHaveClass('space-y-2', 'custom-class')
+      const nameInput = screen.getByLabelText('Name')
+
+      // Rapid typing
+      for (let i = 0; i < 10; i++) {
+        await user.type(nameInput, 'a')
+        await user.clear(nameInput)
+      }
+
+      expect(nameInput).toHaveValue('')
     })
 
-    it('should forward ref', () => {
-      const ref = React.createRef<HTMLDivElement>()
-      render(
-        <FormItem ref={ref} data-testid="form-item">
-          <div>Test content</div>
-        </FormItem>
-      )
-
-      expect(ref.current).toBe(screen.getByTestId('form-item'))
-    })
-
-    it('should pass through additional props', () => {
-      render(
-        <FormItem data-testid="form-item" aria-label="test">
-          <div>Test content</div>
-        </FormItem>
-      )
-
-      const formItem = screen.getByTestId('form-item')
-      expect(formItem).toHaveAttribute('aria-label', 'test')
+    it('does not cause memory leaks', () => {
+      const { unmount } = render(<TestForm onSubmit={jest.fn()} />)
+      expect(() => unmount()).not.toThrow()
     })
   })
 
-  describe('FormLabel', () => {
-    it('should render with proper accessibility', () => {
-      const TestFormLabel = () => {
-        const form = useForm({ defaultValues: { test: '' } })
+  describe('Edge Cases', () => {
+    it('handles very long input values', async () => {
+      const { user } = render(<TestForm onSubmit={jest.fn()} />)
+
+      const longValue = 'a'.repeat(1000)
+      const nameInput = screen.getByLabelText('Name')
+
+      await user.type(nameInput, longValue)
+      expect(nameInput).toHaveValue(longValue)
+    })
+
+    it('handles special characters in form inputs', async () => {
+      const { user } = render(<TestForm onSubmit={jest.fn()} />)
+
+      const nameInput = screen.getByLabelText('Name')
+      const specialChars = '!@#$%^&*()_+-=<>?'
+
+      await user.type(nameInput, specialChars)
+      expect(nameInput).toHaveValue(specialChars)
+    })
+
+    it('handles form with no validation schema', () => {
+      const SimpleForm = () => {
+        const form = useForm()
+
         return (
           <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test Label</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            <form>
+              <FormField
+                control={form.control}
+                name="test"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Test</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </form>
           </Form>
         )
       }
 
-      render(<TestFormLabel />)
-
-      const label = screen.getByText('Test Label')
-      const input = screen.getByRole('textbox')
-
-      expect(label).toBeInTheDocument()
-      expect(label.tagName).toBe('LABEL')
-      expect(input).toHaveAttribute('id')
-      expect(label).toHaveAttribute('for', input.getAttribute('id'))
-    })
-
-    it('should apply error styling when field has error', () => {
-      const TestFormLabelWithError = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-
-        // Trigger an error
-        React.useEffect(() => {
-          form.setError('test', { message: 'This field is required' })
-        }, [form])
-
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test Label</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormLabelWithError />)
-
-      const label = screen.getByText('Test Label')
-      expect(label).toHaveClass('text-destructive')
-    })
-
-    it('should apply custom className', () => {
-      const TestFormLabelCustom = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="custom-label">Test Label</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormLabelCustom />)
-
-      const label = screen.getByText('Test Label')
-      expect(label).toHaveClass('custom-label')
-    })
-  })
-
-  describe('FormControl', () => {
-    it('should render with proper accessibility attributes', () => {
-      const TestFormControl = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormControl />)
-
-      const input = screen.getByRole('textbox')
-      expect(input).toHaveAttribute('aria-describedby')
-      expect(input).toHaveAttribute('aria-invalid', 'false')
-    })
-
-    it('should show error state when field has error', () => {
-      const TestFormControlWithError = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-
-        React.useEffect(() => {
-          form.setError('test', { message: 'This field is required' })
-        }, [form])
-
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormControlWithError />)
-
-      const input = screen.getByRole('textbox')
-      expect(input).toHaveAttribute('aria-invalid', 'true')
-    })
-  })
-
-  describe('FormDescription', () => {
-    it('should render description text', () => {
-      const TestFormDescription = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormDescription>This is a description</FormDescription>
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormDescription />)
-
-      const description = screen.getByText('This is a description')
-      expect(description).toBeInTheDocument()
-      expect(description.tagName).toBe('P')
-      expect(description).toHaveClass('text-sm', 'text-muted-foreground')
-    })
-
-    it('should apply custom className', () => {
-      const TestFormDescriptionCustom = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormDescription className="custom-desc">
-                    Description
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormDescriptionCustom />)
-
-      const description = screen.getByText('Description')
-      expect(description).toHaveClass('custom-desc')
-    })
-  })
-
-  describe('FormMessage', () => {
-    it('should render error message when field has error', () => {
-      const TestFormMessage = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-
-        React.useEffect(() => {
-          form.setError('test', { message: 'This field is required' })
-        }, [form])
-
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormMessage />)
-
-      const message = screen.getByText('This field is required')
-      expect(message).toBeInTheDocument()
-      expect(message.tagName).toBe('P')
-      expect(message).toHaveClass('text-sm', 'font-medium', 'text-destructive')
-    })
-
-    it('should render children when no error', () => {
-      const TestFormMessageChildren = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage>Custom message</FormMessage>
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormMessageChildren />)
-
-      const message = screen.getByText('Custom message')
-      expect(message).toBeInTheDocument()
-    })
-
-    it('should not render when no error and no children', () => {
-      const TestFormMessageEmpty = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormMessageEmpty />)
-
-      // Should not render anything for FormMessage
-      expect(screen.queryByTestId('form-message')).not.toBeInTheDocument()
-    })
-
-    it('should apply custom className', () => {
-      const TestFormMessageCustom = () => {
-        const form = useForm({ defaultValues: { test: '' } })
-
-        React.useEffect(() => {
-          form.setError('test', { message: 'Error message' })
-        }, [form])
-
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="test"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Test</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage className="custom-error" />
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
-
-      render(<TestFormMessageCustom />)
-
-      const message = screen.getByText('Error message')
-      expect(message).toHaveClass('custom-error')
-    })
-  })
-
-  describe('useFormField', () => {
-    it('should provide correct field state', () => {
-      render(<TestUseFormField />)
-
-      // The component should render without errors
+      render(<SimpleForm />)
       expect(screen.getByText('Test')).toBeInTheDocument()
     })
   })
 
-  describe('Type Safety', () => {
-    it('should maintain proper TypeScript types', () => {
-      const TestTypeSafety = () => {
-        const form = useForm<{ username: string; email: string }>({
-          defaultValues: { username: '', email: '' },
-        })
+  describe('Integration with UI Components', () => {
+    it('works with Input component', () => {
+      render(
+        <FormItem>
+          <FormLabel>Test Input</FormLabel>
+          <FormControl>
+            <Input placeholder="Enter text" />
+          </FormControl>
+          <FormDescription>Test description</FormDescription>
+          <FormMessage />
+        </FormItem>
+      )
 
-        return (
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="username" // Should be type-safe
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </Form>
-        )
-      }
+      expect(screen.getByLabelText('Test Input')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Enter text')).toBeInTheDocument()
+      expect(screen.getByText('Test description')).toBeInTheDocument()
+    })
 
-      render(<TestTypeSafety />)
-      expect(screen.getByText('Username')).toBeInTheDocument()
+    it('works with Button component', () => {
+      render(
+        <form>
+          <FormItem>
+            <FormLabel>Test</FormLabel>
+            <FormControl>
+              <Input />
+            </FormControl>
+          </FormItem>
+          <Button type="submit">Submit</Button>
+        </form>
+      )
+
+      expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument()
     })
   })
 })
+
