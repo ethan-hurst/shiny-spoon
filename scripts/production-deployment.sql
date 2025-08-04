@@ -7,13 +7,26 @@
 -- =============================================
 
 -- 1. Add missing constraints and validations
-ALTER TABLE products 
-ADD CONSTRAINT IF NOT EXISTS check_positive_prices 
-CHECK (base_price >= 0 AND cost >= 0);
-
-ALTER TABLE inventory 
-ADD CONSTRAINT IF NOT EXISTS check_positive_quantities 
-CHECK (quantity >= 0 AND reserved_quantity >= 0);
+DO $$
+BEGIN
+  -- Add constraint to products if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'check_positive_prices'
+  ) THEN
+    ALTER TABLE products ADD CONSTRAINT check_positive_prices 
+    CHECK (base_price >= 0 AND cost >= 0);
+  END IF;
+  
+  -- Add constraint to inventory if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'check_positive_quantities'
+  ) THEN
+    ALTER TABLE inventory ADD CONSTRAINT check_positive_quantities 
+    CHECK (quantity >= 0 AND reserved_quantity >= 0);
+  END IF;
+END $$;
 
 -- 2. Add data validation functions
 CREATE OR REPLACE FUNCTION validate_sku_format(sku TEXT)
