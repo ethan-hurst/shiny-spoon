@@ -1,5 +1,5 @@
 -- Create inventory_adjustments table for audit trail
-CREATE TABLE inventory_adjustments (
+CREATE TABLE IF NOT EXISTS inventory_adjustments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   inventory_id UUID REFERENCES inventory(id) NOT NULL,
   organization_id UUID REFERENCES organizations(id) NOT NULL,
