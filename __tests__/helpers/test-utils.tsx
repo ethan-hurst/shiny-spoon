@@ -175,7 +175,7 @@ jest.mock('@/app/actions/integrations', () => ({
   getConnectionStatus: jest.fn(),
 }))
 
-jest.mock('@/app/actions/bulk', () => ({
+jest.mock('@/app/actions/bulk-operations', () => ({
   bulkImport: jest.fn(),
   bulkExport: jest.fn(),
   validateBulkData: jest.fn(),

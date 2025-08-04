@@ -25,6 +25,7 @@ const customJestConfig = {
     '^@/hooks/(.*)$': '<rootDir>/hooks/$1',
     '^@/types/(.*)$': '<rootDir>/types/$1',
     '^@/utils/(.*)$': '<rootDir>/utils/$1',
+    '^@/app/(.*)$': '<rootDir>/app/$1',
     '^isows$': '<rootDir>/__tests__/utils/mocks/isows.js',
     '^undici$': '<rootDir>/__tests__/utils/mocks/undici.js',
     '^geist/font/sans$': '<rootDir>/__tests__/utils/mocks/geist-font.js',
