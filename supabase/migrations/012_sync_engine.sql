@@ -1,7 +1,7 @@
 -- PRP-015: Sync Engine Core Database Schema
 
 -- Sync jobs table for tracking all sync operations
-CREATE TABLE sync_jobs (
+CREATE TABLE IF NOT EXISTS sync_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   integration_id UUID REFERENCES integrations(id) NOT NULL,
@@ -30,7 +30,7 @@ CREATE INDEX idx_sync_jobs_created_at ON sync_jobs(created_at DESC);
 CREATE INDEX idx_sync_jobs_status_created ON sync_jobs(status, created_at DESC);
 
 -- Sync state table for tracking sync cursors and metadata
-CREATE TABLE sync_state (
+CREATE TABLE IF NOT EXISTS sync_state (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   integration_id UUID REFERENCES integrations(id) NOT NULL,
   entity_type TEXT NOT NULL CHECK (entity_type IN ('products', 'inventory', 'pricing', 'customers', 'orders')),
@@ -51,7 +51,7 @@ CREATE INDEX idx_sync_state_integration ON sync_state(integration_id);
 CREATE INDEX idx_sync_state_entity_type ON sync_state(entity_type);
 
 -- Sync schedules table for managing recurring sync jobs
-CREATE TABLE sync_schedules (
+CREATE TABLE IF NOT EXISTS sync_schedules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   integration_id UUID REFERENCES integrations(id) NOT NULL UNIQUE,
   enabled BOOLEAN DEFAULT true,
@@ -74,7 +74,7 @@ CREATE INDEX idx_sync_schedules_next_run ON sync_schedules(next_run_at) WHERE en
 CREATE INDEX idx_sync_schedules_integration ON sync_schedules(integration_id);
 
 -- Sync conflicts table for tracking data conflicts
-CREATE TABLE sync_conflicts (
+CREATE TABLE IF NOT EXISTS sync_conflicts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sync_job_id UUID REFERENCES sync_jobs(id) NOT NULL,
   entity_type TEXT NOT NULL,
@@ -101,7 +101,7 @@ CREATE INDEX idx_sync_conflicts_unresolved ON sync_conflicts(resolved_at) WHERE 
 CREATE INDEX idx_sync_conflicts_entity ON sync_conflicts(entity_type, record_id);
 
 -- Sync queue table for job processing
-CREATE TABLE sync_queue (
+CREATE TABLE IF NOT EXISTS sync_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID REFERENCES sync_jobs(id) NOT NULL UNIQUE,
   priority INTEGER DEFAULT 50 CHECK (priority >= 0 AND priority <= 100),
@@ -123,7 +123,7 @@ CREATE INDEX idx_sync_queue_locked ON sync_queue(locked_by, locked_at)
   WHERE locked_by IS NOT NULL;
 
 -- Sync metrics table for performance tracking
-CREATE TABLE sync_metrics (
+CREATE TABLE IF NOT EXISTS sync_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sync_job_id UUID REFERENCES sync_jobs(id) NOT NULL,
   api_calls INTEGER DEFAULT 0,
@@ -151,7 +151,7 @@ CREATE TABLE sync_metrics (
 CREATE INDEX idx_sync_metrics_job ON sync_metrics(sync_job_id);
 
 -- Sync notifications table
-CREATE TABLE sync_notifications (
+CREATE TABLE IF NOT EXISTS sync_notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   sync_job_id UUID REFERENCES sync_jobs(id),
