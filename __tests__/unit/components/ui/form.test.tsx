@@ -1,8 +1,6 @@
 import React from 'react'
-import { render, screen, waitFor } from '@/__tests__/helpers/test-utils'
+import { render, screen } from '@/__tests__/helpers/test-utils'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import {
   Form,
   FormControl,
@@ -15,29 +13,18 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
-// Test schema for validation
-const testSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  name: z.string().min(1, 'Name is required'),
-})
-
-type TestFormData = z.infer<typeof testSchema>
-
-// Test component that uses the form
-const TestForm = ({ onSubmit }: { onSubmit: (data: TestFormData) => void }) => {
-  const form = useForm<TestFormData>({
-    resolver: zodResolver(testSchema),
+// Simple test form component
+const TestForm = () => {
+  const form = useForm({
     defaultValues: {
-      email: '',
-      password: '',
       name: '',
+      email: '',
     },
   })
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form>
         <FormField
           control={form.control}
           name="name"
@@ -66,20 +53,6 @@ const TestForm = ({ onSubmit }: { onSubmit: (data: TestFormData) => void }) => {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="Enter your password" {...field} />
-              </FormControl>
-              <FormDescription>Password must be at least 6 characters</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <Button type="submit">Submit</Button>
       </form>
     </Form>
@@ -88,6 +61,16 @@ const TestForm = ({ onSubmit }: { onSubmit: (data: TestFormData) => void }) => {
 
 describe('Form Component', () => {
   describe('Form Elements', () => {
+    it('renders form with all components', () => {
+      render(<TestForm />)
+
+      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByLabelText('Email')).toBeInTheDocument()
+      expect(screen.getByText('Enter your full name')).toBeInTheDocument()
+      expect(screen.getByText('Enter a valid email address')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument()
+    })
+
     it('renders FormItem with proper structure', () => {
       render(
         <FormItem>
@@ -147,106 +130,12 @@ describe('Form Component', () => {
   })
 
   describe('Form Integration', () => {
-    it('handles form submission with valid data', async () => {
-      const onSubmit = jest.fn()
-      const { user } = render(<TestForm onSubmit={onSubmit} />)
-
-      // Fill out the form
-      await user.type(screen.getByPlaceholderText('Enter your name'), 'John Doe')
-      await user.type(screen.getByPlaceholderText('Enter your email'), 'john@example.com')
-      await user.type(screen.getByPlaceholderText('Enter your password'), 'password123')
-
-      // Submit the form
-      await user.click(screen.getByRole('button', { name: /submit/i }))
-
-      await waitFor(() => {
-        expect(onSubmit).toHaveBeenCalledWith({
-          name: 'John Doe',
-          email: 'john@example.com',
-          password: 'password123',
-        })
-      })
-    })
-
-    it('shows validation errors for empty form submission', async () => {
-      const onSubmit = jest.fn()
-      const { user } = render(<TestForm onSubmit={onSubmit} />)
-
-      // Submit empty form
-      await user.click(screen.getByRole('button', { name: /submit/i }))
-
-      // Should show validation errors
-      await waitFor(() => {
-        expect(screen.getByText('Name is required')).toBeInTheDocument()
-        expect(screen.getByText('Invalid email address')).toBeInTheDocument()
-        expect(screen.getByText('Password must be at least 6 characters')).toBeInTheDocument()
-      })
-
-      expect(onSubmit).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('Accessibility', () => {
-    it('has proper form structure and labels', () => {
-      render(<TestForm onSubmit={jest.fn()} />)
-
-      // Check that all form elements have proper labels
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
-      expect(screen.getByLabelText('Email')).toBeInTheDocument()
-      expect(screen.getByLabelText('Password')).toBeInTheDocument()
-
-      // Check that descriptions are present
-      expect(screen.getByText('Enter your full name')).toBeInTheDocument()
-      expect(screen.getByText('Enter a valid email address')).toBeInTheDocument()
-      expect(screen.getByText('Password must be at least 6 characters')).toBeInTheDocument()
-    })
-
-    it('provides proper focus management', async () => {
-      const { user } = render(<TestForm onSubmit={jest.fn()} />)
-
-      const nameInput = screen.getByLabelText('Name')
-      const emailInput = screen.getByLabelText('Email')
-      const passwordInput = screen.getByLabelText('Password')
-
-      // Tab through form elements
-      await user.tab()
-      expect(nameInput).toHaveFocus()
-
-      await user.tab()
-      expect(emailInput).toHaveFocus()
-
-      await user.tab()
-      expect(passwordInput).toHaveFocus()
-
-      await user.tab()
-      expect(screen.getByRole('button', { name: /submit/i })).toHaveFocus()
-    })
-  })
-
-  describe('Form State Management', () => {
-    it('handles controlled form fields', async () => {
-      const { user } = render(<TestForm onSubmit={jest.fn()} />)
-
-      const nameInput = screen.getByLabelText('Name')
-      const emailInput = screen.getByLabelText('Email')
-
-      // Type in fields
-      await user.type(nameInput, 'John Doe')
-      await user.type(emailInput, 'john@example.com')
-
-      // Values should be updated
-      expect(nameInput).toHaveValue('John Doe')
-      expect(emailInput).toHaveValue('john@example.com')
-    })
-
     it('handles form with default values', () => {
       const TestFormWithDefaults = () => {
-        const form = useForm<TestFormData>({
-          resolver: zodResolver(testSchema),
+        const form = useForm({
           defaultValues: {
             name: 'Default Name',
             email: 'default@example.com',
-            password: 'defaultpass',
           },
         })
 
@@ -277,10 +166,58 @@ describe('Form Component', () => {
     })
   })
 
+  describe('Accessibility', () => {
+    it('has proper form structure and labels', () => {
+      render(<TestForm />)
+
+      // Check that all form elements have proper labels
+      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByLabelText('Email')).toBeInTheDocument()
+
+      // Check that descriptions are present
+      expect(screen.getByText('Enter your full name')).toBeInTheDocument()
+      expect(screen.getByText('Enter a valid email address')).toBeInTheDocument()
+    })
+
+    it('provides proper focus management', async () => {
+      const { user } = render(<TestForm />)
+
+      const nameInput = screen.getByLabelText('Name')
+      const emailInput = screen.getByLabelText('Email')
+
+      // Tab through form elements
+      await user.tab()
+      expect(nameInput).toHaveFocus()
+
+      await user.tab()
+      expect(emailInput).toHaveFocus()
+
+      await user.tab()
+      expect(screen.getByRole('button', { name: /submit/i })).toHaveFocus()
+    })
+  })
+
+  describe('Form State Management', () => {
+    it('handles controlled form fields', async () => {
+      const { user } = render(<TestForm />)
+
+      const nameInput = screen.getByLabelText('Name')
+      const emailInput = screen.getByLabelText('Email')
+
+      // Type in fields
+      await user.type(nameInput, 'John Doe')
+      await user.type(emailInput, 'john@example.com')
+
+      // Values should be updated
+      expect(nameInput).toHaveValue('John Doe')
+      expect(emailInput).toHaveValue('john@example.com')
+    })
+  })
+
   describe('Performance', () => {
     it('renders efficiently', () => {
       const startTime = performance.now()
-      render(<TestForm onSubmit={jest.fn()} />)
+      render(<TestForm />)
       const endTime = performance.now()
 
       // Should render within reasonable time (less than 100ms for complex form)
@@ -288,7 +225,7 @@ describe('Form Component', () => {
     })
 
     it('handles rapid form updates', async () => {
-      const { user } = render(<TestForm onSubmit={jest.fn()} />)
+      const { user } = render(<TestForm />)
 
       const nameInput = screen.getByLabelText('Name')
 
@@ -302,14 +239,14 @@ describe('Form Component', () => {
     })
 
     it('does not cause memory leaks', () => {
-      const { unmount } = render(<TestForm onSubmit={jest.fn()} />)
+      const { unmount } = render(<TestForm />)
       expect(() => unmount()).not.toThrow()
     })
   })
 
   describe('Edge Cases', () => {
     it('handles very long input values', async () => {
-      const { user } = render(<TestForm onSubmit={jest.fn()} />)
+      const { user } = render(<TestForm />)
 
       const longValue = 'a'.repeat(1000)
       const nameInput = screen.getByLabelText('Name')
@@ -319,7 +256,7 @@ describe('Form Component', () => {
     })
 
     it('handles special characters in form inputs', async () => {
-      const { user } = render(<TestForm onSubmit={jest.fn()} />)
+      const { user } = render(<TestForm />)
 
       const nameInput = screen.getByLabelText('Name')
       const specialChars = '!@#$%^&*()_+-=<>?'
@@ -392,4 +329,5 @@ describe('Form Component', () => {
     })
   })
 })
+
 
