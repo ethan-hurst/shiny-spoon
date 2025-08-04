@@ -55,9 +55,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create an index to speed up the cleanup
-CREATE INDEX idx_presence_cleanup ON presence_status(last_seen) 
-WHERE last_seen < NOW() - INTERVAL '5 minutes';
+-- Create an index to speed up the cleanup (removed NOW() from WHERE clause)
+CREATE INDEX idx_presence_cleanup ON presence_status(last_seen);
 
 -- Optional: Set up periodic cleanup with pg_cron (requires extension)
 -- This would need to be run by a superuser after enabling pg_cron:

@@ -325,9 +325,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Schedule cleanup job
-SELECT cron.schedule(
-  'cleanup-analytics-data',
-  '0 2 * * *', -- Daily at 2 AM
-  'SELECT cleanup_old_analytics_data();'
-); 
+-- Schedule cleanup job (commented out - requires pg_cron extension)
+-- SELECT cron.schedule(
+--   'cleanup-analytics-data',
+--   '0 2 * * *', -- Daily at 2 AM
+--   'SELECT cleanup_old_analytics_data();'
+-- ); 

@@ -1,5 +1,5 @@
 -- Create performance metrics table
-CREATE TABLE performance_metrics (
+CREATE TABLE IF NOT EXISTS performance_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   value DECIMAL(10, 2) NOT NULL,
@@ -214,9 +214,9 @@ CREATE TRIGGER update_performance_alerts_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Create a cron job to clean up old data (runs daily)
-SELECT cron.schedule(
-  'cleanup-performance-data',
-  '0 2 * * *', -- Daily at 2 AM
-  'SELECT cleanup_old_performance_data(30);'
-); 
+-- Create a cron job to clean up old data (runs daily) - commented out, requires pg_cron
+-- SELECT cron.schedule(
+--   'cleanup-performance-data',
+--   '0 2 * * *', -- Daily at 2 AM
+--   'SELECT cleanup_old_performance_data(30);'
+-- ); 

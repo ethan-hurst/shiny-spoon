@@ -1,6 +1,6 @@
 -- PRP-019: Custom Reports Builder - Database Schema
 -- Report templates
-CREATE TABLE report_templates (
+CREATE TABLE IF NOT EXISTS report_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id),
   name TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE report_templates (
 );
 
 -- User's saved reports
-CREATE TABLE reports (
+CREATE TABLE IF NOT EXISTS reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   template_id UUID REFERENCES report_templates(id),
@@ -61,7 +61,7 @@ CREATE TABLE reports (
 );
 
 -- Report runs history
-CREATE TABLE report_runs (
+CREATE TABLE IF NOT EXISTS report_runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   report_id UUID REFERENCES reports(id) ON DELETE CASCADE,
 
@@ -86,7 +86,7 @@ CREATE TABLE report_runs (
 );
 
 -- Report components library
-CREATE TABLE report_components (
+CREATE TABLE IF NOT EXISTS report_components (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('chart', 'table', 'metric', 'text', 'image', 'filter')),

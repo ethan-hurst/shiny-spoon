@@ -5,7 +5,7 @@
 DROP TABLE IF EXISTS audit_logs CASCADE;
 
 -- Generic audit logs table for all actions
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
 

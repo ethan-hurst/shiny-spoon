@@ -1,7 +1,7 @@
 -- PRP-021: AI-Powered Insights - Database Schema
 
 -- AI predictions storage
-CREATE TABLE ai_predictions (
+CREATE TABLE IF NOT EXISTS ai_predictions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   prediction_type TEXT NOT NULL CHECK (prediction_type IN ('demand', 'reorder', 'price', 'anomaly')),
@@ -28,7 +28,7 @@ CREATE TABLE ai_predictions (
 );
 
 -- AI insights log
-CREATE TABLE ai_insights (
+CREATE TABLE IF NOT EXISTS ai_insights (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   insight_type TEXT NOT NULL CHECK (insight_type IN ('summary', 'recommendation', 'alert', 'trend')),
@@ -53,7 +53,7 @@ CREATE TABLE ai_insights (
 );
 
 -- Training data snapshots for ML models
-CREATE TABLE ml_training_data (
+CREATE TABLE IF NOT EXISTS ml_training_data (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   model_type TEXT NOT NULL,

@@ -1,6 +1,6 @@
 -- PRP-016: Performance Monitoring System
 -- Create performance metrics table
-CREATE TABLE performance_metrics (
+CREATE TABLE IF NOT EXISTS performance_metrics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) NOT NULL,
   metric_type TEXT NOT NULL CHECK (metric_type IN ('database_query', 'api_request', 'page_load', 'sync_job')),

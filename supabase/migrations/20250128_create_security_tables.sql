@@ -1,5 +1,5 @@
--- Create API keys table
-CREATE TABLE api_keys (
+-- Create API keys table (using IF NOT EXISTS to avoid conflicts)
+CREATE TABLE IF NOT EXISTS api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   key_hash TEXT NOT NULL UNIQUE,
@@ -19,7 +19,7 @@ CREATE TABLE api_keys (
 );
 
 -- Create API key usage table
-CREATE TABLE api_key_usage (
+CREATE TABLE IF NOT EXISTS api_key_usage (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   key_id UUID REFERENCES api_keys(id) ON DELETE CASCADE NOT NULL,
   endpoint TEXT NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE api_key_usage (
 );
 
 -- Create IP rules table
-CREATE TABLE ip_rules (
+CREATE TABLE IF NOT EXISTS ip_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE NOT NULL,
   ip_address TEXT NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE ip_rules (
 );
 
 -- Create access logs table
-CREATE TABLE access_logs (
+CREATE TABLE IF NOT EXISTS access_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE NOT NULL,
   ip_address TEXT NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE access_logs (
 );
 
 -- Create security policies table
-CREATE TABLE security_policies (
+CREATE TABLE IF NOT EXISTS security_policies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE security_policies (
 );
 
 -- Create security events table
-CREATE TABLE security_events (
+CREATE TABLE IF NOT EXISTS security_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type TEXT NOT NULL CHECK (type IN ('api_key_created', 'api_key_revoked', 'api_key_rotated', 'failed_auth', 'rate_limit_exceeded', 'suspicious_activity')),
   severity TEXT NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
@@ -92,7 +92,7 @@ CREATE TABLE security_events (
 );
 
 -- Create security alerts table
-CREATE TABLE security_alerts (
+CREATE TABLE IF NOT EXISTS security_alerts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type TEXT NOT NULL CHECK (type IN ('failed_auth', 'suspicious_ip', 'rate_limit_exceeded', 'api_key_abuse', 'geo_violation', 'unusual_pattern')),
   severity TEXT NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
@@ -108,7 +108,7 @@ CREATE TABLE security_alerts (
 );
 
 -- Create threat intelligence table
-CREATE TABLE threat_intelligence (
+CREATE TABLE IF NOT EXISTS threat_intelligence (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ip_address TEXT NOT NULL,
   threat_score INTEGER NOT NULL DEFAULT 0 CHECK (threat_score >= 0 AND threat_score <= 100),
@@ -379,9 +379,9 @@ CREATE TRIGGER update_security_policies_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Create a cron job to clean up old security data (runs weekly)
-SELECT cron.schedule(
-  'cleanup-security-data',
-  '0 3 * * 0', -- Weekly at 3 AM on Sunday
-  'SELECT cleanup_old_security_data(90);'
-); 
+-- Create a cron job to clean up old security data (runs weekly) - commented out, requires pg_cron
+-- SELECT cron.schedule(
+--   'cleanup-security-data',
+--   '0 3 * * 0', -- Weekly at 3 AM on Sunday
+--   'SELECT cleanup_old_security_data(90);'
+-- ); 
