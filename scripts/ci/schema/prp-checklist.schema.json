@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PRP Checklist",
+  "type": "object",
+  "required": ["prp", "title", "phase", "risk", "dependencies", "flags", "acceptanceCriteria", "tasks", "gates", "observability", "rollback"],
+  "properties": {
+    "prp": {"type": "string", "pattern": "^PRP-\\d{3}$"},
+    "title": {"type": "string"},
+    "phase": {"type": "integer", "minimum": 1},
+    "risk": {
+      "type": "object",
+      "required": ["surfaceArea", "dataSensitivity", "externalIntegrations", "score", "tier"],
+      "properties": {
+        "surfaceArea": {"type": "integer", "minimum": 1, "maximum": 5},
+        "dataSensitivity": {"type": "integer", "minimum": 1, "maximum": 5},
+        "externalIntegrations": {"type": "integer", "minimum": 0},
+        "score": {"type": "integer", "minimum": 0},
+        "tier": {"type": "string", "enum": ["LOW", "MED", "HIGH", "CRITICAL"]}
+      }
+    },
+    "dependencies": {"type": "array", "items": {"type": "string"}},
+    "flags": {"type": "array", "items": {"type": "object", "required": ["name", "default", "removalCriteria"], "properties": {"name": {"type": "string"}, "default": {"type": "boolean"}, "removalCriteria": {"type": "array", "items": {"type": "string"}}}}},
+    "sections": {"type": "object"},
+    "acceptanceCriteria": {"type": "array", "items": {"type": "object", "required": ["id", "text"], "properties": {"id": {"type": "string"}, "text": {"type": "string"}, "type": {"type": "string"}, "metric": {"type": "object"}}}},
+    "tasks": {"type": "array", "items": {"type": "object", "required": ["id", "desc"], "properties": {"id": {"type": "string"}, "desc": {"type": "string"}, "category": {"type": "string"}, "dependsOn": {"type": "array", "items": {"type": "string"}}}}},
+    "gates": {"type": "object"},
+    "migrations": {"type": "array", "items": {"type": "object", "required": ["filename"], "properties": {"filename": {"type": "string"}, "rollback": {"type": "string"}}}},
+    "observability": {"type": "object", "required": ["events", "metrics"], "properties": {"events": {"type": "array"}, "metrics": {"type": "array"}}},
+    "rollback": {"type": "object"}
+  }
+}

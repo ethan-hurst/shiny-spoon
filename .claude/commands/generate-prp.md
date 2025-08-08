@@ -2,27 +2,83 @@
 
 ## Feature file: $ARGUMENTS
 
-Generate a complete, self-sufficient PRP (Product Requirements Plan) for feature implementation with comprehensive research and validation. The PRP must contain all context needed for successful one-pass implementation.
+Generate a complete, self-sufficient PRP (Product Requirements Plan) for feature implementation with comprehensive research, validation, and machine-readable enforcement artifacts.
+
+## Summary of Required Output Artifacts (ALL MUST BE GENERATED)
+
+1. PRP Markdown: `PRPs/Phase X/PRP-XXX.md`
+2. Machine Checklist: `PRPs/Phase X/PRP-XXX.checklist.json`
+3. Status Entry (append or update): `PRP-STATUS.md`
+4. Optional Migration Stubs: `supabase/migrations/XXXXXXXXXX_<slug>.sql`
+5. Feature Flag Registration (if any): update `lib/flags/registry.ts` (declare in PRP)
+
+## Machine Checklist JSON Schema (STRICT)
+
+```jsonc
+{
+  "prp": "PRP-017",
+  "title": "Bulk Operations Engine",
+  "phase": 5,
+  "risk": { "surfaceArea": 5, "dataSensitivity": 4, "externalIntegrations": 2, "score": 11, "tier": "HIGH" },
+  "dependencies": ["PRP-010", "PRP-012"],
+  "flags": [
+    { "name": "bulk_ops", "default": false, "removalCriteria": ["95% success rate 30d", "Rollback tested"] }
+  ],
+  "sections": { "goal": true, "why": true, "what": true, "context": true, "blueprint": true, "validationGates": true, "riskAssessment": true, "featureFlags": true, "rollbackPlan": true },
+  "acceptanceCriteria": [
+    { "id": "AC-1", "text": "Can process 100k records < 10m", "type": "performance", "metric": { "target": 600, "unit": "seconds" } },
+    { "id": "AC-2", "text": "Real-time progress events emitted <=2s interval", "type": "realtime", "metric": { "target": 2, "unit": "seconds" } }
+  ],
+  "tasks": [
+    { "id": "DB-1", "desc": "Create bulk_operations table", "category": "database", "dependsOn": [] },
+    { "id": "RLS-1", "desc": "RLS policies for bulk_operations", "category": "security", "dependsOn": ["DB-1"] }
+  ],
+  "gates": {
+    "lint": true,
+    "build": true,
+    "policyTests": true,
+    "perfTest": { "command": "pnpm test:perf bulk-ops", "required": true },
+    "coverage": { "statements": 0.85, "branches": 0.75, "functions": 0.85, "lines": 0.85 }
+  },
+  "migrations": [
+    { "filename": "20250208_bulk_operations.sql", "rollback": "DROP TABLE IF EXISTS bulk_operations CASCADE;" }
+  ],
+  "observability": {
+    "events": [
+      { "name": "bulk.operation.started", "fields": ["operation_id", "organization_id", "entity_type", "chunk_size"] },
+      { "name": "bulk.operation.chunk.processed", "fields": ["operation_id", "processed", "failed", "duration_ms"] }
+    ],
+    "metrics": [
+      { "name": "bulk_chunk_latency_ms", "type": "histogram", "targetP95": 500 },
+      { "name": "bulk_failure_rate", "type": "gauge", "targetMax": 0.02 }
+    ]
+  },
+  "rollback": {
+    "strategy": "Transactional partial + idempotent replay",
+    "steps": ["Mark operation failed", "Reapply before_data where action=update/delete"],
+    "verification": ["All reversed rows match before_data hash"]
+  }
+}
+```
+
+MANDATORY: Every PRP must produce a valid JSON (no comments) adhering to the above key structure. Add fields if needed but NEVER omit baseline keys.
 
 ## Pre-Generation Validation
 
 1. **Input Validation**
-   - Verify feature file exists at specified path
-   - Validate feature file format and required sections
-   - Check for feature name conflicts in existing PRPs
-   - Ensure no duplicate PRP numbers
-
+   - Verify feature file exists
+   - Validate feature file required headers: `# Feature:`, `## Problem`, `## Requirements`
+   - Check PRP number uniqueness & phase directory existence
+   - Reject if overlapping feature scope with existing active PRPs (scan titles for similar keywords)
 2. **Dependency Analysis**
-   - Review PRP-STATUS.md for required dependencies
-   - Identify prerequisite PRPs that must be implemented first
-   - Map integration points with existing features
-
+   - Parse `Dependencies:` section of feature file or fallback to detection (references to tables/endpoints)
+   - Ensure all listed dependencies present in `PRP-STATUS.md` with status >= Implemented
+   - If unmet, mark PRP as `Blocked` in generated status entry
 3. **Context Gathering**
-   - Read IMPLEMENTATION-STANDARD.md for requirements
-   - Read COMPLETE-IMPLEMENTATION-GUIDE.md for patterns
-   - Analyze project structure and conventions
+   - Load `IMPLEMENTATION-STANDARD.md` & `COMPLETE-IMPLEMENTATION-GUIDE.md`
+   - Extract canonical patterns (server action, component, RLS policy, testing)
 
-## Research Process
+## Research Process (Depth-First)
 
 ### 1. **Feature File Analysis**
 
@@ -175,123 +231,112 @@ pnpm test [specific test files]
 # Must include actual database operations
 ```
 
-## ULTRATHINK Phase (REQUIRED)
+## NEW REQUIRED SECTIONS (Must Appear in PRP Markdown)
 
-Before writing the PRP, perform deep analysis:
+1. Feature Flags
+   - Table of flags with: name, scope (ui/api/job), default, owner, removal criteria
+   - Each acceptance criterion mapped to whether pre or post-flag
+2. Risk Assessment
+   - Surface Area (1-5), Data Sensitivity (1-5), External Integrations (count) → computed score & tier (LOW <6, MED 6-10, HIGH 11-14, CRITICAL ≥15)
+   - Mitigations list per high-risk vector
+3. Observability Plan
+   - Event list + fields + sampling rate
+   - Metrics + type + SLO target
+   - Dashboard outline (panels, queries)
+4. Rollback Plan (Executable)
+   - Migration reversal commands
+   - Data correction steps
+   - Verification queries
+5. RLS & Security Matrix
+   - Table: table | operation | policy name | tested (Y/N) | notes
+6. Test Matrix
+   - AC id ↔ test file path pattern
+   - Include policy tests, perf tests, E2E flows
+7. Launch Criteria
+   - Gated metrics (error rate thresholds, p95 latency, coverage delta)
+   - Flag removal prerequisites
+8. Change Impact Map
+   - Affected domains (auth, billing, pricing, inventory, jobs)
 
-1. **Completeness Check**
-   - Can an AI implement this with ONLY the PRP content?
-   - Are all external references included with URLs?
-   - Are code patterns explicitly shown?
+## Implementation Blueprint Enhancements
 
-2. **Risk Assessment**
-   - What could go wrong during implementation?
-   - What error cases need handling?
-   - What performance issues might arise?
+Add explicit subsections: Schema, APIs, Server Actions, Background Jobs, Feature Flags Wiring, Security/RLS, Observability Hooks, Testing Scaffolds, Rollback Steps.
 
-3. **Integration Planning**
-   - How does this affect existing features?
-   - What migrations are needed?
-   - What backwards compatibility concerns exist?
+## Validation Gates (Augmented)
 
-4. **Quality Gates**
-   - Are validation commands actually executable?
-   - Do success criteria cover all requirements?
-   - Are test scenarios comprehensive?
+Add mandatory gates beyond existing:
 
-## Output Generation
+```bash
+# Policy Tests
+pnpm test:policies --runInBand
 
-### 1. **File Creation**
+# Coverage Delta (enforced by CI script reading checklist JSON)
+node scripts/ci/check-coverage-delta.mjs PRPs/PhaseX/PRP-XXX.checklist.json
 
-- Save as: `PRPs/Phase X/PRP-XXX.md`
-- Use next available PRP number
-- Follow naming convention exactly
+# Performance (only if perfTest.required=true)
+pnpm test:perf bulk-ops
 
-### 2. **Quality Validation**
+# Observability Lint (ensures required events emitted)
+node scripts/ci/verify-events.mjs PRPs/PhaseX/PRP-XXX.checklist.json
+```
 
-- Run through quality checklist
-- Score confidence level (1-10)
-- Document any concerns or limitations
+If risk tier = HIGH or CRITICAL then also require:
+```bash
+pnpm test:load --scenario PRP-XXX
+```
 
-### 3. **Status Update**
+## Machine Readability & CI Integration
 
-- Add entry to PRP-STATUS.md
-- Mark as "📄 Documented"
-- List dependencies
+- Checklist JSON is single source of truth; CI jobs parse it.
+- README and marketing claims must reference only PRPs with `production=true` (set when feature flag removed & launch criteria passed).
+- A PR merges only if all `gates` conditions satisfied.
 
-## Quality Checklist
+## ULTRATHINK Phase (Expanded)
 
-- [ ] Feature file thoroughly analyzed
-- [ ] All needed context included in PRP
-- [ ] Validation gates are executable commands
-- [ ] References include specific URLs/files/lines
-- [ ] Implementation blueprint is detailed
-- [ ] Error handling explicitly documented
-- [ ] Dependencies clearly listed
-- [ ] Success criteria are measurable
-- [ ] No assumptions about external knowledge
-- [ ] PRP is self-contained for implementation
-- [ ] **NO mock implementations or placeholders**
-- [ ] **All code examples use real database/API calls**
-- [ ] **Progress tracking shows actual async operations**
-- [ ] **Test data comes from real sources**
+Add:
+- Alternative Approaches Comparison (table w/ trade-offs & chosen rationale)
+- Failure Mode Enumeration (per component: detection, mitigation, user impact)
+- Data Integrity Validation Strategy (hashing, row counts, reconciliation queries)
 
-## Confidence Scoring
+## Output Generation (Revised)
 
-Rate the PRP on these factors (1-10 each):
+1. Select next PRP number (scan existing numbers)
+2. Generate Markdown & JSON simultaneously; JSON must include SHA256 hash of markdown in `sourceHash`
+3. Append status entry with initial state `📄 Documented` or `⛔ Blocked`
+4. Echo summary to console: PRP number, risk tier, unmet dependencies
 
-- **Completeness**: All information present
-- **Clarity**: Easy to understand and follow
-- **Executability**: Can be implemented without questions
-- **Validation**: Clear success/failure criteria
-- **Context**: All references and examples included
+## Quality Checklist (Updated)
 
-**Overall Score**: [Average of above] / 10
+Add checks:
+- [ ] JSON validates against schema
+- [ ] All acceptance criteria have unique IDs & test mapping
+- [ ] All migrations list rollback
+- [ ] All feature flags have removal criteria
+- [ ] Observability events enumerate required fields
+- [ ] Risk tier computed correctly
+- [ ] No claims of implementation (only future) until status changes
 
-**Target**: Minimum 8/10 for release
+## Confidence Scoring (Add Dimension)
 
-## Common Pitfalls to Avoid
+Add: **Risk Mitigation Coverage** (percentage of identified risks with explicit mitigation steps).
 
-1. **Vague References**: "Follow existing patterns" without showing them
-2. **Missing Context**: Assuming knowledge of libraries/frameworks
-3. **Unclear Validation**: "Test that it works" vs specific commands
-4. **Incomplete Research**: Not checking for similar implementations
-5. **Poor Structure**: Missing required sections or unclear organization
+Overall score must include weighted penalty if any acceptance criterion lacks a mapped test.
 
-## Post-Generation Verification
+## Prohibited Content (Enforce via Grep Section)
 
-1. Re-read the PRP as if you know nothing about the project
-2. Verify all external links work
-3. Check that code examples are complete
-4. Ensure validation commands are correct
-5. Confirm PRP number is unique
+Extend mock detection to block words: `PLACEHOLDER_IMPLEMENTATION`, `NOT_YET_IMPLEMENTED`, `TEMP_`, `DEBUG_ONLY`.
 
-Remember: The goal is ONE-PASS implementation success. Every piece of context matters.
+## Post-Generation Verification (Augmented)
 
-## 🚫 CRITICAL: Production-Ready Code Only
+- Validate feature flag definitions compile (if registry updated)
+- Run JSON schema validation script (document command)
+- Verify rollback steps are executable (dry-run explanation if destructive)
 
-**NEVER include in PRPs:**
+## CRITICAL Enforcement Notes
 
-- Mock/fake/dummy data or simulated responses
-- setTimeout/sleep/delay for artificial delays or progress
-- Stub/placeholder functions that don't work
-- Console.log instead of real operations
-- TODO/FIXME comments in implementation
-- Hardcoded test data or static arrays
-- Alert() for user notifications
-- "Not implemented" messages or buttons
-- generateMock* or createFake* functions
-- Artificial loading states without real operations
+Failure to include machine checklist or risk assessment = INVALID PRP.
+Any TODO/FIXME found in generated code examples invalidates the PRP.
 
-**ALWAYS include in PRPs:**
+---
 
-- Real Supabase query examples with error handling
-- Actual async operation handling with try/catch
-- Complete error handling flows with user feedback
-- Real-time progress tracking from actual operations
-- Production-ready code snippets that work
-- Working API integration examples
-- Proper loading states with Skeleton components
-- Toast notifications for user feedback
-- Complete form submissions with validation
-- Real data fetching and state management
+All above changes make PRPs executable, enforceable, and self-governing.

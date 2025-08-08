@@ -22,7 +22,12 @@
     "test:perf": "RUN_PERF_TESTS=1 jest --testPathPattern=__tests__/performance",
     "validate:setup": "node scripts/validate-setup.js",
     "validate:migrations": "node scripts/validate-migrations.js",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "test:policies": "jest --testPathPattern=__tests__/policies",
+    "test:load": "jest --testPathPattern=__tests__/load",
+    "prp:check:coverage": "node scripts/ci/check-coverage-delta.mjs",
+    "prp:check:events": "node scripts/ci/verify-events.mjs",
+    "prp:check:checklist": "node scripts/ci/validate-prp-checklist.mjs PRPs/Phase*/PRP-*.checklist.json"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -125,6 +130,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "ajv": "^8.17.1",
     "autoprefixer": "latest",
     "eslint": "9.1.0",
     "eslint-config-next": "15.0.0",
