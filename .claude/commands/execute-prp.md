@@ -4,6 +4,198 @@ Implement a feature using the PRP file with robust error handling and validation
 
 ## PRP File: $ARGUMENTS
 
+## NEW: Companion Checklist JSON
+
+Every PRP must have a sibling `PRP-XXX.checklist.json` (see generate-prp). Execution consumes this file as the single source of truth for:
+- Tasks (ordered, dependencies)
+- Gates (lint/build/policyTests/perfTest/coverage)
+- Risk tier (drives conditional steps)
+- Feature flags
+- Observability events & metrics
+- Migrations & rollback instructions
+
+Execution MUST fail early if checklist JSON:
+1. Missing
+2. Fails schema validation (`pnpm prp:check:checklist <file>`) 
+3. Lacks any baseline required keys
+
+## Execution Process
+
+### 1. **Pre-Execution Validation (Augmented)**
+
+- Locate markdown + checklist JSON pair
+- Run schema validation:
+  ```bash
+  pnpm prp:check:checklist PRPs/PhaseX/PRP-XXX.checklist.json
+  ```
+- Compute & echo risk tier from checklist.risk (must match tier field)
+- Derive required gates (read `gates` object)
+- Verify dependencies in `dependencies` all appear in `PRP-STATUS.md` with status ≥ Implemented; else mark this run BLOCKED
+- Confirm migrations listed exist (filenames match) & contain rollback string
+- Verify each feature flag in `flags` present in `lib/flags/registry.ts` with identical removal criteria
+- Verify each acceptance criterion has unique `id` and appears in markdown
+- Create rollback checkpoint (git worktree or branch) named `prp-XXX-exec`.
+
+### 2. **Load and Analyze PRP (Extended)**
+
+- Parse tasks array; build DAG; ensure no circular dependencies
+- Generate ordered execution plan (topological sort)
+- Map each task id to concrete file paths (infer from description if not explicit) and log plan
+- Cross-reference observability.events; create checklist of required logging call sites
+
+### 3. **ULTRATHINK - Comprehensive Planning (Extended)**
+
+Add explicit outputs:
+- `planning/PRP-XXX.plan.json` capturing: task order, estimated effort, risk hot-spots, fallback strategies
+- Failure mode matrix (component → failure → detection → mitigation)
+- Coverage delta targets vs current baseline (store baseline by reading `coverage-summary.json` if exists)
+
+### 4. **Execute Implementation (Task-Driven)**
+
+For each task in sorted order:
+1. Implement code
+2. Add/adjust tests
+3. Run quick gate subset (lint + type + focused tests)
+4. Mark task complete (optionally update in-memory checklist representation; final write optional)
+
+Prohibited content scan after each task (reuse grep patterns from generate-prp; fail fast on violations).
+
+### 5. **Validation Loops (Gate-Oriented)**
+
+Replace static levels with gate evaluation pulled from checklist.gates:
+
+| Gate | Command | Conditional |
+|------|---------|-------------|
+| lint | `pnpm lint && pnpm prettier --check . && pnpm tsc --noEmit` | always |
+| build | `pnpm build` | always |
+| policyTests | `pnpm test:policies --runInBand` | if gates.policyTests true |
+| perfTest | `pnpm test:perf bulk-ops` | if gates.perfTest.required true |
+| load (risk) | `pnpm test:load --scenario PRP-XXX` | if risk tier HIGH/CRITICAL |
+| coverage | `pnpm prp:check:coverage PRPs/PhaseX/PRP-XXX.checklist.json` | if gates.coverage present |
+| events | `pnpm prp:check:events PRPs/PhaseX/PRP-XXX.checklist.json` | always (skips if none) |
+
+Mock implementation detection STILL required prior to build.
+
+### 6. **Error Recovery (Categorized)**
+
+- SchemaError: checklist invalid → abort
+- GateFailure:<gateName>: provide remediation instructions; retry gate max 2 times
+- CoverageFailure: output missing metric deltas; suggest adding tests around uncovered paths
+- EventMissing: list missing events; add logging using standardized logger
+
+### 7. **Quality Assurance (Augmented)**
+
+Add:
+- Feature Flags: ensure unset flags do not expose routes (attempt access returns 404/guarded)
+- Observability: manually emit one of each declared event in test to verify shape (optionally snapshot)
+- Migrations: apply forward + synthetic rollback test in ephemeral DB (if destructive safe)
+
+### 8. **Complete Implementation (Automated Updates)**
+
+On success:
+1. Update `PRP-STATUS.md` entry → `✅ Implemented` with: commit SHA, date, risk tier, list of created/modified files
+2. (Optional) Write `PRPs/PhaseX/PRP-XXX.execution.json` capturing: timestamps, durations, final coverage, perf metrics, event presence
+3. If acceptance criteria metrics produced (perf tests), append summary table to bottom of PRP markdown under `## Implementation Metrics` (idempotent section)
+4. If all launch criteria met AND flags default=false, leave flag gating (production readiness separate process)
+
+### 9. **Post-Implementation**
+
+- Run final consistency audit:
+  ```bash
+  pnpm prp:check:checklist PRPs/PhaseX/PRP-XXX.checklist.json \
+    && pnpm prp:check:events PRPs/PhaseX/PRP-XXX.checklist.json \
+    && pnpm prp:check:coverage PRPs/PhaseX/PRP-XXX.checklist.json
+  ```
+- Open follow-up tasks for any deferred risk mitigations.
+
+## Automated Gate Commands Summary
+
+```bash
+# Full gate run (scriptable)
+pnpm lint && pnpm prettier --check . && pnpm tsc --noEmit \
+ && pnpm build \
+ && pnpm test:policies --runInBand || true \
+ && pnpm test:perf bulk-ops || true \
+ && pnpm test:load --scenario PRP-XXX || true \
+ && pnpm prp:check:events PRPs/PhaseX/PRP-XXX.checklist.json \
+ && pnpm prp:check:coverage PRPs/PhaseX/PRP-XXX.checklist.json
+```
+
+Gating script should enforce required gates (recommended future: single `scripts/ci/run-prp-gates.mjs`).
+
+## Observability Event Implementation Pattern
+
+```ts
+import { logEvent } from '@/lib/observability/logger'
+// logEvent(name, payload)
+logEvent('bulk.operation.started', { operation_id, organization_id, entity_type, chunk_size })
+```
+
+## Feature Flag Usage Pattern
+
+```ts
+import { isFlagEnabled } from '@/lib/flags/registry'
+if (!isFlagEnabled('bulk_ops')) return notFound() // or guard
+```
+
+## Migration & Rollback Verification
+
+1. Apply migration
+2. Assert new tables/indexes exist
+3. Insert sample data; compute hash snapshot
+4. (Dry-run) simulate rollback: verify rollback SQL present; DO NOT run destructive rollback in production pipeline unless ephemeral DB
+5. Re-run forward migration idempotently (no errors)
+
+## Coverage Delta Strategy
+
+- Baseline: store previous coverage summary (artifact) → future enhancement
+- Current simple gate: absolute thresholds from checklist
+
+## Completion Report Template
+
+```markdown
+### Implementation Metrics
+| Metric | Value | Target | Status |
+|--------|-------|--------|--------|
+| P95 Chunk Latency | 420ms | <500ms | ✅ |
+| Failure Rate | 1.2% | <2% | ✅ |
+| Statements Coverage | 87% | 85% | ✅ |
+```
+
+## Non-Compliance Handling
+
+If any mandatory gate fails → PR cannot merge. Document deviations in `PRP-STATUS.md` `notes:` field.
+
+## Security Reinforcement
+
+- Verify RLS denies cross-org read/write (policy tests)
+- Ensure no service role key leaked in code diff
+- Confirm input validation present for all new API endpoints (Zod or equivalent)
+
+## Performance Guardrails
+
+- Perf / load tests must assert thresholds defined in acceptance criteria
+- Add regression markers if runtime > 120% of target
+
+## Checklist JSON Mutation (Optional)
+
+Execution MAY append runtime metrics under `execution` key (NOT required by schema) with:
+```json
+{"execution": {"completedAt": "ISO", "commit": "<sha>", "metrics": {"p95_chunk_latency_ms": 420}}}
+```
+
+---
+
+(All enhancements align with machine-enforced PRP lifecycle introduced in generate-prp.)
+
+## (Legacy Content Below - Retained for Reference)
+
+# Execute BASE PRP
+
+Implement a feature using the PRP file with robust error handling and validation.
+
+## PRP File: $ARGUMENTS
+
 ## Execution Process
 
 ### 1. **Pre-Execution Validation**

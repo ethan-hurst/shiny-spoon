@@ -27,7 +27,8 @@
     "test:load": "jest --testPathPattern=__tests__/load",
     "prp:check:coverage": "node scripts/ci/check-coverage-delta.mjs",
     "prp:check:events": "node scripts/ci/verify-events.mjs",
-    "prp:check:checklist": "node scripts/ci/validate-prp-checklist.mjs PRPs/Phase*/PRP-*.checklist.json"
+    "prp:check:checklist": "node scripts/ci/validate-prp-checklist.mjs PRPs/Phase*/PRP-*.checklist.json",
+    "prp:execute": "node scripts/prp/execute.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
